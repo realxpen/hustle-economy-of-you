@@ -1,0 +1,21 @@
+{
+  "name": "hustle-economy-of-you",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": {"node": ">=22"},
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "npm run dev --workspace=@hustle/web",
+    "dev:admin": "npm run dev --workspace=@hustle/admin",
+    "dev:api": "npm run dev --workspace=@hustle/api",
+    "dev:mobile": "npm run start --workspace=@hustle/mobile",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "ci": "npm run typecheck && npm run build"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.9.0"
+  }
+}

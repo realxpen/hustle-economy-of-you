@@ -1,0 +1,1 @@
+export default function AdminHome(){return <main><p>HUSTLE / INTERNAL</p><h1>Operations foundation</h1><p>Admin workflows begin in later MVP phases. This shell validates the application boundary now.</p></main>}

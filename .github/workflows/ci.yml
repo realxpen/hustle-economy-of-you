@@ -1,0 +1,25 @@
+name: Phase 1 Foundation CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - run: npm run typecheck --workspace=@hustle/web
+      - run: npm run typecheck --workspace=@hustle/admin
+      - run: npm run typecheck --workspace=@hustle/mobile
+      - run: npm run prisma:generate --workspace=@hustle/api
+      - run: npm run typecheck --workspace=@hustle/api
+      - run: npm run build --workspace=@hustle/web
+      - run: npm run build --workspace=@hustle/admin
+      - run: npm run build --workspace=@hustle/api
