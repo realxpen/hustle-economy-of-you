@@ -9,7 +9,7 @@ Build
 Phase 2 — Authentication + Unified Account System
 
 ## Phase 1 status
-Code foundation validated in CI. External infrastructure activation remains partially open.
+Code foundation validated in CI. Hosted PostgreSQL is now active through the dedicated Hustle Supabase project.
 
 ## Phase 2 decisions now active
 - One provider identity maps to one Hustle `User`.
@@ -33,6 +33,32 @@ Code foundation validated in CI. External infrastructure activation remains part
 - Account screen showing additive capability state.
 - Prisma Phase 2 migration with RLS enabled on operational public tables.
 - Locked Supabase dependency graph committed and CI switched to `npm ci`.
+- Repeatable `npm run phase2:gate` identity-loop checker added.
+
+## Supabase activation
+Dedicated project created and healthy:
+- Project name: `hustle-economy of you`
+- Project ref: `pfgarmyygybmhiiuopym`
+- Region: `eu-west-1`
+- API URL: `https://pfgarmyygybmhiiuopym.supabase.co`
+
+Applied hosted migrations:
+- `phase1_foundation`
+- `phase2_unified_account`
+- `api_database_role`
+
+Hosted schema verified:
+- `SystemEvent`
+- `User`
+- `UserCapability`
+- `Capability`: CLIENT / HUSTLER / AGENT
+- `CapabilityStatus`: ACTIVE / SUSPENDED / REVOKED
+
+Security validation:
+- RLS enabled on all operational public tables.
+- API-only policies exist for the dedicated `hustle_api` database role.
+- Supabase Security Advisor: 0 findings after policy activation.
+- Browser/mobile anon and authenticated roles are intentionally not granted identity-table policies.
 
 ## Validation
 Phase 2 code validation: PASS
@@ -44,20 +70,27 @@ Validated in GitHub Actions:
 - Prisma client generation
 - API type-check + production build
 
+Supabase:
+- hosted project healthy
+- migrations applied
+- live schema inspected
+- generated database types match the expected Phase 2 model
+- security advisor clean
+
 Vercel:
 - web project: deployment succeeds
-- api project: deployment still fails on Vercel despite the NestJS production build succeeding in GitHub CI
-- `apps/api/vercel.json` now explicitly declares the NestJS framework
-- the connected Vercel integration is not authorized for the `swifnatechnologyltd` team scope, so its deployment logs cannot currently be inspected from this session
+- api project: deployment still requires runtime environment activation
+- `apps/api/vercel.json` explicitly declares the NestJS framework
+- the connected Vercel integration still exposes no usable `swifnatechnologyltd` team scope from this session
 
-## External activation still required
-- Provision a dedicated Hustle Supabase project. Existing MONIFlow/other projects must not be reused.
-- Configure web/mobile/API publishable Supabase environment values.
-- Connect a hosted Hustle development PostgreSQL database and run migrations.
-- Configure Supabase Auth redirect URLs for local + Vercel preview domains.
-- Configure an SMS provider inside Supabase before phone OTP can send real messages.
-- Re-authenticate the Vercel integration to the `swifnatechnologyltd` team scope or inspect the API deployment logs there so the remaining deployment issue can be resolved.
-- Exercise the real end-to-end identity loop.
+## Remaining Phase 2 activation
+- Set a password/connection credential for the dedicated `hustle_api` Postgres role (the connected Supabase tool blocks credential mutation).
+- Set API `DATABASE_URL` to Supabase Supavisor transaction mode (`6543`) for Vercel serverless runtime.
+- Configure Vercel environment values for web/API; the connected Vercel tool currently cannot mutate/read the team scope.
+- Configure Supabase Auth Site URL + redirect allow-list for local and Vercel URLs.
+- Keep hosted email confirmation enabled; Supabase hosted projects enable confirmation by default.
+- Configure an SMS provider only when real phone OTP testing is required.
+- Exercise `npm run phase2:gate` with a real verified test identity.
 
 ## Phase 2 gate
 A real new user must be able to:
