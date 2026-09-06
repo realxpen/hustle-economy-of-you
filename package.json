@@ -17,6 +17,7 @@
     "ci": "npm run typecheck && npm run build"
   },
   "devDependencies": {
+    "next": "^15.5.0",
     "turbo": "^2.5.0",
     "typescript": "^5.9.0"
   }
