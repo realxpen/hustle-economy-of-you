@@ -61,9 +61,10 @@ Security validation:
 - Browser/mobile anon and authenticated roles are intentionally not granted identity-table policies.
 
 ## Validation
-Phase 2 code validation: PASS
+Latest Phase 2 repository validation: PASS
 
-Validated in GitHub Actions:
+Validated in GitHub Actions after Supabase activation changes:
+- locked dependency install
 - web type-check + production build
 - admin type-check + production build
 - mobile type-check
@@ -78,8 +79,8 @@ Supabase:
 - security advisor clean
 
 Vercel:
-- web project: deployment succeeds
-- api project: deployment still requires runtime environment activation
+- web project has previously deployed successfully
+- latest API deployment attempt was blocked by the Vercel account build-rate/upgrade limit, not by a Hustle compile failure
 - `apps/api/vercel.json` explicitly declares the NestJS framework
 - the connected Vercel integration still exposes no usable `swifnatechnologyltd` team scope from this session
 
