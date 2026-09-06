@@ -31,7 +31,24 @@ Code foundation validated in CI. External infrastructure activation remains part
 - Unified profile onboarding.
 - Capability guard primitive for future protected actions.
 - Account screen showing additive capability state.
-- Prisma Phase 2 migration.
+- Prisma Phase 2 migration with RLS enabled on operational public tables.
+- Locked Supabase dependency graph committed and CI switched to `npm ci`.
+
+## Validation
+Phase 2 code validation: PASS
+
+Validated in GitHub Actions:
+- web type-check + production build
+- admin type-check + production build
+- mobile type-check
+- Prisma client generation
+- API type-check + production build
+
+Vercel:
+- web project: deployment succeeds
+- api project: deployment still fails on Vercel despite the NestJS production build succeeding in GitHub CI
+- `apps/api/vercel.json` now explicitly declares the NestJS framework
+- the connected Vercel integration is not authorized for the `swifnatechnologyltd` team scope, so its deployment logs cannot currently be inspected from this session
 
 ## External activation still required
 - Provision a dedicated Hustle Supabase project. Existing MONIFlow/other projects must not be reused.
@@ -39,11 +56,15 @@ Code foundation validated in CI. External infrastructure activation remains part
 - Connect a hosted Hustle development PostgreSQL database and run migrations.
 - Configure Supabase Auth redirect URLs for local + Vercel preview domains.
 - Configure an SMS provider inside Supabase before phone OTP can send real messages.
+- Re-authenticate the Vercel integration to the `swifnatechnologyltd` team scope or inspect the API deployment logs there so the remaining deployment issue can be resolved.
 - Exercise the real end-to-end identity loop.
 
 ## Phase 2 gate
 A real new user must be able to:
 `Register → verify → synchronize → receive CLIENT → complete profile → sign out → sign back in → retain the same Hustle identity and capability history.`
+
+## Current rule
+Do not begin Phase 3 until the Phase 2 operational identity loop is exercised successfully or the project owner explicitly waives that gate.
 
 ## Next phase after gate
 Phase 3 — Hustler Application + Verification.
