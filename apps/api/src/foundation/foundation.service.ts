@@ -19,15 +19,22 @@ export class FoundationService {
     try { await redis.connect(); await redis.ping(); return "connected"; } catch { return "unavailable"; } finally { redis.disconnect(); }
   }
 
+  private authState(): State {
+    const provider = process.env.AUTH_PROVIDER;
+    if (!provider || provider === "unconfigured") return "not_configured";
+    if (provider === "supabase" && (!process.env.SUPABASE_URL || !process.env.SUPABASE_PUBLISHABLE_KEY)) return "not_configured";
+    return "connected";
+  }
+
   async health() {
     const [database, redis] = await Promise.all([this.databaseState(), this.redisState()]);
-    const auth: State = process.env.AUTH_PROVIDER && process.env.AUTH_PROVIDER !== "unconfigured" ? "connected" : "not_configured";
+    const auth = this.authState();
     const storage: State = process.env.STORAGE_PROVIDER && process.env.STORAGE_PROVIDER !== "unconfigured" ? "connected" : "not_configured";
     const degraded = [database, redis].includes("unavailable");
     return {service:"hustle-api",status:degraded?"degraded":"ok",environment:process.env.NODE_ENV ?? "development",timestamp:new Date().toISOString(),dependencies:{database,redis,auth,storage}};
   }
 
   foundationStatus(){
-    return {phase:1,name:"Technical Foundation",architecture:"modular-monolith",apps:["mobile","web","api","admin"],data:["postgresql","redis","object-storage"],nextPhase:"Authentication + Unified Account System"};
+    return {phase:2,name:"Authentication + Unified Account System",architecture:"modular-monolith",apps:["mobile","web","api","admin"],identity:"single-account-progressive-capabilities",authProvider:process.env.AUTH_PROVIDER ?? "unconfigured",nextPhase:"Hustler Application + Verification"};
   }
 }

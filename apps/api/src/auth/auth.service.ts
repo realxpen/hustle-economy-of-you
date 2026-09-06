@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { PrismaService } from "../database/prisma.service";
 
@@ -46,7 +47,10 @@ export class AuthService {
   }
 
   async updateProfile(identity: AuthIdentity, input: UpdateProfileInput) {
-    const existing = await this.prisma.user.findUnique({ where: { authSubject: identity.subject }, select: { id: true } });
+    const existing = await this.prisma.user.findUnique({
+      where: { authSubject: identity.subject },
+      select: { id: true, displayName: true, username: true }
+    });
     if (!existing) throw new NotFoundException("Hustle account not synchronized");
 
     const displayName = this.optionalText(input.displayName, "displayName", 80);
@@ -54,6 +58,8 @@ export class AuthService {
     const bio = this.optionalText(input.bio, "bio", 300);
     const location = this.optionalText(input.location, "location", 120);
     const avatarUrl = this.optionalUrl(input.avatarUrl);
+    const resultingDisplayName = displayName === undefined ? existing.displayName : displayName;
+    const resultingUsername = username === undefined ? existing.username : username;
 
     try {
       await this.prisma.user.update({
@@ -64,11 +70,11 @@ export class AuthService {
           ...(bio !== undefined ? { bio } : {}),
           ...(location !== undefined ? { location } : {}),
           ...(avatarUrl !== undefined ? { avatarUrl } : {}),
-          onboardingCompleted: Boolean(displayName && username)
+          onboardingCompleted: Boolean(resultingDisplayName && resultingUsername)
         }
       });
     } catch (error) {
-      if (error instanceof Error && error.message.includes("Unique constraint")) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new BadRequestException("That username is already taken");
       }
       throw error;
