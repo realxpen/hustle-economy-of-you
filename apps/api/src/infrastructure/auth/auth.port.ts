@@ -2,6 +2,8 @@ export interface AuthIdentity {
   subject: string;
   email?: string;
   phone?: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
 }
 
 export interface AuthPort {

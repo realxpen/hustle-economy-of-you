@@ -1,42 +1,8 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import type { FoundationHealth } from "@hustle/types";
-
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
-
 export default function HomePage() {
-  const [health, setHealth] = useState<FoundationHealth | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!apiBase) return;
-    fetch(`${apiBase}/health`, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`API returned ${response.status}`);
-        return response.json() as Promise<FoundationHealth>;
-      })
-      .then(setHealth)
-      .catch((reason: Error) => setError(reason.message));
-  }, []);
-
-  return (
-    <main className="shell">
-      <section className="hero">
-        <p className="eyebrow">HUSTLE / PHASE 1</p>
-        <h1>The Economy of You.</h1>
-        <p className="lede">The technical foundation is being built for a content-first economy where skill becomes discoverable, trusted and economically useful.</p>
-        <div className="loop">Skill <span>→</span> Demonstration <span>→</span> Discovery <span>→</span> Trust <span>→</span> Opportunity</div>
-      </section>
-
-      <section className="statusGrid" aria-label="Foundation status">
-        <article><span>Web</span><strong>Ready</strong><small>Next.js preview surface</small></article>
-        <article><span>API</span><strong>{health ? health.status : apiBase ? "Checking" : "Awaiting URL"}</strong><small>{error ?? "NestJS foundation"}</small></article>
-        <article><span>Database</span><strong>{health?.dependencies.database ?? "Not configured"}</strong><small>PostgreSQL + Prisma</small></article>
-        <article><span>Cache</span><strong>{health?.dependencies.redis ?? "Not configured"}</strong><small>Redis boundary</small></article>
-      </section>
-
-      <footer><span>Hustle</span><span>Phase 1 — Technical Foundation</span></footer>
-    </main>
-  );
+  return <main className="phasePreview">
+    <header className="topLine"><a className="brandMark" href="/">HUSTLE<span>↗</span></a><a className="textButton" href="/auth">Enter Hustle</a></header>
+    <section className="phaseHero"><p className="kicker">PHASE 2 / UNIFIED IDENTITY</p><h1>The economy starts with <em>you.</em></h1><p className="heroCopy">One account becomes the home of your discovery, transactions, reputation and future capabilities.</p><div className="heroActions"><a className="primaryLink" href="/auth">Create your identity <b>↗</b></a><span>Client is enabled automatically.</span></div></section>
+    <section className="principleGrid"><article><small>01</small><h2>One identity</h2><p>No duplicate buyer/seller accounts.</p></article><article className="darkCard"><small>02</small><h2>Progressive capability</h2><p>Client today. Hustler or Agent when approved.</p></article><article><small>03</small><h2>Compounding trust</h2><p>Every future interaction strengthens the same reputation.</p></article></section>
+    <footer className="previewFooter"><span>Hustle — The Economy of You</span><span>Authentication + Unified Account</span></footer>
+  </main>;
 }

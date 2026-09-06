@@ -1,8 +1,16 @@
 {
   "name": "@hustle/web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "scripts": {"dev":"next dev -p 3000","build":"next build","start":"next start -p 3000","typecheck":"tsc --noEmit"},
-  "dependencies": {"next":"^15.5.0","react":"^19.1.0","react-dom":"^19.1.0","@hustle/types":"*","@hustle/ui":"*"},
+  "dependencies": {
+    "@hustle/types":"*",
+    "@hustle/ui":"*",
+    "@supabase/ssr":"0.12.6",
+    "@supabase/supabase-js":"2.115.0",
+    "next":"^15.5.0",
+    "react":"^19.1.0",
+    "react-dom":"^19.1.0"
+  },
   "devDependencies": {"@types/node":"^22.0.0","@types/react":"^19.0.0","@types/react-dom":"^19.0.0","typescript":"^5.9.0"}
 }

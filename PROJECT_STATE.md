@@ -6,56 +6,44 @@ Updated: 2026-09-06
 Build
 
 ## Current MVP phase
-Phase 1 — Technical Foundation
+Phase 2 — Authentication + Unified Account System
 
-## Completed before this repository build
-- Vision defined
-- Ecosystem Mapping defined
-- Simulation defined
-- System Architecture defined
-- Experience Architecture defined
-- Phase 0 MVP scope and product rules locked conceptually
+## Phase 1 status
+Code foundation validated in CI. External infrastructure activation remains partially open.
 
-## Phase 1 completed in code
-- Monorepo and application boundaries established.
-- `apps/mobile`, `apps/web`, `apps/api`, and `apps/admin` shells established.
-- Shared `ui`, `types`, `validation`, `config`, and `utilities` packages established.
-- PostgreSQL + Prisma schema/migration foundation established.
-- Redis development boundary established.
-- Local PostgreSQL + Redis development services defined with Docker Compose.
-- Auth provider port established without implementing Phase 2 auth flows.
-- Object-storage port established for future media provider integration.
-- Analytics event persistence path established at `POST /api/v1/events`.
-- Structured request logging and normalized API error handling established.
-- Foundation health endpoints established.
-- GitHub Actions CI established and passing across web, admin, mobile, Prisma, and API.
-- Root Vercel monorepo configuration established for the web UI/UX preview.
+## Phase 2 decisions now active
+- One provider identity maps to one Hustle `User`.
+- Every synchronized user receives `CLIENT` automatically.
+- `HUSTLER` and `AGENT` remain additive future capabilities.
+- No role switcher and no account-type field.
+- Supabase Auth is the development provider behind `AuthPort`.
+- Hustle's database, not provider metadata, is authoritative for capabilities.
 
-## Validation status
-Latest Phase 1 CI validation: PASS
+## Phase 2 implementation
+- Web email/password authentication flow.
+- Web email verification callback.
+- Web password recovery/update flow.
+- Web phone OTP flow.
+- Expo email/password session flow.
+- API bearer-token verification through Supabase.
+- Provider identity → Hustle account synchronization.
+- Automatic Client capability.
+- Unified profile onboarding.
+- Capability guard primitive for future protected actions.
+- Account screen showing additive capability state.
+- Prisma Phase 2 migration.
 
-Validated:
-- Web type-check + production build
-- Admin type-check + production build
-- Mobile type-check
-- Prisma client generation
-- API type-check + production build
+## External activation still required
+- Provision a dedicated Hustle Supabase project. Existing MONIFlow/other projects must not be reused.
+- Configure web/mobile/API publishable Supabase environment values.
+- Connect a hosted Hustle development PostgreSQL database and run migrations.
+- Configure Supabase Auth redirect URLs for local + Vercel preview domains.
+- Configure an SMS provider inside Supabase before phone OTP can send real messages.
+- Exercise the real end-to-end identity loop.
 
-## Phase 1 gate still open
-The code-side foundation is complete, but external activation remains before Phase 1 is fully gated:
-- Connect a hosted development PostgreSQL database and run the migration.
-- Connect hosted Redis if required for the current environment.
-- Choose/authorize the auth provider before Phase 2 implementation.
-- Choose/authorize object storage before media features.
-- Create the Vercel project/import and obtain a live preview URL.
-- Exercise Web → API, Mobile → API → Database, and Admin → API against deployed/development infrastructure.
+## Phase 2 gate
+A real new user must be able to:
+`Register → verify → synchronize → receive CLIENT → complete profile → sign out → sign back in → retain the same Hustle identity and capability history.`
 
-## Vercel status
-- Repository is configured for Vercel web previews through root `vercel.json`.
-- The currently connected Vercel tool exposes no usable team/project scope, so no deployment URL has been created from this session.
-
-## Current rule
-Do not begin Phase 2 authentication user flows until the Phase 1 external gate is either satisfied or explicitly waived by the project owner.
-
-## Next phase
-Phase 2 — Authentication + Unified Account System.
+## Next phase after gate
+Phase 3 — Hustler Application + Verification.
