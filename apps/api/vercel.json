@@ -1,5 +1,19 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nestjs",
-  "buildCommand": "npm run build"
+  "framework": null,
+  "buildCommand": "npm run prisma:generate && npm run build",
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/api?__hustle_path="
+    },
+    {
+      "source": "/api/v1",
+      "destination": "/api?__hustle_path="
+    },
+    {
+      "source": "/api/v1/:path*",
+      "destination": "/api?__hustle_path=:path*"
+    }
+  ]
 }
