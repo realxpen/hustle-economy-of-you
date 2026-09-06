@@ -6,6 +6,16 @@ import { syncHustleAccount } from "../../lib/auth/hustle-account";
 
 type Mode = "signin" | "signup" | "phone" | "forgot";
 
+function authErrorMessage(reason: unknown) {
+  if (reason instanceof Error) {
+    if (/load failed|failed to fetch|network request failed|networkerror/i.test(reason.message)) {
+      return "Could not reach Supabase Auth. Check NEXT_PUBLIC_SUPABASE_URL and your network connection, then try again.";
+    }
+    return reason.message;
+  }
+  return "Authentication failed";
+}
+
 export default function AuthPage() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -55,7 +65,7 @@ export default function AuthPage() {
         await finishAuth();
       }
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Authentication failed");
+      setError(authErrorMessage(reason));
     } finally { setLoading(false); }
   }
 
