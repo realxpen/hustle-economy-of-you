@@ -1,5 +1,23 @@
 {
-  "extends":"../../tsconfig.base.json",
-  "compilerOptions":{"module":"commonjs","moduleResolution":"node","target":"ES2022","outDir":"./dist","rootDir":"./src","emitDecoratorMetadata":true,"experimentalDecorators":true,"declaration":false,"sourceMap":true,"noEmit":false},
-  "include":["src/**/*.ts"],"exclude":["node_modules","dist"]
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "declaration": false,
+    "sourceMap": true,
+    "noEmit": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
