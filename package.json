@@ -10,6 +10,8 @@
     "dev:admin": "npm run dev --workspace=@hustle/admin",
     "dev:api": "npm run dev --workspace=@hustle/api",
     "dev:mobile": "npm run start --workspace=@hustle/mobile",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "ci": "npm run typecheck && npm run build"
