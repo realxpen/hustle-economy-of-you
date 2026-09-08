@@ -6,28 +6,76 @@ Updated: 2026-09-08
 Build
 
 ## Current MVP phase
-Phase 3 — Hustler Application + Verification
+Phase 4 — Professional Profile + Digital Identity
 
 ## Phase 1 status
-Foundation complete and validated. Hustle uses the approved monorepo, NestJS modular API, Prisma/PostgreSQL, Next.js web/admin, Expo mobile and provider boundaries.
+COMPLETE.
+
+Foundation validated: approved monorepo, NestJS modular API, Prisma/PostgreSQL, Next.js web/admin, Expo mobile and provider boundaries.
 
 ## Phase 2 status
 COMPLETE.
 
-The real operational identity loop has been exercised successfully:
+Validated operational identity loop:
 
 `Register → verify → synchronize → CLIENT → complete profile → sign out → sign back in → retain the same Hustle identity.`
 
-Validated rules:
-- One provider identity maps to one Hustle `User`.
-- Every synchronized user receives CLIENT automatically.
-- HUSTLER and AGENT are additive capabilities.
-- No role switcher and no separate account modes.
-- Supabase Auth remains behind `AuthPort`.
-- `UserCapability` in the Hustle database is authorization truth.
+Rules now proven:
+- one provider identity maps to one Hustle `User`
+- every synchronized user receives CLIENT automatically
+- HUSTLER and AGENT are additive capabilities
+- no role switcher and no separate account modes
+- Supabase Auth remains behind `AuthPort`
+- `UserCapability` is authorization truth
+
+## Phase 3 status
+COMPLETE.
+
+The full real gate was exercised successfully on 2026-09-08:
+
+`CLIENT → Hustler application → draft → private proof → submit → SUBMITTED → second verified reviewer → UNDER_REVIEW → proof inspection → identity VERIFIED → APPROVED → same User retains CLIENT ACTIVE + receives HUSTLER ACTIVE`
+
+Hosted database verification after the gate confirms:
+- Hustler application: APPROVED
+- identity verification: VERIFIED
+- CLIENT: ACTIVE
+- HUSTLER: ACTIVE
+
+### Phase 3 implementation
+Applicant API:
+- `GET /api/v1/hustler-application`
+- `PUT /api/v1/hustler-application`
+- `POST /api/v1/hustler-application/proofs`
+- `DELETE /api/v1/hustler-application/proofs/:proofId`
+- `POST /api/v1/hustler-application/submit`
+
+Review API:
+- `GET /api/v1/hustler-reviews`
+- `GET /api/v1/hustler-reviews/:applicationId`
+- `POST /api/v1/hustler-reviews/:applicationId/start`
+- `POST /api/v1/hustler-reviews/:applicationId/verification`
+- `POST /api/v1/hustler-reviews/:applicationId/proofs/:proofId/read-url`
+- `POST /api/v1/hustler-reviews/:applicationId/approve`
+- `POST /api/v1/hustler-reviews/:applicationId/reject`
+
+Validated protections:
+- applicant owns only their application
+- applicant cannot self-approve
+- reviewer must be an allow-listed verified second identity
+- proof storage is private
+- identity must be VERIFIED before approval
+- approval is atomic
+- ACTIVE CLIENT is preserved
+- HUSTLER is added to the same User
+- no role switcher
+
+Temporary Phase 3 review surface:
+- `/internal/hustler-reviews`
+
+Full Admin + Operations remains Phase 19.
 
 ## Supabase
-Dedicated project:
+Dedicated Hustle project:
 - Name: `hustle-economy of you`
 - Ref: `pfgarmyygybmhiiuopym`
 - Region: `eu-west-1`
@@ -40,125 +88,96 @@ Applied hosted migrations:
 - `phase3_hustler_application_foundation`
 - `phase3_hustler_proof_storage`
 
-Phase 3 database/storage foundation:
+Phase 3 hosted foundation:
 - `HustlerApplication`
 - `HustlerApplicationProof`
-- private `hustler-proofs` storage bucket
-- authenticated per-identity upload/read/delete policies
+- private `hustler-proofs` bucket
+- authenticated identity-bound storage policies
 - 10 MB proof limit
 - PDF/JPEG/PNG/WebP proof formats
 
-RLS is enabled and the dedicated `hustle_api` database role remains the API-side database actor. Storage access is private and constrained by the authenticated Supabase identity path.
+RLS remains enabled. `hustle_api` remains the API-side database actor.
+
+Security advisor after Phase 3 found no new database/storage policy problem. Remaining account-level warning: Supabase leaked-password protection is disabled.
 
 ## Local development
-Current local preview:
 - Web: `http://localhost:3001`
 - API: `http://localhost:4000/api/v1`
-- Admin reserved for `http://localhost:3002`
-- Auth/database/storage: hosted Hustle Supabase project
+- Admin reserved: `http://localhost:3002`
+- Auth/database/storage: hosted Hustle Supabase
 - Local Prisma connection: Supabase Session Pooler on port 5432
 
 Secrets and `.env` files remain local and must never be committed.
 
 ## Repository workflow
-ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you` when the project owner asks to continue repository work. The project owner pulls and tests locally. Do not commit secrets or private environment values.
+ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you` when continuing project work. The project owner pulls and tests locally. Never commit secrets or private environment values.
 
-## Phase 3 invariant
-HUSTLER can only be granted through the approved application/review lifecycle.
+## Current Phase 4 objective
+Turn HUSTLER ACTIVE into a professional digital identity that can be edited, published and viewed by another person.
 
-Approval must preserve CLIENT and add HUSTLER to the same User. Frontend state must never grant the capability directly.
+Canonical Phase 4 path:
 
-## Phase 3 implementation status
+`HUSTLER ACTIVE → bootstrap professional profile → edit → publish → public visitor profile`
 
-### Phase 3A — Application API
-IMPLEMENTED + LOCALLY VALIDATED.
+## Phase 4 identity rule
+The professional profile extends the existing User. It does not create another account, role mode or authorization source.
 
-- `GET /api/v1/hustler-application`
-- `PUT /api/v1/hustler-application`
-- `POST /api/v1/hustler-application/proofs`
-- `DELETE /api/v1/hustler-application/proofs/:proofId`
-- `POST /api/v1/hustler-application/submit`
-- authenticated ownership
-- draft-only editing and proof mutation
-- required-field validation
-- proof requirement before submission
-- proof metadata validation and identity-bound storage keys
+Universal identity stays on `User`:
+- display name
+- username
+- avatar
+- bio
+- location
+- verification/capabilities
 
-### Phase 3B — Applicant experience
-IMPLEMENTED + LOCALLY VALIDATED.
+Professional presentation adds Hustler-specific fields:
+- headline
+- cover
+- primary skill
+- secondary skills
+- category
+- professional summary
+- years of experience
+- publication state
 
-The project owner successfully exercised the real applicant path on 2026-09-08:
+Initial professional values should be bootstrapped from the approved Hustler application where sensible. Editing the professional profile must never rewrite the approved application/review evidence.
 
-`CLIENT → open application → enter skill/category/experience → save draft → attach private proof → reach complete state → submit → SUBMITTED`
+## Phase 4 planned slices
 
-Implemented:
-- account CTA: Apply to become a Hustler
-- dedicated Hustler application route
-- skill/category fields
-- experience and years-of-experience fields
-- optional business context
-- draft persistence
-- private proof upload/removal
-- application progress and lifecycle state
-- submission to review once required fields and proof are present
+### Phase 4A — Professional profile data foundation
+- Prisma model + hosted migration
+- HUSTLER ACTIVE authorization
+- bootstrap from approved application
+- DRAFT / PUBLISHED state
 
-### Phase 3C — Proof storage
-IMPLEMENTED + LOCALLY VALIDATED.
+### Phase 4B — Owner profile API
+- get own professional profile
+- update professional profile
+- publish/unpublish
 
-Private Supabase Storage is enabled for Hustler proof files. Browser uploads use the authenticated session and per-user path RLS; the API records proof metadata only for the same authenticated identity.
+### Phase 4C — Owner editing experience
+- profile editor
+- cover/avatar presentation
+- headline
+- primary + secondary skills
+- category
+- professional summary
+- years experience
+- public preview
 
-Security advisor after activation reports no new database/storage policy findings. The remaining warning is the account-level Supabase Auth leaked-password-protection setting.
+### Phase 4D — Public visitor profile
+- stable username route `/u/[username]`
+- only PUBLISHED profiles resolve publicly
+- same User identity and HUSTLER capability shown
 
-### Phase 3D — Internal review + approval
-IMPLEMENTED; OPERATIONAL GATE PENDING.
+Later phases attach services, products, content, reviews and storefront commerce to this same profile rather than inventing duplicate profile systems.
 
-Protected review API:
-- `GET /api/v1/hustler-reviews`
-- `GET /api/v1/hustler-reviews/:applicationId`
-- `POST /api/v1/hustler-reviews/:applicationId/start`
-- `POST /api/v1/hustler-reviews/:applicationId/verification`
-- `POST /api/v1/hustler-reviews/:applicationId/proofs/:proofId/read-url`
-- `POST /api/v1/hustler-reviews/:applicationId/approve`
-- `POST /api/v1/hustler-reviews/:applicationId/reject`
+## Phase 4 gate
+A real approved Hustler must be able to:
 
-Review protections:
-- bearer authentication required
-- reviewer email must be verified and present in server-only `HUSTLE_REVIEWER_EMAILS`
-- applicant cannot review their own application
-- a reviewer must claim a SUBMITTED application before decisions
-- verification must be VERIFIED before approval
-- capability proof remains required
-- proof preview uses a short-lived server-generated signed URL
-- approval is atomic: application APPROVED + `UserCapability(HUSTLER, ACTIVE)`
-- ACTIVE CLIENT is required and is never removed or switched
-- approval/rejection emits a `SystemEvent`
+`HUSTLER ACTIVE → professional profile created → edit identity → publish → open /u/[username] as a visitor → see the same identity and professional capability`
 
-Temporary review surface:
-- `/internal/hustler-reviews`
-- this exists only to close the Phase 3 operational gate
-- full Admin + Operations authorization/product work remains owned by Phase 19
+CLIENT remains ACTIVE. No role switcher.
 
-Server-only local configuration needed for the review gate:
-- `HUSTLE_REVIEWER_EMAILS=<comma-separated reviewer emails>`
-- `SUPABASE_SECRET_KEY=<server-only Supabase secret key>` for short-lived proof previews
-
-Never expose `SUPABASE_SECRET_KEY` through `NEXT_PUBLIC_*` or `EXPO_PUBLIC_*` variables.
-
-## Current Phase 3 gate work
-Exercise the review half with a second, verified Hustle identity that is allow-listed as a reviewer.
-
-The reviewer must not be the applicant.
-
-Target path:
-
-`SUBMITTED → reviewer claims → UNDER_REVIEW → proof inspected → identity VERIFIED → APPROVED → same applicant User retains CLIENT ACTIVE + receives HUSTLER ACTIVE`
-
-## Phase 3 gate
-A real Client must be able to:
-
-`Create application → add skill/category/experience/proof → submit → review → approval → retain CLIENT + receive HUSTLER`
-
-No second applicant account. No role switcher.
-
-## Next phase after Phase 3 gate
-Phase 4 — Professional Profile + Digital Identity.
+## Next phase after Phase 4 gate
+Phase 5 — Services.
