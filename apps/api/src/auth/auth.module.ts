@@ -15,6 +15,6 @@ import { SupabaseAuthService } from "./supabase-auth.service";
     CapabilityGuard,
     AuthService
   ],
-  exports: [AuthGuard, CapabilityGuard, AuthService]
+  exports: [AUTH_PORT, AuthGuard, CapabilityGuard, AuthService]
 })
 export class AuthModule {}
