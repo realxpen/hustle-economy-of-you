@@ -2,9 +2,12 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  NotFoundException
+  NotFoundException,
+  ServiceUnavailableException
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { HustlerApplicationStatus, VerificationStatus } from "@prisma/client";
+import { createClient } from "@supabase/supabase-js";
 
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { PrismaService } from "../database/prisma.service";
@@ -24,7 +27,10 @@ const reviewerStatuses = new Set<HustlerApplicationStatus>([
 
 @Injectable()
 export class HustlerReviewService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService
+  ) {}
 
   async list(identity: AuthIdentity, status?: string) {
     await this.requireReviewerUser(identity);
@@ -166,6 +172,70 @@ export class HustlerReviewService {
     });
 
     return this.get(identity, applicationId);
+  }
+
+  async createProofReadUrl(
+    identity: AuthIdentity,
+    applicationId: string,
+    proofId: string
+  ) {
+    const reviewer = await this.requireReviewerUser(identity);
+    const application = await this.requireApplication(applicationId);
+    this.assertAssigned(application, reviewer.id);
+
+    if (application.status !== HustlerApplicationStatus.UNDER_REVIEW) {
+      throw new BadRequestException("Proof preview is only available during active review");
+    }
+
+    const proof = await this.prisma.hustlerApplicationProof.findFirst({
+      where: {
+        id: proofId,
+        applicationId
+      }
+    });
+
+    if (!proof) {
+      throw new NotFoundException("Hustler proof item not found");
+    }
+
+    const supabaseUrl = this.config.get<string>("SUPABASE_URL");
+    const supabaseSecretKey = this.config.get<string>("SUPABASE_SECRET_KEY");
+
+    if (!supabaseUrl || !supabaseSecretKey) {
+      throw new ServiceUnavailableException(
+        "Reviewer proof preview is not configured on the API"
+      );
+    }
+
+    const storage = createClient(supabaseUrl, supabaseSecretKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    });
+
+    const expiresInSeconds = 300;
+    const { data, error } = await storage.storage
+      .from("hustler-proofs")
+      .createSignedUrl(proof.storageKey, expiresInSeconds);
+
+    if (error || !data?.signedUrl) {
+      throw new ServiceUnavailableException(
+        error?.message ?? "Could not create a secure proof preview"
+      );
+    }
+
+    return {
+      url: data.signedUrl,
+      expiresInSeconds,
+      proof: {
+        id: proof.id,
+        fileName: proof.fileName,
+        type: proof.type,
+        mimeType: proof.mimeType,
+        sizeBytes: proof.sizeBytes
+      }
+    };
   }
 
   async approve(

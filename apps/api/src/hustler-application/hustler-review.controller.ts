@@ -55,6 +55,15 @@ export class HustlerReviewController {
     return this.reviews.setVerification(identity, applicationId, body);
   }
 
+  @Post(":applicationId/proofs/:proofId/read-url")
+  createProofReadUrl(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("applicationId") applicationId: string,
+    @Param("proofId") proofId: string
+  ) {
+    return this.reviews.createProofReadUrl(identity, applicationId, proofId);
+  }
+
   @Post(":applicationId/approve")
   approve(
     @CurrentIdentity() identity: AuthIdentity,
