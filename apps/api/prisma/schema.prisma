@@ -43,6 +43,11 @@ enum HustlerProofType {
   OTHER
 }
 
+enum ProfessionalProfileStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model User {
   id                          String               @id @default(cuid())
   authSubject                 String               @unique
@@ -61,6 +66,7 @@ model User {
   updatedAt                   DateTime             @updatedAt
   hustlerApplication          HustlerApplication?  @relation("HustlerApplicant")
   reviewedHustlerApplications HustlerApplication[] @relation("HustlerReviewer")
+  professionalProfile         ProfessionalProfile?
 }
 
 model UserCapability {
@@ -123,6 +129,27 @@ model HustlerApplicationProof {
   application HustlerApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@index([applicationId, type])
+}
+
+model ProfessionalProfile {
+  id                  String                    @id @default(cuid())
+  userId              String                    @unique
+  headline            String?
+  coverUrl            String?
+  primarySkill        String?
+  secondarySkills     String[]                  @default([])
+  category            String?
+  professionalSummary String?
+  yearsExperience     Int?
+  status              ProfessionalProfileStatus @default(DRAFT)
+  publishedAt         DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([category])
 }
 
 model SystemEvent {
