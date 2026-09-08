@@ -80,14 +80,38 @@ export default function HustlerApplicationPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([getMyAccount(), getMyHustlerApplication()])
-      .then(([nextAccount, nextApplication]) => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const nextAccount = await getMyAccount();
+        if (!active) return;
         setAccount(nextAccount);
+      } catch (reason) {
+        if (!active) return;
+        setError(reason instanceof Error ? reason.message : "Could not load your Hustle identity");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const nextApplication = await getMyHustlerApplication();
+        if (!active) return;
         setApplication(nextApplication);
         setForm(toForm(nextApplication));
-      })
-      .catch((reason: Error) => setError(reason.message))
-      .finally(() => setLoading(false));
+      } catch (reason) {
+        if (!active) return;
+        setError(reason instanceof Error ? reason.message : "Could not load your Hustler application");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => { active = false; };
   }, []);
 
   const isHustler = account?.capabilities.some(

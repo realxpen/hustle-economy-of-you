@@ -42,18 +42,47 @@ async function authenticatedFetch(path: string, init?: RequestInit) {
   });
 
   if (!response.ok) {
-    const body = await response.json().catch(() => null) as {
-      error?: { message?: string };
-    } | null;
-    throw new Error(body?.error?.message ?? `Hustle API returned ${response.status}`);
+    const text = await response.text();
+    let message: string | undefined;
+
+    if (text.trim()) {
+      try {
+        const body = JSON.parse(text) as {
+          message?: string;
+          error?: { message?: string } | string;
+        };
+        message = typeof body.error === "object"
+          ? body.error?.message
+          : body.message ?? (typeof body.error === "string" ? body.error : undefined);
+      } catch {
+        message = undefined;
+      }
+    }
+
+    throw new Error(message ?? `Hustle API returned ${response.status}`);
   }
 
   return response;
 }
 
+async function parseJson<T>(response: Response, emptyValue?: T): Promise<T> {
+  const text = await response.text();
+
+  if (!text.trim()) {
+    if (emptyValue !== undefined) return emptyValue;
+    throw new Error(`Hustle API returned an empty response (${response.status})`);
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error("Hustle API returned an invalid JSON response");
+  }
+}
+
 export async function getMyHustlerApplication(): Promise<HustlerApplication | null> {
   const response = await authenticatedFetch("/hustler-application");
-  return response.json() as Promise<HustlerApplication | null>;
+  return parseJson<HustlerApplication | null>(response, null);
 }
 
 export async function saveMyHustlerApplication(
@@ -63,7 +92,7 @@ export async function saveMyHustlerApplication(
     method: "PUT",
     body: JSON.stringify(input)
   });
-  return response.json() as Promise<HustlerApplication>;
+  return parseJson<HustlerApplication>(response);
 }
 
 export async function uploadMyHustlerProof(
@@ -103,7 +132,7 @@ export async function uploadMyHustlerProof(
         sizeBytes: file.size
       })
     });
-    return response.json() as Promise<HustlerApplication>;
+    return parseJson<HustlerApplication>(response);
   } catch (error) {
     await supabase.storage.from(proofBucket).remove([storageKey]).catch(() => undefined);
     throw error;
@@ -117,7 +146,7 @@ export async function removeMyHustlerProof(
     `/hustler-application/proofs/${encodeURIComponent(proof.id)}`,
     { method: "DELETE" }
   );
-  const application = await response.json() as HustlerApplication;
+  const application = await parseJson<HustlerApplication>(response);
 
   const { supabase } = await getSession();
   const { error } = await supabase.storage.from(proofBucket).remove([proof.storageKey]);
@@ -132,5 +161,5 @@ export async function submitMyHustlerApplication(): Promise<HustlerApplication> 
   const response = await authenticatedFetch("/hustler-application/submit", {
     method: "POST"
   });
-  return response.json() as Promise<HustlerApplication>;
+  return parseJson<HustlerApplication>(response);
 }
