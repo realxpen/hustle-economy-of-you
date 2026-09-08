@@ -42,10 +42,11 @@ export default function AccountPage() {
       <article className="capabilityCard"><small>CAPABILITIES</small><div className="capabilityList">{account.capabilities.map((item) => <div key={item.capability}><strong>{item.capability}</strong><span className={item.status.toLowerCase()}>{item.status}</span></div>)}</div><p>Capabilities accumulate on this identity. You never switch roles.</p></article>
       <article className="trustCard"><small>TRUST FOUNDATION</small><div className="trustMetric"><strong>{account.emailVerified || account.phoneVerified ? "Verified" : "Pending"}</strong><span>Contact identity</span></div><div className="trustMetric"><strong>One</strong><span>Reputation history</span></div></article>
       <article className="nextCard">
-        <small>{isHustler ? "PROFESSIONAL IDENTITY" : "NEXT UNLOCK"}</small>
-        <h2>{isHustler ? "Make your capability legible." : "Show what you can do."}</h2>
-        <p>{isHustler ? "Build and publish the professional layer of this same identity. Your Client capability remains intact." : "Apply with your skill, experience and real proof. Approval adds Hustler to this identity without creating another account."}</p>
-        <a className="primaryLink" href={isHustler ? "/professional-profile" : "/hustler-application"}><span>{isHustler ? "Build professional profile" : "Apply to become a Hustler"}</span><b>↗</b></a>
+        <small>{isHustler ? "PROFESSIONAL ECONOMY" : "NEXT UNLOCK"}</small>
+        <h2>{isHustler ? "Turn capability into offers." : "Show what you can do."}</h2>
+        <p>{isHustler ? "Your professional identity is the foundation. Services now attach concrete offers to this same account." : "Apply with your skill, experience and real proof. Approval adds Hustler to this identity without creating another account."}</p>
+        <a className="primaryLink" href={isHustler ? "/professional-profile" : "/hustler-application"}><span>{isHustler ? "Edit professional profile" : "Apply to become a Hustler"}</span><b>↗</b></a>
+        {isHustler && <a className="futureTag" href="/services/manage">MANAGE SERVICES →</a>}
       </article>
     </section>
   </main>;

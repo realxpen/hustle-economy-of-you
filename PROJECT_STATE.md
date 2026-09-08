@@ -59,7 +59,6 @@ Validated Phase 4 rules:
 - profile bootstrap comes from the approved Hustler application
 - profile edits do not rewrite application/review evidence
 - only ACTIVE HUSTLER can own/edit/publish the professional profile
-- public resolution is username based
 - only PUBLISHED profiles resolve publicly
 - public payload excludes private contact data
 - CLIENT remains ACTIVE
@@ -79,11 +78,15 @@ Applied hosted migrations:
 - `phase3_hustler_application_foundation`
 - `phase3_hustler_proof_storage`
 - `phase4_professional_profile_foundation`
+- `phase5_service_foundation`
 
-Hosted Phase 4 foundation:
-- `ProfessionalProfile`
-- `ProfessionalProfileStatus`: DRAFT / PUBLISHED
-- one professional profile per User
+Hosted Phase 5 foundation:
+- `Service`
+- `ServiceStatus`: DRAFT / PUBLISHED / PAUSED
+- `ServicePricingType`: FIXED / STARTING_AT / HOURLY
+- `ServiceDeliveryMode`: REMOTE / PHYSICAL / BOTH
+- Service belongs to ProfessionalProfile
+- price stored in integer minor units
 - RLS enabled
 - `hustle_api` remains the API-side database actor
 
@@ -99,40 +102,97 @@ Secrets and `.env` files remain local and must never be committed.
 ## Repository workflow
 ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you` when continuing project work. The project owner pulls and tests locally. Never commit secrets or private environment values.
 
-## Phase 4 implementation summary
-
-Owner API:
-- `GET /api/v1/professional-profile`
-- `PUT /api/v1/professional-profile`
-- `POST /api/v1/professional-profile/publish`
-- `POST /api/v1/professional-profile/unpublish`
-
-Public API:
-- `GET /api/v1/profiles/:username`
-
-Owner web route:
-- `/professional-profile`
-
-Public web route:
-- `/u/[username]`
-
-## Current Phase 5 objective
-Enable an ACTIVE Hustler to define a concrete service that another person can discover and understand as an offer attached to the same professional identity.
-
-Phase 5 must preserve the existing identity architecture:
+## Phase 5 identity rule
+A Service extends the already-approved professional identity:
 
 `User → ProfessionalProfile → Service`
 
-A Service is an offer owned by the same Hustle User. It must not create a second profile, role mode or separate seller account.
+It does not create another seller account, role mode or authorization source.
 
-Phase 5 should establish the service foundation only. Booking, cart/orders, payments/escrow, reviews and storefront commerce remain owned by their later phases.
+Publishing a service requires:
+- ACTIVE HUSTLER
+- PUBLISHED ProfessionalProfile
+- complete service offer data
 
-## Phase 5 gate
-A real approved Hustler must be able to:
+Public lookup additionally requires the provider to remain ACTIVE HUSTLER and the profile to remain PUBLISHED.
 
-`HUSTLER ACTIVE → create service draft → edit service → publish → open service as a visitor → see the service attached to the same professional identity`
+## Phase 5 implementation status
 
-CLIENT remains ACTIVE. No role switcher.
+### Phase 5A — Service data foundation
+IMPLEMENTED.
+
+- Prisma Service model
+- hosted migration applied
+- DRAFT / PUBLISHED / PAUSED lifecycle
+- pricing type and delivery mode primitives
+- ordered media URL list
+- price minor-unit storage
+- professional-profile ownership relationship
+
+### Phase 5B — Owner service API
+IMPLEMENTED.
+
+- `GET /api/v1/services/mine`
+- `POST /api/v1/services`
+- `GET /api/v1/services/mine/:serviceId`
+- `PUT /api/v1/services/:serviceId`
+- `POST /api/v1/services/:serviceId/publish`
+- `POST /api/v1/services/:serviceId/pause`
+- `DELETE /api/v1/services/:serviceId`
+
+Rules:
+- owner authentication required
+- ACTIVE HUSTLER required
+- only attached profile owner can mutate
+- published profile required before service publish
+- published service must be paused before deletion
+- publish/pause/delete emit SystemEvent
+
+### Phase 5C — Service editor
+IMPLEMENTED; LOCAL GATE PENDING.
+
+Web routes:
+- `/services/manage`
+- `/services/new`
+- `/services/[serviceId]/edit`
+
+Editor fields:
+- title
+- category
+- description
+- media URLs
+- Naira price
+- pricing type
+- remote / physical mode
+- location
+- availability note
+- delivery time
+- client requirements
+
+### Phase 5D — Public service page
+IMPLEMENTED; LOCAL GATE PENDING.
+
+Public API:
+- `GET /api/v1/services/:serviceId`
+
+Public web route:
+- `/services/[serviceId]`
+
+Public payload includes safe provider identity + ProfessionalProfile context and excludes private contacts.
+
+The service page links back to `/u/[username]`.
+
+## Booking boundary
+The earlier source plan described a service as something another user can genuinely book, but the current approved phase order places the real booking system in Phase 11.
+
+Phase 5 therefore creates a genuine booking-ready offer and deliberately does not simulate booking, payment or escrow. Phase 11 must reference the stable Service record.
+
+## Current Phase 5 gate
+Exercise the real Hustler identity through:
+
+`HUSTLER ACTIVE → /services/manage → create draft → edit → save → publish → open /services/[serviceId] in another browser → confirm same professional identity`
+
+CLIENT must remain ACTIVE. No role switcher.
 
 ## Next phase after Phase 5 gate
 Phase 6 — Products.

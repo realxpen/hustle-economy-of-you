@@ -48,6 +48,24 @@ enum ProfessionalProfileStatus {
   PUBLISHED
 }
 
+enum ServiceStatus {
+  DRAFT
+  PUBLISHED
+  PAUSED
+}
+
+enum ServicePricingType {
+  FIXED
+  STARTING_AT
+  HOURLY
+}
+
+enum ServiceDeliveryMode {
+  REMOTE
+  PHYSICAL
+  BOTH
+}
+
 model User {
   id                          String               @id @default(cuid())
   authSubject                 String               @unique
@@ -146,10 +164,38 @@ model ProfessionalProfile {
   createdAt           DateTime                  @default(now())
   updatedAt           DateTime                  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services Service[]
 
   @@index([status])
   @@index([category])
+}
+
+model Service {
+  id                    String              @id @default(cuid())
+  professionalProfileId String
+  title                 String?
+  category              String?
+  description           String?
+  mediaUrls             String[]            @default([])
+  priceMinor            Int?
+  currency              String              @default("NGN")
+  pricingType           ServicePricingType  @default(FIXED)
+  deliveryMode          ServiceDeliveryMode @default(REMOTE)
+  location              String?
+  availabilityNote      String?
+  deliveryTime          String?
+  requirements          String?
+  status                ServiceStatus       @default(DRAFT)
+  publishedAt           DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  professionalProfile ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+
+  @@index([professionalProfileId, status])
+  @@index([status, category])
+  @@index([createdAt])
 }
 
 model SystemEvent {

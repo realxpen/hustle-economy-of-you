@@ -151,3 +151,64 @@ export interface PublicProfessionalProfile {
   };
   profile: ProfessionalProfile;
 }
+
+export type ServiceStatus = "DRAFT" | "PUBLISHED" | "PAUSED";
+export type ServicePricingType = "FIXED" | "STARTING_AT" | "HOURLY";
+export type ServiceDeliveryMode = "REMOTE" | "PHYSICAL" | "BOTH";
+
+export interface Service {
+  id: string;
+  professionalProfileId: string;
+  title: string | null;
+  category: string | null;
+  description: string | null;
+  mediaUrls: string[];
+  priceMinor: number | null;
+  currency: string;
+  pricingType: ServicePricingType;
+  deliveryMode: ServiceDeliveryMode;
+  location: string | null;
+  availabilityNote: string | null;
+  deliveryTime: string | null;
+  requirements: string | null;
+  status: ServiceStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveServiceInput {
+  title?: string | null;
+  category?: string | null;
+  description?: string | null;
+  mediaUrls?: string[];
+  priceMinor?: number | null;
+  pricingType?: ServicePricingType;
+  deliveryMode?: ServiceDeliveryMode;
+  location?: string | null;
+  availabilityNote?: string | null;
+  deliveryTime?: string | null;
+  requirements?: string | null;
+}
+
+export interface PublicService {
+  service: Service;
+  owner: {
+    id: string;
+    displayName: string | null;
+    username: string | null;
+    avatarUrl: string | null;
+    bio: string | null;
+    location: string | null;
+    verified: boolean;
+    professionalProfile: {
+      id: string;
+      headline: string | null;
+      primarySkill: string | null;
+      secondarySkills: string[];
+      category: string | null;
+      professionalSummary: string | null;
+      yearsExperience: number | null;
+    };
+  };
+}
