@@ -109,3 +109,45 @@ export interface SaveHustlerApplicationInput {
   businessName?: string | null;
   businessInfo?: string | null;
 }
+
+export type ProfessionalProfileStatus = "DRAFT" | "PUBLISHED";
+
+export interface ProfessionalProfile {
+  id: string;
+  userId: string;
+  headline: string | null;
+  coverUrl: string | null;
+  primarySkill: string | null;
+  secondarySkills: string[];
+  category: string | null;
+  professionalSummary: string | null;
+  yearsExperience: number | null;
+  status: ProfessionalProfileStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveProfessionalProfileInput {
+  headline?: string | null;
+  coverUrl?: string | null;
+  primarySkill?: string | null;
+  secondarySkills?: string[];
+  category?: string | null;
+  professionalSummary?: string | null;
+  yearsExperience?: number | null;
+}
+
+export interface PublicProfessionalProfile {
+  user: {
+    id: string;
+    displayName: string | null;
+    username: string | null;
+    avatarUrl: string | null;
+    bio: string | null;
+    location: string | null;
+    verified: boolean;
+    capabilities: HustleCapability[];
+  };
+  profile: ProfessionalProfile;
+}
