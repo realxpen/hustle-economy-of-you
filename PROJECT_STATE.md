@@ -6,7 +6,7 @@ Updated: 2026-09-08
 Build
 
 ## Current MVP phase
-Phase 4 — Professional Profile + Digital Identity
+Phase 5 — Services
 
 ## Phase 1 status
 COMPLETE.
@@ -40,6 +40,30 @@ Hosted verification confirmed:
 - identity verification: VERIFIED
 - CLIENT: ACTIVE
 - HUSTLER: ACTIVE
+
+## Phase 4 status
+COMPLETE.
+
+The real professional-identity gate was exercised successfully on 2026-09-08:
+
+`HUSTLER ACTIVE → bootstrap professional profile → edit → save → publish → open /u/[username] as a visitor → same Hustle identity resolves publicly`
+
+Hosted database verification confirms:
+- professional profile: PUBLISHED
+- username: `xpen`
+- CLIENT: ACTIVE
+- HUSTLER: ACTIVE
+
+Validated Phase 4 rules:
+- one professional profile extends the existing User
+- profile bootstrap comes from the approved Hustler application
+- profile edits do not rewrite application/review evidence
+- only ACTIVE HUSTLER can own/edit/publish the professional profile
+- public resolution is username based
+- only PUBLISHED profiles resolve publicly
+- public payload excludes private contact data
+- CLIENT remains ACTIVE
+- no role switcher or second account
 
 ## Supabase
 Dedicated Hustle project:
@@ -75,103 +99,40 @@ Secrets and `.env` files remain local and must never be committed.
 ## Repository workflow
 ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you` when continuing project work. The project owner pulls and tests locally. Never commit secrets or private environment values.
 
-## Phase 4 identity rule
-The professional profile extends the existing User. It does not create another account, role mode or authorization source.
+## Phase 4 implementation summary
 
-Universal identity stays on `User`:
-- display name
-- username
-- avatar
-- bio
-- location
-- verification/capabilities
-
-Professional presentation lives on `ProfessionalProfile`:
-- headline
-- cover URL
-- primary skill
-- secondary skills
-- category
-- professional summary
-- years of experience
-- publication state
-
-Editing professional presentation must never rewrite the approved Hustler application or capability history.
-
-## Phase 4 implementation status
-
-### Phase 4A — Professional profile data foundation
-IMPLEMENTED.
-
-- Prisma `ProfessionalProfile` model
-- hosted migration applied
-- one profile per User
-- DRAFT / PUBLISHED state
-- HUSTLER ACTIVE authorization
-- first owner read lazily bootstraps defaults from the APPROVED Hustler application
-
-Bootstrap mapping:
-- application.primarySkill → profile.primarySkill
-- application.category → profile.category
-- application.experienceSummary → profile.professionalSummary
-- application.yearsExperience → profile.yearsExperience
-
-### Phase 4B — Owner profile API
-IMPLEMENTED.
-
+Owner API:
 - `GET /api/v1/professional-profile`
 - `PUT /api/v1/professional-profile`
 - `POST /api/v1/professional-profile/publish`
 - `POST /api/v1/professional-profile/unpublish`
 
-Rules:
-- bearer authentication required
-- ACTIVE HUSTLER required
-- profile editing never changes capabilities
-- publish requires username, headline, primary skill, category, professional summary and years experience
-- publish/unpublish emits `SystemEvent`
-
-### Phase 4C — Owner editing experience
-IMPLEMENTED; LOCAL GATE PENDING.
-
-Route:
-- `/professional-profile`
-
-Implemented:
-- account CTA for ACTIVE Hustlers
-- bootstrap display
-- headline
-- primary skill
-- up to 12 secondary skills
-- category
-- professional summary
-- years experience
-- cover image URL
-- save
-- publish/unpublish
-- live profile preview
-
-### Phase 4D — Public visitor profile
-IMPLEMENTED; LOCAL GATE PENDING.
-
 Public API:
 - `GET /api/v1/profiles/:username`
+
+Owner web route:
+- `/professional-profile`
 
 Public web route:
 - `/u/[username]`
 
-Public resolution rules:
-- username based
-- profile must be PUBLISHED
-- User must still have HUSTLER ACTIVE
-- public payload excludes email/phone and exposes only identity/presentation/trust state
+## Current Phase 5 objective
+Enable an ACTIVE Hustler to define a concrete service that another person can discover and understand as an offer attached to the same professional identity.
 
-## Current Phase 4 gate
-Exercise the real approved Hustler identity through:
+Phase 5 must preserve the existing identity architecture:
 
-`HUSTLER ACTIVE → open /professional-profile → confirm bootstrap → edit → publish → open /u/[username] in another browser → confirm same User identity + professional capability`
+`User → ProfessionalProfile → Service`
 
-CLIENT must remain ACTIVE throughout. No role switcher.
+A Service is an offer owned by the same Hustle User. It must not create a second profile, role mode or separate seller account.
 
-## Next phase after Phase 4 gate
-Phase 5 — Services.
+Phase 5 should establish the service foundation only. Booking, cart/orders, payments/escrow, reviews and storefront commerce remain owned by their later phases.
+
+## Phase 5 gate
+A real approved Hustler must be able to:
+
+`HUSTLER ACTIVE → create service draft → edit service → publish → open service as a visitor → see the service attached to the same professional identity`
+
+CLIENT remains ACTIVE. No role switcher.
+
+## Next phase after Phase 5 gate
+Phase 6 — Products.
