@@ -31,48 +31,15 @@ Rules now proven:
 ## Phase 3 status
 COMPLETE.
 
-The full real gate was exercised successfully on 2026-09-08:
+Real gate validated:
 
-`CLIENT → Hustler application → draft → private proof → submit → SUBMITTED → second verified reviewer → UNDER_REVIEW → proof inspection → identity VERIFIED → APPROVED → same User retains CLIENT ACTIVE + receives HUSTLER ACTIVE`
+`CLIENT → application → private proof → submit → verified second reviewer → APPROVED → same User retains CLIENT ACTIVE + receives HUSTLER ACTIVE`
 
-Hosted database verification after the gate confirms:
+Hosted verification confirmed:
 - Hustler application: APPROVED
 - identity verification: VERIFIED
 - CLIENT: ACTIVE
 - HUSTLER: ACTIVE
-
-### Phase 3 implementation
-Applicant API:
-- `GET /api/v1/hustler-application`
-- `PUT /api/v1/hustler-application`
-- `POST /api/v1/hustler-application/proofs`
-- `DELETE /api/v1/hustler-application/proofs/:proofId`
-- `POST /api/v1/hustler-application/submit`
-
-Review API:
-- `GET /api/v1/hustler-reviews`
-- `GET /api/v1/hustler-reviews/:applicationId`
-- `POST /api/v1/hustler-reviews/:applicationId/start`
-- `POST /api/v1/hustler-reviews/:applicationId/verification`
-- `POST /api/v1/hustler-reviews/:applicationId/proofs/:proofId/read-url`
-- `POST /api/v1/hustler-reviews/:applicationId/approve`
-- `POST /api/v1/hustler-reviews/:applicationId/reject`
-
-Validated protections:
-- applicant owns only their application
-- applicant cannot self-approve
-- reviewer must be an allow-listed verified second identity
-- proof storage is private
-- identity must be VERIFIED before approval
-- approval is atomic
-- ACTIVE CLIENT is preserved
-- HUSTLER is added to the same User
-- no role switcher
-
-Temporary Phase 3 review surface:
-- `/internal/hustler-reviews`
-
-Full Admin + Operations remains Phase 19.
 
 ## Supabase
 Dedicated Hustle project:
@@ -87,18 +54,14 @@ Applied hosted migrations:
 - `api_database_role`
 - `phase3_hustler_application_foundation`
 - `phase3_hustler_proof_storage`
+- `phase4_professional_profile_foundation`
 
-Phase 3 hosted foundation:
-- `HustlerApplication`
-- `HustlerApplicationProof`
-- private `hustler-proofs` bucket
-- authenticated identity-bound storage policies
-- 10 MB proof limit
-- PDF/JPEG/PNG/WebP proof formats
-
-RLS remains enabled. `hustle_api` remains the API-side database actor.
-
-Security advisor after Phase 3 found no new database/storage policy problem. Remaining account-level warning: Supabase leaked-password protection is disabled.
+Hosted Phase 4 foundation:
+- `ProfessionalProfile`
+- `ProfessionalProfileStatus`: DRAFT / PUBLISHED
+- one professional profile per User
+- RLS enabled
+- `hustle_api` remains the API-side database actor
 
 ## Local development
 - Web: `http://localhost:3001`
@@ -112,13 +75,6 @@ Secrets and `.env` files remain local and must never be committed.
 ## Repository workflow
 ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you` when continuing project work. The project owner pulls and tests locally. Never commit secrets or private environment values.
 
-## Current Phase 4 objective
-Turn HUSTLER ACTIVE into a professional digital identity that can be edited, published and viewed by another person.
-
-Canonical Phase 4 path:
-
-`HUSTLER ACTIVE → bootstrap professional profile → edit → publish → public visitor profile`
-
 ## Phase 4 identity rule
 The professional profile extends the existing User. It does not create another account, role mode or authorization source.
 
@@ -130,9 +86,9 @@ Universal identity stays on `User`:
 - location
 - verification/capabilities
 
-Professional presentation adds Hustler-specific fields:
+Professional presentation lives on `ProfessionalProfile`:
 - headline
-- cover
+- cover URL
 - primary skill
 - secondary skills
 - category
@@ -140,44 +96,82 @@ Professional presentation adds Hustler-specific fields:
 - years of experience
 - publication state
 
-Initial professional values should be bootstrapped from the approved Hustler application where sensible. Editing the professional profile must never rewrite the approved application/review evidence.
+Editing professional presentation must never rewrite the approved Hustler application or capability history.
 
-## Phase 4 planned slices
+## Phase 4 implementation status
 
 ### Phase 4A — Professional profile data foundation
-- Prisma model + hosted migration
-- HUSTLER ACTIVE authorization
-- bootstrap from approved application
+IMPLEMENTED.
+
+- Prisma `ProfessionalProfile` model
+- hosted migration applied
+- one profile per User
 - DRAFT / PUBLISHED state
+- HUSTLER ACTIVE authorization
+- first owner read lazily bootstraps defaults from the APPROVED Hustler application
+
+Bootstrap mapping:
+- application.primarySkill → profile.primarySkill
+- application.category → profile.category
+- application.experienceSummary → profile.professionalSummary
+- application.yearsExperience → profile.yearsExperience
 
 ### Phase 4B — Owner profile API
-- get own professional profile
-- update professional profile
-- publish/unpublish
+IMPLEMENTED.
+
+- `GET /api/v1/professional-profile`
+- `PUT /api/v1/professional-profile`
+- `POST /api/v1/professional-profile/publish`
+- `POST /api/v1/professional-profile/unpublish`
+
+Rules:
+- bearer authentication required
+- ACTIVE HUSTLER required
+- profile editing never changes capabilities
+- publish requires username, headline, primary skill, category, professional summary and years experience
+- publish/unpublish emits `SystemEvent`
 
 ### Phase 4C — Owner editing experience
-- profile editor
-- cover/avatar presentation
+IMPLEMENTED; LOCAL GATE PENDING.
+
+Route:
+- `/professional-profile`
+
+Implemented:
+- account CTA for ACTIVE Hustlers
+- bootstrap display
 - headline
-- primary + secondary skills
+- primary skill
+- up to 12 secondary skills
 - category
 - professional summary
 - years experience
-- public preview
+- cover image URL
+- save
+- publish/unpublish
+- live profile preview
 
 ### Phase 4D — Public visitor profile
-- stable username route `/u/[username]`
-- only PUBLISHED profiles resolve publicly
-- same User identity and HUSTLER capability shown
+IMPLEMENTED; LOCAL GATE PENDING.
 
-Later phases attach services, products, content, reviews and storefront commerce to this same profile rather than inventing duplicate profile systems.
+Public API:
+- `GET /api/v1/profiles/:username`
 
-## Phase 4 gate
-A real approved Hustler must be able to:
+Public web route:
+- `/u/[username]`
 
-`HUSTLER ACTIVE → professional profile created → edit identity → publish → open /u/[username] as a visitor → see the same identity and professional capability`
+Public resolution rules:
+- username based
+- profile must be PUBLISHED
+- User must still have HUSTLER ACTIVE
+- public payload excludes email/phone and exposes only identity/presentation/trust state
 
-CLIENT remains ACTIVE. No role switcher.
+## Current Phase 4 gate
+Exercise the real approved Hustler identity through:
+
+`HUSTLER ACTIVE → open /professional-profile → confirm bootstrap → edit → publish → open /u/[username] in another browser → confirm same User identity + professional capability`
+
+CLIENT must remain ACTIVE throughout. No role switcher.
 
 ## Next phase after Phase 4 gate
 Phase 5 — Services.
