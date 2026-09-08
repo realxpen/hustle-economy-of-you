@@ -19,22 +19,48 @@ enum CapabilityStatus {
   REVOKED
 }
 
+enum HustlerApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum VerificationStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum HustlerProofType {
+  PORTFOLIO
+  IDENTITY_DOCUMENT
+  CERTIFICATE
+  BUSINESS_DOCUMENT
+  OTHER
+}
+
 model User {
-  id                  String           @id @default(cuid())
-  authSubject         String           @unique
-  email               String?
-  phone               String?
-  emailVerified       Boolean          @default(false)
-  phoneVerified       Boolean          @default(false)
-  displayName         String?
-  username            String?          @unique
-  bio                 String?
-  location            String?
-  avatarUrl           String?
-  onboardingCompleted Boolean          @default(false)
-  capabilities        UserCapability[]
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  id                          String               @id @default(cuid())
+  authSubject                 String               @unique
+  email                       String?
+  phone                       String?
+  emailVerified               Boolean              @default(false)
+  phoneVerified               Boolean              @default(false)
+  displayName                 String?
+  username                    String?              @unique
+  bio                         String?
+  location                    String?
+  avatarUrl                   String?
+  onboardingCompleted         Boolean              @default(false)
+  capabilities                UserCapability[]
+  createdAt                   DateTime             @default(now())
+  updatedAt                   DateTime             @updatedAt
+  hustlerApplication          HustlerApplication?  @relation("HustlerApplicant")
+  reviewedHustlerApplications HustlerApplication[] @relation("HustlerReviewer")
 }
 
 model UserCapability {
@@ -48,6 +74,55 @@ model UserCapability {
 
   @@unique([userId, capability])
   @@index([capability, status])
+}
+
+model HustlerApplication {
+  id     String                   @id @default(cuid())
+  userId String                   @unique
+  status HustlerApplicationStatus @default(DRAFT)
+
+  primarySkill      String?
+  category          String?
+  experienceSummary String?
+  yearsExperience   Int?
+
+  businessName String?
+  businessInfo String?
+
+  identityVerificationStatus VerificationStatus @default(NOT_STARTED)
+
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewerId      String?
+  reviewNotes     String?
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation("HustlerApplicant", fields: [userId], references: [id], onDelete: Cascade)
+
+  reviewer User? @relation("HustlerReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  proofs HustlerApplicationProof[]
+
+  @@index([status])
+  @@index([category])
+}
+
+model HustlerApplicationProof {
+  id            String           @id @default(cuid())
+  applicationId String
+  type          HustlerProofType
+  storageKey    String           @unique
+  fileName      String
+  mimeType      String
+  sizeBytes     Int?
+  createdAt     DateTime         @default(now())
+
+  application HustlerApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, type])
 }
 
 model SystemEvent {

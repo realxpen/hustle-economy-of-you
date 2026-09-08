@@ -1,12 +1,12 @@
 # Hustle Project State
 
-Updated: 2026-09-06
+Updated: 2026-09-08
 
 ## Current AED capability
 Build
 
 ## Current MVP phase
-Phase 2 — Authentication + Unified Account System
+Phase 3 — Hustler Application + Verification
 
 ## Phase 1 status
 Code foundation validated in CI. Hosted PostgreSQL is now active through the dedicated Hustle Supabase project.
@@ -97,8 +97,47 @@ Vercel:
 A real new user must be able to:
 `Register → verify → synchronize → receive CLIENT → complete profile → sign out → sign back in → retain the same Hustle identity and capability history.`
 
-## Current rule
-Do not begin Phase 3 until the Phase 2 operational identity loop is exercised successfully or the project owner explicitly waives that gate.
+## Phase 2 gate status
 
-## Next phase after gate
-Phase 3 — Hustler Application + Verification.
+COMPLETE.
+
+The real operational identity loop has been validated:
+
+`Register → verify → synchronize → CLIENT → complete profile → sign out → sign back in → retain the same Hustle identity.`
+
+The validated account retains one Hustle identity and an ACTIVE CLIENT capability.
+
+## Local development decision
+
+Development is currently local-first.
+
+- Web: `http://localhost:3001`
+- API: `http://localhost:4000/api/v1`
+- Auth/database: hosted Hustle Supabase project
+- Local Prisma connection uses Supabase Session Pooler on port 5432.
+- Work is committed locally.
+- Do not push unless the project owner explicitly requests it.
+
+## Current rule
+
+Phase 3 is now active.
+
+HUSTLER must only be activated through the approved application/review lifecycle. No role switcher and no second account.
+
+## Current Phase 3 objective
+
+Build the real Hustler application lifecycle:
+
+`CLIENT → draft → submit → review → approve/reject → HUSTLER capability`
+
+Approval must preserve CLIENT and add HUSTLER to the same User.
+
+## Phase 3 gate
+
+A real Client must be able to:
+
+`Create application → add skill/category/experience/proof → submit → receive review → approval → retain CLIENT + receive HUSTLER`
+
+## Next phase after Phase 3 gate
+
+Phase 4 — Professional Profile + Digital Identity.
