@@ -47,3 +47,65 @@ export interface HustleAccount {
   createdAt: string;
   updatedAt: string;
 }
+
+export type HustlerApplicationStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "UNDER_REVIEW"
+  | "APPROVED"
+  | "REJECTED"
+  | "SUSPENDED";
+
+export type VerificationStatus =
+  | "NOT_STARTED"
+  | "PENDING"
+  | "VERIFIED"
+  | "REJECTED";
+
+export type HustlerProofType =
+  | "PORTFOLIO"
+  | "IDENTITY_DOCUMENT"
+  | "CERTIFICATE"
+  | "BUSINESS_DOCUMENT"
+  | "OTHER";
+
+export interface HustlerApplicationProof {
+  id: string;
+  applicationId: string;
+  type: HustlerProofType;
+  storageKey: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number | null;
+  createdAt: string;
+}
+
+export interface HustlerApplication {
+  id: string;
+  userId: string;
+  status: HustlerApplicationStatus;
+  primarySkill: string | null;
+  category: string | null;
+  experienceSummary: string | null;
+  yearsExperience: number | null;
+  businessName: string | null;
+  businessInfo: string | null;
+  identityVerificationStatus: VerificationStatus;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  reviewerId: string | null;
+  reviewNotes: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  proofs: HustlerApplicationProof[];
+}
+
+export interface SaveHustlerApplicationInput {
+  primarySkill?: string | null;
+  category?: string | null;
+  experienceSummary?: string | null;
+  yearsExperience?: number | null;
+  businessName?: string | null;
+  businessInfo?: string | null;
+}
