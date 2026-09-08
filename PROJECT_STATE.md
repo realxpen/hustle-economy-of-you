@@ -38,21 +38,23 @@ Applied hosted migrations:
 - `phase2_unified_account`
 - `api_database_role`
 - `phase3_hustler_application_foundation`
+- `phase3_hustler_proof_storage`
 
-Phase 3 database foundation:
+Phase 3 database/storage foundation:
 - `HustlerApplication`
 - `HustlerApplicationProof`
-- `HustlerApplicationStatus`
-- `VerificationStatus`
-- `HustlerProofType`
+- private `hustler-proofs` storage bucket
+- authenticated per-identity upload/read/delete policies
+- 10 MB proof limit
+- PDF/JPEG/PNG/WebP proof formats
 
-RLS is enabled and the dedicated `hustle_api` database role remains the API-side actor.
+RLS is enabled and the dedicated `hustle_api` database role remains the API-side database actor. Storage access is private and constrained by the authenticated Supabase identity path.
 
 ## Local development
 Current local preview:
 - Web: `http://localhost:3001`
 - API: `http://localhost:4000/api/v1`
-- Auth/database: hosted Hustle Supabase project
+- Auth/database/storage: hosted Hustle Supabase project
 - Local Prisma connection: Supabase Session Pooler on port 5432
 
 Secrets and `.env` files remain local and must never be committed.
@@ -71,11 +73,14 @@ Approval must preserve CLIENT and add HUSTLER to the same User. Frontend state m
 Implemented:
 - `GET /api/v1/hustler-application`
 - `PUT /api/v1/hustler-application`
+- `POST /api/v1/hustler-application/proofs`
+- `DELETE /api/v1/hustler-application/proofs/:proofId`
 - `POST /api/v1/hustler-application/submit`
 - authenticated ownership
-- draft-only editing
+- draft-only editing and proof mutation
 - required-field validation
 - proof requirement before submission
+- proof metadata validation and identity-bound storage keys
 
 ### Phase 3B — Applicant experience
 Implemented:
@@ -85,14 +90,19 @@ Implemented:
 - experience and years-of-experience fields
 - optional business context
 - draft persistence
+- private proof upload/removal
 - application progress and lifecycle state
-- proof-aware submission lock
+- submission to review once required fields and proof are present
 
-Current limitation:
-- private proof upload is not activated yet, so final submission intentionally remains locked for applications without proof.
+### Phase 3C — Proof storage
+ACTIVE.
+
+Private Supabase Storage is enabled for Hustler proof files. Browser uploads use the authenticated session and per-user path RLS; the API records proof metadata only for the same authenticated identity.
+
+Security advisor after activation reports no new database/storage policy findings. The remaining warning is the account-level Supabase Auth leaked-password-protection setting.
 
 ## Next Phase 3 slice
-Activate private capability-proof upload behind the storage boundary, then build the minimal review/approval operation that atomically marks the application APPROVED and activates HUSTLER.
+Build the minimal review/approval operation and admin review surface. Approval must be atomic: application APPROVED + `UserCapability(HUSTLER, ACTIVE)` in one database transaction.
 
 ## Phase 3 gate
 A real Client must be able to:

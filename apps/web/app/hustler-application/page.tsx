@@ -1,12 +1,19 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { HustleAccount, HustlerApplication } from "@hustle/types";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import type {
+  HustleAccount,
+  HustlerApplication,
+  HustlerApplicationProof,
+  HustlerProofType
+} from "@hustle/types";
 import { getMyAccount } from "../../lib/auth/hustle-account";
 import {
   getMyHustlerApplication,
+  removeMyHustlerProof,
   saveMyHustlerApplication,
-  submitMyHustlerApplication
+  submitMyHustlerApplication,
+  uploadMyHustlerProof
 } from "../../lib/hustler-application";
 import styles from "./page.module.css";
 
@@ -41,6 +48,14 @@ const categories = [
   "Other"
 ];
 
+const proofTypes: { value: HustlerProofType; label: string }[] = [
+  { value: "PORTFOLIO", label: "Portfolio work" },
+  { value: "CERTIFICATE", label: "Certificate" },
+  { value: "BUSINESS_DOCUMENT", label: "Business document" },
+  { value: "IDENTITY_DOCUMENT", label: "Identity document" },
+  { value: "OTHER", label: "Other supporting proof" }
+];
+
 function toForm(application: HustlerApplication | null): FormState {
   if (!application) return emptyForm;
   return {
@@ -57,8 +72,10 @@ export default function HustlerApplicationPage() {
   const [account, setAccount] = useState<HustleAccount | null>(null);
   const [application, setApplication] = useState<HustlerApplication | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [proofType, setProofType] = useState<HustlerProofType>("PORTFOLIO");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,18 +93,15 @@ export default function HustlerApplicationPage() {
   const isHustler = account?.capabilities.some(
     (item) => item.capability === "HUSTLER" && item.status === "ACTIVE"
   ) ?? false;
-
   const editable = !application || application.status === "DRAFT";
   const proofCount = application?.proofs.length ?? 0;
 
-  const completedCoreFields = useMemo(() => {
-    return [
-      form.primarySkill.trim(),
-      form.category.trim(),
-      form.experienceSummary.trim(),
-      form.yearsExperience.trim()
-    ].filter(Boolean).length;
-  }, [form]);
+  const completedCoreFields = useMemo(() => [
+    form.primarySkill.trim(),
+    form.category.trim(),
+    form.experienceSummary.trim(),
+    form.yearsExperience.trim()
+  ].filter(Boolean).length, [form]);
 
   const progress = Math.round(((completedCoreFields + (proofCount > 0 ? 1 : 0)) / 5) * 100);
   const canSubmit = editable && completedCoreFields === 4 && proofCount > 0;
@@ -120,11 +134,47 @@ export default function HustlerApplicationPage() {
     }
   }
 
+  async function attachProof(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!application) {
+      setError("Save your application draft before attaching proof.");
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const updated = await uploadMyHustlerProof(file, proofType);
+      setApplication(updated);
+      setNotice("Proof attached privately to your application.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not attach proof");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function removeProof(proof: HustlerApplicationProof) {
+    setUploading(true);
+    setError(null);
+    try {
+      const updated = await removeMyHustlerProof(proof);
+      setApplication(updated);
+      setNotice("Proof removed.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not remove proof");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function submitForReview() {
     setBusy(true);
     setError(null);
     setNotice(null);
-
     try {
       const submitted = await submitMyHustlerApplication();
       setApplication(submitted);
@@ -208,8 +258,17 @@ export default function HustlerApplicationPage() {
       <aside className={styles.side}>
         <article className={styles.proofCard}>
           <div className={styles.sectionTitle}><span>03</span><div><strong>Capability proof</strong><p>At least one private proof item is required before review.</p></div></div>
-          {proofCount > 0 ? <div className={styles.proofList}>{application?.proofs.map((proof) => <div key={proof.id}><strong>{proof.fileName}</strong><span>{proof.type.replaceAll("_", " ")}</span></div>)}</div> : <div className={styles.emptyProof}><span>0</span><p>No proof attached yet.</p></div>}
-          <div className={styles.comingSoon}><strong>Private proof upload is the next activation slice.</strong><p>Your draft flow is live now; final submission stays locked until real evidence is attached.</p></div>
+
+          {proofCount > 0 ? <div className={styles.proofList}>{application?.proofs.map((proof) => <div key={proof.id}><div><strong>{proof.fileName}</strong><span>{proof.type.replaceAll("_", " ")}</span></div>{editable && <button type="button" onClick={() => removeProof(proof)} disabled={uploading}>Remove</button>}</div>)}</div> : <div className={styles.emptyProof}><span>0</span><p>No proof attached yet.</p></div>}
+
+          {editable && <div className={styles.uploadPanel}>
+            <label><span>Proof type</span><select value={proofType} onChange={(event) => setProofType(event.target.value as HustlerProofType)} disabled={uploading}>{proofTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+            <label className={`${styles.uploadButton} ${!application ? styles.uploadDisabled : ""}`}>
+              <span>{uploading ? "Uploading…" : application ? "Attach proof" : "Save draft first"}</span>
+              <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={attachProof} disabled={!application || uploading} />
+            </label>
+            <small>Private · PDF/JPEG/PNG/WebP · max 10 MB</small>
+          </div>}
         </article>
 
         <article className={styles.reviewCard}>

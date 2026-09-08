@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Put,
   UseGuards
@@ -13,20 +15,17 @@ import { CurrentIdentity } from "../auth/current-identity.decorator";
 
 import {
   HustlerApplicationService,
+  type AddHustlerProofInput,
   type SaveHustlerApplicationInput
 } from "./hustler-application.service";
 
 @Controller("hustler-application")
 @UseGuards(AuthGuard)
 export class HustlerApplicationController {
-  constructor(
-    private readonly applications: HustlerApplicationService
-  ) {}
+  constructor(private readonly applications: HustlerApplicationService) {}
 
   @Get()
-  getMine(
-    @CurrentIdentity() identity: AuthIdentity
-  ) {
+  getMine(@CurrentIdentity() identity: AuthIdentity) {
     return this.applications.getMine(identity);
   }
 
@@ -38,10 +37,24 @@ export class HustlerApplicationController {
     return this.applications.saveDraft(identity, body);
   }
 
-  @Post("submit")
-  submit(
-    @CurrentIdentity() identity: AuthIdentity
+  @Post("proofs")
+  addProof(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Body() body: AddHustlerProofInput
   ) {
+    return this.applications.addProof(identity, body);
+  }
+
+  @Delete("proofs/:proofId")
+  removeProof(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("proofId") proofId: string
+  ) {
+    return this.applications.removeProof(identity, proofId);
+  }
+
+  @Post("submit")
+  submit(@CurrentIdentity() identity: AuthIdentity) {
     return this.applications.submit(identity);
   }
 }
