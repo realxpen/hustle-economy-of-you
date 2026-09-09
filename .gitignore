@@ -10,4 +10,5 @@ coverage
 .vercel
 .DS_Store
 *.log
+*.tsbuildinfo
 apps/api/prisma/dev.db
