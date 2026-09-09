@@ -88,6 +88,37 @@ export interface PublicPost {
   };
 }
 
+export interface PostComment {
+  id: string;
+  postId: string;
+  parentId: string | null;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    displayName: string | null;
+    username: string | null;
+    avatarUrl: string | null;
+  };
+}
+
+export interface PostInteractionSummary {
+  likeCount: number;
+  saveCount: number;
+  commentCount: number;
+  followerCount: number;
+  comments: PostComment[];
+}
+
+export interface PostInteractionState {
+  liked: boolean;
+  saved: boolean;
+  followingCreator: boolean;
+  isCreator: boolean;
+  viewerUserId: string;
+}
+
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 async function parseError(response: Response) {
@@ -192,4 +223,76 @@ export async function getPublicPost(postId: string): Promise<PublicPost> {
     throw new Error(await parseError(response));
   }
   return response.json() as Promise<PublicPost>;
+}
+
+export async function getPostInteractions(postId: string): Promise<PostInteractionSummary> {
+  const response = await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}/interactions`, { cache: "no-store" });
+  if (!response.ok) throw new Error(await parseError(response));
+  return response.json() as Promise<PostInteractionSummary>;
+}
+
+export async function getMyPostInteractionState(postId: string): Promise<PostInteractionState | null> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error || !session?.access_token) return null;
+
+  const response = await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}/interactions/me`, {
+    headers: { authorization: `Bearer ${session.access_token}` },
+    cache: "no-store"
+  });
+  if (response.status === 401) return null;
+  if (!response.ok) throw new Error(await parseError(response));
+  return response.json() as Promise<PostInteractionState>;
+}
+
+export async function likePost(postId: string): Promise<PostInteractionState> {
+  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/like`, { method: "POST" });
+  return response.json() as Promise<PostInteractionState>;
+}
+
+export async function unlikePost(postId: string): Promise<PostInteractionState> {
+  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/like`, { method: "DELETE" });
+  return response.json() as Promise<PostInteractionState>;
+}
+
+export async function savePublicPost(postId: string): Promise<PostInteractionState> {
+  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/save`, { method: "POST" });
+  return response.json() as Promise<PostInteractionState>;
+}
+
+export async function unsavePublicPost(postId: string): Promise<PostInteractionState> {
+  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/save`, { method: "DELETE" });
+  return response.json() as Promise<PostInteractionState>;
+}
+
+export async function addPostComment(postId: string, body: string, parentId?: string | null): Promise<PostComment> {
+  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ body, parentId: parentId ?? null })
+  });
+  return response.json() as Promise<PostComment>;
+}
+
+export async function deletePostComment(postId: string, commentId: string): Promise<{ deleted: true; id: string }> {
+  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, { method: "DELETE" });
+  return response.json() as Promise<{ deleted: true; id: string }>;
+}
+
+export async function followUser(userId: string): Promise<{ following: true; userId: string }> {
+  const response = await authenticatedFetch(`/users/${encodeURIComponent(userId)}/follow`, { method: "POST" });
+  return response.json() as Promise<{ following: true; userId: string }>;
+}
+
+export async function unfollowUser(userId: string): Promise<{ following: false; userId: string }> {
+  const response = await authenticatedFetch(`/users/${encodeURIComponent(userId)}/follow`, { method: "DELETE" });
+  return response.json() as Promise<{ following: false; userId: string }>;
+}
+
+export async function recordPostShare(postId: string): Promise<{ recorded: true; postId: string }> {
+  const response = await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}/share`, {
+    method: "POST",
+    cache: "no-store"
+  });
+  if (!response.ok) throw new Error(await parseError(response));
+  return response.json() as Promise<{ recorded: true; postId: string }>;
 }
