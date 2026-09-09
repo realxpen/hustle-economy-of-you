@@ -43,9 +43,10 @@ export default function AccountPage() {
       <article className="trustCard"><small>TRUST FOUNDATION</small><div className="trustMetric"><strong>{account.emailVerified || account.phoneVerified ? "Verified" : "Pending"}</strong><span>Contact identity</span></div><div className="trustMetric"><strong>One</strong><span>Reputation history</span></div></article>
       <article className="nextCard">
         <small>{isHustler ? "PROFESSIONAL ECONOMY" : "NEXT UNLOCK"}</small>
-        <h2>{isHustler ? "Turn capability into offers." : "Show what you can do."}</h2>
-        <p>{isHustler ? "Your professional identity now carries both services and products on this same account." : "Apply with your skill, experience and real proof. Approval adds Hustler to this identity without creating another account."}</p>
+        <h2>{isHustler ? "Turn capability into proof and offers." : "Show what you can do."}</h2>
+        <p>{isHustler ? "Your professional identity carries services, products and capability-led content on this same account." : "Apply with your skill, experience and real proof. Approval adds Hustler to this identity without creating another account."}</p>
         <a className="primaryLink" href={isHustler ? "/professional-profile" : "/hustler-application"}><span>{isHustler ? "Edit professional profile" : "Apply to become a Hustler"}</span><b>↗</b></a>
+        {isHustler && <a className="futureTag" href="/posts/manage">MANAGE CONTENT →</a>}
         {isHustler && <a className="futureTag" href="/services/manage">MANAGE SERVICES →</a>}
         {isHustler && <a className="futureTag" href="/products/manage">MANAGE PRODUCTS →</a>}
       </article>
