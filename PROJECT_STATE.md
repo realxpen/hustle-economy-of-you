@@ -17,7 +17,7 @@ Phase 8 — Home Discovery Feed
 - Content demonstrates capability and connects discovery to economic opportunity.
 - Services and Products attach to content through canonical relationships.
 - Trust and verified outcomes outrank vanity metrics.
-- Feed ranking must begin simple and explainable; do not prematurely overbuild AI recommendations.
+- Feed ranking begins simple and explainable; do not prematurely overbuild AI recommendations.
 
 ## Completed MVP phases
 
@@ -74,12 +74,10 @@ Validated interaction loop:
 
 Hosted verification on 2026-09-09:
 - `xpen` has real PUBLISHED Posts with persisted media/category/location/tags
-- latest validated Post: `cmtu0zq9d0009dczt8a1wv3zk`
+- validated Post: `cmtu0zq9d0009dczt8a1wv3zk`
 - Post has canonical Service + Product attachments
 - second user `adminxpen` remains `CLIENT:ACTIVE`
-- persisted interaction evidence on the validated Post includes 1 like, 1 save and 1 comment from `adminxpen`
-- `post.shared` SystemEvent persisted
-- UserFollow reversal left no stale follow relationship after unfollow validation
+- persisted like/save/comment/share evidence confirmed
 - Post ownership/capability state remained unchanged
 
 Canonical content ownership:
@@ -122,7 +120,7 @@ Current hosted domain foundation includes:
 - RLS remains enabled on protected domain tables
 - `hustle_api` remains the API-side database actor
 
-Phase 8A/8B do not require a new database migration. Discovery events are stored through the existing `SystemEvent` analytics foundation, while ranking reads the existing canonical Post, interaction, UserFollow and professional identity records.
+Phase 8 does not currently require a new database migration. Discovery events persist through the existing `SystemEvent` analytics foundation while ranking reads canonical Post, interaction, UserFollow and professional identity records.
 
 ## Local development
 - Web: `http://localhost:3001`
@@ -136,7 +134,7 @@ Secrets and `.env` files remain local and must never be committed.
 ## Repository workflow
 ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you`. Project owner pulls and validates locally. Never commit secrets/private environment values.
 
-Before pulling new remote work, the project owner should run `git status`. Intentional local changes should be committed/pushed first; generated or accidental files should not be blindly committed.
+Before pulling new remote work, the project owner must run `git status`. Intentional local changes should be committed/pushed first; generated or accidental files should not be blindly committed.
 
 ## Current Phase 8 objective
 Solve Hustle's central discovery problem:
@@ -165,7 +163,7 @@ Canonical Phase 8 knowledge:
 ## Phase 8 implementation status
 
 ### Phase 8A — Feed API + deterministic ranking
-IMPLEMENTED; LOCAL BUILD/RUNTIME GATE PENDING.
+IMPLEMENTED; RUNTIME GATE PASSED.
 
 API:
 - `GET /api/v1/feed` defaults to For You
@@ -178,50 +176,38 @@ Eligibility:
 - Post PUBLISHED
 - ProfessionalProfile PUBLISHED
 - creator HUSTLER ACTIVE
-- viewer's own Posts excluded from discovery feed
+- viewer's own Posts excluded
 - attached Service/Product included only while PUBLISHED
 
 Deterministic ranking signals:
-- category affinity derived from authoritative like/save/comment history
-- normalized city/location match
+- category affinity from authoritative like/save/comment history
+- normalized textual location match
 - recency buckets
-- capped engagement contribution
-- verified contact identity
+- capped engagement
+- verified identity
 - professional experience
-- existing follow connection
-- current economic context through published Service/Product attachments
-
-Ranking constraints:
-- simple inspectable weights in ordinary server code
-- raw popularity is capped so vanity metrics cannot dominate
-- no ML model, embeddings or opaque recommender
-- For You cold-start works without follows/history by falling back to eligible recent/trusted/location-relevant content
-- Nearby uses normalized textual city matching for MVP
-- Connections uses `UserFollow` as authoritative graph
+- follow connection
+- published economic context
 
 Pagination:
 - deterministic score ordering
-- tie-break by publication timestamp + Post ID
-- opaque cursor contains score/timestamp/ID
-- limit defaults to 10 and is capped at 30
-- current MVP candidate window is intentionally bounded while pilot scale is small
+- publication timestamp + Post ID tie-breaker
+- opaque cursor
+- bounded page/candidate sizes for the current MVP
 
-Feed response includes:
-- Post/media/content metadata
-- safe creator + ProfessionalProfile context
-- engagement counts
-- viewer liked/saved/following state
-- current published Service/Product attachments
-- inspectable ranking score/reasons
-- `nextCursor`, `hasMore`, `viewerLocation`, `coldStart`
+Runtime validation on 2026-09-09 with `adminxpen`:
+- For You returned eligible `xpen` Posts with ranking reasons, engagement state, creator context and current Service/Product attachments
+- Nearby with `Lagos, Nigeria` returned the same eligible Lagos content with location weighting
+- Connections correctly returned an empty feed with `No followed creators yet` after the earlier unfollow validation
+- one transient For You HTTP 500 was observed before immediate successful repeated requests; continue observing during the Home UI gate rather than treating it as a reproduced deterministic failure
 
 ### Phase 8B — Discovery instrumentation
-IMPLEMENTED; LOCAL BUILD/RUNTIME GATE PENDING.
+IMPLEMENTED; RUNTIME/HOSTED EVENT GATE PASSED.
 
 Endpoint:
 - `POST /api/v1/feed/events`
 
-Accepted event vocabulary:
+Accepted events:
 - `feed.impression`
 - `feed.view`
 - `feed.watch`
@@ -229,41 +215,62 @@ Accepted event vocabulary:
 - `feed.service_clicked`
 - `feed.product_clicked`
 
-Instrumentation rules:
-- synchronized authenticated Hustle User required for the current MVP feed
-- event Post must still be discovery-eligible
-- Service/Product click target must be a currently PUBLISHED attachment on that Post
-- payload records viewer User ID, Post ID and creator target User ID
-- optional feed tab, feed position and session ID are recorded
+Rules:
+- synchronized authenticated Hustle User required
+- Post must remain discovery-eligible
+- Service/Product click target must be a current PUBLISHED attachment
+- payload records viewer, Post, creator target, tab/position/session where supplied
 - `feed.watch` requires `watchMs`
-- Service/Product click events record canonical offer IDs
-- non-watch events with a session ID use a simple recent duplicate guard
-- events persist as `SystemEvent`; they never mutate Post/offer ownership or capabilities
-- Phase 7 like/save/comment/follow/share records remain authoritative for those behaviors
+- non-watch session events use simple recent duplicate protection
+- events never mutate content/offer/capability state
 
-## Phase 8C — Home feed experience
-PENDING.
+Hosted validation on 2026-09-09:
+- `feed.impression` persisted for Post `cmtu0zq9d0009dczt8a1wv3zk`
+- `feed.watch` persisted with `watchMs: 6500`
+- both events correctly identify the CLIENT viewer and target creator through SystemEvent payload
 
-Next:
-- Home route/feed shell
+### Phase 8C — Home feed experience
+IMPLEMENTED; LOCAL UI GATE PENDING.
+
+Web route:
+- `/home`
+
+Implemented experience:
 - For You / Nearby / Connections tabs
-- media-first feed cards
-- creator/profile context
-- attached Service/Product CTAs
-- interaction controls reusing Phase 7 APIs
-- cursor pagination / progressive fetching
-- impression/view/watch instrumentation
-- profile/Service/Product click instrumentation
+- authenticated feed loading
+- media-first cards
+- image carousel rail
+- native video rendering plus YouTube embed handling
+- creator/professional context
+- current Service/Product cards
+- like/save/follow/share controls reusing Phase 7 APIs
+- comments/open-Post CTA
+- cursor load-more
+- cold-start explanation
+- empty Connections guidance
+- account CTA into discovery feed
 
-## Phase 8D — Real discovery gate
+Instrumentation wired into UI:
+- impression when a card is rendered
+- view when at least 55% of a card becomes visible
+- watch/dwell duration while substantially visible
+- profile clicks
+- Service clicks
+- Product clicks
+- Phase 7 share event remains authoritative for share actions
+
+### Phase 8D — Real discovery gate
 PENDING.
 
-Validate with real users/data:
-1. a synchronized user with zero follows can open For You and discover relevant Hustlers
-2. location-relevant content appears in Nearby when matching data exists
-3. followed creator content appears in Connections
-4. profile/Service/Product navigation works from feed items
-5. discovery events persist without mutating ownership/capabilities
+Validate through `/home`:
+1. `adminxpen` can open For You and discover `xpen`
+2. Nearby surfaces Lagos content
+3. follow `xpen` from For You, then Connections surfaces `xpen` Posts
+4. like/save/follow/share controls work in-feed
+5. Post/profile/Service/Product navigation works
+6. load-more behaves correctly when a cursor exists
+7. discovery events persist in SystemEvent
+8. ownership/capabilities remain unchanged
 
 ## Phase 8 boundaries
 Phase 9 owns intentional universal Search + Marketplace discovery.
