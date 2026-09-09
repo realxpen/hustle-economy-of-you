@@ -8,6 +8,7 @@ import { HustlerApplicationModule } from "./hustler-application/hustler-applicat
 import { ProfessionalProfileModule } from "./professional-profile/professional-profile.module";
 import { ServiceModule } from "./service/service.module";
 import { ProductModule } from "./product/product.module";
+import { PostModule } from "./post/post.module";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
 
 @Module({
@@ -22,7 +23,8 @@ import { RequestContextMiddleware } from "./common/middleware/request-context.mi
     HustlerApplicationModule,
     ProfessionalProfileModule,
     ServiceModule,
-    ProductModule
+    ProductModule,
+    PostModule
   ]
 })
 export class AppModule implements NestModule {
