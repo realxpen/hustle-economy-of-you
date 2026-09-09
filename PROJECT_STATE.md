@@ -1,12 +1,12 @@
 # Hustle Project State
 
-Updated: 2026-09-08
+Updated: 2026-09-09
 
 ## Current AED capability
 Build
 
 ## Current MVP phase
-Phase 5 — Services
+Phase 6 — Products
 
 ## Phase 1 status
 COMPLETE.
@@ -16,11 +16,11 @@ Foundation validated: approved monorepo, NestJS modular API, Prisma/PostgreSQL, 
 ## Phase 2 status
 COMPLETE.
 
-Validated operational identity loop:
+Validated identity loop:
 
 `Register → verify → synchronize → CLIENT → complete profile → sign out → sign back in → retain the same Hustle identity.`
 
-Rules now proven:
+Binding rules proven:
 - one provider identity maps to one Hustle `User`
 - every synchronized user receives CLIENT automatically
 - HUSTLER and AGENT are additive capabilities
@@ -31,7 +31,7 @@ Rules now proven:
 ## Phase 3 status
 COMPLETE.
 
-Real gate validated:
+Real Hustler gate validated:
 
 `CLIENT → application → private proof → submit → verified second reviewer → APPROVED → same User retains CLIENT ACTIVE + receives HUSTLER ACTIVE`
 
@@ -44,25 +44,38 @@ Hosted verification confirmed:
 ## Phase 4 status
 COMPLETE.
 
-The real professional-identity gate was exercised successfully on 2026-09-08:
+Real professional-identity gate validated:
 
 `HUSTLER ACTIVE → bootstrap professional profile → edit → save → publish → open /u/[username] as a visitor → same Hustle identity resolves publicly`
 
-Hosted database verification confirms:
+Hosted verification confirmed:
 - professional profile: PUBLISHED
 - username: `xpen`
 - CLIENT: ACTIVE
 - HUSTLER: ACTIVE
 
-Validated Phase 4 rules:
-- one professional profile extends the existing User
-- profile bootstrap comes from the approved Hustler application
-- profile edits do not rewrite application/review evidence
-- only ACTIVE HUSTLER can own/edit/publish the professional profile
-- only PUBLISHED profiles resolve publicly
-- public payload excludes private contact data
-- CLIENT remains ACTIVE
-- no role switcher or second account
+## Phase 5 status
+COMPLETE.
+
+The real Services gate was exercised successfully on 2026-09-09:
+
+`HUSTLER ACTIVE → create Service → edit/save → publish → open /services/[serviceId] in an incognito browser → same professional identity resolves on the public Service page`
+
+Hosted database verification confirms:
+- Service: `Full-Stack Web Application Development`
+- Service status: PUBLISHED
+- owner username: `xpen`
+- CLIENT: ACTIVE
+- HUSTLER: ACTIVE
+
+Validated Phase 5 rules:
+- Service belongs to the existing ProfessionalProfile
+- no seller account or role switcher
+- only ACTIVE HUSTLER can create/mutate Services
+- publishing requires a PUBLISHED ProfessionalProfile
+- public Service payload exposes safe professional identity context only
+- price is stored in integer minor units
+- real booking remains owned by Phase 11
 
 ## Supabase
 Dedicated Hustle project:
@@ -80,13 +93,12 @@ Applied hosted migrations:
 - `phase4_professional_profile_foundation`
 - `phase5_service_foundation`
 
-Hosted Phase 5 foundation:
+Hosted Service foundation:
 - `Service`
 - `ServiceStatus`: DRAFT / PUBLISHED / PAUSED
 - `ServicePricingType`: FIXED / STARTING_AT / HOURLY
 - `ServiceDeliveryMode`: REMOTE / PHYSICAL / BOTH
 - Service belongs to ProfessionalProfile
-- price stored in integer minor units
 - RLS enabled
 - `hustle_api` remains the API-side database actor
 
@@ -102,36 +114,9 @@ Secrets and `.env` files remain local and must never be committed.
 ## Repository workflow
 ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you` when continuing project work. The project owner pulls and tests locally. Never commit secrets or private environment values.
 
-## Phase 5 identity rule
-A Service extends the already-approved professional identity:
+## Phase 5 implementation summary
 
-`User → ProfessionalProfile → Service`
-
-It does not create another seller account, role mode or authorization source.
-
-Publishing a service requires:
-- ACTIVE HUSTLER
-- PUBLISHED ProfessionalProfile
-- complete service offer data
-
-Public lookup additionally requires the provider to remain ACTIVE HUSTLER and the profile to remain PUBLISHED.
-
-## Phase 5 implementation status
-
-### Phase 5A — Service data foundation
-IMPLEMENTED.
-
-- Prisma Service model
-- hosted migration applied
-- DRAFT / PUBLISHED / PAUSED lifecycle
-- pricing type and delivery mode primitives
-- ordered media URL list
-- price minor-unit storage
-- professional-profile ownership relationship
-
-### Phase 5B — Owner service API
-IMPLEMENTED.
-
+Owner API:
 - `GET /api/v1/services/mine`
 - `POST /api/v1/services`
 - `GET /api/v1/services/mine/:serviceId`
@@ -140,59 +125,96 @@ IMPLEMENTED.
 - `POST /api/v1/services/:serviceId/pause`
 - `DELETE /api/v1/services/:serviceId`
 
-Rules:
-- owner authentication required
-- ACTIVE HUSTLER required
-- only attached profile owner can mutate
-- published profile required before service publish
-- published service must be paused before deletion
-- publish/pause/delete emit SystemEvent
+Public API:
+- `GET /api/v1/services/:serviceId`
 
-### Phase 5C — Service editor
-IMPLEMENTED; LOCAL GATE PENDING.
-
-Web routes:
+Owner web routes:
 - `/services/manage`
 - `/services/new`
 - `/services/[serviceId]/edit`
 
-Editor fields:
-- title
-- category
-- description
-- media URLs
-- Naira price
-- pricing type
-- remote / physical mode
-- location
-- availability note
-- delivery time
-- client requirements
-
-### Phase 5D — Public service page
-IMPLEMENTED; LOCAL GATE PENDING.
-
-Public API:
-- `GET /api/v1/services/:serviceId`
-
 Public web route:
 - `/services/[serviceId]`
 
-Public payload includes safe provider identity + ProfessionalProfile context and excludes private contacts.
+## Current Phase 6 objective
+Allow ACTIVE Hustlers to sell physical or digital products through the same professional identity.
 
-The service page links back to `/u/[username]`.
+Canonical ownership:
 
-## Booking boundary
-The earlier source plan described a service as something another user can genuinely book, but the current approved phase order places the real booking system in Phase 11.
+`User → ProfessionalProfile → Product → optional ProductVariant`
 
-Phase 5 therefore creates a genuine booking-ready offer and deliberately does not simulate booking, payment or escrow. Phase 11 must reference the stable Service record.
+Phase 6 source requirements:
+- title
+- description
+- images / video
+- price
+- category
+- inventory
+- variants
+- delivery information
+- status
+- create/edit
+- public Product page
+- stock tracking
+- availability
+- seller association
 
-## Current Phase 5 gate
-Exercise the real Hustler identity through:
+Canonical product knowledge:
+- `Knowledge/Product/PRODUCTS.md`
+- `Knowledge/Decisions/ADR-0005-product-ownership-and-inventory.md`
 
-`HUSTLER ACTIVE → /services/manage → create draft → edit → save → publish → open /services/[serviceId] in another browser → confirm same professional identity`
+## Phase 6 boundaries
+Phase 6 establishes purchase-ready Product records and public Product pages.
 
-CLIENT must remain ACTIVE. No role switcher.
+It does not fake commerce:
+- Phase 10 owns messaging
+- Phase 12 owns cart + orders
+- Phase 13 owns payments + escrow
 
-## Next phase after Phase 5 gate
-Phase 6 — Products.
+Later systems must reference the stable Product and ProductVariant records created in Phase 6.
+
+## Phase 6 planned slices
+
+### Phase 6A — Product data foundation
+- Product / ProductVariant Prisma models
+- PHYSICAL / DIGITAL product type
+- DRAFT / PUBLISHED / PAUSED lifecycle
+- price in integer minor units
+- inventory tracking
+- optional variant-level inventory and price override
+- hosted Supabase migration + RLS
+
+### Phase 6B — Owner Product API
+- list own Products
+- create Product draft
+- get own Product
+- update Product
+- manage variants
+- publish/pause/delete with ownership checks
+
+### Phase 6C — Product editor
+- Product manager
+- create/edit Product
+- media URLs
+- price/category/type
+- stock tracking
+- variants
+- delivery information
+- publication controls
+
+### Phase 6D — Public Product page
+- stable public Product route
+- only PUBLISHED Products resolve publicly
+- stock/availability displayed
+- Product attached to same professional identity
+- public payload excludes private contact data
+
+## Phase 6 gate
+A real ACTIVE Hustler must be able to:
+
+`create Product draft → add product details/media/inventory/variants → save → publish → open public Product page in another browser → see the Product attached to the same professional identity`
+
+CLIENT remains ACTIVE. No role switcher.
+
+## Next phase after Phase 6 gate
+Phase 7 — Content Creation Engine.
