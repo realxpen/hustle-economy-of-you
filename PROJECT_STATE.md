@@ -145,6 +145,7 @@ Applied hosted migrations:
 - `phase7_content_interactions`
 
 Phase 8 used the existing SystemEvent analytics foundation and required no new DDL.
+Phase 9A/9B also use existing canonical tables and require no new DDL.
 
 ## Local development
 - Web: `http://localhost:3001`
@@ -215,7 +216,7 @@ Source-defined concepts:
 
 Only authoritative filters may become functional now.
 
-Current Phase 9 can support:
+Current Phase 9 supports:
 - category
 - skill
 - textual location / nearby
@@ -223,6 +224,8 @@ Current Phase 9 can support:
 - verified identity
 - Service delivery mode
 - Product type
+
+Price query parameters are expressed in normal currency units (for the current NGN MVP), then converted to canonical minor units server-side.
 
 Boundaries:
 - authoritative ratings/reviews wait for Phase 14; do not fabricate rating filters
@@ -253,43 +256,68 @@ No external search engine, embedding store or opaque AI ranking is required for 
 
 Future search infrastructure may be added behind this contract when evidence/scale justifies it.
 
-## Phase 9 planned slices
+## Phase 9 implementation status
 
 ### Phase 9A — Search API foundation
-Build:
-- common search query/filter parsing
-- public eligibility helpers
-- deterministic relevance scoring
-- People search
-- Posts search
-- Services search
-- Products search
-- Top result merge
-- cursor pagination
+IMPLEMENTED; LOCAL BUILD/RUNTIME GATE PENDING.
 
-Planned API:
-- `GET /api/v1/search`
+API:
+- `GET /api/v1/search` → Top
 - `GET /api/v1/search/top`
 - `GET /api/v1/search/people`
 - `GET /api/v1/search/posts`
 - `GET /api/v1/search/services`
 - `GET /api/v1/search/products`
 
-### Phase 9B — Marketplace browse API
-Build:
-- All
-- Services
-- Products
-- category/location/price/type filters
-- browse ranking
-- cursor pagination
+Contract:
+- authenticated synchronized Hustle User required for the MVP Search surface
+- `q` is required for Search and capped at 160 characters
+- common filters: `category`, `skill`, `location`, `nearby`, `verified`
+- offer filters: `minPrice`, `maxPrice`
+- Service-specific: `deliveryMode=REMOTE|PHYSICAL|BOTH`
+- Product-specific: `productType=PHYSICAL|DIGITAL`
+- `limit` defaults to 12 and is capped at 30
+- opaque deterministic cursor pagination
+- explicit `zeroResults` response; unrelated results are not silently substituted
 
-Planned API:
-- `GET /api/v1/marketplace`
+Eligibility:
+- People: ProfessionalProfile PUBLISHED + HUSTLER ACTIVE
+- Posts: Post PUBLISHED + ProfessionalProfile PUBLISHED + HUSTLER ACTIVE
+- Services: Service PUBLISHED + ProfessionalProfile PUBLISHED + HUSTLER ACTIVE
+- Products: Product PUBLISHED + ProfessionalProfile PUBLISHED + HUSTLER ACTIVE
+
+Ranking:
+- normalized lexical phrase/token matching
+- stop-word reduction for common intent glue words
+- exact/prefix/phrase field weighting
+- skill/category/location relevance
+- verified identity
+- recency
+- modest/capped Post engagement
+- professional experience where applicable
+- current media/inventory evidence where applicable
+- inspectable ranking reasons returned during MVP development
+- no semantic/vector/AI ranker
+
+Top merges bounded results across People/Posts/Services/Products using the same normalized score range and deterministic tie-breaking.
+
+### Phase 9B — Marketplace browse API
+IMPLEMENTED; LOCAL BUILD/RUNTIME GATE PENDING.
+
+API:
+- `GET /api/v1/marketplace` → All
 - `GET /api/v1/marketplace/services`
 - `GET /api/v1/marketplace/products`
 
+Marketplace works without `q` and ranks current eligible offers using recency, verified identity, media/current availability evidence and supported structured filters.
+
+Optional `q` may narrow Marketplace results lexically without creating a second search engine.
+
+All/Services/Products use the same canonical Service/Product records and cursor contract as Search.
+
 ### Phase 9C — Search + Marketplace web experience
+PENDING.
+
 Build:
 - `/search`
 - `/marketplace`
@@ -302,6 +330,8 @@ Build:
 - links to canonical public pages
 
 ### Phase 9D — Search observation
+PENDING.
+
 Track through SystemEvent:
 - `search.performed`
 - `search.zero_results`
@@ -312,6 +342,8 @@ Track through SystemEvent:
 Do not let analytics mutate Search results or domain ownership.
 
 ### Phase 9E — Real search gate
+PENDING.
+
 Use real current data to validate examples such as:
 
 `full stack developer Lagos`
