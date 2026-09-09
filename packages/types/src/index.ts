@@ -269,3 +269,88 @@ export interface SaveProductVariantInput {
   inventoryQuantity?: number | null;
   isActive?: boolean;
 }
+
+export type PostStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+export type PostMediaType = "IMAGE" | "VIDEO";
+
+export interface PostMedia {
+  id: string;
+  postId: string;
+  type: PostMediaType;
+  storageKey: string | null;
+  mediaUrl: string | null;
+  position: number;
+  width: number | null;
+  height: number | null;
+  durationMs: number | null;
+  createdAt: string;
+}
+
+export interface PostServiceAttachment {
+  postId: string;
+  serviceId: string;
+  createdAt: string;
+  service: Service;
+}
+
+export interface PostProductAttachment {
+  postId: string;
+  productId: string;
+  createdAt: string;
+  product: Product;
+}
+
+export interface Post {
+  id: string;
+  professionalProfileId: string;
+  caption: string | null;
+  category: string | null;
+  location: string | null;
+  tags: string[];
+  status: PostStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  media: PostMedia[];
+  serviceAttachments: PostServiceAttachment[];
+  productAttachments: PostProductAttachment[];
+}
+
+export interface SavePostInput {
+  caption?: string | null;
+  category?: string | null;
+  location?: string | null;
+  tags?: string[];
+}
+
+export interface AddPostMediaInput {
+  type: PostMediaType;
+  storageKey?: string | null;
+  mediaUrl?: string | null;
+  position?: number;
+  width?: number | null;
+  height?: number | null;
+  durationMs?: number | null;
+}
+
+export interface PublicPost {
+  post: Post;
+  owner: {
+    id: string;
+    displayName: string | null;
+    username: string | null;
+    avatarUrl: string | null;
+    bio: string | null;
+    location: string | null;
+    verified: boolean;
+    professionalProfile: {
+      id: string;
+      headline: string | null;
+      primarySkill: string | null;
+      secondarySkills: string[];
+      category: string | null;
+      professionalSummary: string | null;
+      yearsExperience: number | null;
+    };
+  };
+}
