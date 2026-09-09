@@ -122,6 +122,8 @@ Current hosted domain foundation includes:
 - RLS remains enabled on protected domain tables
 - `hustle_api` remains the API-side database actor
 
+Phase 8A/8B do not require a new database migration. Discovery events are stored through the existing `SystemEvent` analytics foundation, while ranking reads the existing canonical Post, interaction, UserFollow and professional identity records.
+
 ## Local development
 - Web: `http://localhost:3001`
 - API: `http://localhost:4000/api/v1`
@@ -134,6 +136,8 @@ Secrets and `.env` files remain local and must never be committed.
 ## Repository workflow
 ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you`. Project owner pulls and validates locally. Never commit secrets/private environment values.
 
+Before pulling new remote work, the project owner should run `git status`. Intentional local changes should be committed/pushed first; generated or accidental files should not be blindly committed.
+
 ## Current Phase 8 objective
 Solve Hustle's central discovery problem:
 
@@ -144,79 +148,116 @@ Home feed tabs:
 - Nearby
 - Connections
 
-Each feed item must expose:
+Each feed item exposes:
 - creator identity
 - professional skill/headline context
 - Post media/content
 - location
 - engagement
+- viewer interaction state
 - currently eligible attached Service/Product
-- profile CTA
+- profile CTA context
 
 Canonical Phase 8 knowledge:
 - `Knowledge/Product/DISCOVERY_FEED.md`
 - `Knowledge/Decisions/ADR-0007-discovery-feed-ranking-and-instrumentation.md`
 
-## Phase 8 ranking direction
-Start simple and explainable.
-
-Initial signals:
-- interest/history where available
-- skill/category relevance
-- location relevance
-- recency
-- engagement
-- trust
-- connections
-
-No opaque ML/AI recommender is required for the MVP. A cold-start user with zero connections/history must still receive useful eligible content.
-
-## Phase 8 instrumentation
-Track discovery behavior at minimum:
-- impression
-- view
-- watch duration
-- like
-- comment
-- save
-- share
-- profile visit
-- Service click
-- Product click
-
-Message/booking/purchase conversions connect when their owning phases exist; do not fake them in Phase 8.
-
-## Phase 8 planned slices
+## Phase 8 implementation status
 
 ### Phase 8A — Feed API + deterministic ranking
-- eligible published Post query
-- `For You` feed
-- `Nearby` feed
-- `Connections` feed
-- stable cursor pagination
-- cold-start fallback
-- safe creator + current offer context
+IMPLEMENTED; LOCAL BUILD/RUNTIME GATE PENDING.
+
+API:
+- `GET /api/v1/feed` defaults to For You
+- `GET /api/v1/feed/for-you`
+- `GET /api/v1/feed/nearby`
+- `GET /api/v1/feed/connections`
+- query parameters: `cursor`, `limit`, optional `location`
+
+Eligibility:
+- Post PUBLISHED
+- ProfessionalProfile PUBLISHED
+- creator HUSTLER ACTIVE
+- viewer's own Posts excluded from discovery feed
+- attached Service/Product included only while PUBLISHED
+
+Deterministic ranking signals:
+- category affinity derived from authoritative like/save/comment history
+- normalized city/location match
+- recency buckets
+- capped engagement contribution
+- verified contact identity
+- professional experience
+- existing follow connection
+- current economic context through published Service/Product attachments
+
+Ranking constraints:
+- simple inspectable weights in ordinary server code
+- raw popularity is capped so vanity metrics cannot dominate
+- no ML model, embeddings or opaque recommender
+- For You cold-start works without follows/history by falling back to eligible recent/trusted/location-relevant content
+- Nearby uses normalized textual city matching for MVP
+- Connections uses `UserFollow` as authoritative graph
+
+Pagination:
+- deterministic score ordering
+- tie-break by publication timestamp + Post ID
+- opaque cursor contains score/timestamp/ID
+- limit defaults to 10 and is capped at 30
+- current MVP candidate window is intentionally bounded while pilot scale is small
+
+Feed response includes:
+- Post/media/content metadata
+- safe creator + ProfessionalProfile context
+- engagement counts
+- viewer liked/saved/following state
+- current published Service/Product attachments
+- inspectable ranking score/reasons
+- `nextCursor`, `hasMore`, `viewerLocation`, `coldStart`
 
 ### Phase 8B — Discovery instrumentation
+IMPLEMENTED; LOCAL BUILD/RUNTIME GATE PENDING.
+
+Endpoint:
+- `POST /api/v1/feed/events`
+
+Accepted event vocabulary:
 - `feed.impression`
 - `feed.view`
 - `feed.watch`
 - `feed.profile_clicked`
 - `feed.service_clicked`
 - `feed.product_clicked`
-- continue using authoritative Phase 7 interaction records for like/save/comment/follow/share behavior
 
-### Phase 8C — Home feed experience
+Instrumentation rules:
+- synchronized authenticated Hustle User required for the current MVP feed
+- event Post must still be discovery-eligible
+- Service/Product click target must be a currently PUBLISHED attachment on that Post
+- payload records viewer User ID, Post ID and creator target User ID
+- optional feed tab, feed position and session ID are recorded
+- `feed.watch` requires `watchMs`
+- Service/Product click events record canonical offer IDs
+- non-watch events with a session ID use a simple recent duplicate guard
+- events persist as `SystemEvent`; they never mutate Post/offer ownership or capabilities
+- Phase 7 like/save/comment/follow/share records remain authoritative for those behaviors
+
+## Phase 8C — Home feed experience
+PENDING.
+
+Next:
 - Home route/feed shell
 - For You / Nearby / Connections tabs
 - media-first feed cards
 - creator/profile context
 - attached Service/Product CTAs
 - interaction controls reusing Phase 7 APIs
-- pagination / load-more or progressive fetching
-- view/watch instrumentation
+- cursor pagination / progressive fetching
+- impression/view/watch instrumentation
+- profile/Service/Product click instrumentation
 
-### Phase 8D — Real discovery gate
+## Phase 8D — Real discovery gate
+PENDING.
+
 Validate with real users/data:
 1. a synchronized user with zero follows can open For You and discover relevant Hustlers
 2. location-relevant content appears in Nearby when matching data exists
