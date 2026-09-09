@@ -185,7 +185,7 @@ IMPLEMENTED.
 - RLS enabled with API-side `hustle_api` policies
 
 ### Phase 6B — Owner Product API
-IMPLEMENTED.
+IMPLEMENTED; LOCAL BUILD GATE PASSED.
 
 Owner Product API:
 - `GET /api/v1/products/mine`
@@ -198,6 +198,12 @@ Owner Product API:
 - `POST /api/v1/products/:productId/publish`
 - `POST /api/v1/products/:productId/pause`
 - `DELETE /api/v1/products/:productId`
+
+Local validation on 2026-09-09 passed:
+- Prisma Client generation
+- API TypeScript typecheck
+- Web TypeScript typecheck
+- API Nest build
 
 Rules:
 - authentication + ACTIVE HUSTLER required
@@ -212,25 +218,42 @@ Rules:
 - no cart, checkout, order or payment behavior is simulated
 
 ### Phase 6C — Product editor
-PENDING.
+IMPLEMENTED; REAL PRODUCT GATE PENDING.
 
-- Product manager
-- create/edit Product
+Owner web routes:
+- `/products/manage`
+- `/products/new`
+- `/products/[productId]/edit`
+
+Editor supports:
+- Product draft create/edit
 - media URLs
-- price/category/type
-- stock tracking
-- variants
-- delivery information
-- publication controls
+- Naira price/category/type
+- stock tracking and quantity
+- delivery/access information
+- ProductVariant create/edit/delete
+- variant SKU, option values, price override, stock and active state
+- publish/pause/delete controls
+- live offer preview
 
 ### Phase 6D — Public Product page
-PENDING.
+IMPLEMENTED; REAL PRODUCT GATE PENDING.
 
-- stable public Product route
-- only PUBLISHED Products resolve publicly
-- stock/availability displayed
-- Product attached to same professional identity
-- public payload excludes private contact data
+Public API:
+- `GET /api/v1/products/:productId`
+
+Public web route:
+- `/products/[productId]`
+
+Public rules:
+- only PUBLISHED Products resolve
+- ProfessionalProfile must remain PUBLISHED
+- provider must remain ACTIVE HUSTLER
+- inactive variants are excluded
+- stock/availability is derived from Product/variant inventory
+- public payload exposes safe professional identity context only
+- page links back to `/u/[username]`
+- no fake cart, checkout, order or payment action
 
 ## Phase 6 gate
 A real ACTIVE Hustler must be able to:
