@@ -77,6 +77,17 @@ enum ProductStatus {
   PAUSED
 }
 
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PostMediaType {
+  IMAGE
+  VIDEO
+}
+
 model User {
   id                          String               @id @default(cuid())
   authSubject                 String               @unique
@@ -178,6 +189,7 @@ model ProfessionalProfile {
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   services Service[]
   products Product[]
+  posts    Post[]
 
   @@index([status])
   @@index([category])
@@ -203,7 +215,8 @@ model Service {
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
-  professionalProfile ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+  professionalProfile ProfessionalProfile     @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+  postAttachments     PostServiceAttachment[]
 
   @@index([professionalProfileId, status])
   @@index([status, category])
@@ -228,8 +241,9 @@ model Product {
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
-  professionalProfile ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+  professionalProfile ProfessionalProfile     @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
   variants            ProductVariant[]
+  postAttachments     PostProductAttachment[]
 
   @@index([professionalProfileId, status])
   @@index([status, category])
@@ -252,6 +266,69 @@ model ProductVariant {
 
   @@unique([productId, sku])
   @@index([productId, isActive])
+}
+
+model Post {
+  id                    String     @id @default(cuid())
+  professionalProfileId String
+  caption               String?
+  category              String?
+  location              String?
+  tags                  String[]   @default([])
+  status                PostStatus @default(DRAFT)
+  publishedAt           DateTime?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  professionalProfile ProfessionalProfile     @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+  media               PostMedia[]
+  serviceAttachments  PostServiceAttachment[]
+  productAttachments  PostProductAttachment[]
+
+  @@index([professionalProfileId, status])
+  @@index([status, createdAt])
+  @@index([category])
+}
+
+model PostMedia {
+  id         String        @id @default(cuid())
+  postId     String
+  type       PostMediaType
+  storageKey String?
+  mediaUrl   String?
+  position   Int           @default(0)
+  width      Int?
+  height     Int?
+  durationMs Int?
+  createdAt  DateTime      @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, position])
+}
+
+model PostServiceAttachment {
+  postId    String
+  serviceId String
+  createdAt DateTime @default(now())
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([postId, serviceId])
+  @@index([serviceId])
+}
+
+model PostProductAttachment {
+  postId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([postId, productId])
+  @@index([productId])
 }
 
 model SystemEvent {
