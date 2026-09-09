@@ -107,6 +107,11 @@ model User {
   hustlerApplication          HustlerApplication?  @relation("HustlerApplicant")
   reviewedHustlerApplications HustlerApplication[] @relation("HustlerReviewer")
   professionalProfile         ProfessionalProfile?
+  postLikes                   PostLike[]
+  postSaves                   PostSave[]
+  postComments                PostComment[]
+  following                   UserFollow[]         @relation("UserFollowing")
+  followers                   UserFollow[]         @relation("UserFollowers")
 }
 
 model UserCapability {
@@ -147,9 +152,7 @@ model HustlerApplication {
   updatedAt DateTime @updatedAt
 
   user User @relation("HustlerApplicant", fields: [userId], references: [id], onDelete: Cascade)
-
   reviewer User? @relation("HustlerReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
-
   proofs HustlerApplicationProof[]
 
   @@index([status])
@@ -284,6 +287,9 @@ model Post {
   media               PostMedia[]
   serviceAttachments  PostServiceAttachment[]
   productAttachments  PostProductAttachment[]
+  likes               PostLike[]
+  saves               PostSave[]
+  comments            PostComment[]
 
   @@index([professionalProfileId, status])
   @@index([status, createdAt])
@@ -329,6 +335,61 @@ model PostProductAttachment {
 
   @@id([postId, productId])
   @@index([productId])
+}
+
+model PostLike {
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@index([userId, createdAt])
+}
+
+model PostSave {
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@index([userId, createdAt])
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  parentId  String?
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  PostComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies PostComment[] @relation("CommentReplies")
+
+  @@index([postId, createdAt])
+  @@index([userId, createdAt])
+  @@index([parentId])
+}
+
+model UserFollow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId, createdAt])
 }
 
 model SystemEvent {
