@@ -40,7 +40,6 @@ interface FeedCursor {
 }
 
 interface RankingContext {
-  viewerId: string;
   viewerLocation: string | null;
   categoryAffinity: Map<string, number>;
   followingIds: Set<string>;
@@ -183,7 +182,6 @@ export class FeedService {
       : candidates;
 
     const context: RankingContext = {
-      viewerId: viewer.id,
       viewerLocation,
       categoryAffinity,
       followingIds,
@@ -279,17 +277,17 @@ export class FeedService {
       }
     }
 
-    const payload: Prisma.InputJsonObject = {
+    const payload = {
       viewerUserId: viewer.id,
       postId,
-      targetUserId: post.professionalProfile.userId
-    };
-    if (feedTab !== undefined) payload.feedTab = feedTab;
-    if (position !== undefined) payload.position = position;
-    if (sessionId !== undefined) payload.sessionId = sessionId;
-    if (watchMs !== undefined) payload.watchMs = watchMs;
-    if (serviceId !== undefined) payload.serviceId = serviceId;
-    if (productId !== undefined) payload.productId = productId;
+      targetUserId: post.professionalProfile.userId,
+      ...(feedTab !== undefined ? { feedTab } : {}),
+      ...(position !== undefined ? { position } : {}),
+      ...(sessionId !== undefined ? { sessionId } : {}),
+      ...(watchMs !== undefined ? { watchMs } : {}),
+      ...(serviceId !== undefined ? { serviceId } : {}),
+      ...(productId !== undefined ? { productId } : {})
+    } satisfies Prisma.InputJsonObject;
 
     if (sessionId && name !== "feed.watch") {
       const duplicate = await this.findRecentDuplicate(name, payload);
