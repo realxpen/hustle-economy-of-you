@@ -81,15 +81,20 @@ Applied hosted migrations:
 - `phase5_service_foundation`
 - `phase6_product_foundation`
 - `phase7_content_foundation`
+- `phase7_content_interactions`
 
 Hosted content foundation now includes:
 - `Post`
 - `PostMedia`
 - `PostServiceAttachment`
 - `PostProductAttachment`
+- `PostLike`
+- `PostSave`
+- `PostComment`
+- `UserFollow`
 - `PostStatus`: DRAFT / PUBLISHED / ARCHIVED
 - `PostMediaType`: IMAGE / VIDEO
-- RLS enabled on all Phase 7 content tables
+- RLS enabled on all Phase 7 content/interaction tables
 - `hustle_api` remains the API-side database actor
 
 ## Local development
@@ -125,7 +130,7 @@ Canonical knowledge:
 ## Phase 7 implementation status
 
 ### Phase 7A — Content data foundation
-IMPLEMENTED; LOCAL BUILD GATE PENDING.
+IMPLEMENTED; ROUTE/RUNTIME GATE PASSED.
 
 Implemented:
 - Post model
@@ -140,13 +145,18 @@ Implemented:
 - RLS + `hustle_api` policies
 - database checks for media source, position, dimensions and duration metadata
 
-Media composition foundation:
+Media composition:
 - one short-video media item OR one-to-ten images
 - carousel = one Post with multiple ordered IMAGE records
 - Post media is independent of Service/Product media
 
+Runtime route validation on 2026-09-09:
+- `GET /api/v1/posts/test` correctly reached the Post route
+- API returned domain 404 `Post not found or not currently public`
+- route did not return `Cannot GET`
+
 ### Phase 7B — Content API
-IMPLEMENTED; LOCAL BUILD GATE PENDING.
+IMPLEMENTED; REAL CONTENT GATE PASSED.
 
 Owner API:
 - `GET /api/v1/posts/mine`
@@ -165,40 +175,87 @@ Owner API:
 Public API:
 - `GET /api/v1/posts/:postId`
 
-Rules implemented:
+Rules:
 - owner authentication required
 - ACTIVE HUSTLER required for professional Post creation/mutation
 - Post belongs to existing ProfessionalProfile
-- attached Service/Product must belong to that same ProfessionalProfile
-- attachment may remain historically linked while public rendering only includes currently PUBLISHED offers
+- attached Service/Product must belong to same ProfessionalProfile
+- attachments remain canonical references
 - publication requires PUBLISHED ProfessionalProfile, caption, category and valid media
 - public Post resolution requires Post PUBLISHED + ProfessionalProfile PUBLISHED + HUSTLER ACTIVE
 - public creator payload excludes private contact data
 - archive retains content rather than deleting it
-- create/publish/archive emit SystemEvent
-- Phase 8 ranking/feed logic is not embedded into Post persistence
+- Phase 8 ranking/feed logic is not embedded in Post persistence
 
 ### Phase 7C — Content creator experience
-PENDING.
+COMPLETE; REAL POST GATE PASSED.
 
-Next:
-- create/manage Post web experience
-- video/image/carousel composition
+Web routes:
+- `/posts/manage`
+- `/posts/new`
+- `/posts/[postId]/edit`
+- `/posts/[postId]`
+
+Creator experience supports:
+- image, video and image carousel composition
 - caption/category/location/tags
 - owned Service/Product attachment picker
 - draft/save/publish/archive controls
-- public `/posts/[postId]` experience
+- public Post page and links to creator/offers
+
+Real hosted verification on 2026-09-09 confirms PUBLISHED Posts for `xpen`, including:
+- persisted media
+- category/location/tags
+- canonical Service attachment
+- canonical Product attachment
+- public visitor rendering succeeded
+
+Validated creator loop:
+`HUSTLER ACTIVE → create Post → add media/content metadata → attach owned offer(s) → save → publish → open public Post as visitor → same creator/professional/economic identity`
 
 ### Phase 7D — Core interactions
-PENDING.
+IMPLEMENTED; SECOND-USER VALIDATION PENDING.
 
-Planned:
+Hosted interaction foundation:
+- `PostLike`: unique User + Post
+- `PostSave`: unique User + Post
+- `PostComment`: User-owned comment with optional parent relation for reply foundation
+- `UserFollow`: identity-level follower/following relation with self-follow prevention
+- share is recorded as `post.shared` SystemEvent rather than a vanity counter/source-of-truth record
+
+Interaction API:
+- `GET /api/v1/posts/:postId/interactions`
+- `GET /api/v1/posts/:postId/interactions/me`
+- `POST /api/v1/posts/:postId/like`
+- `DELETE /api/v1/posts/:postId/like`
+- `POST /api/v1/posts/:postId/save`
+- `DELETE /api/v1/posts/:postId/save`
+- `POST /api/v1/posts/:postId/comments`
+- `DELETE /api/v1/posts/:postId/comments/:commentId`
+- `POST /api/v1/users/:userId/follow`
+- `DELETE /api/v1/users/:userId/follow`
+- `POST /api/v1/posts/:postId/share`
+
+Interaction rules:
+- any synchronized authenticated Hustle User may like/save/comment/follow; HUSTLER capability is not required for consuming/interacting
+- like/save use authoritative unique relationship records
+- comments persist author identity and timestamps
+- comments may optionally reference a parent comment for future reply UX
+- only the comment author can delete their comment through the current API
+- users cannot follow themselves
+- public aggregates are derived from interaction records
+- public comments expose safe identity fields only
+- share action records an analytics/SystemEvent signal
+- interaction records do not alter Post ownership or User capability state
+
+Public Post UI now includes:
 - like/unlike
 - save/unsave
+- follow/unfollow creator
 - comments
-- follow identity foundation
-- share action/event foundation
-- authoritative interaction records; counters derived rather than ownership truth
+- share / copy-link behavior
+- public interaction counts
+- sign-in boundary for authenticated actions
 
 ## Phase 7 boundaries
 Phase 8 owns For You / Nearby / Connections feed, ranking, impressions and watch instrumentation.
@@ -207,14 +264,16 @@ Phase 10 owns messaging.
 Phase 11/12/13 own booking/orders/payments.
 Stories and Live remain their later dedicated phases.
 
-## Phase 7 gate
-A real ACTIVE HUSTLER must be able to:
+## Phase 7 remaining gate
+Use a second synchronized Hustle User to validate:
 
-`create Post → add short video/image/carousel + caption/category/location/tags → attach owned published Service/Product → publish → open Post as visitor → see demonstrated capability and same professional/economic identity`
+`open published Post → like → save → comment → follow creator → share → refresh → state persists`
 
-A second user should be able to exercise implemented interaction primitives without altering Post ownership/capability state.
+Then verify:
+- creator/Post ownership remains unchanged
+- second user remains CLIENT (unless separately approved for other capabilities)
+- interaction counts/state resolve correctly
+- unlike/unsave/unfollow work
+- own comment deletion works
 
-CLIENT remains ACTIVE. No role switcher.
-
-## Next phase after Phase 7 gate
-Phase 8 — Home Discovery Feed.
+Once this passes, Phase 7 is COMPLETE and Phase 8 — Home Discovery Feed opens.
