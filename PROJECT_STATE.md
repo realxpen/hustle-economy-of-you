@@ -92,6 +92,7 @@ Applied hosted migrations:
 - `phase3_hustler_proof_storage`
 - `phase4_professional_profile_foundation`
 - `phase5_service_foundation`
+- `phase6_product_foundation`
 
 Hosted Service foundation:
 - `Service`
@@ -99,7 +100,18 @@ Hosted Service foundation:
 - `ServicePricingType`: FIXED / STARTING_AT / HOURLY
 - `ServiceDeliveryMode`: REMOTE / PHYSICAL / BOTH
 - Service belongs to ProfessionalProfile
-- RLS enabled
+
+Hosted Product foundation:
+- `Product`
+- `ProductVariant`
+- `ProductType`: PHYSICAL / DIGITAL
+- `ProductStatus`: DRAFT / PUBLISHED / PAUSED
+- Product belongs to ProfessionalProfile
+- ProductVariant belongs to Product
+- product and variant prices use integer minor units
+- explicit inventory tracking with non-negative quantity constraints
+- optional variant-level price and inventory overrides
+- RLS enabled on Product and ProductVariant
 - `hustle_api` remains the API-side database actor
 
 ## Local development
@@ -143,22 +155,6 @@ Canonical ownership:
 
 `User → ProfessionalProfile → Product → optional ProductVariant`
 
-Phase 6 source requirements:
-- title
-- description
-- images / video
-- price
-- category
-- inventory
-- variants
-- delivery information
-- status
-- create/edit
-- public Product page
-- stock tracking
-- availability
-- seller association
-
 Canonical product knowledge:
 - `Knowledge/Product/PRODUCTS.md`
 - `Knowledge/Decisions/ADR-0005-product-ownership-and-inventory.md`
@@ -173,26 +169,51 @@ It does not fake commerce:
 
 Later systems must reference the stable Product and ProductVariant records created in Phase 6.
 
-## Phase 6 planned slices
+## Phase 6 implementation status
 
 ### Phase 6A — Product data foundation
-- Product / ProductVariant Prisma models
+IMPLEMENTED.
+
+- Prisma Product and ProductVariant models
 - PHYSICAL / DIGITAL product type
 - DRAFT / PUBLISHED / PAUSED lifecycle
 - price in integer minor units
-- inventory tracking
-- optional variant-level inventory and price override
-- hosted Supabase migration + RLS
+- explicit inventory tracking
+- database non-negative price/inventory constraints
+- optional variant SKU, option values, price override and inventory quantity
+- hosted Supabase migration applied
+- RLS enabled with API-side `hustle_api` policies
 
 ### Phase 6B — Owner Product API
-- list own Products
-- create Product draft
-- get own Product
-- update Product
-- manage variants
-- publish/pause/delete with ownership checks
+IMPLEMENTED.
+
+Owner Product API:
+- `GET /api/v1/products/mine`
+- `POST /api/v1/products`
+- `GET /api/v1/products/mine/:productId`
+- `PUT /api/v1/products/:productId`
+- `POST /api/v1/products/:productId/variants`
+- `PUT /api/v1/products/:productId/variants/:variantId`
+- `DELETE /api/v1/products/:productId/variants/:variantId`
+- `POST /api/v1/products/:productId/publish`
+- `POST /api/v1/products/:productId/pause`
+- `DELETE /api/v1/products/:productId`
+
+Rules:
+- authentication + ACTIVE HUSTLER required
+- Product must belong to the caller's existing ProfessionalProfile
+- PUBLISHED ProfessionalProfile required before Product publication
+- publication requires title, category, description, media, non-negative price and valid inventory state
+- PHYSICAL Products require delivery information before publication
+- tracked inventory requires an explicit non-negative quantity
+- variant SKU is unique within its Product
+- published Product must be paused before deletion
+- create/publish/pause/delete emit SystemEvent
+- no cart, checkout, order or payment behavior is simulated
 
 ### Phase 6C — Product editor
+PENDING.
+
 - Product manager
 - create/edit Product
 - media URLs
@@ -203,6 +224,8 @@ Later systems must reference the stable Product and ProductVariant records creat
 - publication controls
 
 ### Phase 6D — Public Product page
+PENDING.
+
 - stable public Product route
 - only PUBLISHED Products resolve publicly
 - stock/availability displayed

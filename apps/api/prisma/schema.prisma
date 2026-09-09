@@ -66,6 +66,17 @@ enum ServiceDeliveryMode {
   BOTH
 }
 
+enum ProductType {
+  PHYSICAL
+  DIGITAL
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  PAUSED
+}
+
 model User {
   id                          String               @id @default(cuid())
   authSubject                 String               @unique
@@ -166,6 +177,7 @@ model ProfessionalProfile {
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   services Service[]
+  products Product[]
 
   @@index([status])
   @@index([category])
@@ -196,6 +208,50 @@ model Service {
   @@index([professionalProfileId, status])
   @@index([status, category])
   @@index([createdAt])
+}
+
+model Product {
+  id                    String        @id @default(cuid())
+  professionalProfileId String
+  title                 String?
+  description           String?
+  category              String?
+  mediaUrls             String[]      @default([])
+  type                  ProductType   @default(PHYSICAL)
+  priceMinor            Int?
+  currency              String        @default("NGN")
+  trackInventory        Boolean       @default(false)
+  inventoryQuantity     Int?
+  deliveryInformation   String?
+  status                ProductStatus @default(DRAFT)
+  publishedAt           DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  professionalProfile ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+  variants            ProductVariant[]
+
+  @@index([professionalProfileId, status])
+  @@index([status, category])
+  @@index([createdAt])
+}
+
+model ProductVariant {
+  id                 String   @id @default(cuid())
+  productId          String
+  name               String
+  sku                String?
+  optionValues       Json?
+  priceOverrideMinor Int?
+  inventoryQuantity  Int?
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, sku])
+  @@index([productId, isActive])
 }
 
 model SystemEvent {

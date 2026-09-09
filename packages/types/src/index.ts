@@ -212,3 +212,60 @@ export interface PublicService {
     };
   };
 }
+
+export type ProductType = "PHYSICAL" | "DIGITAL";
+export type ProductStatus = "DRAFT" | "PUBLISHED" | "PAUSED";
+
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  name: string;
+  sku: string | null;
+  optionValues: Record<string, string> | null;
+  priceOverrideMinor: number | null;
+  inventoryQuantity: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Product {
+  id: string;
+  professionalProfileId: string;
+  title: string | null;
+  description: string | null;
+  category: string | null;
+  mediaUrls: string[];
+  type: ProductType;
+  priceMinor: number | null;
+  currency: string;
+  trackInventory: boolean;
+  inventoryQuantity: number | null;
+  deliveryInformation: string | null;
+  status: ProductStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  variants: ProductVariant[];
+}
+
+export interface SaveProductInput {
+  title?: string | null;
+  description?: string | null;
+  category?: string | null;
+  mediaUrls?: string[];
+  type?: ProductType;
+  priceMinor?: number | null;
+  trackInventory?: boolean;
+  inventoryQuantity?: number | null;
+  deliveryInformation?: string | null;
+}
+
+export interface SaveProductVariantInput {
+  name?: string;
+  sku?: string | null;
+  optionValues?: Record<string, string>;
+  priceOverrideMinor?: number | null;
+  inventoryQuantity?: number | null;
+  isActive?: boolean;
+}
