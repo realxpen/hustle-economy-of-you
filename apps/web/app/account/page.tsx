@@ -44,9 +44,10 @@ export default function AccountPage() {
       <article className="nextCard">
         <small>{isHustler ? "PROFESSIONAL ECONOMY" : "NEXT UNLOCK"}</small>
         <h2>{isHustler ? "Turn capability into offers." : "Show what you can do."}</h2>
-        <p>{isHustler ? "Your professional identity is the foundation. Services now attach concrete offers to this same account." : "Apply with your skill, experience and real proof. Approval adds Hustler to this identity without creating another account."}</p>
+        <p>{isHustler ? "Your professional identity now carries both services and products on this same account." : "Apply with your skill, experience and real proof. Approval adds Hustler to this identity without creating another account."}</p>
         <a className="primaryLink" href={isHustler ? "/professional-profile" : "/hustler-application"}><span>{isHustler ? "Edit professional profile" : "Apply to become a Hustler"}</span><b>↗</b></a>
         {isHustler && <a className="futureTag" href="/services/manage">MANAGE SERVICES →</a>}
+        {isHustler && <a className="futureTag" href="/products/manage">MANAGE PRODUCTS →</a>}
       </article>
     </section>
   </main>;
