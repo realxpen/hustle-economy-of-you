@@ -47,7 +47,10 @@ export default function PublicProfilePage() {
           <h1>{user.displayName ?? `@${user.username}`}</h1>
           <span>@{user.username} · {user.location ?? "Location not set"}</span>
         </div>
-        <div className={styles.badges}><span>HUSTLER</span>{user.verified && <span>VERIFIED</span>}</div>
+        <div className={styles.actions}>
+          <div className={styles.badges}><span>HUSTLER</span>{user.verified && <span>VERIFIED</span>}</div>
+          <a className={styles.messageCta} href={`/messages/start?userId=${encodeURIComponent(user.id)}`}>Message →</a>
+        </div>
       </div>
     </section>
 
