@@ -3,6 +3,7 @@ import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/co
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
+import { BookingScheduleService } from "./booking-schedule.service";
 import {
   BookingService,
   type AcceptBookingInput,
@@ -15,10 +16,14 @@ import {
 @Controller("bookings")
 @UseGuards(AuthGuard)
 export class BookingController {
-  constructor(private readonly bookingService: BookingService) {}
+  constructor(
+    private readonly bookingService: BookingService,
+    private readonly bookingScheduleService: BookingScheduleService
+  ) {}
 
   @Post()
-  create(@CurrentIdentity() identity: AuthIdentity, @Body() input: CreateBookingInput) {
+  async create(@CurrentIdentity() identity: AuthIdentity, @Body() input: CreateBookingInput) {
+    await this.bookingScheduleService.validateCreate(identity, input);
     return this.bookingService.create(identity, input);
   }
 
@@ -38,6 +43,14 @@ export class BookingController {
     return this.bookingService.listHustler(identity, query);
   }
 
+  @Get("availability")
+  availability(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Query() query: { serviceId?: unknown; startAt?: unknown; endAt?: unknown }
+  ) {
+    return this.bookingScheduleService.checkAvailability(identity, query);
+  }
+
   @Get(":bookingId")
   get(
     @CurrentIdentity() identity: AuthIdentity,
@@ -47,11 +60,12 @@ export class BookingController {
   }
 
   @Post(":bookingId/accept")
-  accept(
+  async accept(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("bookingId") bookingId: string,
     @Body() input: AcceptBookingInput
   ) {
+    await this.bookingScheduleService.validateAccept(identity, bookingId, input);
     return this.bookingService.accept(identity, bookingId, input);
   }
 
