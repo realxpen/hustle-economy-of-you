@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createBooking } from "../../../../lib/booking";
+import { checkBookingAvailability, createBooking } from "../../../../lib/booking";
 import { openDirectConversation } from "../../../../lib/messaging";
 import { formatServicePrice, getPublicService } from "../../../../lib/service";
 import type { PublicService } from "@hustle/types";
@@ -55,6 +55,16 @@ export default function NewBookingPage() {
     setSubmitting(true);
     setError(null);
     try {
+      const availability = await checkBookingAvailability({
+        serviceId: data.service.id,
+        startAt: start,
+        ...(end ? { endAt: end } : {})
+      });
+      if (!availability.available) {
+        setError(availability.reason ?? "That time is not currently available.");
+        return;
+      }
+
       const direct = await openDirectConversation(data.owner.id);
       const booking = await createBooking({
         serviceId: data.service.id,
@@ -95,9 +105,9 @@ export default function NewBookingPage() {
         </article>
         <aside className={styles.offerCard}>
           <p className={styles.eyebrow}>HOW IT WORKS</p>
-          <p>1. Choose a requested time.</p>
+          <p>1. Choose a requested time. Hustle checks it against already confirmed work.</p>
           <p>2. Describe what you need.</p>
-          <p>3. The Hustler accepts or declines.</p>
+          <p>3. The Hustler accepts, adjusts the confirmed time, or declines.</p>
           <p>4. Paid bookings stop at PAYMENT PENDING until Phase 13 funding confirmation.</p>
         </aside>
       </section>
@@ -131,7 +141,7 @@ export default function NewBookingPage() {
         </div>
 
         {error && <div className={styles.error}>{error}</div>}
-        <button className={styles.primary} disabled={submitting || !requirements.trim()}>{submitting ? "Submitting request…" : "Submit booking request →"}</button>
+        <button className={styles.primary} disabled={submitting || !requirements.trim()}>{submitting ? "Checking schedule…" : "Submit booking request →"}</button>
       </form>
     </div>
   </main>;
