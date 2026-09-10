@@ -105,8 +105,8 @@ export default function MarketplacePage() {
   }
 
   function openResult(item: SearchResult, position: number) {
-    if (!sessionId) return;
-    void captureMarketplaceObservation("marketplace.result_clicked", {
+    if (!sessionId) return Promise.resolve();
+    return captureMarketplaceObservation("marketplace.result_clicked", {
       query: query.trim() || null,
       tab,
       filters: filters as Record<string, unknown>,
