@@ -334,7 +334,7 @@ export class BookingService {
       await this.requireActiveHustler(viewer.id);
     }
 
-    const allowed = actorRole === "CLIENT"
+    const allowed: BookingStatus[] = actorRole === "CLIENT"
       ? [BookingStatus.REQUESTED, BookingStatus.ACCEPTED, BookingStatus.PAYMENT_PENDING]
       : [BookingStatus.ACCEPTED, BookingStatus.PAYMENT_PENDING];
 
@@ -525,7 +525,7 @@ export class BookingService {
   private async transition(
     bookingId: string,
     expectedStatus: BookingStatus,
-    data: Prisma.BookingUpdateManyMutationInput,
+    data: Prisma.BookingUncheckedUpdateManyInput,
     viewerUserId: string
   ) {
     const result = await this.prisma.booking.updateMany({
