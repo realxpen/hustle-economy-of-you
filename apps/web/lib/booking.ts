@@ -97,6 +97,13 @@ export interface CreateBookingInput {
   conversationId?: string;
 }
 
+export interface BookingAvailability {
+  available: boolean;
+  startAt: string;
+  endAt: string | null;
+  reason: string | null;
+}
+
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 async function parseError(response: Response) {
@@ -123,6 +130,17 @@ async function authenticatedFetch(path: string, init?: RequestInit) {
   });
   if (!response.ok) throw new Error(await parseError(response));
   return response;
+}
+
+export async function checkBookingAvailability(input: {
+  serviceId: string;
+  startAt: string;
+  endAt?: string;
+}) {
+  const params = new URLSearchParams({ serviceId: input.serviceId, startAt: input.startAt });
+  if (input.endAt) params.set("endAt", input.endAt);
+  const response = await authenticatedFetch(`/bookings/availability?${params.toString()}`);
+  return response.json() as Promise<BookingAvailability>;
 }
 
 export async function createBooking(input: CreateBookingInput) {
