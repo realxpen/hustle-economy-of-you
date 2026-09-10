@@ -35,6 +35,10 @@ export default function PublicServicePage() {
         <p>{service.category} · {service.deliveryMode}</p>
         <h1>{service.title}</h1>
         <strong>{formatServicePrice(service)}</strong>
+        <div className={styles.offerActions}>
+          <a className={styles.bookButton} href={`/bookings/new/${service.id}`}>Book this service →</a>
+          <a className={styles.messageButton} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`}>Message first</a>
+        </div>
       </div>
       <aside className={styles.ownerCard}>
         <div className={styles.avatar}>{owner.avatarUrl ? <img src={owner.avatarUrl} alt="" /> : initial}</div>
@@ -61,7 +65,7 @@ export default function PublicServicePage() {
         <div><small>MODE</small><strong>{service.deliveryMode}</strong></div>
         <div><small>LOCATION</small><strong>{service.location ?? "Remote"}</strong></div>
         <div><small>AVAILABILITY</small><strong>{service.availabilityNote}</strong></div>
-        <p>Booking is intentionally not simulated here. The real booking workflow is owned by Phase 11 and will attach to this service without changing its identity.</p>
+        <p>Booking requests now preserve the Service terms and schedule. Paid bookings stop at the payment boundary until Phase 13 confirms real funding.</p>
       </aside>
     </section>
 
