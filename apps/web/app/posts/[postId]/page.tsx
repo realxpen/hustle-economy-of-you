@@ -212,6 +212,7 @@ export default function PublicPostPage() {
         <p>{owner.professionalProfile.headline ?? owner.professionalProfile.professionalSummary ?? owner.bio}</p>
         <div className={styles.skills}>{[owner.professionalProfile.primarySkill, ...owner.professionalProfile.secondarySkills].filter(Boolean).map((skill) => <span key={skill ?? "skill"}>{skill}</span>)}</div>
         <div className={styles.followLine}><span>{interactions.followerCount} follower{interactions.followerCount === 1 ? "" : "s"}</span>{!viewer?.isCreator && <button type="button" onClick={toggleFollow} disabled={busy === "follow"}>{viewer?.followingCreator ? "Following" : "Follow"}</button>}</div>
+        {!viewer?.isCreator && <a className={styles.profileLink} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=POST&contextId=${encodeURIComponent(post.id)}`}>Message creator about this post →</a>}
         {owner.username && <a className={styles.profileLink} href={`/u/${owner.username}`}>View professional identity →</a>}
       </aside>
     </section>
