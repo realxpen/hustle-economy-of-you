@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { openDirectConversation, type MessageContextType } from "../../../lib/messaging";
 import styles from "../messages.module.css";
 
 const allowedContextTypes = new Set<MessageContextType>(["POST", "SERVICE", "PRODUCT"]);
 
 export default function StartMessagePage() {
-  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
     const userId = searchParams.get("userId")?.trim();
     const rawType = searchParams.get("contextType")?.trim().toUpperCase() as MessageContextType | undefined;
     const contextId = searchParams.get("contextId")?.trim();
@@ -39,7 +38,7 @@ export default function StartMessagePage() {
           setTimeout(() => window.location.assign("/auth"), 900);
         }
       });
-  }, [searchParams]);
+  }, []);
 
   return <main className={styles.start}>
     <section className={styles.startCard}>
