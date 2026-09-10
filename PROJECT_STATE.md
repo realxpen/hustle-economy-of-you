@@ -93,7 +93,7 @@ Applied hosted migrations:
 - `phase10_messaging_attachments`
 - `phase11_booking_foundation`
 
-Phase 8 and Phase 9 required no new DDL; they reuse canonical records + `SystemEvent`.
+Phase 8, Phase 9 and Phase 11D require no new DDL; they reuse canonical records and application-level validation.
 
 ## Local development
 - Web: `http://localhost:3001`
@@ -141,7 +141,7 @@ Canonical statuses:
 - `CLOSED`
 
 ## Payment boundary
-Phase 11 owns Booking lifecycle/scheduling. Phase 13 owns payment, escrow, ledger, refunds, payout, reconciliation, and authoritative financial callbacks.
+Phase 11 owns Booking lifecycle/scheduling. Phase 13 owns payment, escrow, ledger, refunds, payout, reconciliation and authoritative financial callbacks.
 
 Paid Service path:
 `REQUESTED → PAYMENT_PENDING → [Phase 13 authoritative funding] → FUNDED → IN_PROGRESS → COMPLETED`
@@ -159,13 +159,12 @@ Rules:
 IMPLEMENTED; RUNTIME VALIDATED.
 
 Built:
-- `BookingStatus` enum
-- `Booking` model
-- Client / Hustler / Service ownership
+- Booking model + source-defined status enum
+- Client/Hustler/Service ownership
 - optional direct Conversation link
-- requested + confirmed start/end timestamps
+- requested + confirmed schedule
 - requirements, location, notes
-- historical transaction snapshot: Service title, price minor units, currency, pricing type
+- historical Service title/price/currency/pricing snapshot
 - lifecycle timestamps
 - cancellation actor/reason
 - indexes + integrity checks
@@ -190,108 +189,79 @@ API:
 - `POST /api/v1/bookings/:bookingId/start`
 - `POST /api/v1/bookings/:bookingId/complete`
 
-Creation rules:
-- synchronized User required
-- currently PUBLISHED Service + PUBLISHED ProfessionalProfile + ACTIVE HUSTLER owner required
-- self-booking rejected
-- requested start must be future
-- concrete Service price basis required
-- optional Conversation must be the exact DIRECT pair
-- Client/Hustler/price/currency/pricing type are server-derived
-
-Transition rules:
-- only the booked ACTIVE HUSTLER may accept/decline
-- `REQUESTED → DECLINED`
-- paid accept: `REQUESTED → PAYMENT_PENDING`
-- zero-price accept: `REQUESTED → ACCEPTED`
-- Client may cancel `REQUESTED`, `ACCEPTED`, `PAYMENT_PENDING`
-- Hustler may cancel only after acceptance/payment-pending; pending request uses decline
-- paid start requires `FUNDED`
-- zero-price start requires `ACCEPTED`
-- start → `IN_PROGRESS`
-- complete requires `IN_PROGRESS` → `COMPLETED`
-- stale/duplicate transitions are rejected
-
-Payment integration boundary:
-- `BookingService.markFundedFromAuthoritativePayment(...)`
-- exported from `BookingModule`
-- not exposed by `BookingController`
-
-Runtime gate verified on 2026-09-10 with real identities:
-- Client `adminxpen` requested published Service `cmttw02cy0001dc02zzd5j89x`
+Runtime evidence:
+- Client `adminxpen` requested Service `cmttw02cy0001dc02zzd5j89x`
 - Booking `cmtvjyxxm000ddccstu8da92l` persisted
-- Hustler `xpen` received and accepted it
+- Hustler `xpen` accepted it
 - paid Booking reached `PAYMENT_PENDING`
-- `acceptedAt` and `paymentPendingAt` persisted
-- `fundedAt`, `startedAt`, and `completedAt` remain null
-- starting before funding correctly returned Conflict
-- duplicate/invalid transition protection worked
-- existing direct Conversation `cmtvfjhdv0004dc5ojcc8jmdb` remained linked
+- `acceptedAt` + `paymentPendingAt` persisted
+- `fundedAt`, `startedAt`, `completedAt` remain null
+- start before funding returned Conflict
+- duplicate/invalid state transition protection worked
+- direct Conversation remained linked
 
-Hosted Booking events verified:
+Hosted events:
 - `booking.requested`
 - `booking.accepted`
 - `booking.payment_pending`
 
-No private requirements text is copied into SystemEvent payloads.
-
 ### Phase 11C — Booking web experience
-IMPLEMENTED; LOCAL UI GATE PENDING.
+IMPLEMENTED; UI RUNTIME VALIDATED.
+
+Built and validated:
+- Service → `Book this service`
+- `/bookings/new/[serviceId]`
+- `/bookings`
+- `/bookings/[bookingId]`
+- Client and Hustler relationship sections on one account with no role switching
+- explicit status + next action
+- transaction terms + requested/confirmed schedule
+- accept/decline/cancel/start/complete action surfaces when allowed
+- Phase 13 payment-boundary explanation with no fake Fund action
+- direct Message link and canonical Service link
+- refresh/session persistence
+
+Hosted UI-created Booking evidence exists for the same Client/Hustler/Service/Conversation relationship.
+
+### Phase 11D — Scheduling + conflict validation
+IMPLEMENTED; LOCAL RUNTIME GATE PENDING.
 
 Built:
-- Service page `Book this service` CTA
-- `/bookings/new/[serviceId]` request form
-- automatic reuse/opening of the direct conversation on booking creation
-- `/bookings` unified relationship view with Client bookings + Hustler service requests in one account
-- `/bookings/[bookingId]` detail page
-- transaction snapshot, schedule, requirements, location and lifecycle display
-- explicit status + server-provided next action
-- Hustler accept/decline/start/complete controls when state permits
-- Client/Hustler cancellation controls under existing server lifecycle rules
-- explicit Phase 13 payment-boundary presentation
-- direct Message link
-- canonical Service link
-- Bookings link from Account
-- cursor load-more support
-- graceful non-Hustler section state without introducing role switching
+- `BookingScheduleService`
+- blocking statuses: `ACCEPTED`, `PAYMENT_PENDING`, `FUNDED`, `IN_PROGRESS`
+- REQUESTED bookings do not reserve a Hustler schedule before acceptance
+- booking creation checks requested time against already confirmed active work
+- accept re-checks availability to protect against schedule changes between request and decision
+- Hustler may confirm or adjust start/end from the Booking detail before acceptance
+- exact duplicate pending request for the same Client + Service + requested schedule is rejected
+- `GET /api/v1/bookings/availability` returns availability without exposing another Booking's private details
+- bounded interval overlap uses half-open schedule semantics
+- optional no-end schedules behave as point-time reservations for MVP conflict checks
+- request form performs an availability preflight and the API re-validates on create
+- conflict errors surface explicitly in both request and accept UI
+- no new database migration required
 
-GitHub CI after Phase 11C:
+GitHub CI after Phase 11D implementation:
 - locked install passed
 - web/admin/mobile typechecks passed
 - Prisma generation passed
 - API typecheck passed
 - web/admin/API builds passed
 
-### Phase 11D — Scheduling + conflict validation
+### Phase 11E — Final Booking gate
 PENDING.
 
-Build:
-- active-booking overlap checks for same Hustler
-- confirmed schedule conflict behavior
-- duplicate/invalid schedule failure states
-
-### Phase 11E — Real Booking UI gate
-PENDING.
-
-Use real identities:
-`adminxpen CLIENT → published Service → Book → xpen HUSTLER → accept → PAYMENT_PENDING`
-
-Validate:
-1. Service CTA opens real request form.
-2. Client submits future date/time + requirements.
-3. Client sees Booking in `/bookings`.
-4. Hustler sees same Booking in `/bookings` without role switching.
-5. Hustler accepts and paid Booking reaches `PAYMENT_PENDING`.
-6. Payment boundary is explicit and no fake Funded action exists.
-7. direct Message link opens/reuses the same conversation.
-8. refresh/sign-out/sign-in preserves Booking history/status.
-9. invalid action states remain blocked by server.
-10. capabilities remain unchanged.
+Validate Phase 11D with two requests for the same Hustler:
+1. keep an existing confirmed `PAYMENT_PENDING` booking as the blocking schedule
+2. attempt a new overlapping request and receive explicit unavailable/conflict behavior
+3. submit a non-overlapping request successfully
+4. as Hustler, adjust that request's confirmed time to overlap the blocking booking and verify acceptance is rejected
+5. choose a non-overlapping confirmed time and accept successfully
+6. resubmit the exact same pending request and verify duplicate-request rejection
+7. confirm paid Booking still stops at `PAYMENT_PENDING`
+8. confirm capabilities remain unchanged
 
 Integrated paid completion through `FUNDED → IN_PROGRESS → COMPLETED` remains the Phase 11 + Phase 13 transaction gate.
 
-## Next build target after Phase 11C UI validation
-**Phase 11D — scheduling + conflict validation.**
-
-## Next phase after Booking capability
-Phase 12 — Cart + Orders.
+## Next build target after Phase 11D validation
+Close Phase 11 and open Phase 12 — Cart + Orders.
