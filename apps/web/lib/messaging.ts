@@ -76,11 +76,42 @@ export interface MessagePage {
 
 export interface SendMessageInput {
   text?: string;
+  attachmentType?: MessageAttachmentType;
+  attachmentStorageKey?: string;
+  attachmentFileName?: string;
+  attachmentMimeType?: string;
+  attachmentSizeBytes?: number;
   contextType?: MessageContextType;
   contextId?: string;
 }
 
+export interface MessageAttachmentUpload {
+  type: MessageAttachmentType;
+  storageKey: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const attachmentBucket = "message-attachments";
+const maxAttachmentBytes = 25 * 1024 * 1024;
+const allowedAttachmentMimeTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "text/plain",
+  "text/csv",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/zip"
+]);
 
 async function parseError(response: Response) {
   const body = await response.json().catch(() => null) as {
@@ -169,4 +200,85 @@ export async function recordMessageContextOpened(conversationId: string, message
     { method: "POST", body: JSON.stringify({}) }
   );
   return response.json() as Promise<{ recorded: true }>;
+}
+
+export async function setConversationTyping(conversationId: string, typing: boolean) {
+  const response = await authenticatedFetch(
+    `/messaging/conversations/${encodeURIComponent(conversationId)}/typing`,
+    { method: "POST", body: JSON.stringify({ typing }) }
+  );
+  return response.json() as Promise<{
+    conversationId: string;
+    typing: boolean;
+    expiresAt: string | null;
+  }>;
+}
+
+export async function getConversationTyping(conversationId: string) {
+  const response = await authenticatedFetch(
+    `/messaging/conversations/${encodeURIComponent(conversationId)}/typing`
+  );
+  return response.json() as Promise<{ conversationId: string; typingUserIds: string[] }>;
+}
+
+export async function uploadMessageAttachment(
+  conversationId: string,
+  file: File
+): Promise<MessageAttachmentUpload> {
+  if (!conversationId.trim()) throw new Error("Conversation is required for an attachment");
+  if (!file.size || file.size > maxAttachmentBytes) {
+    throw new Error("Attachment must be between 1 byte and 25 MB");
+  }
+  if (!allowedAttachmentMimeTypes.has(file.type)) {
+    throw new Error("That file type is not supported in Hustle messages yet");
+  }
+
+  const supabase = getSupabaseBrowserClient();
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !session?.user?.id) throw new Error("You need to sign in again");
+
+  const safeName = sanitizeFileName(file.name);
+  const objectPath = `${conversationId}/${session.user.id}/${crypto.randomUUID()}-${safeName}`;
+  const { error } = await supabase.storage.from(attachmentBucket).upload(objectPath, file, {
+    upsert: false,
+    contentType: file.type,
+    cacheControl: "3600"
+  });
+  if (error) throw new Error(error.message || "Could not upload attachment");
+
+  return {
+    type: file.type.startsWith("image/") ? "IMAGE" : "FILE",
+    storageKey: `${attachmentBucket}/${objectPath}`,
+    fileName: file.name.slice(0, 255),
+    mimeType: file.type,
+    sizeBytes: file.size
+  };
+}
+
+export async function deleteMessageAttachment(storageKey: string) {
+  const objectPath = attachmentObjectPath(storageKey);
+  const { error } = await getSupabaseBrowserClient().storage.from(attachmentBucket).remove([objectPath]);
+  if (error) throw new Error(error.message || "Could not remove attachment");
+}
+
+export async function createMessageAttachmentUrl(storageKey: string, expiresInSeconds = 600) {
+  const objectPath = attachmentObjectPath(storageKey);
+  const { data, error } = await getSupabaseBrowserClient().storage
+    .from(attachmentBucket)
+    .createSignedUrl(objectPath, expiresInSeconds);
+  if (error || !data?.signedUrl) throw new Error(error?.message || "Attachment is unavailable");
+  return data.signedUrl;
+}
+
+function attachmentObjectPath(storageKey: string) {
+  const prefix = `${attachmentBucket}/`;
+  if (!storageKey.startsWith(prefix)) throw new Error("Invalid message attachment reference");
+  const objectPath = storageKey.slice(prefix.length);
+  if (!objectPath) throw new Error("Invalid message attachment reference");
+  return objectPath;
+}
+
+function sanitizeFileName(value: string) {
+  const normalized = value.trim().replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  return (normalized || "attachment").slice(-140);
 }

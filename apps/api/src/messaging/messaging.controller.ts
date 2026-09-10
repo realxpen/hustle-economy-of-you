@@ -4,6 +4,10 @@ import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import {
+  MessagingPresenceService,
+  type SetTypingInput
+} from "./messaging-presence.service";
+import {
   MessagingService,
   type MarkConversationReadInput,
   type MessagingPaginationInput,
@@ -14,7 +18,10 @@ import {
 @Controller("messaging")
 @UseGuards(AuthGuard)
 export class MessagingController {
-  constructor(private readonly messagingService: MessagingService) {}
+  constructor(
+    private readonly messagingService: MessagingService,
+    private readonly messagingPresenceService: MessagingPresenceService
+  ) {}
 
   @Post("conversations/direct")
   openDirectConversation(
@@ -65,6 +72,23 @@ export class MessagingController {
     @Body() input: MarkConversationReadInput
   ) {
     return this.messagingService.markRead(identity, conversationId, input);
+  }
+
+  @Get("conversations/:conversationId/typing")
+  getTyping(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("conversationId") conversationId: string
+  ) {
+    return this.messagingPresenceService.getTyping(identity, conversationId);
+  }
+
+  @Post("conversations/:conversationId/typing")
+  setTyping(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("conversationId") conversationId: string,
+    @Body() input: SetTypingInput
+  ) {
+    return this.messagingPresenceService.setTyping(identity, conversationId, input);
   }
 
   @Post("conversations/:conversationId/messages/:messageId/context-opened")
