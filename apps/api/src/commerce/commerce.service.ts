@@ -557,7 +557,7 @@ export class CommerceService {
     else if (!productVariantId && activeVariants.length > 0) reason = "Choose a Product variant";
 
     const unitPriceMinor = variant?.priceOverrideMinor ?? product.priceMinor ?? 0;
-    let inventorySource = OrderInventorySource.NONE;
+    let inventorySource: OrderInventorySource = OrderInventorySource.NONE;
     let inventoryAvailable: number | null = null;
     if (product.trackInventory) {
       if (variant?.inventoryQuantity !== null && variant?.inventoryQuantity !== undefined) {
