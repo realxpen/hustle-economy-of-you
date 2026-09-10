@@ -52,6 +52,7 @@ export default function PublicProductPage() {
         <div className={styles.ownerTop}><div className={styles.avatar}>{owner.avatarUrl ? <img src={owner.avatarUrl} alt="" /> : initial}</div><div><small>SELLER IDENTITY</small><h2>{owner.displayName ?? `@${owner.username}`}</h2><span>@{owner.username} · {owner.location ?? "Location not set"}</span></div></div>
         <p>{owner.professionalProfile.headline}</p>
         <div className={styles.skills}>{[owner.professionalProfile.primarySkill, ...owner.professionalProfile.secondarySkills].filter(Boolean).slice(0,6).map((skill) => <span key={skill as string}>{skill}</span>)}</div>
+        <a className={styles.profileLink} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=PRODUCT&contextId=${encodeURIComponent(product.id)}`}>Message about this product →</a>
         {owner.username && <a className={styles.profileLink} href={`/u/${owner.username}`}>View professional profile →</a>}
       </aside>
     </section>
