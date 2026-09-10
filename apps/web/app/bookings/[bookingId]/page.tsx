@@ -22,6 +22,21 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
+function toLocalInput(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function toIso(value: string) {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString();
+}
+
 function Fact({ label, value }: { label: string; value: string }) {
   return <div className={styles.fact}><small>{label}</small><strong>{value}</strong></div>;
 }
@@ -31,17 +46,27 @@ export default function BookingDetailPage() {
   const [booking, setBooking] = useState<BookingRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmedStartAt, setConfirmedStartAt] = useState("");
+  const [confirmedEndAt, setConfirmedEndAt] = useState("");
+
+  const applyBooking = useCallback((next: BookingRecord) => {
+    setBooking(next);
+    if (next.status === "REQUESTED") {
+      setConfirmedStartAt(toLocalInput(next.confirmedStartAt ?? next.requestedStartAt));
+      setConfirmedEndAt(toLocalInput(next.confirmedEndAt ?? next.requestedEndAt));
+    }
+  }, []);
 
   const load = useCallback(async () => {
     const id = params?.bookingId;
     if (!id) return;
     try {
       setError(null);
-      setBooking(await getBooking(id));
+      applyBooking(await getBooking(id));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load booking");
     }
-  }, [params?.bookingId]);
+  }, [applyBooking, params?.bookingId]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -49,12 +74,35 @@ export default function BookingDetailPage() {
     setBusy(true);
     setError(null);
     try {
-      setBooking(await action());
+      applyBooking(await action());
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Booking action failed");
     } finally {
       setBusy(false);
     }
+  }
+
+  async function acceptWithSchedule() {
+    if (!booking) return;
+    const start = toIso(confirmedStartAt);
+    const end = toIso(confirmedEndAt);
+    if (!start) {
+      setError("Choose a valid confirmed start date and time.");
+      return;
+    }
+    if (confirmedEndAt && !end) {
+      setError("Choose a valid confirmed end date and time.");
+      return;
+    }
+    if (end && new Date(end).getTime() <= new Date(start).getTime()) {
+      setError("Confirmed end must be after confirmed start.");
+      return;
+    }
+
+    await act(() => acceptBooking(booking.id, {
+      confirmedStartAt: start,
+      ...(end ? { confirmedEndAt: end } : {})
+    }));
   }
 
   if (error && !booking) return <main className={styles.shell}><div className={styles.formWrap}><div className={styles.error}>{error}</div><p><a href="/bookings">← Back to bookings</a></p></div></main>;
@@ -126,7 +174,15 @@ export default function BookingDetailPage() {
           <p className={styles.eyebrow}>ACTIONS</p>
           <div className={styles.actions}>
             {canAccept && <>
-              <button className={styles.primary} disabled={busy} onClick={() => void act(() => acceptBooking(booking.id))}>Accept request</button>
+              <div className={styles.field}>
+                <label htmlFor="confirmed-start">CONFIRM START</label>
+                <input id="confirmed-start" type="datetime-local" value={confirmedStartAt} onChange={(event) => setConfirmedStartAt(event.target.value)} />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="confirmed-end">CONFIRM END · OPTIONAL</label>
+                <input id="confirmed-end" type="datetime-local" value={confirmedEndAt} onChange={(event) => setConfirmedEndAt(event.target.value)} />
+              </div>
+              <button className={styles.primary} disabled={busy} onClick={() => void acceptWithSchedule()}>Accept with confirmed schedule</button>
               <button className={styles.secondary} disabled={busy} onClick={() => {
                 const reason = window.prompt("Optional decline reason") ?? undefined;
                 void act(() => declineBooking(booking.id, reason));
