@@ -11,6 +11,7 @@ import { ProductModule } from "./product/product.module";
 import { PostModule } from "./post/post.module";
 import { FeedModule } from "./feed/feed.module";
 import { SearchModule } from "./search/search.module";
+import { MessagingModule } from "./messaging/messaging.module";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
 
 @Module({
@@ -28,7 +29,8 @@ import { RequestContextMiddleware } from "./common/middleware/request-context.mi
     ProductModule,
     PostModule,
     FeedModule,
-    SearchModule
+    SearchModule,
+    MessagingModule
   ]
 })
 export class AppModule implements NestModule {
