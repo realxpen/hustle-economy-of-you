@@ -32,28 +32,8 @@ Phase 12 — Cart + Orders
 - Phase 10 — Messaging: COMPLETE
 - Phase 11 — Booking System: COMPLETE at the Phase 13 payment boundary
 
-## Phase 11 validated evidence
-
-Real Client/Hustler flow validated with `adminxpen` and `xpen`:
-- Service → Book CTA
-- request form → Booking persisted
-- Client and Hustler relationship views on the same unified account model
-- accept/decline/cancel transition rules
-- paid booking reaches `PAYMENT_PENDING`
-- no public/browser path can fake `FUNDED`
-- start before funding is rejected
-- direct Conversation linkage persists
-- scheduling overlap detection works
-- duplicate pending request protection works
-- Hustler can adjust confirmed schedule before acceptance
-- acceptance revalidates schedule server-side
-- overlapping confirmed schedule is rejected
-- non-overlapping confirmed schedule succeeds
-- capabilities remain unchanged
-
-Hosted Booking examples remain in `PAYMENT_PENDING` with `fundedAt`, `startedAt`, and `completedAt` null, preserving the Phase 13 payment boundary.
-
-Integrated paid service completion through `FUNDED → IN_PROGRESS → COMPLETED` remains a Phase 11 + Phase 13 integration gate, not fake Phase 11 state.
+## Phase 11 payment boundary retained
+Real Client/Hustler booking flow is validated through `PAYMENT_PENDING`. `FUNDED`, paid work start, and financial completion remain authoritative Phase 13 integration responsibilities.
 
 Canonical Phase 11 knowledge:
 - `Knowledge/Product/BOOKING_SYSTEM.md`
@@ -62,7 +42,12 @@ Canonical Phase 11 knowledge:
 ## Canonical ownership built so far
 
 `User`
-`↓`
+`├── Cart → CartItem → Product / ProductVariant`
+`├── Order (buyer)`
+`├── Order (seller)`
+`├── ConversationParticipant`
+`└── Booking relationships`
+
 `ProfessionalProfile`
 `├── Service → Booking`
 `├── Product → ProductVariant`
@@ -83,6 +68,15 @@ Booking:
 - `Booking → optional Conversation`
 - narrow historical transaction terms snapshot
 - server-authoritative scheduling conflict validation
+
+Commerce:
+- one Cart per User
+- CartItem references canonical Product + optional ProductVariant
+- seller-scoped Order records
+- OrderItem preserves transaction-critical Product/variant/price/quantity snapshots
+- private delivery fields remain transaction data
+- Cart and PENDING Order do not reserve stock
+- authoritative payment integration deducts tracked inventory atomically
 
 Observation:
 - `SystemEvent`
@@ -106,6 +100,7 @@ Applied hosted migrations include:
 - `phase10_messaging_foundation`
 - `phase10_messaging_attachments`
 - `phase11_booking_foundation`
+- `phase12_cart_order_foundation` — hosted version `20260910144537`
 
 Phase 11D required no new DDL.
 
@@ -135,7 +130,7 @@ Enable product commerce while preserving explicit transaction state and the Phas
 
 Canonical source flow:
 
-`Product → Add to Cart → Checkout → Payment → Order created → Processing → Delivery → Completed`
+`Product → Add to Cart → Checkout → Payment → Order → Processing → Delivery → Completed`
 
 Canonical order statuses:
 - `PENDING`
@@ -151,57 +146,108 @@ Canonical knowledge:
 - `Knowledge/Product/CART_AND_ORDERS.md`
 - `Knowledge/Decisions/ADR-0011-cart-order-lifecycle-and-payment-boundary.md`
 
-## Phase 12 payment boundary
-- Phase 12 may create durable `PENDING` Orders at checkout.
-- Phase 12 must not expose a client/frontend transition to `PAID`.
-- authoritative `PENDING → PAID` belongs to Phase 13 payment confirmation.
-- authoritative `REFUNDED` also belongs to Phase 13.
-- Cart does not reserve inventory.
-- inventory must be revalidated before checkout and again by the future payment-confirmation integration.
+## Phase 12 payment + inventory boundary
+- Checkout creates durable seller-scoped `PENDING` Orders.
+- There is no browser/client route that can mark an Order `PAID`.
+- `CommerceService.markPaidFromAuthoritativePayment(...)` is the server-only Phase 13 boundary.
+- Authoritative payment confirmation revalidates and deducts tracked inventory atomically.
+- Cart and `PENDING` Orders do not reserve stock.
+- `REFUNDED` remains authoritative Phase 13 financial state.
 
-## Phase 12 implementation slices
+## Phase 12 implementation status
 
 ### Phase 12A — Cart + Order data foundation
-PENDING.
+IMPLEMENTED; HOSTED MIGRATION APPLIED; RUNTIME GATE PENDING.
 
-Build:
-- Cart
-- CartItem
-- Order
-- OrderItem
-- OrderStatus
-- buyer/seller/Product/variant relationships
-- transaction-critical item snapshots
-- delivery fields
-- indexes + integrity constraints
-- RLS + API-role policies
+Built:
+- `OrderStatus`
+- `OrderInventorySource`
+- `Cart`
+- `CartItem`
+- `Order`
+- `OrderItem`
+- one Cart per User
+- buyer/seller User relationships
+- canonical Product/ProductVariant relationships
+- item-level historical title/variant/SKU/options/type/price/quantity snapshots
+- delivery recipient/contact/address fields on Order
+- tracked inventory source snapshot (`NONE`, `PRODUCT`, `VARIANT`)
+- cart version for checkout race protection
+- amount/quantity/self-order/inventory integrity checks
+- indexes + foreign keys
+- RLS on all four commerce tables
+- API-role policies only
+
+Hosted migration:
+- Supabase version `20260910144537`
+- `phase12_cart_order_foundation`
 
 ### Phase 12B — Cart + checkout API
-PENDING.
+IMPLEMENTED; CI PASSED; RUNTIME GATE PENDING.
 
-Build:
-- get cart
-- add item
-- update quantity
-- remove item
-- clear cart
-- checkout preview
-- checkout to PENDING seller-scoped Order(s)
-- stock/variant/publication revalidation
-- buyer order list/detail
-- seller order list/detail
-- payment integration boundary
-- order/cart events
+API:
+- `GET /api/v1/cart`
+- `POST /api/v1/cart/items`
+- `PUT /api/v1/cart/items/:itemId`
+- `DELETE /api/v1/cart/items/:itemId`
+- `DELETE /api/v1/cart`
+- `POST /api/v1/cart/checkout/preview`
+- `POST /api/v1/cart/checkout`
+- `GET /api/v1/orders/buyer`
+- `GET /api/v1/orders/seller`
+- `GET /api/v1/orders/:orderId`
+
+Rules:
+- synchronized User required
+- self-purchase rejected
+- only PUBLISHED Product + PUBLISHED ProfessionalProfile + ACTIVE HUSTLER seller is purchasable
+- active ProductVariant is required when the Product has active variants
+- price is server-derived from variant override or canonical Product
+- seller and currency are server-derived
+- quantity is bounded to 1–99
+- stock is validated on add/update/preview/checkout
+- checkout revalidates current publication, seller capability, variant, price and inventory state
+- multi-seller or mixed-currency carts are partitioned into separate seller/currency Orders
+- physical Orders require delivery name, phone, address and city
+- checkout uses serializable transaction + Cart version claim to reduce duplicate/racing checkout
+- successful checkout clears Cart items only after PENDING Order(s) are created
+- Order history/detail is relationship-authorized for buyer or seller
+- cursor pagination is stable by `createdAt + id`
+
+Phase 13 integration boundary:
+- `CommerceService.markPaidFromAuthoritativePayment(...)`
+- not exposed by any controller
+- idempotent payment-reference behavior
+- PENDING-only transition to PAID
+- tracked inventory is revalidated and decremented inside the same serializable transaction
+- insufficient stock prevents payment-state advancement
+
+Commerce observation currently includes:
+- `cart.item_added`
+- `cart.item_updated`
+- `cart.item_removed`
+- `cart.cleared`
+- `checkout.previewed`
+- `cart.checked_out`
+- `order.created`
+- `order.paid` — server-only Phase 13 integration boundary
+
+GitHub CI after the Phase 12A/12B implementation:
+- locked install passed
+- web/admin/mobile typechecks passed
+- Prisma generation passed
+- API typecheck passed
+- web/admin/API builds passed
 
 ### Phase 12C — Cart + Orders web experience
 PENDING.
 
 Build:
 - Product → Add to Cart
-- cart page
+- Cart page
 - checkout page
 - order confirmation/detail
-- buyer order history
+- buyer history
 - seller order management
 - message buyer/seller
 - explicit payment boundary
@@ -221,9 +267,9 @@ PENDING.
 
 Before Phase 13 exists, prove:
 `Product → Cart → Checkout → PENDING Order`
-with correct item snapshot, seller ownership, buyer history, seller visibility, stock validation, and no fake payment.
+with correct variant/price snapshot, seller ownership, delivery data, buyer history, seller visibility, stock validation, cart clearing, and no fake payment.
 
 After Phase 13 exists, extend the integrated gate through authoritative `PAID`, inventory deduction, fulfillment, completion, and refund behavior.
 
-## Next build target
-**Phase 12A + 12B — Cart/Order data foundation and Cart + checkout API.**
+## Next build target after Phase 12A/12B runtime validation
+**Phase 12C — Cart + Orders web experience.**
