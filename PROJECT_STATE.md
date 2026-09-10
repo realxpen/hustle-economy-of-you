@@ -159,6 +159,14 @@ Interactions:
 - UserFollow
 - share + discovery/search analytics through SystemEvent
 
+Messaging foundation:
+- `Conversation`
+- `ConversationParticipant → User`
+- `Message → User (sender)`
+- direct-pair reuse through deterministic `directKey`
+- participant read marker through `lastReadAt`
+- canonical Message context references to Post / Service / Product
+
 ## Supabase
 Dedicated Hustle project:
 - Ref: `pfgarmyygybmhiiuopym`
@@ -176,8 +184,10 @@ Applied hosted migrations:
 - `phase6_product_foundation`
 - `phase7_content_foundation`
 - `phase7_content_interactions`
+- `phase10_messaging_foundation`
 
 Phase 8 and Phase 9 used the existing SystemEvent analytics foundation and required no new DDL.
+Phase 10A introduced durable Conversation / ConversationParticipant / Message tables with RLS and API-role policies.
 
 ## Local development
 - Web: `http://localhost:3001`
@@ -247,7 +257,7 @@ Durable model:
 `└── Message → User (sender)`
 
 MVP direct conversations contain exactly two distinct Users.
-Repeated attempts to message the same User must resolve the existing direct thread rather than create duplicates.
+Repeated attempts to message the same User resolve the existing direct thread rather than create duplicates.
 
 Read state:
 - participant-level `lastReadAt`
@@ -277,31 +287,60 @@ Phase 17 owns Live chat.
 Phase 18 owns Agent delegation.
 Phase 20 owns the full Notifications product.
 
-## Phase 10 implementation plan
+## Phase 10 implementation status
 
 ### Phase 10A — Messaging data foundation
-PENDING.
+IMPLEMENTED; LOCAL RUNTIME GATE PENDING.
 
-Build:
-- Conversation
-- ConversationParticipant
-- Message
-- direct-pair uniqueness/invariant
-- message type/content/context fields
-- participant read marker
-- indexes and RLS/API-role grants
+Built:
+- `Conversation`
+- `ConversationParticipant`
+- `Message`
+- deterministic nullable `directKey` with uniqueness for DIRECT thread reuse
+- non-null `lastActivityAt` for inbox ordering and cursor pagination
+- participant `lastReadAt`
+- Message text + attachment metadata + canonical context identity fields
+- indexes, integrity checks, RLS, enum grants and `hustle_api` policies
+- hosted migration `phase10_messaging_foundation`
+
+Attachment metadata exists now, but private upload/read URL production is intentionally deferred to Phase 10D.
 
 ### Phase 10B — Messaging API
-PENDING.
+IMPLEMENTED; LOCAL RUNTIME GATE PENDING.
 
-Build:
-- create/open direct conversation by User
-- list my conversations
-- get conversation + paginated messages
-- send text/media/context message
-- mark conversation read
-- participant authorization
-- notification-ready + observation events
+API:
+- `POST /api/v1/messaging/conversations/direct`
+- `GET /api/v1/messaging/conversations`
+- `GET /api/v1/messaging/conversations/:conversationId`
+- `GET /api/v1/messaging/conversations/:conversationId/messages`
+- `POST /api/v1/messaging/conversations/:conversationId/messages`
+- `POST /api/v1/messaging/conversations/:conversationId/read`
+- `POST /api/v1/messaging/conversations/:conversationId/messages/:messageId/context-opened`
+
+Rules:
+- synchronized User required
+- self-conversation rejected
+- same User pair resolves same DIRECT conversation
+- only participants may list/read/send/mark-read within a conversation
+- conversation and message pagination use opaque deterministic cursors
+- sender read marker advances on send
+- read marker can advance through a specific Message or the current latest Message
+- unread counts derive from messages newer than participant `lastReadAt` and exclude the participant's own messages
+- message requires text, attachment reference or canonical context
+- text capped at 4000 characters
+- Message context is accepted only for currently eligible public Post / Service / Product records
+- Message context stores IDs, not mutable price/content snapshots
+- attachment DB references must use the conversation-scoped `message-attachments/{conversationId}/...` path convention
+- participant-safe conversation output excludes email/phone/private account fields
+
+Events:
+- `messaging.conversation_started`
+- `messaging.message_sent`
+- `messaging.context_opened`
+
+Event payloads contain IDs/metadata rather than private message text.
+
+GitHub CI passed after Phase 10A/10B: locked install, web/admin/mobile typechecks, Prisma generation, API typecheck and web/admin/API builds all succeeded.
 
 ### Phase 10C — Messaging web experience
 PENDING.
