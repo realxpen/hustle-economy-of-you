@@ -290,7 +290,7 @@ Phase 20 owns the full Notifications product.
 ## Phase 10 implementation status
 
 ### Phase 10A — Messaging data foundation
-IMPLEMENTED; LOCAL RUNTIME GATE PENDING.
+IMPLEMENTED; RUNTIME VALIDATED.
 
 Built:
 - `Conversation`
@@ -303,10 +303,17 @@ Built:
 - indexes, integrity checks, RLS, enum grants and `hustle_api` policies
 - hosted migration `phase10_messaging_foundation`
 
+Hosted runtime evidence on 2026-09-10:
+- conversation `cmtvfjhdv0004dc5ojcc8jmdb` exists between `adminxpen` and `xpen`
+- direct key is deterministic for that pair
+- exactly two participants are present
+- one persisted Message exists after the first API gate
+- RLS is enabled on Conversation / ConversationParticipant / Message
+
 Attachment metadata exists now, but private upload/read URL production is intentionally deferred to Phase 10D.
 
 ### Phase 10B — Messaging API
-IMPLEMENTED; LOCAL RUNTIME GATE PENDING.
+IMPLEMENTED; RUNTIME VALIDATED.
 
 API:
 - `POST /api/v1/messaging/conversations/direct`
@@ -333,27 +340,40 @@ Rules:
 - attachment DB references must use the conversation-scoped `message-attachments/{conversationId}/...` path convention
 - participant-safe conversation output excludes email/phone/private account fields
 
-Events:
+Validated locally with real identities:
+- unauthenticated conversation list returns 401
+- `adminxpen` opened a DIRECT conversation with `xpen`
+- text persisted through refresh/read API
+- Service context `cmttw02cy0001dc02zzd5j89x` persisted and resolved to the canonical Service URL
+- read marker advanced through the sent message and returned unreadCount 0
+
+Hosted events verified:
 - `messaging.conversation_started`
 - `messaging.message_sent`
-- `messaging.context_opened`
 
 Event payloads contain IDs/metadata rather than private message text.
 
 GitHub CI passed after Phase 10A/10B: locked install, web/admin/mobile typechecks, Prisma generation, API typecheck and web/admin/API builds all succeeded.
 
 ### Phase 10C — Messaging web experience
-PENDING.
+IMPLEMENTED; LOCAL UI GATE PENDING.
 
-Build:
+Built:
 - `/messages`
+- `/messages/start`
 - `/messages/[conversationId]`
-- inbox list
-- conversation thread
-- composer
-- read/unread state
-- context cards
-- entry points from Profile/Post/Service/Product
+- inbox list with latest message, unread count and participant context
+- direct-conversation resolver that reuses the canonical thread
+- conversation thread with text composer
+- refresh + older-message pagination
+- participant read marker advancement on thread open/refresh
+- canonical Post / Service / Product context banner on entry
+- context card navigation + `messaging.context_opened` observation
+- Message entry points from Profile, Post, Service and Product
+- Messages link from the account surface
+- graceful sign-in boundary
+
+Private upload/read URLs and typing presence remain Phase 10D.
 
 ### Phase 10D — Typing + private attachment path
 PENDING.
