@@ -1,11 +1,11 @@
 "use client";
 
-import type { SearchResult } from "../../lib/search";
+import type { PublicOwner, SearchResult } from "../../lib/search";
 import { formatProductPrice } from "../../lib/product";
 import { formatServicePrice } from "../../lib/service";
 import styles from "./search.module.css";
 
-function Owner({ owner }: { owner: SearchResult extends never ? never : any }) {
+function Owner({ owner }: { owner: PublicOwner }) {
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
   return <div className={styles.owner}>
     <div className={styles.avatar}>{owner.avatarUrl ? <img src={owner.avatarUrl} alt="" /> : initial}</div>
