@@ -6,18 +6,21 @@ Updated: 2026-09-10
 Build
 
 ## Current MVP phase
-Phase 10 — Messaging
+**Phase 11 — Booking System**
 
 ## Binding product rules
-- Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
+- Product name: Hustle.
+- Slogan: `Hustle — The Economy of You.`
+- Mobile-first and Nigeria-first.
 - Core loop: `Skill → Demonstration → Discovery → Trust → Opportunity → Transaction → Reputation → Growth`.
-- One User identity; every user begins as CLIENT.
+- One User identity. Every user begins as CLIENT.
 - HUSTLER and AGENT are additive capabilities on the same identity.
-- No role switcher and no separate Client/Hustler/Agent accounts.
+- No role switcher and no separate Client/Hustler/Agent account modes.
 - Content demonstrates capability and connects discovery to economic opportunity.
 - Services and Products attach to content through canonical relationships.
 - Trust and verified outcomes outrank vanity metrics.
-- Search/discovery ranking begins simple and explainable; do not prematurely overbuild AI recommendations or semantic search.
+- Search/discovery ranking begins simple and explainable; do not prematurely overbuild AI recommendation/search systems.
+- Financial state must never be faked. Phase 13 owns authoritative payment, escrow, ledger, refund, payout and reconciliation.
 
 ## Completed MVP phases
 
@@ -28,116 +31,142 @@ COMPLETE.
 COMPLETE.
 
 Validated:
-`Register → verify → synchronize → CLIENT → complete profile → sign out → sign back in → retain same Hustle identity`
+`Register → verify → synchronize → CLIENT → profile → sign out → sign in → retain same identity`
 
-### Phase 3 — Hustler Application
+### Phase 3 — Hustler Application + Verification
 COMPLETE.
 
 Validated:
-`CLIENT → application → private proof → submit → reviewer verification → APPROVED → same User retains CLIENT ACTIVE + receives HUSTLER ACTIVE`
+`CLIENT → apply → private proof → review → APPROVED → same User retains CLIENT ACTIVE + receives HUSTLER ACTIVE`
 
 ### Phase 4 — Professional Profile
 COMPLETE.
 
-Validated:
-`HUSTLER ACTIVE → bootstrap professional profile → edit/save → publish → open /u/[username] as visitor`
+Validated public professional identity at `/u/[username]`.
 
 ### Phase 5 — Services
 COMPLETE.
 
-Validated:
-`HUSTLER ACTIVE → create Service → edit/save → publish → open /services/[serviceId] in incognito → same professional identity`
+Validated published Service owned by the same professional identity.
+
+Hosted example:
+- `Full-Stack Web Application Development`
+- Service ID: `cmttw02cy0001dc02zzd5j89x`
+- owner: `xpen`
 
 ### Phase 6 — Products
 COMPLETE.
 
-Validated:
-`HUSTLER ACTIVE → create Product → details/media/inventory/variants → publish → open public Product in incognito → same professional identity`
-
 Hosted example:
-- Product `Hustle Creator T-Shirt`
+- `Hustle Creator T-Shirt`
+- Product ID: `cmtty8gfs0001dcavtny1iiuh`
 - PUBLISHED / PHYSICAL
-- owner `xpen`
+- owner: `xpen`
 
 ### Phase 7 — Content Creation Engine
 COMPLETE.
 
-Validated creator loop:
-`HUSTLER ACTIVE → create Post → add image/video/carousel + caption/category/location/tags → attach owned Service/Product → publish → open public Post as visitor → same creator/professional/economic identity`
+Validated:
+- Post creation/publication
+- image/video/carousel media
+- Service/Product attachments
+- like/save/comment/share/follow interactions
+- second CLIENT can interact without gaining HUSTLER capability
 
-Validated interaction loop:
-`second synchronized CLIENT → open Post → like → save → comment → follow/share → refresh → state persists → reverse interactions work`
-
-Hosted examples:
-- `xpen` has PUBLISHED Posts with media/category/location/tags
-- Post `cmtu0zq9d0009dczt8a1wv3zk` carries canonical Service + Product attachments
-- `adminxpen` remained CLIENT ACTIVE while consuming/interacting
+Hosted example:
+- Post `cmtu0zq9d0009dczt8a1wv3zk` carries canonical Service + Product attachments.
 
 ### Phase 8 — Home Discovery Feed
 COMPLETE.
 
-Validated API/runtime:
-- `GET /api/v1/feed/for-you` returned eligible ranked `xpen` Posts to `adminxpen`
-- `GET /api/v1/feed/nearby?location=Lagos, Nigeria` returned location-relevant Lagos content
-- Connections correctly returned empty after unfollow and populated during the UI follow test
-- feed responses contained creator/professional context, engagement/viewer state and current Service/Product attachments
-- deterministic ranking reasons were visible and inspectable
+Validated:
+- For You
+- Nearby
+- Connections
+- deterministic ranking
+- cold-start discovery
+- cursor pagination
+- creator/offer context
+- feed interactions
+- discovery instrumentation
 
-Validated Home experience:
-- `/home` works with For You / Nearby / Connections
-- media-first cards render image/carousel/native-video/YouTube content
-- like/save/follow/share controls work in-feed and persist
-- following a creator makes eligible content discoverable in Connections
-- profile/Post/Service/Product navigation works from discovery
-- cursor/progressive-fetch behavior is implemented for larger result sets
-
-Hosted discovery observation verified:
+Hosted events include:
 - `feed.impression`
 - `feed.view`
 - `feed.watch`
 - `feed.profile_clicked`
 - `feed.service_clicked`
 
-Phase 8 gate passed:
-`CLIENT → open Home → discover relevant Hustler/content → understand skill/location → interact → open identity/offer → produce measurable discovery evidence`
-
 ### Phase 9 — Search + Marketplace
 COMPLETE.
 
-Validated API/runtime:
-- Top search returned useful mixed People/Post/Service/Product results for `full stack developer Lagos`
-- People search returned `xpen` with exact/prefix/phrase ranking reasons
-- Service search respected normal-Naira min/max price filters
-- Product search returned `Hustle Creator T-Shirt`
-- explicit zero-results worked for unrelated intent
-- Marketplace All returned current Product + Service records
-- Marketplace Service filters respected category + delivery mode
-- Marketplace Product filters respected category + Product type + max price
-- public eligibility remained tied to PUBLISHED profile/offer/content + HUSTLER ACTIVE
+Validated:
+- Search Top / People / Posts / Services / Products
+- deterministic lexical relevance
+- filters
+- zero-results
+- Marketplace All / Services / Products
+- canonical result navigation
+- Search/Marketplace observation events
 
-Validated Search + Marketplace web experience:
-- `/search` works with Top / People / Posts / Services / Products
-- `/marketplace` works with All / Services / Products
-- supported filter UI works
-- result cards navigate to canonical Profile/Post/Service/Product pages
-- zero-result state is explicit
-- pagination contract is wired
+Hosted events include:
+- `search.performed`
+- `search.zero_results`
+- `search.result_clicked`
+- `marketplace.viewed`
+- `marketplace.result_clicked`
 
-Hosted observation verified on 2026-09-10:
-- `search.performed`: persisted
-- `search.zero_results`: persisted
-- `search.result_clicked`: persisted after navigation-race fix
-- `marketplace.viewed`: persisted
-- `marketplace.result_clicked`: persisted
+### Phase 10 — Messaging
+**COMPLETE.**
 
-Observed real search click:
-- query: `full stack developer Lagos`
-- tab: `top`
-- result type: `post`
-- target: `/posts/cmtu09f9b0001dcztnjrjdg95`
+Canonical knowledge:
+- `Knowledge/Product/MESSAGING.md`
+- `Knowledge/Decisions/ADR-0009-messaging-conversation-ownership.md`
 
-Phase 9 gate passed:
-`CLIENT → express need → receive relevant eligible results → filter/browse → open canonical identity/offer/content → produce measurable search evidence`
+Durable model:
+- `Conversation`
+- `ConversationParticipant → User`
+- `Message → User (sender)`
+- deterministic DIRECT pair reuse through `directKey`
+- participant `lastReadAt`
+- canonical message context references
+
+Validated real conversation:
+- Conversation: `cmtvfjhdv0004dc5ojcc8jmdb`
+- participants: `adminxpen` and `xpen`
+- same pair reuses the same DIRECT conversation
+- two-way text messaging works
+- unread/read state persists
+- Profile/Post/Service/Product messaging entry points work
+- canonical Service context persisted and reopened correctly
+- `/messages` inbox + `/messages/[conversationId]` thread work
+- image and file attachments work and persist
+- second participant can open private attachments
+- typing indicator works and expires ephemerally
+
+Private attachment foundation:
+- bucket: `message-attachments`
+- private: yes
+- size limit: 25 MB
+- participant-scoped SELECT/INSERT policies
+- uploader-scoped DELETE policy
+- path shape: `{conversationId}/{authSubject}/{unique-file}` inside the bucket
+- Message metadata stores the canonical bucket-qualified reference
+
+Hosted Phase 10D evidence verified on 2026-09-10:
+- PNG image attachment persisted in Message and Storage
+- PDF attachment persisted in Message and Storage
+- attachment MIME type and byte size match stored objects
+- real messages exist from both `adminxpen` and `xpen`
+- `messaging.conversation_started` persisted
+- `messaging.message_sent` persisted
+- `adminxpen` remains `CLIENT:ACTIVE`
+- `xpen` remains `CLIENT:ACTIVE + HUSTLER:ACTIVE`
+
+Typing state is intentionally ephemeral and is not written to PostgreSQL.
+
+Phase 10 gate passed:
+`CLIENT → discover Hustler → open/reuse direct conversation → send/receive text + context + private media/files → read/unread state persists → typing remains ephemeral → identity capabilities unchanged`
 
 ## Canonical ownership built so far
 
@@ -148,27 +177,26 @@ Phase 9 gate passed:
 `├── Product → ProductVariant`
 `└── Post → PostMedia`
 
-Post economic references:
+Post references:
 - `PostServiceAttachment → Service`
 - `PostProductAttachment → Product`
 
 Interactions:
-- PostLike
-- PostSave
-- PostComment
-- UserFollow
-- share + discovery/search analytics through SystemEvent
+- `PostLike`
+- `PostSave`
+- `PostComment`
+- `UserFollow`
 
-Messaging foundation:
+Messaging:
 - `Conversation`
 - `ConversationParticipant → User`
-- `Message → User (sender)`
-- direct-pair reuse through deterministic `directKey`
-- participant read marker through `lastReadAt`
-- canonical Message context references to Post / Service / Product
+- `Message → User`
+
+Analytics/observation:
+- `SystemEvent`
 
 ## Supabase
-Dedicated Hustle project:
+Dedicated project:
 - Ref: `pfgarmyygybmhiiuopym`
 - Region: `eu-west-1`
 - API URL: `https://pfgarmyygybmhiiuopym.supabase.co`
@@ -185,17 +213,17 @@ Applied hosted migrations:
 - `phase7_content_foundation`
 - `phase7_content_interactions`
 - `phase10_messaging_foundation`
+- `phase10_messaging_attachments`
 
-Phase 8 and Phase 9 used the existing SystemEvent analytics foundation and required no new DDL.
-Phase 10A introduced durable Conversation / ConversationParticipant / Message tables with RLS and API-role policies.
+Phase 8 and Phase 9 required no new DDL; they reuse canonical records + `SystemEvent`.
 
 ## Local development
 - Web: `http://localhost:3001`
 - API: `http://localhost:4000/api/v1`
 - Admin reserved: `http://localhost:3002`
 - Auth/database/storage: hosted Hustle Supabase
-- Local Prisma connection: Supabase Session Pooler on port 5432
-- Node: 22.x (`.nvmrc`)
+- Local Prisma connection: Supabase Session Pooler 5432
+- Node: 22.x via `.nvmrc`
 
 Secrets and `.env` files remain local and must never be committed.
 
@@ -203,208 +231,132 @@ Secrets and `.env` files remain local and must never be committed.
 ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you`. Project owner pulls and validates locally.
 
 Before pulling remote work:
-1. run `git status`
+1. `git status`
 2. commit/push intentional local source changes only
 3. do not blindly commit generated files
 
 `*.tsbuildinfo` is ignored. `apps/web/next-env.d.ts` may be regenerated by Next.js and should not be treated as intentional product work unless deliberately changed.
 
-## Current Phase 10 objective
-Allow discovery to turn into conversation.
+# Phase 11 — Booking System
 
-Canonical Phase 10 knowledge:
-- `Knowledge/Product/MESSAGING.md`
-- `Knowledge/Decisions/ADR-0009-messaging-conversation-ownership.md`
+## Objective
+Turn a published Service into an explicit, schedulable transaction request with an unambiguous lifecycle.
 
-## Phase 10 entry points
-- Profile → Message
-- Service → Message
-- Product → Message
-- Post → Message Creator
+Canonical Phase 11 knowledge:
+- `Knowledge/Product/BOOKING_SYSTEM.md`
+- `Knowledge/Decisions/ADR-0010-booking-lifecycle-and-payment-boundary.md`
 
-## Phase 10 MVP
-- one-to-one direct conversations
-- text messages
-- image messages
-- file messages
-- timestamps
-- participant read state
-- typing state
-- basic notification-ready events
-- canonical context references to current Post / Service / Product
+Source flow:
 
-Future context types are introduced only when their owning domains exist:
-- Booking — Phase 11
-- Order — Phase 12
+`Service → Book → Choose date/time → Provide requirements → Submit request → Hustler accepts → Payment → Work begins → Completion`
 
-## Phase 10 identity rule
-Messaging uses the same User identity.
+Canonical statuses:
+- `REQUESTED`
+- `ACCEPTED`
+- `DECLINED`
+- `PAYMENT_PENDING`
+- `FUNDED`
+- `IN_PROGRESS`
+- `COMPLETED`
+- `CANCELLED`
+- `DISPUTED`
+- `REFUNDED`
+- `CLOSED`
 
-Do not create:
-- Client inbox identity
-- Hustler inbox identity
-- seller messaging account
-- role-switching inbox
+## Phase 11 ownership
 
-Any synchronized User may participate in a conversation. Capabilities remain unchanged by messaging.
+Planned relationship:
 
-## Phase 10 architecture
+`Service → Booking`
 
-Durable model:
+`Booking → client User`
 
-`Conversation`
-`├── ConversationParticipant → User`
-`└── Message → User (sender)`
+`Booking → hustler User`
 
-MVP direct conversations contain exactly two distinct Users.
-Repeated attempts to message the same User resolve the existing direct thread rather than create duplicates.
+`Booking → optional Conversation`
 
-Read state:
-- participant-level `lastReadAt`
+Booking uses the same unified User identity. No Client/Hustler booking account modes or role switcher.
 
-Message context:
-- reference canonical Post / Service / Product
-- never duplicate mutable offer/content state inside chat
+## Payment boundary
+Phase 11 owns Booking lifecycle/scheduling, but Phase 13 owns real payment + escrow.
 
-Attachments:
-- private object storage references
-- PostgreSQL stores metadata/reference only
+For a paid Service:
+- Hustler acceptance may advance the Booking to `PAYMENT_PENDING`.
+- Phase 11 MUST NOT fake `FUNDED`.
+- Only authoritative Phase 13 payment/escrow integration may advance paid Bookings into `FUNDED`.
 
-Typing:
-- ephemeral realtime/presence state
-- no durable row per keystroke
-- chat history remains functional if typing presence degrades
+The full source-defined paid transaction gate through completion is therefore an integrated Phase 11 + Phase 13 gate. Phase 11 itself must prove the booking workflow through the explicit payment boundary without inventing financial success.
 
-Messaging stays inside the NestJS modular monolith for the MVP.
+## Phase 11 implementation slices
 
-## Phase 10 boundaries
-Phase 11 owns Bookings.
-Phase 12 owns Cart + Orders.
-Phase 13 owns Payments + Escrow and any authoritative financial invoice state.
-Phase 14 owns Reviews/ratings/reporting/blocking policy.
-Phase 16 owns Story replies.
-Phase 17 owns Live chat.
-Phase 18 owns Agent delegation.
-Phase 20 owns the full Notifications product.
-
-## Phase 10 implementation status
-
-### Phase 10A — Messaging data foundation
-IMPLEMENTED; RUNTIME VALIDATED.
-
-Built:
-- `Conversation`
-- `ConversationParticipant`
-- `Message`
-- deterministic nullable `directKey` with uniqueness for DIRECT thread reuse
-- non-null `lastActivityAt` for inbox ordering and cursor pagination
-- participant `lastReadAt`
-- Message text + attachment metadata + canonical context identity fields
-- indexes, integrity checks, RLS, enum grants and `hustle_api` policies
-- hosted migration `phase10_messaging_foundation`
-
-Hosted runtime evidence on 2026-09-10:
-- conversation `cmtvfjhdv0004dc5ojcc8jmdb` exists between `adminxpen` and `xpen`
-- direct key is deterministic for that pair
-- exactly two participants are present
-- one persisted Message exists after the first API gate
-- RLS is enabled on Conversation / ConversationParticipant / Message
-
-Attachment metadata exists now, but private upload/read URL production is intentionally deferred to Phase 10D.
-
-### Phase 10B — Messaging API
-IMPLEMENTED; RUNTIME VALIDATED.
-
-API:
-- `POST /api/v1/messaging/conversations/direct`
-- `GET /api/v1/messaging/conversations`
-- `GET /api/v1/messaging/conversations/:conversationId`
-- `GET /api/v1/messaging/conversations/:conversationId/messages`
-- `POST /api/v1/messaging/conversations/:conversationId/messages`
-- `POST /api/v1/messaging/conversations/:conversationId/read`
-- `POST /api/v1/messaging/conversations/:conversationId/messages/:messageId/context-opened`
-
-Rules:
-- synchronized User required
-- self-conversation rejected
-- same User pair resolves same DIRECT conversation
-- only participants may list/read/send/mark-read within a conversation
-- conversation and message pagination use opaque deterministic cursors
-- sender read marker advances on send
-- read marker can advance through a specific Message or the current latest Message
-- unread counts derive from messages newer than participant `lastReadAt` and exclude the participant's own messages
-- message requires text, attachment reference or canonical context
-- text capped at 4000 characters
-- Message context is accepted only for currently eligible public Post / Service / Product records
-- Message context stores IDs, not mutable price/content snapshots
-- attachment DB references must use the conversation-scoped `message-attachments/{conversationId}/...` path convention
-- participant-safe conversation output excludes email/phone/private account fields
-
-Validated locally with real identities:
-- unauthenticated conversation list returns 401
-- `adminxpen` opened a DIRECT conversation with `xpen`
-- text persisted through refresh/read API
-- Service context `cmttw02cy0001dc02zzd5j89x` persisted and resolved to the canonical Service URL
-- read marker advanced through the sent message and returned unreadCount 0
-
-Hosted events verified:
-- `messaging.conversation_started`
-- `messaging.message_sent`
-
-Event payloads contain IDs/metadata rather than private message text.
-
-GitHub CI passed after Phase 10A/10B: locked install, web/admin/mobile typechecks, Prisma generation, API typecheck and web/admin/API builds all succeeded.
-
-### Phase 10C — Messaging web experience
-IMPLEMENTED; LOCAL UI GATE PENDING.
-
-Built:
-- `/messages`
-- `/messages/start`
-- `/messages/[conversationId]`
-- inbox list with latest message, unread count and participant context
-- direct-conversation resolver that reuses the canonical thread
-- conversation thread with text composer
-- refresh + older-message pagination
-- participant read marker advancement on thread open/refresh
-- canonical Post / Service / Product context banner on entry
-- context card navigation + `messaging.context_opened` observation
-- Message entry points from Profile, Post, Service and Product
-- Messages link from the account surface
-- graceful sign-in boundary
-
-Private upload/read URLs and typing presence remain Phase 10D.
-
-### Phase 10D — Typing + private attachment path
+### Phase 11A — Booking data foundation
 PENDING.
 
 Build:
-- private messaging attachment bucket/path policy
-- image/file attachment UX
-- ephemeral typing state using realtime/presence adapter
-- graceful degraded behavior if realtime typing is unavailable
+- Booking model + source-defined status enum
+- Client / Hustler / Service ownership
+- optional Conversation link
+- transaction-critical historical terms snapshot
+- requested/confirmed schedule
+- requirements
+- lifecycle timestamps
+- indexes, integrity constraints, RLS and API-role policies
 
-### Phase 10E — Real messaging gate
+### Phase 11B — Booking API + transition engine
 PENDING.
 
-Use real identities:
+Build:
+- create request
+- client booking list
+- Hustler booking list
+- booking detail
+- accept / decline
+- cancel
+- valid start/complete transitions
+- payment-boundary contract
+- transition audit events
+- participant authorization
 
-`adminxpen CLIENT → discover xpen → Message → send → xpen replies → attach/open Post/Service/Product context → refresh/reopen → history/read state persists`
+### Phase 11C — Booking web experience
+PENDING.
+
+Build:
+- Service → Book
+- request form
+- `/bookings`
+- `/bookings/[bookingId]`
+- unified Client/Hustler action context without role switching
+- explicit current status + next required action
+- direct Message link
+
+### Phase 11D — Scheduling + conflict validation
+PENDING.
+
+Build:
+- simple active-booking overlap checks
+- confirmed schedule behavior
+- invalid/duplicate transition handling
+- clear failure states
+
+### Phase 11E — Real booking gate
+PENDING.
+
+Use `adminxpen` CLIENT and `xpen` HUSTLER with Service `cmttw02cy0001dc02zzd5j89x`.
 
 Validate:
-1. duplicate direct thread is not created
-2. non-participant cannot read/send
-3. text persists
-4. image/file path is participant-private
-5. context points to canonical current entity
-6. read state persists
-7. typing is ephemeral/degradable
-8. messaging events are measurable
-9. CLIENT/HUSTLER capabilities remain unchanged
+1. CLIENT requests Service with date/time + requirements.
+2. Service owner receives it.
+3. unauthorized users cannot read/mutate it.
+4. Hustler accepts/declines according to lifecycle state.
+5. paid booking reaches `PAYMENT_PENDING` without fake funding.
+6. booking history/status persists across session refresh.
+7. Booking can connect to the existing direct conversation.
+8. invalid/duplicate transitions are rejected.
+9. scheduling conflicts are explicit.
+10. capabilities remain unchanged.
 
-## Phase 10 gate
+## Next build target
+**Phase 11A + 11B — Booking data foundation and Booking API/transition engine.**
 
-A prospective client can contact a Hustler without leaving Hustle and can preserve the discovery/economic context that caused the conversation.
-
-## Next phase after Phase 10 gate
-Phase 11 — Booking System.
+## Next phase after Booking capability
+Phase 12 — Cart + Orders.
