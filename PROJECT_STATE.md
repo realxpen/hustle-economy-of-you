@@ -6,7 +6,7 @@ Updated: 2026-09-10
 Build
 
 ## Current MVP phase
-Phase 11 — Booking System
+Phase 12 — Cart + Orders
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -17,8 +17,7 @@ Phase 11 — Booking System
 - Content demonstrates capability and connects discovery to economic opportunity.
 - Services and Products attach to content through canonical relationships.
 - Trust and verified outcomes outrank vanity metrics.
-- Search/discovery ranking begins simple and explainable.
-- Transaction state must be explicit; never fake payment, funding, escrow, refunds, or completion.
+- Transaction state must be explicit; never fake payment, funding, escrow, refunds, delivery, or completion.
 
 ## Completed MVP phases
 - Phase 1 — Technical Foundation: COMPLETE
@@ -31,9 +30,34 @@ Phase 11 — Booking System
 - Phase 8 — Home Discovery Feed: COMPLETE
 - Phase 9 — Search + Marketplace: COMPLETE
 - Phase 10 — Messaging: COMPLETE
+- Phase 11 — Booking System: COMPLETE at the Phase 13 payment boundary
 
-Validated identity/capability loop remains:
-`CLIENT → optional HUSTLER application → same User gains HUSTLER → no role switching`
+## Phase 11 validated evidence
+
+Real Client/Hustler flow validated with `adminxpen` and `xpen`:
+- Service → Book CTA
+- request form → Booking persisted
+- Client and Hustler relationship views on the same unified account model
+- accept/decline/cancel transition rules
+- paid booking reaches `PAYMENT_PENDING`
+- no public/browser path can fake `FUNDED`
+- start before funding is rejected
+- direct Conversation linkage persists
+- scheduling overlap detection works
+- duplicate pending request protection works
+- Hustler can adjust confirmed schedule before acceptance
+- acceptance revalidates schedule server-side
+- overlapping confirmed schedule is rejected
+- non-overlapping confirmed schedule succeeds
+- capabilities remain unchanged
+
+Hosted Booking examples remain in `PAYMENT_PENDING` with `fundedAt`, `startedAt`, and `completedAt` null, preserving the Phase 13 payment boundary.
+
+Integrated paid service completion through `FUNDED → IN_PROGRESS → COMPLETED` remains a Phase 11 + Phase 13 integration gate, not fake Phase 11 state.
+
+Canonical Phase 11 knowledge:
+- `Knowledge/Product/BOOKING_SYSTEM.md`
+- `Knowledge/Decisions/ADR-0010-booking-lifecycle-and-payment-boundary.md`
 
 ## Canonical ownership built so far
 
@@ -43,16 +67,6 @@ Validated identity/capability loop remains:
 `├── Service → Booking`
 `├── Product → ProductVariant`
 `└── Post → PostMedia`
-
-Post references:
-- `PostServiceAttachment → Service`
-- `PostProductAttachment → Product`
-
-Interactions:
-- `PostLike`
-- `PostSave`
-- `PostComment`
-- `UserFollow`
 
 Messaging:
 - `Conversation`
@@ -68,17 +82,17 @@ Booking:
 - `Booking → hustler User`
 - `Booking → optional Conversation`
 - narrow historical transaction terms snapshot
+- server-authoritative scheduling conflict validation
 
-Analytics/observation:
+Observation:
 - `SystemEvent`
 
 ## Supabase
 Dedicated Hustle project:
 - Ref: `pfgarmyygybmhiiuopym`
 - Region: `eu-west-1`
-- API URL: `https://pfgarmyygybmhiiuopym.supabase.co`
 
-Applied hosted migrations:
+Applied hosted migrations include:
 - `phase1_foundation`
 - `phase2_unified_account`
 - `api_database_role`
@@ -93,15 +107,14 @@ Applied hosted migrations:
 - `phase10_messaging_attachments`
 - `phase11_booking_foundation`
 
-Phase 8, Phase 9 and Phase 11D require no new DDL; they reuse canonical records and application-level validation.
+Phase 11D required no new DDL.
 
 ## Local development
 - Web: `http://localhost:3001`
 - API: `http://localhost:4000/api/v1`
 - Admin reserved: `http://localhost:3002`
-- Auth/database/storage: hosted Hustle Supabase
-- Local Prisma connection: Supabase Session Pooler 5432
 - Node: 22.x via `.nvmrc`
+- Auth/database/storage: hosted Hustle Supabase
 
 Secrets and `.env` files remain local and must never be committed.
 
@@ -115,153 +128,102 @@ Before pulling remote work:
 
 `*.tsbuildinfo` is ignored. `apps/web/next-env.d.ts` may be regenerated and should not be treated as intentional product work unless deliberately changed.
 
-# Phase 11 — Booking System
+# Phase 12 — Cart + Orders
 
 ## Objective
-Turn a published Service into an explicit, schedulable transaction request with a server-authoritative lifecycle.
+Enable product commerce while preserving explicit transaction state and the Phase 13 payment boundary.
 
-Canonical knowledge:
-- `Knowledge/Product/BOOKING_SYSTEM.md`
-- `Knowledge/Decisions/ADR-0010-booking-lifecycle-and-payment-boundary.md`
+Canonical source flow:
 
-Canonical flow:
-`Service → Book → Choose date/time → requirements → request → Hustler decision → payment boundary → work → completion`
+`Product → Add to Cart → Checkout → Payment → Order created → Processing → Delivery → Completed`
 
-Canonical statuses:
-- `REQUESTED`
-- `ACCEPTED`
-- `DECLINED`
-- `PAYMENT_PENDING`
-- `FUNDED`
-- `IN_PROGRESS`
+Canonical order statuses:
+- `PENDING`
+- `PAID`
+- `PROCESSING`
+- `SHIPPED`
+- `DELIVERED`
 - `COMPLETED`
 - `CANCELLED`
-- `DISPUTED`
 - `REFUNDED`
-- `CLOSED`
 
-## Payment boundary
-Phase 11 owns Booking lifecycle/scheduling. Phase 13 owns payment, escrow, ledger, refunds, payout, reconciliation and authoritative financial callbacks.
+Canonical knowledge:
+- `Knowledge/Product/CART_AND_ORDERS.md`
+- `Knowledge/Decisions/ADR-0011-cart-order-lifecycle-and-payment-boundary.md`
 
-Paid Service path:
-`REQUESTED → PAYMENT_PENDING → [Phase 13 authoritative funding] → FUNDED → IN_PROGRESS → COMPLETED`
+## Phase 12 payment boundary
+- Phase 12 may create durable `PENDING` Orders at checkout.
+- Phase 12 must not expose a client/frontend transition to `PAID`.
+- authoritative `PENDING → PAID` belongs to Phase 13 payment confirmation.
+- authoritative `REFUNDED` also belongs to Phase 13.
+- Cart does not reserve inventory.
+- inventory must be revalidated before checkout and again by the future payment-confirmation integration.
 
-Rules:
-- accepting a paid Booking records `acceptedAt` and moves to `PAYMENT_PENDING`
-- Phase 11 exposes no browser/client route that can set `FUNDED`
-- `FUNDED` is reserved for `BookingService.markFundedFromAuthoritativePayment(...)`
-- paid Bookings cannot start while `PAYMENT_PENDING`
-- zero-price Bookings may use `ACCEPTED → IN_PROGRESS`
+## Phase 12 implementation slices
 
-## Phase 11 implementation status
-
-### Phase 11A — Booking data foundation
-IMPLEMENTED; RUNTIME VALIDATED.
-
-Built:
-- Booking model + source-defined status enum
-- Client/Hustler/Service ownership
-- optional direct Conversation link
-- requested + confirmed schedule
-- requirements, location, notes
-- historical Service title/price/currency/pricing snapshot
-- lifecycle timestamps
-- cancellation actor/reason
-- indexes + integrity checks
-- RLS + `hustle_api` policy
-- Service deletion restricted once Booking transaction history exists
-
-Hosted migration:
-- Supabase version `20260910123630`
-- `phase11_booking_foundation`
-
-### Phase 11B — Booking API + transition engine
-IMPLEMENTED; RUNTIME VALIDATED.
-
-API:
-- `POST /api/v1/bookings`
-- `GET /api/v1/bookings/client`
-- `GET /api/v1/bookings/hustler`
-- `GET /api/v1/bookings/:bookingId`
-- `POST /api/v1/bookings/:bookingId/accept`
-- `POST /api/v1/bookings/:bookingId/decline`
-- `POST /api/v1/bookings/:bookingId/cancel`
-- `POST /api/v1/bookings/:bookingId/start`
-- `POST /api/v1/bookings/:bookingId/complete`
-
-Runtime evidence:
-- Client `adminxpen` requested Service `cmttw02cy0001dc02zzd5j89x`
-- Booking `cmtvjyxxm000ddccstu8da92l` persisted
-- Hustler `xpen` accepted it
-- paid Booking reached `PAYMENT_PENDING`
-- `acceptedAt` + `paymentPendingAt` persisted
-- `fundedAt`, `startedAt`, `completedAt` remain null
-- start before funding returned Conflict
-- duplicate/invalid state transition protection worked
-- direct Conversation remained linked
-
-Hosted events:
-- `booking.requested`
-- `booking.accepted`
-- `booking.payment_pending`
-
-### Phase 11C — Booking web experience
-IMPLEMENTED; UI RUNTIME VALIDATED.
-
-Built and validated:
-- Service → `Book this service`
-- `/bookings/new/[serviceId]`
-- `/bookings`
-- `/bookings/[bookingId]`
-- Client and Hustler relationship sections on one account with no role switching
-- explicit status + next action
-- transaction terms + requested/confirmed schedule
-- accept/decline/cancel/start/complete action surfaces when allowed
-- Phase 13 payment-boundary explanation with no fake Fund action
-- direct Message link and canonical Service link
-- refresh/session persistence
-
-Hosted UI-created Booking evidence exists for the same Client/Hustler/Service/Conversation relationship.
-
-### Phase 11D — Scheduling + conflict validation
-IMPLEMENTED; LOCAL RUNTIME GATE PENDING.
-
-Built:
-- `BookingScheduleService`
-- blocking statuses: `ACCEPTED`, `PAYMENT_PENDING`, `FUNDED`, `IN_PROGRESS`
-- REQUESTED bookings do not reserve a Hustler schedule before acceptance
-- booking creation checks requested time against already confirmed active work
-- accept re-checks availability to protect against schedule changes between request and decision
-- Hustler may confirm or adjust start/end from the Booking detail before acceptance
-- exact duplicate pending request for the same Client + Service + requested schedule is rejected
-- `GET /api/v1/bookings/availability` returns availability without exposing another Booking's private details
-- bounded interval overlap uses half-open schedule semantics
-- optional no-end schedules behave as point-time reservations for MVP conflict checks
-- request form performs an availability preflight and the API re-validates on create
-- conflict errors surface explicitly in both request and accept UI
-- no new database migration required
-
-GitHub CI after Phase 11D implementation:
-- locked install passed
-- web/admin/mobile typechecks passed
-- Prisma generation passed
-- API typecheck passed
-- web/admin/API builds passed
-
-### Phase 11E — Final Booking gate
+### Phase 12A — Cart + Order data foundation
 PENDING.
 
-Validate Phase 11D with two requests for the same Hustler:
-1. keep an existing confirmed `PAYMENT_PENDING` booking as the blocking schedule
-2. attempt a new overlapping request and receive explicit unavailable/conflict behavior
-3. submit a non-overlapping request successfully
-4. as Hustler, adjust that request's confirmed time to overlap the blocking booking and verify acceptance is rejected
-5. choose a non-overlapping confirmed time and accept successfully
-6. resubmit the exact same pending request and verify duplicate-request rejection
-7. confirm paid Booking still stops at `PAYMENT_PENDING`
-8. confirm capabilities remain unchanged
+Build:
+- Cart
+- CartItem
+- Order
+- OrderItem
+- OrderStatus
+- buyer/seller/Product/variant relationships
+- transaction-critical item snapshots
+- delivery fields
+- indexes + integrity constraints
+- RLS + API-role policies
 
-Integrated paid completion through `FUNDED → IN_PROGRESS → COMPLETED` remains the Phase 11 + Phase 13 transaction gate.
+### Phase 12B — Cart + checkout API
+PENDING.
 
-## Next build target after Phase 11D validation
-Close Phase 11 and open Phase 12 — Cart + Orders.
+Build:
+- get cart
+- add item
+- update quantity
+- remove item
+- clear cart
+- checkout preview
+- checkout to PENDING seller-scoped Order(s)
+- stock/variant/publication revalidation
+- buyer order list/detail
+- seller order list/detail
+- payment integration boundary
+- order/cart events
+
+### Phase 12C — Cart + Orders web experience
+PENDING.
+
+Build:
+- Product → Add to Cart
+- cart page
+- checkout page
+- order confirmation/detail
+- buyer order history
+- seller order management
+- message buyer/seller
+- explicit payment boundary
+
+### Phase 12D — Fulfillment state engine
+PENDING.
+
+Build:
+- `PAID → PROCESSING`
+- physical: `PROCESSING → SHIPPED → DELIVERED → COMPLETED`
+- digital: `PROCESSING → DELIVERED → COMPLETED`
+- cancellation boundaries
+- invalid/duplicate transition protection
+
+### Phase 12E — Real commerce gate
+PENDING.
+
+Before Phase 13 exists, prove:
+`Product → Cart → Checkout → PENDING Order`
+with correct item snapshot, seller ownership, buyer history, seller visibility, stock validation, and no fake payment.
+
+After Phase 13 exists, extend the integrated gate through authoritative `PAID`, inventory deduction, fulfillment, completion, and refund behavior.
+
+## Next build target
+**Phase 12A + 12B — Cart/Order data foundation and Cart + checkout API.**
