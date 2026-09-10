@@ -13,6 +13,7 @@ import { FeedModule } from "./feed/feed.module";
 import { SearchModule } from "./search/search.module";
 import { MessagingModule } from "./messaging/messaging.module";
 import { BookingModule } from "./booking/booking.module";
+import { CommerceModule } from "./commerce/commerce.module";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
 
 @Module({
@@ -32,7 +33,8 @@ import { RequestContextMiddleware } from "./common/middleware/request-context.mi
     FeedModule,
     SearchModule,
     MessagingModule,
-    BookingModule
+    BookingModule,
+    CommerceModule
   ]
 })
 export class AppModule implements NestModule {
