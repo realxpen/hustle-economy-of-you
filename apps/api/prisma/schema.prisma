@@ -117,6 +117,23 @@ enum BookingStatus {
   CLOSED
 }
 
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum OrderInventorySource {
+  NONE
+  PRODUCT
+  VARIANT
+}
+
 model User {
   id                          String                    @id @default(cuid())
   authSubject                 String                    @unique
@@ -146,6 +163,9 @@ model User {
   clientBookings              Booking[]                 @relation("BookingClient")
   hustlerBookings             Booking[]                 @relation("BookingHustler")
   cancelledBookings           Booking[]                 @relation("BookingCancelledBy")
+  cart                        Cart?
+  buyerOrders                 Order[]                   @relation("OrderBuyer")
+  sellerOrders                Order[]                   @relation("OrderSeller")
 }
 
 model UserCapability {
@@ -282,6 +302,8 @@ model Product {
   professionalProfile ProfessionalProfile     @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
   variants            ProductVariant[]
   postAttachments     PostProductAttachment[]
+  cartItems           CartItem[]
+  orderItems          OrderItem[]
 
   @@index([professionalProfileId, status])
   @@index([status, category])
@@ -300,7 +322,9 @@ model ProductVariant {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
 
   @@unique([productId, sku])
   @@index([productId, isActive])
@@ -481,50 +505,143 @@ model Message {
 }
 
 model Booking {
-  id                  String             @id @default(cuid())
-  serviceId           String
-  clientUserId        String
-  hustlerUserId       String
-  conversationId      String?
-  status              BookingStatus      @default(REQUESTED)
-  requestedStartAt    DateTime
-  requestedEndAt      DateTime?
-  confirmedStartAt    DateTime?
-  confirmedEndAt      DateTime?
-  requirements        String
-  location            String?
-  notes               String?
+  id                   String             @id @default(cuid())
+  serviceId            String
+  clientUserId         String
+  hustlerUserId        String
+  conversationId       String?
+  status               BookingStatus      @default(REQUESTED)
+  requestedStartAt     DateTime
+  requestedEndAt       DateTime?
+  confirmedStartAt     DateTime?
+  confirmedEndAt       DateTime?
+  requirements         String
+  location             String?
+  notes                String?
   serviceTitleSnapshot String
-  agreedPriceMinor    Int
-  currency            String             @default("NGN")
-  pricingTypeSnapshot ServicePricingType
-  acceptedAt          DateTime?
-  declinedAt          DateTime?
-  paymentPendingAt    DateTime?
-  fundedAt            DateTime?
-  startedAt           DateTime?
-  completedAt         DateTime?
-  cancelledAt         DateTime?
-  cancelledByUserId   String?
-  declineReason       String?
-  cancellationReason  String?
-  disputedAt          DateTime?
-  refundedAt          DateTime?
-  closedAt            DateTime?
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  agreedPriceMinor     Int
+  currency             String             @default("NGN")
+  pricingTypeSnapshot  ServicePricingType
+  acceptedAt           DateTime?
+  declinedAt           DateTime?
+  paymentPendingAt     DateTime?
+  fundedAt             DateTime?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  cancelledAt          DateTime?
+  cancelledByUserId    String?
+  declineReason        String?
+  cancellationReason   String?
+  disputedAt           DateTime?
+  refundedAt           DateTime?
+  closedAt             DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
 
-  service     Service       @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  client      User          @relation("BookingClient", fields: [clientUserId], references: [id], onDelete: Restrict)
-  hustler     User          @relation("BookingHustler", fields: [hustlerUserId], references: [id], onDelete: Restrict)
+  service      Service       @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  client       User          @relation("BookingClient", fields: [clientUserId], references: [id], onDelete: Restrict)
+  hustler      User          @relation("BookingHustler", fields: [hustlerUserId], references: [id], onDelete: Restrict)
   conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
-  cancelledBy User?         @relation("BookingCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
+  cancelledBy  User?         @relation("BookingCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
 
   @@index([clientUserId, status, createdAt])
   @@index([hustlerUserId, status, createdAt])
   @@index([serviceId, status, requestedStartAt])
   @@index([conversationId])
   @@index([status, createdAt])
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  version   Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@index([updatedAt])
+}
+
+model CartItem {
+  id               String   @id @default(cuid())
+  cartId           String
+  productId        String
+  productVariantId String?
+  itemKey          String
+  quantity         Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  cart           Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, itemKey])
+  @@index([cartId, createdAt])
+  @@index([productId])
+  @@index([productVariantId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  buyerUserId     String
+  sellerUserId    String
+  status          OrderStatus @default(PENDING)
+  currency        String      @default("NGN")
+  subtotalMinor   Int
+  totalMinor      Int
+  deliveryName    String?
+  deliveryPhone   String?
+  deliveryAddress String?
+  deliveryCity    String?
+  deliveryState   String?
+  deliveryCountry String?
+  deliveryNote    String?
+  paymentReference String?     @unique
+  paidAt          DateTime?
+  processingAt    DateTime?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  refundedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  buyer  User        @relation("OrderBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  seller User        @relation("OrderSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
+  items  OrderItem[]
+
+  @@index([buyerUserId, status, createdAt])
+  @@index([sellerUserId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id                   String               @id @default(cuid())
+  orderId              String
+  productId            String
+  productVariantId     String?
+  productTitleSnapshot String
+  variantNameSnapshot  String?
+  skuSnapshot          String?
+  optionValuesSnapshot Json?
+  productTypeSnapshot  ProductType
+  unitPriceMinor       Int
+  quantity             Int
+  lineTotalMinor       Int
+  inventorySource      OrderInventorySource @default(NONE)
+  createdAt            DateTime             @default(now())
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, createdAt])
+  @@index([productId])
+  @@index([productVariantId])
 }
 
 model SystemEvent {
