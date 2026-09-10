@@ -128,8 +128,8 @@ export default function SearchPageScreen() {
   }
 
   function openResult(item: SearchResult, position: number) {
-    if (!sessionId) return;
-    void captureSearchObservation("search.result_clicked", {
+    if (!sessionId) return Promise.resolve();
+    return captureSearchObservation("search.result_clicked", {
       query: searchedQuery || query.trim(),
       tab,
       filters: filters as Record<string, unknown>,
