@@ -42,6 +42,7 @@ export default function PublicServicePage() {
         <h2>{owner.displayName ?? `@${owner.username}`}</h2>
         <p>@{owner.username} · {owner.location ?? "Location not set"}</p>
         <div className={styles.badges}><span>HUSTLER</span>{owner.verified && <span>VERIFIED</span>}</div>
+        <a href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`}>Message about this service →</a>
         {owner.username && <a href={`/u/${owner.username}`}>View professional identity ↗</a>}
       </aside>
     </section>
