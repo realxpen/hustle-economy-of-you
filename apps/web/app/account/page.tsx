@@ -46,6 +46,7 @@ export default function AccountPage() {
         <h2>{isHustler ? "Turn capability into proof and offers." : "Show what you can do."}</h2>
         <p>{isHustler ? "Your professional identity carries services, products and capability-led content on this same account." : "Apply with your skill, experience and real proof. Approval adds Hustler to this identity without creating another account."}</p>
         <a className="primaryLink" href="/home"><span>Open discovery feed</span><b>↗</b></a>
+        <a className="futureTag" href="/messages">MESSAGES →</a>
         <a className="futureTag" href="/search">SEARCH HUSTLE →</a>
         <a className="futureTag" href="/marketplace">BROWSE MARKETPLACE →</a>
         <a className="futureTag" href={isHustler ? "/professional-profile" : "/hustler-application"}>{isHustler ? "EDIT PROFESSIONAL PROFILE →" : "APPLY TO BECOME A HUSTLER →"}</a>
