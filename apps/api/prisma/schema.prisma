@@ -88,30 +88,47 @@ enum PostMediaType {
   VIDEO
 }
 
+enum ConversationType {
+  DIRECT
+}
+
+enum MessageAttachmentType {
+  IMAGE
+  FILE
+}
+
+enum MessageContextType {
+  POST
+  SERVICE
+  PRODUCT
+}
+
 model User {
-  id                          String               @id @default(cuid())
-  authSubject                 String               @unique
+  id                          String                    @id @default(cuid())
+  authSubject                 String                    @unique
   email                       String?
   phone                       String?
-  emailVerified               Boolean              @default(false)
-  phoneVerified               Boolean              @default(false)
+  emailVerified               Boolean                   @default(false)
+  phoneVerified               Boolean                   @default(false)
   displayName                 String?
-  username                    String?              @unique
+  username                    String?                   @unique
   bio                         String?
   location                    String?
   avatarUrl                   String?
-  onboardingCompleted         Boolean              @default(false)
+  onboardingCompleted         Boolean                   @default(false)
   capabilities                UserCapability[]
-  createdAt                   DateTime             @default(now())
-  updatedAt                   DateTime             @updatedAt
-  hustlerApplication          HustlerApplication?  @relation("HustlerApplicant")
-  reviewedHustlerApplications HustlerApplication[] @relation("HustlerReviewer")
+  createdAt                   DateTime                  @default(now())
+  updatedAt                   DateTime                  @updatedAt
+  hustlerApplication          HustlerApplication?       @relation("HustlerApplicant")
+  reviewedHustlerApplications HustlerApplication[]      @relation("HustlerReviewer")
   professionalProfile         ProfessionalProfile?
   postLikes                   PostLike[]
   postSaves                   PostSave[]
   postComments                PostComment[]
-  following                   UserFollow[]         @relation("UserFollowing")
-  followers                   UserFollow[]         @relation("UserFollowers")
+  following                   UserFollow[]              @relation("UserFollowing")
+  followers                   UserFollow[]              @relation("UserFollowers")
+  conversationParticipants    ConversationParticipant[]
+  sentMessages                Message[]                 @relation("MessageSender")
 }
 
 model UserCapability {
@@ -128,8 +145,8 @@ model UserCapability {
 }
 
 model HustlerApplication {
-  id     String                   @id @default(cuid())
-  userId String                   @unique
+  id     String                    @id @default(cuid())
+  userId String                    @unique
   status HustlerApplicationStatus @default(DRAFT)
 
   primarySkill      String?
@@ -151,9 +168,9 @@ model HustlerApplication {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation("HustlerApplicant", fields: [userId], references: [id], onDelete: Cascade)
-  reviewer User? @relation("HustlerReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
-  proofs HustlerApplicationProof[]
+  user     User                       @relation("HustlerApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User?                      @relation("HustlerReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  proofs   HustlerApplicationProof[]
 
   @@index([status])
   @@index([category])
@@ -370,9 +387,9 @@ model PostComment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent  PostComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  PostComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
   replies PostComment[] @relation("CommentReplies")
 
   @@index([postId, createdAt])
@@ -390,6 +407,58 @@ model UserFollow {
 
   @@id([followerId, followingId])
   @@index([followingId, createdAt])
+}
+
+model Conversation {
+  id             String           @id @default(cuid())
+  type           ConversationType @default(DIRECT)
+  directKey      String?          @unique
+  lastActivityAt DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([type, lastActivityAt])
+  @@index([lastActivityAt])
+}
+
+model ConversationParticipant {
+  conversationId String
+  userId         String
+  joinedAt       DateTime  @default(now())
+  lastReadAt     DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId, conversationId])
+  @@index([userId, lastReadAt])
+}
+
+model Message {
+  id                   String                 @id @default(cuid())
+  conversationId       String
+  senderId             String
+  text                 String?
+  attachmentType       MessageAttachmentType?
+  attachmentStorageKey String?
+  attachmentFileName   String?
+  attachmentMimeType   String?
+  attachmentSizeBytes  Int?
+  contextType          MessageContextType?
+  contextId            String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+  @@index([contextType, contextId])
 }
 
 model SystemEvent {
