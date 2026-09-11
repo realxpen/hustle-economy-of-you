@@ -6,7 +6,7 @@ Updated: 2026-09-11
 Build
 
 ## Current MVP phase
-Phase 12 — Cart + Orders
+Phase 13 — Payments + Escrow
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -17,7 +17,8 @@ Phase 12 — Cart + Orders
 - Content demonstrates capability and connects discovery to economic opportunity.
 - Services and Products attach to content through canonical relationships.
 - Trust and verified outcomes outrank vanity metrics.
-- Transaction state must be explicit; never fake payment, funding, escrow, refunds, delivery, or completion.
+- Transaction state must be explicit; never fake payment, funding, escrow, refunds, delivery, completion or payout success.
+- Financial state must be server-authoritative and supported by verified provider/internal financial evidence.
 
 ## Completed MVP phases
 - Phase 1 — Technical Foundation: COMPLETE
@@ -30,14 +31,26 @@ Phase 12 — Cart + Orders
 - Phase 8 — Home Discovery Feed: COMPLETE
 - Phase 9 — Search + Marketplace: COMPLETE
 - Phase 10 — Messaging: COMPLETE
-- Phase 11 — Booking System: COMPLETE at the Phase 13 payment boundary
+- Phase 11 — Booking System: COMPLETE at Phase 13 payment boundary
+- Phase 12 — Cart + Orders: COMPLETE at Phase 13 payment boundary
 
-## Phase 11 payment boundary retained
-Real Client/Hustler booking flow is validated through `PAYMENT_PENDING`. `FUNDED`, paid work start, and financial completion remain authoritative Phase 13 integration responsibilities.
+## Phase 11 retained boundary
+Real booking flow is validated through `PAYMENT_PENDING`.
 
-Canonical Phase 11 knowledge:
+Phase 13 must provide authoritative payment + escrow before Booking may become `FUNDED`.
+
+Canonical:
 - `Knowledge/Product/BOOKING_SYSTEM.md`
 - `Knowledge/Decisions/ADR-0010-booking-lifecycle-and-payment-boundary.md`
+
+## Phase 12 retained boundary
+Real Product commerce is validated through durable `PENDING` Order plus fulfillment/cancellation authorization rules.
+
+Paid lifecycle remains intentionally blocked until Phase 13 confirms payment and inventory ownership.
+
+Canonical:
+- `Knowledge/Product/CART_AND_ORDERS.md`
+- `Knowledge/Decisions/ADR-0011-cart-order-lifecycle-and-payment-boundary.md`
 
 ## Canonical ownership built so far
 
@@ -57,34 +70,32 @@ Messaging:
 - `Conversation`
 - `ConversationParticipant → User`
 - `Message → User`
-- private `message-attachments` storage
-- canonical Post/Service/Product message context
+- private `message-attachments`
+- canonical Post/Service/Product context
 - ephemeral typing presence
 
 Booking:
-- `Booking → Service`
-- `Booking → client User`
-- `Booking → hustler User`
-- `Booking → optional Conversation`
-- narrow historical transaction terms snapshot
-- server-authoritative scheduling conflict validation
+- first-class Booking entity
+- client + Hustler + Service ownership
+- optional Conversation link
+- historical terms snapshot
+- server-authoritative scheduling conflicts
+- paid Booking stops at `PAYMENT_PENDING`
 
 Commerce:
 - one Cart per User
-- CartItem references canonical Product + optional ProductVariant
-- seller-scoped Order records
-- OrderItem preserves transaction-critical Product/variant/price/quantity snapshots
-- private delivery fields remain transaction data
-- Cart and PENDING Order do not reserve stock
-- authoritative payment integration deducts tracked inventory atomically
-- server-authoritative fulfillment state engine
-- buyer confirms DELIVERED → COMPLETED
+- seller-scoped Orders
+- immutable transaction-critical OrderItem snapshots
+- PENDING Orders do not reserve stock
+- server-authoritative fulfillment engine
+- pre-payment cancellation only
+- paid Order stops at `PENDING` until Phase 13
 
 Observation:
 - `SystemEvent`
 
 ## Supabase
-Dedicated Hustle project:
+Dedicated project:
 - Ref: `pfgarmyygybmhiiuopym`
 - Region: `eu-west-1`
 
@@ -102,9 +113,9 @@ Applied hosted migrations include:
 - `phase10_messaging_foundation`
 - `phase10_messaging_attachments`
 - `phase11_booking_foundation`
-- `phase12_cart_order_foundation` — hosted version `20260910144537`
+- `phase12_cart_order_foundation` — `20260910144537`
 
-Phase 12C and Phase 12D require no new database migration.
+Phase 12C/D required no new DDL.
 
 ## Local development
 - Web: `http://localhost:3001`
@@ -119,169 +130,169 @@ Secrets and `.env` files remain local and must never be committed.
 ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you`. Project owner pulls and validates locally.
 
 Before pulling remote work:
-1. run `git status`
+1. `git status`
 2. commit/push intentional local source changes only
 3. do not blindly commit generated files
 
-`*.tsbuildinfo` is ignored. `apps/web/next-env.d.ts` may be regenerated and should not be treated as intentional product work unless deliberately changed.
+`*.tsbuildinfo` is ignored. `apps/web/next-env.d.ts` is generated and should normally be restored rather than committed after builds.
 
-# Phase 12 — Cart + Orders
+# Phase 12 validation evidence
+
+Real Order:
+- ID `cmtwre2ur000wdcclebkqiynp`
+- buyer `adminxpen`
+- seller `xpen`
+- Product `Hustle Creator T-Shirt`
+- variant `Large/Black`
+- subtotal ₦45,000
+
+Validated:
+- Product → Cart → Checkout → PENDING Order
+- buyer/seller relationship views
+- immutable transaction snapshot
+- stock validation
+- PENDING does not reserve stock
+- no browser PAID action
+- buyer cannot process Order
+- seller cannot confirm buyer completion
+- PENDING cannot process or ship
+- PENDING cancellation succeeds
+- repeated cancellation is rejected
+- final hosted state `CANCELLED`
+- `paidAt`, `processingAt`, `shippedAt`, `deliveredAt`, `completedAt`, `refundedAt` all remain null
+- hosted `order.cancelled` SystemEvent persisted without private delivery data
+- browser reflects cancelled state
+
+Therefore Phase 12 is closed honestly at the Phase 13 payment boundary.
+
+# Phase 13 — Payments + Escrow
 
 ## Objective
-Enable product commerce while preserving explicit transaction state and the Phase 13 payment boundary.
+Solve the trust problem around money.
 
-Canonical source flow:
+Source flow for Services:
 
-`Product → Add to Cart → Checkout → Payment → Order → Processing → Delivery → Completed`
+`Client pays → Payment confirmed → Funds held → Service performed → Completion confirmed → Funds released → Hustler receives payout`
 
-Canonical order statuses:
-- `PENDING`
-- `PAID`
-- `PROCESSING`
-- `SHIPPED`
-- `DELIVERED`
-- `COMPLETED`
-- `CANCELLED`
-- `REFUNDED`
+Source build scope:
+- payment gateway
+- transaction ledger
+- escrow state
+- wallet balance
+- payout
+- refund
+- reconciliation
+- webhooks
+- idempotency
+
+MVP Wallet:
+- Available balance
+- Pending balance
+- Escrow
+- Transactions
+- Withdraw
+
+Source gate:
+
+`Money can move safely through a full sandbox transaction before production.`
 
 Canonical knowledge:
-- `Knowledge/Product/CART_AND_ORDERS.md`
-- `Knowledge/Decisions/ADR-0011-cart-order-lifecycle-and-payment-boundary.md`
+- `Knowledge/Product/PAYMENTS_AND_ESCROW.md`
+- `Knowledge/Decisions/ADR-0012-payment-authority-ledger-and-escrow.md`
 
-## Phase 12 payment + inventory boundary
-- Checkout creates durable seller-scoped `PENDING` Orders.
-- There is no browser/client route that can mark an Order `PAID`.
-- `CommerceService.markPaidFromAuthoritativePayment(...)` is the server-only Phase 13 boundary.
-- Authoritative payment confirmation revalidates and deducts tracked inventory atomically.
-- Cart and `PENDING` Orders do not reserve stock.
-- `REFUNDED` remains authoritative Phase 13 financial state.
+## Locked financial architecture
+- one common financial layer for BOOKING and ORDER subjects
+- provider-neutral payment adapter/port
+- provider secrets server-side only
+- PaymentAttempt tracks provider collection workflow
+- append-only ledger records durable money movements
+- escrow state is separate from payment status and Booking status
+- wallet is a ledger-backed projection/read model, not a client-editable balance
+- verified webhook/provider response/reconciliation is authoritative
+- duplicate/out-of-order events must be idempotent
+- refunds/payouts require authoritative financial confirmation
+- production activation is a separate human risk gate after sandbox validation
 
-## Phase 12 implementation status
+## Existing integration boundaries Phase 13 must use
+Booking:
+- server-only authoritative funding integration from `PAYMENT_PENDING` to `FUNDED`
 
-### Phase 12A — Cart + Order data foundation
-IMPLEMENTED; HOSTED MIGRATION APPLIED; RUNTIME VALIDATED.
+Order:
+- `CommerceService.markPaidFromAuthoritativePayment(...)`
+- payment confirmation revalidates and deducts tracked inventory atomically
 
-Hosted migration:
-- Supabase version `20260910144537`
-- `phase12_cart_order_foundation`
+No browser endpoint may call these boundaries directly.
 
-Built:
-- `OrderStatus`
-- `OrderInventorySource`
-- `Cart`
-- `CartItem`
-- `Order`
-- `OrderItem`
-- one Cart per User
-- buyer/seller User relationships
-- canonical Product/ProductVariant relationships
-- historical item snapshots
-- delivery fields
-- tracked inventory source snapshot
-- cart version race protection
-- indexes, constraints, RLS and API-role policies
+## Phase 13 build slices
 
-### Phase 12B — Cart + checkout API
-IMPLEMENTED; CI PASSED; RUNTIME VALIDATED.
-
-API:
-- `GET /api/v1/cart`
-- `POST /api/v1/cart/items`
-- `PUT /api/v1/cart/items/:itemId`
-- `DELETE /api/v1/cart/items/:itemId`
-- `DELETE /api/v1/cart`
-- `POST /api/v1/cart/checkout/preview`
-- `POST /api/v1/cart/checkout`
-- `GET /api/v1/orders/buyer`
-- `GET /api/v1/orders/seller`
-- `GET /api/v1/orders/:orderId`
-
-Validated real API gate:
-- `adminxpen` added `Hustle Creator T-Shirt` / `Large/Black`
-- quantity updated to 3
-- preview resolved seller `xpen` and ₦45,000 subtotal
-- checkout created Order `cmtwre2ur000wdcclebkqiynp`
-- Order remained `PENDING` with `paymentReference = null` and `paidAt = null`
-- immutable Product/variant/SKU/price/quantity snapshot persisted
-- Cart cleared after checkout
-- buyer and seller both retrieved the same Order
-- quantity 6 rejected against stock 5
-- quantity 1 remained addable after checkout, proving PENDING does not reserve inventory
-- hosted commerce events persisted
-
-### Phase 12C — Cart + Orders web experience
-IMPLEMENTED; CI PASSED; UI RUNTIME VALIDATED.
-
-Validated browser flow:
-`Product → choose variant/quantity → Add to Cart → /cart → quantity update → /checkout → delivery → PENDING Order → /orders → Order detail`
-
-Also validated:
-- buyer purchase view
-- seller Product-sales view on the same unified account model
-- same Order visible to both participants
-- Messaging entry for buyer/seller
-- no browser payment/PAID action
-- no role switching
-
-Built:
-- Product Cart controls
-- `/cart`
-- `/checkout`
-- `/orders`
-- `/orders/[orderId]`
-- private delivery data only inside participant-authorized Order detail
-- Cart + Orders account navigation
-
-### Phase 12D — Fulfillment state engine
-IMPLEMENTED; CI/LOCAL RUNTIME GATE PENDING.
-
-API:
-- `POST /api/v1/orders/:orderId/process`
-- `POST /api/v1/orders/:orderId/ship`
-- `POST /api/v1/orders/:orderId/deliver`
-- `POST /api/v1/orders/:orderId/complete`
-- `POST /api/v1/orders/:orderId/cancel`
-
-Server rules:
-- seller must own the Order and retain ACTIVE HUSTLER capability for fulfillment actions
-- `PAID → PROCESSING` seller only
-- physical Order: `PROCESSING → SHIPPED → DELIVERED` seller only
-- digital-only Order: `PROCESSING → DELIVERED` seller only
-- an Order with any PHYSICAL item follows the physical path
-- `DELIVERED → COMPLETED` buyer only
-- `PENDING → CANCELLED` buyer or seller
-- cancellation after authoritative payment is rejected; refund handling belongs to Phase 13
-- `REFUNDED` remains inaccessible from Phase 12 public endpoints
-- compare-and-set status updates reject duplicate, stale, skipped and out-of-order transitions
-- transition events contain IDs/status/relationship only, not private delivery data
-
-Web Order detail now exposes only currently valid viewer actions:
-- unpaid PENDING cancellation
-- seller Start processing
-- seller Mark shipped for physical Orders
-- seller Mark delivered
-- buyer Confirm completion
-
-Observation added:
-- `order.processing`
-- `order.shipped`
-- `order.delivered`
-- `order.completed`
-- `order.cancelled`
-
-No new DDL required.
-
-### Phase 12E — Real commerce gate
+### 13A — Financial data foundation
 PENDING.
 
-Before Phase 13 exists, validate:
-- PENDING cancellation works for a participant
-- repeated cancellation is rejected
-- PENDING Order cannot process/ship/deliver/complete
-- seller-only and buyer-only authorization boundaries hold
-- no public path can manufacture PAID or REFUNDED state
+Build:
+- PaymentAttempt
+- ledger accounts/entries
+- escrow record/state
+- wallet projection/read model
+- payout/refund durable entities or equivalent
+- provider/idempotency uniqueness constraints
+- RLS/API-role policies
+- financial event vocabulary
 
-After Phase 13 exists, extend the integrated gate through authoritative `PAID`, atomic inventory deduction, fulfillment, buyer completion and refund behavior.
+### 13B — Payment gateway foundation
+PENDING.
 
-## Next gate
-**Validate Phase 12D pre-payment transition/cancellation boundaries locally. Full paid fulfillment remains a Phase 12 + Phase 13 integration gate.**
+Build:
+- provider-neutral PaymentPort/adapter
+- first sandbox provider adapter
+- initialize Booking/Order payments
+- derive amount/currency/beneficiary server-side
+- provider verification
+- verified webhook ingress
+- idempotent confirmation engine
+- Booking funding integration
+- Order paid/inventory integration
+
+### 13C — Escrow + Wallet
+PENDING.
+
+Build:
+- service escrow hold
+- release after valid completion
+- available/pending/escrow balances
+- wallet API
+- transaction history
+
+### 13D — Payout + Refund + Reconciliation
+PENDING.
+
+Build:
+- withdrawal/payout
+- payout confirmation/failure
+- authoritative refunds
+- compensating ledger entries
+- reconciliation
+- duplicate/out-of-order tests
+
+### 13E — Financial web experience
+PENDING.
+
+Build:
+- payment initiation/status/retry UI
+- wallet
+- transactions
+- withdraw
+- escrow/refund/payout state
+
+### 13F — Sandbox money gate
+PENDING.
+
+Service gate:
+`Booking PAYMENT_PENDING → payment confirmed → escrow HELD → FUNDED → work → completion → escrow RELEASED → available balance → payout`
+
+Product gate:
+`Order PENDING → payment confirmed + inventory deduction → PAID → fulfillment → COMPLETED`
+
+Also validate duplicate webhook safety, stale/invalid payment rejection, inventory race safety, refunds, payout failure/retry and reconciliation.
+
+## Next build target
+**Phase 13A + 13B — financial data foundation + sandbox payment gateway foundation.**
