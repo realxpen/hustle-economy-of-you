@@ -134,6 +134,67 @@ enum OrderInventorySource {
   VARIANT
 }
 
+enum FinancialSubjectType {
+  BOOKING
+  ORDER
+}
+
+enum PaymentAttemptStatus {
+  INITIATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum FinancialAccountType {
+  PROVIDER_CLEARING
+  ESCROW
+  PENDING
+  AVAILABLE
+  PAYOUT_RESERVED
+}
+
+enum LedgerTransactionType {
+  PAYMENT_CONFIRMED
+  ESCROW_HELD
+  ESCROW_RELEASED
+  REFUND
+  PAYOUT_RESERVED
+  PAYOUT_SENT
+  PAYOUT_REVERSED
+  ADJUSTMENT
+}
+
+enum LedgerPostingDirection {
+  DEBIT
+  CREDIT
+}
+
+enum EscrowStatus {
+  PENDING
+  HELD
+  RELEASED
+  REFUND_PENDING
+  REFUNDED
+  CANCELLED
+}
+
+enum FinancialOperationStatus {
+  REQUESTED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
 model User {
   id                          String                    @id @default(cuid())
   authSubject                 String                    @unique
@@ -585,30 +646,30 @@ model CartItem {
 }
 
 model Order {
-  id              String      @id @default(cuid())
-  buyerUserId     String
-  sellerUserId    String
-  status          OrderStatus @default(PENDING)
-  currency        String      @default("NGN")
-  subtotalMinor   Int
-  totalMinor      Int
-  deliveryName    String?
-  deliveryPhone   String?
-  deliveryAddress String?
-  deliveryCity    String?
-  deliveryState   String?
-  deliveryCountry String?
-  deliveryNote    String?
+  id               String      @id @default(cuid())
+  buyerUserId      String
+  sellerUserId     String
+  status           OrderStatus @default(PENDING)
+  currency         String      @default("NGN")
+  subtotalMinor    Int
+  totalMinor       Int
+  deliveryName     String?
+  deliveryPhone    String?
+  deliveryAddress  String?
+  deliveryCity     String?
+  deliveryState    String?
+  deliveryCountry  String?
+  deliveryNote     String?
   paymentReference String?     @unique
-  paidAt          DateTime?
-  processingAt    DateTime?
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
-  refundedAt      DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  paidAt           DateTime?
+  processingAt     DateTime?
+  shippedAt        DateTime?
+  deliveredAt      DateTime?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  refundedAt       DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   buyer  User        @relation("OrderBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
   seller User        @relation("OrderSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
@@ -642,6 +703,177 @@ model OrderItem {
   @@index([orderId, createdAt])
   @@index([productId])
   @@index([productVariantId])
+}
+
+model PaymentAttempt {
+  id                String               @id @default(cuid())
+  subjectType       FinancialSubjectType
+  subjectId         String
+  payerUserId       String
+  beneficiaryUserId String
+  provider          String
+  providerReference String               @unique
+  idempotencyKey    String               @unique
+  status            PaymentAttemptStatus @default(PENDING)
+  amountMinor       Int
+  currency          String
+  checkoutUrl       String?
+  providerMetadata  Json?
+  confirmedAt       DateTime?
+  domainAppliedAt   DateTime?
+  failedAt          DateTime?
+  failureCode       String?
+  failureReason     String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  ledgerTransactions LedgerTransaction[]
+  escrow              EscrowRecord?
+  refunds             Refund[]
+  webhookEvents       WebhookEvent[]
+
+  @@index([payerUserId, status, createdAt])
+  @@index([beneficiaryUserId, status, createdAt])
+  @@index([subjectType, subjectId, createdAt])
+  @@index([status, createdAt])
+}
+
+model LedgerAccount {
+  id        String               @id @default(cuid())
+  userId    String?
+  type      FinancialAccountType
+  currency  String
+  key       String               @unique
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  postings LedgerPosting[]
+
+  @@index([userId, type, currency])
+  @@index([type, currency])
+}
+
+model LedgerTransaction {
+  id               String                @id @default(cuid())
+  subjectType      FinancialSubjectType
+  subjectId        String
+  paymentAttemptId String?
+  type             LedgerTransactionType
+  reference        String?
+  idempotencyKey   String                @unique
+  createdAt        DateTime              @default(now())
+
+  paymentAttempt PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id], onDelete: SetNull)
+  postings       LedgerPosting[]
+
+  @@index([subjectType, subjectId, createdAt])
+  @@index([paymentAttemptId, createdAt])
+  @@index([type, createdAt])
+}
+
+model LedgerPosting {
+  id                  String                 @id @default(cuid())
+  ledgerTransactionId String
+  accountId           String
+  direction           LedgerPostingDirection
+  amountMinor         Int
+  createdAt           DateTime               @default(now())
+
+  ledgerTransaction LedgerTransaction @relation(fields: [ledgerTransactionId], references: [id], onDelete: Restrict)
+  account           LedgerAccount     @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([ledgerTransactionId])
+  @@index([accountId, createdAt])
+}
+
+model EscrowRecord {
+  id                String               @id @default(cuid())
+  subjectType       FinancialSubjectType
+  subjectId         String
+  paymentAttemptId  String               @unique
+  beneficiaryUserId String
+  amountMinor       Int
+  currency          String
+  status            EscrowStatus         @default(PENDING)
+  heldAt            DateTime?
+  releasedAt        DateTime?
+  refundedAt        DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  paymentAttempt PaymentAttempt @relation(fields: [paymentAttemptId], references: [id], onDelete: Restrict)
+
+  @@unique([subjectType, subjectId])
+  @@index([beneficiaryUserId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+model Payout {
+  id                String                   @id @default(cuid())
+  userId            String
+  currency          String
+  amountMinor       Int
+  status            FinancialOperationStatus @default(REQUESTED)
+  provider          String
+  providerReference String?                  @unique
+  idempotencyKey    String                   @unique
+  requestedAt       DateTime                 @default(now())
+  confirmedAt       DateTime?
+  failedAt          DateTime?
+  failureReason     String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([userId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+model Refund {
+  id                String                   @id @default(cuid())
+  subjectType       FinancialSubjectType
+  subjectId         String
+  paymentAttemptId  String
+  requestedByUserId String?
+  currency          String
+  amountMinor       Int
+  status            FinancialOperationStatus @default(REQUESTED)
+  providerReference String?                  @unique
+  idempotencyKey    String                   @unique
+  requestedAt       DateTime                 @default(now())
+  confirmedAt       DateTime?
+  failedAt          DateTime?
+  failureReason     String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  paymentAttempt PaymentAttempt @relation(fields: [paymentAttemptId], references: [id], onDelete: Restrict)
+
+  @@index([subjectType, subjectId, createdAt])
+  @@index([paymentAttemptId, status])
+  @@index([status, createdAt])
+}
+
+model WebhookEvent {
+  id                String             @id @default(cuid())
+  provider          String
+  eventId           String
+  paymentAttemptId  String?
+  eventType         String
+  providerReference String?
+  payloadDigest     String
+  status            WebhookEventStatus @default(RECEIVED)
+  processedAt       DateTime?
+  errorCode         String?
+  errorMessage      String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  paymentAttempt PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, eventId])
+  @@index([paymentAttemptId, createdAt])
+  @@index([providerReference, createdAt])
+  @@index([status, createdAt])
 }
 
 model SystemEvent {
