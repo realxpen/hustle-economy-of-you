@@ -241,6 +241,31 @@ export async function getOrder(orderId: string) {
   return response.json() as Promise<OrderRecord>;
 }
 
+async function runOrderAction(orderId: string, action: "process" | "ship" | "deliver" | "complete" | "cancel") {
+  await authenticatedFetch(`/orders/${encodeURIComponent(orderId)}/${action}`, { method: "POST" });
+  return getOrder(orderId);
+}
+
+export function processOrder(orderId: string) {
+  return runOrderAction(orderId, "process");
+}
+
+export function shipOrder(orderId: string) {
+  return runOrderAction(orderId, "ship");
+}
+
+export function deliverOrder(orderId: string) {
+  return runOrderAction(orderId, "deliver");
+}
+
+export function completeOrder(orderId: string) {
+  return runOrderAction(orderId, "complete");
+}
+
+export function cancelOrder(orderId: string) {
+  return runOrderAction(orderId, "cancel");
+}
+
 export function formatMoney(minor: number, currency = "NGN") {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
