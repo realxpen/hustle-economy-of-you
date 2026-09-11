@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { formatProductPrice, getPublicProduct, type PublicProduct } from "../../../lib/product";
+import { AddToCart } from "./add-to-cart";
 import styles from "./page.module.css";
 
 export default function PublicProductPage() {
@@ -25,7 +26,7 @@ export default function PublicProductPage() {
   const heroMedia = product.mediaUrls[0];
 
   return <main className={styles.shell}>
-    <header className={styles.header}><a href="/" className={styles.brand}>HUSTLE↗</a><span>THE ECONOMY OF YOU</span></header>
+    <header className={styles.header}><a href="/" className={styles.brand}>HUSTLE↗</a><nav className={styles.headerNav}><a href="/marketplace">Marketplace</a><a href="/cart">Cart</a><a href="/orders">Orders</a></nav></header>
 
     <section className={styles.topGrid}>
       <div className={styles.media} style={heroMedia ? { backgroundImage: `url(${heroMedia})` } : undefined}>{!heroMedia && <span>PRODUCT MEDIA</span>}</div>
@@ -35,7 +36,8 @@ export default function PublicProductPage() {
         <h1>{product.title}</h1>
         <strong className={styles.price}>{formatProductPrice(product)}</strong>
         <p className={styles.description}>{product.description}</p>
-        <div className={styles.boundary}><strong>{product.inStock ? "Purchase-ready" : "Currently unavailable"}</strong><span>Cart and checkout arrive in later Hustle commerce phases.</span></div>
+        <AddToCart data={data} />
+        <div className={styles.boundary}><strong>{product.inStock ? "Commerce enabled" : "Currently unavailable"}</strong><span>Cart and checkout revalidate price, variant and inventory before a PENDING Order can be created.</span></div>
       </div>
     </section>
 
