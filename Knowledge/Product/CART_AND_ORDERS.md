@@ -1,6 +1,6 @@
 # Cart + Orders
 
-Status: CANONICAL — Phase 12 ACTIVE
+Status: CANONICAL — Phase 12 COMPLETE AT PHASE 13 PAYMENT BOUNDARY
 Updated: 2026-09-11
 
 ## Purpose
@@ -12,7 +12,6 @@ Source-defined flow:
 `Product → Add to Cart → Checkout → Payment → Order created → Processing → Delivery → Completed`
 
 Source-defined order statuses:
-
 - `PENDING`
 - `PAID`
 - `PROCESSING`
@@ -22,20 +21,13 @@ Source-defined order statuses:
 - `CANCELLED`
 - `REFUNDED`
 
-The Phase 12 build must include:
-- cart
-- checkout
-- order details
-- seller order management
-- buyer order history
-
 ## Identity and ownership
 
 Hustle keeps one unified User identity.
 
-A buyer is the existing User acting as the purchaser. A seller is the existing User who owns the Product through their ProfessionalProfile and ACTIVE HUSTLER capability.
+A buyer is the existing User acting as purchaser. A seller is the existing User who owns the Product through ProfessionalProfile and ACTIVE HUSTLER capability.
 
-No buyer account, seller account, shop-mode identity, or role switcher is introduced.
+No buyer account, seller account, shop mode or role switcher exists.
 
 Canonical relationships:
 
@@ -51,78 +43,45 @@ Canonical relationships:
 
 Cart is mutable purchase intent, not transaction history.
 
-A CartItem references the canonical Product and optional ProductVariant and stores quantity. Current price, publication state, variant activity and stock must be revalidated before checkout.
+CartItem references canonical Product and optional ProductVariant plus quantity. Price, publication, variant activity and stock are revalidated before checkout.
 
-Cart does not create authoritative payment, fulfillment, reputation, or inventory history by itself.
+Cart does not create authoritative payment, fulfillment, reputation or inventory ownership.
 
-The MVP may allow Products from multiple sellers in one buyer cart, but every resulting Order remains seller-scoped so seller management and future payouts stay unambiguous.
+A buyer cart may contain Products from multiple sellers, but checkout partitions into separate seller-scoped Orders.
 
-## Checkout and order creation
+## Checkout and historical snapshot
 
-Checkout turns current cart intent into durable transaction records.
+Checkout creates durable `PENDING` Order records. `PENDING` is not treated as paid commerce.
 
-The source concept places Payment before the final purchased Order, while the source lifecycle also defines a `PENDING` Order state. Implementation therefore uses a durable `PENDING` order as the checkout/payment attempt. It is not treated as paid commerce.
-
-Checkout must:
-- authenticate the buyer
-- reject self-purchase for the MVP
-- require currently PUBLISHED Products
-- require PUBLISHED seller ProfessionalProfile and ACTIVE HUSTLER capability
-- validate selected ProductVariant where present
-- validate positive quantity
-- validate current stock when inventory tracking is enabled
-- derive seller identity server-side
-- derive price/currency server-side
-- preserve transaction-critical item snapshots
-- create seller-scoped Order records in `PENDING`
-
-If a cart contains multiple sellers, checkout partitions it into separate seller Orders rather than creating a mixed-seller Order.
-
-## Historical transaction snapshot
-
-Order history must not silently change when a Product listing changes later.
-
-Each OrderItem preserves a narrow transaction snapshot:
+Checkout derives seller, price and currency server-side, validates current Product/variant/seller/stock state, rejects self-purchase and preserves transaction-critical item snapshots:
 - Product title
 - Product type
-- selected variant label/options where applicable
-- SKU where applicable
-- unit price in minor units
+- selected variant/options/SKU
+- unit price minor units
 - quantity
 - line total
 
 Currency is stored on the seller-scoped Order. Canonical Product/ProductVariant IDs remain attached.
 
-Media, descriptions, follower counts, mutable stock and unrelated listing data should not be copied into OrderItem snapshots unless later evidence proves they are transaction-critical.
+## Inventory + payment boundary
 
-## Inventory boundary
+Cart items and `PENDING` Orders do not reserve inventory.
 
-Cart items do not reserve inventory.
+Phase 13 owns authoritative `PENDING → PAID`.
 
-Phase 12 checkout validates that requested stock appears available when the `PENDING` Order is created. A `PENDING` order must not pretend stock has been successfully purchased.
+At payment confirmation, Phase 13 must revalidate inventory and coordinate tracked inventory deduction atomically with the authoritative payment transition.
 
-Authoritative inventory deduction for paid orders occurs atomically with the Phase 13 payment-confirmation integration so payment success and stock ownership do not drift apart.
+Phase 12 never:
+- fakes payment success
+- exposes a browser route to set `PAID`
+- marks `REFUNDED` without financial evidence
+- creates fake wallet/escrow state
 
-Phase 13 must revalidate inventory before confirming `PAID`. If stock is no longer available, the payment workflow must fail safely rather than oversell or manufacture inventory.
-
-## Payment boundary
-
-Phase 13 owns real payment, transaction ledger, escrow where applicable, refunds, payouts, reconciliation, webhooks and idempotency.
-
-Therefore Phase 12 must NOT:
-- fake payment success
-- expose a client endpoint that marks an Order `PAID`
-- decrement paid inventory based only on a browser request
-- create fake wallet/escrow state
-- mark `REFUNDED` without authoritative financial evidence after payment
-
-The server exposes a narrow internal integration boundary so Phase 13 can advance an eligible Order from `PENDING` to `PAID` only after authoritative payment confirmation.
+The server integration boundary is `CommerceService.markPaidFromAuthoritativePayment(...)`.
 
 ## Fulfillment lifecycle and authority
 
-Fulfillment begins only after authoritative payment.
-
-Physical Product normal path:
+Physical normal path:
 
 `PAID → PROCESSING → SHIPPED → DELIVERED → COMPLETED`
 
@@ -130,145 +89,150 @@ Digital-only normal path:
 
 `PAID → PROCESSING → DELIVERED → COMPLETED`
 
-A seller-scoped Order containing at least one PHYSICAL item follows the physical path for the whole Order. `SHIPPED` is not valid for a digital-only Order.
+A seller-scoped Order containing any PHYSICAL item follows the physical path.
 
-Authority is explicit:
-- only the Order seller may perform `PAID → PROCESSING`
-- only the Order seller may perform `PROCESSING → SHIPPED` for physical Orders
-- only the Order seller may perform delivery transitions
-- seller fulfillment actions require the same seller User to still have ACTIVE HUSTLER capability
-- only the Order buyer may perform `DELIVERED → COMPLETED`
-- fulfillment actions are relationship-authorized; there is no role-switching UI or seller account mode
+Authority:
+- seller + ACTIVE HUSTLER: `PAID → PROCESSING`
+- seller: physical `PROCESSING → SHIPPED`
+- seller: delivery transition
+- buyer: `DELIVERED → COMPLETED`
+- buyer or seller: `PENDING → CANCELLED`
 
-Every transition is compare-and-set against the expected current status so concurrent, stale, repeated, skipped or out-of-order transitions fail rather than silently overwrite state.
+Transitions use compare-and-set against current status so repeated, stale, skipped or out-of-order actions fail.
 
 ## Cancellation and refund boundary
 
-A `PENDING` Order may be cancelled before authoritative payment by either participant: buyer or seller.
+A `PENDING` Order may be cancelled by either participant before authoritative payment.
 
-`PENDING → CANCELLED` does not represent a refund because payment has not been confirmed.
+`PENDING → CANCELLED` is not a refund because payment has not occurred.
 
-After an Order becomes `PAID`, cancellation/refund semantics cross into Phase 13. Phase 12 rejects paid-order cancellation rather than simulating a financial refund by status change alone.
+After `PAID`, cancellation/refund crosses into Phase 13. Phase 12 rejects paid-order cancellation instead of manufacturing refund state.
 
-`REFUNDED` is authoritative financial state and requires the payment/refund integration.
+`REFUNDED` requires authoritative financial evidence.
 
-## Delivery information
+## Delivery privacy
 
-Physical orders need transaction-specific delivery information rather than relying only on the mutable Product listing.
+Physical Orders preserve private recipient/contact/address/instructions on the participant-authorized Order record.
 
-The MVP order preserves:
-- recipient name
-- recipient phone/contact where required for delivery
-- delivery address/location
-- delivery instructions
-
-This information is private transaction data and must never appear in public Product/Search/Feed payloads or analytics event text.
-
-Digital orders may use product-defined digital delivery behavior later, but must not pretend a file/license was delivered when no fulfillment mechanism exists.
+Private delivery data must never appear in public Product/Search/Feed payloads or analytics event text.
 
 ## Buyer experience
 
-Buyer should be able to:
-- add/remove/update cart items
-- see current cart totals
-- proceed to checkout
-- provide delivery details when needed
-- see `PENDING` order/payment boundary clearly
-- view buyer order history
-- open order details
-- cancel an unpaid PENDING Order
+Buyer can:
+- add/remove/update Cart items
+- checkout with required delivery details
+- view `PENDING` payment boundary
+- view Order history/detail
+- cancel unpaid PENDING Orders
 - confirm completion only after DELIVERED
-- message the seller through the existing unified Messaging system
+- message seller
 
 ## Seller experience
 
-An ACTIVE HUSTLER selling Products should be able to:
-- see seller-scoped Orders for owned Products
-- open order details
-- see item snapshots and delivery requirements
-- cancel an unpaid PENDING Order
-- transition paid orders through valid fulfillment states
-- message the buyer
+ACTIVE HUSTLER seller can:
+- view seller-scoped Orders
+- inspect snapshots/delivery requirements
+- cancel unpaid PENDING Orders
+- transition paid Orders through valid fulfillment states
+- message buyer
 
-Seller actions are relationship/capability based; there is no seller mode switch.
+There is no seller mode switch.
 
 ## Observability
 
-Minimum Phase 12 events:
+Phase 12 events include:
 - `cart.item_added`
 - `cart.item_updated`
 - `cart.item_removed`
 - `checkout.previewed`
 - `cart.checked_out`
 - `order.created`
-- `order.paid` — Phase 13 integration only
 - `order.processing`
 - `order.shipped`
 - `order.delivered`
 - `order.completed`
 - `order.cancelled`
-- `order.refunded` — authoritative Phase 13 integration only
 
-Event payloads use IDs, quantities, non-sensitive totals/status and actor relationship. Do not copy private addresses/contact details into SystemEvent payloads.
+Phase 13 owns authoritative:
+- `order.paid`
+- `order.refunded`
 
-## Phase boundaries
+Private delivery data is excluded from SystemEvent payloads.
 
-Phase 12 owns:
-- Cart
-- CartItem
-- checkout validation
-- PENDING Order creation
-- OrderItem transaction snapshots
-- buyer order history/detail
-- seller order management
-- fulfillment transitions after payment
-- pre-payment cancellation
-- order/message linkage
-- commerce observability
-
-Phase 13 owns:
-- payment gateway
-- authoritative `PENDING → PAID`
-- inventory deduction tied to payment confirmation
-- ledger
-- escrow where applicable
-- refund execution and authoritative `REFUNDED`
-- payout
-- reconciliation
-- webhooks/idempotency
-
-Phase 14 owns verified reviews/reputation after completed transactions.
-
-## Phase 12 build slices
+## Build status
 
 ### 12A — Cart + Order data foundation
-IMPLEMENTED and runtime validated.
+COMPLETE; hosted migration applied; runtime validated.
 
 ### 12B — Cart + checkout API
-IMPLEMENTED and runtime validated.
+COMPLETE; CI + runtime validated.
+
+Validated real API gate:
+- `adminxpen` added `Hustle Creator T-Shirt` / `Large/Black`
+- quantity updated to 3
+- checkout preview resolved seller `xpen` and ₦45,000 subtotal
+- checkout created Order `cmtwre2ur000wdcclebkqiynp`
+- immutable Product/variant/SKU/price/quantity snapshot persisted
+- Cart cleared after checkout
+- buyer and seller both retrieved the same Order
+- quantity 6 rejected against stock 5
+- quantity 1 remained addable after checkout, proving PENDING does not reserve inventory
 
 ### 12C — Cart + Orders web experience
-IMPLEMENTED and browser runtime validated.
+COMPLETE; CI + browser runtime validated.
+
+Validated:
+`Product → variant/quantity → Cart → checkout → delivery → PENDING Order → buyer history → seller visibility → Order detail → Messaging`
+
+No browser payment/PAID action exists.
 
 ### 12D — Fulfillment state engine
-IMPLEMENTED; runtime gate pending.
+COMPLETE; CI + runtime validated at the pre-payment boundary.
 
-Implemented endpoints:
+Endpoints:
 - `POST /api/v1/orders/:orderId/process`
 - `POST /api/v1/orders/:orderId/ship`
 - `POST /api/v1/orders/:orderId/deliver`
 - `POST /api/v1/orders/:orderId/complete`
 - `POST /api/v1/orders/:orderId/cancel`
 
-Rules:
-- `PAID → PROCESSING` seller only
-- physical `PROCESSING → SHIPPED → DELIVERED` seller only
-- digital-only `PROCESSING → DELIVERED` seller only
-- `DELIVERED → COMPLETED` buyer only
-- `PENDING → CANCELLED` buyer or seller
-- paid/post-paid cancellation is rejected and deferred to Phase 13 refund handling
-- duplicate/skipped/out-of-order transitions are rejected
-- UI exposes only actions valid for the current viewer relationship and current Order status
+Validated on real Order `cmtwre2ur000wdcclebkqiynp`:
+- buyer calling `/process` → 403
+- seller calling `/complete` → 403
+- seller calling `/process` while PENDING → 409
+- seller calling `/ship` while PENDING → 409
+- buyer PENDING cancellation → `CANCELLED`
+- duplicate cancellation → 409
+- final state remained `CANCELLED`
+- `paidAt`, `processingAt`, `shippedAt`, `deliveredAt`, `completedAt`, `refundedAt` remained null
+- hosted `order.cancelled` event persisted with buyer relationship and no private delivery data
+- browser reflected CANCELLED state and removed cancellation action
 
-### 12E — Real commerce gate
-Before Phase 13 integration, validate Product → Cart → Checkout → PENDING Order, buyer/seller views, PENDING cancellation, and invalid paid-fulfillment attempts without fake payment. After Phase 13 exists, extend the integrated gate through authoritative payment, inventory deduction, fulfillment, completion and refund behavior.
+## Phase 12 gate
+
+The honest pre-payment Phase 12 gate is COMPLETE:
+
+`Product → Cart → Checkout → durable PENDING Order → buyer/seller visibility → explicit payment boundary → safe pre-payment cancellation`
+
+The complete paid commerce gate intentionally continues in Phase 13:
+
+`PENDING → authoritative PAID + inventory deduction → PROCESSING → SHIPPED/DELIVERED → COMPLETED → authoritative refund when applicable`
+
+## Phase boundary
+
+Phase 13 now owns:
+- payment gateway
+- authoritative `PENDING → PAID`
+- inventory deduction tied to payment confirmation
+- ledger
+- escrow where applicable
+- wallet
+- payout
+- authoritative refund
+- reconciliation
+- webhooks
+- idempotency
+
+Canonical Phase 13 knowledge:
+- `Knowledge/Product/PAYMENTS_AND_ESCROW.md`
+- `Knowledge/Decisions/ADR-0012-payment-authority-ledger-and-escrow.md`
