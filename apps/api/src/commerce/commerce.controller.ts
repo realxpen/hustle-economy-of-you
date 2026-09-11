@@ -10,6 +10,7 @@ import {
   type OrderPaginationInput,
   type UpdateCartItemInput
 } from "./commerce.service";
+import { FulfillmentService } from "./fulfillment.service";
 
 @Controller("cart")
 @UseGuards(AuthGuard)
@@ -59,7 +60,10 @@ export class CartController {
 @Controller("orders")
 @UseGuards(AuthGuard)
 export class OrderController {
-  constructor(private readonly commerce: CommerceService) {}
+  constructor(
+    private readonly commerce: CommerceService,
+    private readonly fulfillment: FulfillmentService
+  ) {}
 
   @Get("buyer")
   buyerOrders(@CurrentIdentity() identity: AuthIdentity, @Query() query: OrderPaginationInput) {
@@ -74,5 +78,30 @@ export class OrderController {
   @Get(":orderId")
   getOrder(@CurrentIdentity() identity: AuthIdentity, @Param("orderId") orderId: string) {
     return this.commerce.getOrder(identity, orderId);
+  }
+
+  @Post(":orderId/process")
+  process(@CurrentIdentity() identity: AuthIdentity, @Param("orderId") orderId: string) {
+    return this.fulfillment.process(identity, orderId);
+  }
+
+  @Post(":orderId/ship")
+  ship(@CurrentIdentity() identity: AuthIdentity, @Param("orderId") orderId: string) {
+    return this.fulfillment.ship(identity, orderId);
+  }
+
+  @Post(":orderId/deliver")
+  deliver(@CurrentIdentity() identity: AuthIdentity, @Param("orderId") orderId: string) {
+    return this.fulfillment.deliver(identity, orderId);
+  }
+
+  @Post(":orderId/complete")
+  complete(@CurrentIdentity() identity: AuthIdentity, @Param("orderId") orderId: string) {
+    return this.fulfillment.complete(identity, orderId);
+  }
+
+  @Post(":orderId/cancel")
+  cancel(@CurrentIdentity() identity: AuthIdentity, @Param("orderId") orderId: string) {
+    return this.fulfillment.cancel(identity, orderId);
   }
 }
