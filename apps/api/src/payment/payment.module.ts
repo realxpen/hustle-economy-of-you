@@ -7,15 +7,18 @@ import { PAYMENT_GATEWAY } from "./payment-gateway.port";
 import { PaymentController, PaymentWebhookController } from "./payment.controller";
 import { PaymentService } from "./payment.service";
 import { SandboxPaymentGateway } from "./sandbox-payment.gateway";
+import { WalletController } from "./wallet.controller";
+import { WalletService } from "./wallet.service";
 
 @Module({
   imports: [AuthModule, BookingModule, CommerceModule],
-  controllers: [PaymentController, PaymentWebhookController],
+  controllers: [PaymentController, PaymentWebhookController, WalletController],
   providers: [
     PaymentService,
+    WalletService,
     SandboxPaymentGateway,
     { provide: PAYMENT_GATEWAY, useExisting: SandboxPaymentGateway }
   ],
-  exports: [PaymentService]
+  exports: [PaymentService, WalletService]
 })
 export class PaymentModule {}
