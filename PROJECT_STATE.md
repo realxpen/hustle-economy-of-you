@@ -1,6 +1,6 @@
 # Hustle Project State
 
-Updated: 2026-09-11
+Updated: 2026-09-13
 
 ## Current AED capability
 Build
@@ -14,11 +14,8 @@ Phase 13 — Payments + Escrow
 - One User identity; everyone begins as CLIENT.
 - HUSTLER and AGENT are additive capabilities on the same identity.
 - No role switcher and no separate Client/Hustler/Agent accounts.
-- Content demonstrates capability and connects discovery to economic opportunity.
-- Services and Products attach to content through canonical relationships.
-- Trust and verified outcomes outrank vanity metrics.
-- Transaction state must be explicit; never fake payment, funding, escrow, refunds, delivery, completion or payout success.
 - Financial state must be server-authoritative and supported by verified provider/internal financial evidence.
+- Never fake payment, funding, escrow, refunds, wallet credit, payout, delivery or completion.
 
 ## Completed MVP phases
 - Phase 1 — Technical Foundation: COMPLETE
@@ -34,97 +31,49 @@ Phase 13 — Payments + Escrow
 - Phase 11 — Booking System: COMPLETE at Phase 13 payment boundary
 - Phase 12 — Cart + Orders: COMPLETE at Phase 13 payment boundary
 
-## Phase 11 retained boundary
-Real booking flow is validated through `PAYMENT_PENDING`.
-Phase 13 provides authoritative payment + escrow before Booking may become `FUNDED`.
-
-Canonical:
-- `Knowledge/Product/BOOKING_SYSTEM.md`
-- `Knowledge/Decisions/ADR-0010-booking-lifecycle-and-payment-boundary.md`
-
-## Phase 12 retained boundary
-Real Product commerce is validated through durable `PENDING` Order plus fulfillment/cancellation authorization rules.
-Paid lifecycle is unlocked only by Phase 13 verified payment plus inventory ownership.
-
-Canonical:
-- `Knowledge/Product/CART_AND_ORDERS.md`
-- `Knowledge/Decisions/ADR-0011-cart-order-lifecycle-and-payment-boundary.md`
-
-## Canonical ownership built so far
-
-`User`
-`├── Cart → CartItem → Product / ProductVariant`
-`├── Order (buyer)`
-`├── Order (seller)`
-`├── ConversationParticipant`
-`└── Booking relationships`
-
-`ProfessionalProfile`
-`├── Service → Booking`
-`├── Product → ProductVariant`
-`└── Post → PostMedia`
-
-Messaging:
-- Conversation / participants / messages
-- private message attachments
-- canonical Post/Service/Product context
-- ephemeral typing presence
+## Current canonical transaction boundaries
 
 Booking:
-- first-class Booking entity
-- client + Hustler + Service ownership
-- optional Conversation link
-- historical terms snapshot
-- server-authoritative scheduling conflicts
-- paid Booking stops at `PAYMENT_PENDING` until verified financial confirmation
+`REQUESTED → PAYMENT_PENDING → Phase 13 verified payment → FUNDED → IN_PROGRESS → COMPLETED`
 
-Commerce:
-- one Cart per User
-- seller-scoped Orders
-- immutable transaction-critical OrderItem snapshots
-- PENDING Orders do not reserve stock
-- server-authoritative fulfillment engine
-- pre-payment cancellation only
-- paid Order stops at `PENDING` until verified financial confirmation
+Order:
+`PENDING → Phase 13 verified payment + inventory deduction → PAID → PROCESSING → SHIPPED/DELIVERED → COMPLETED`
 
-Finance:
-- PaymentAttempt
-- LedgerAccount
-- LedgerTransaction + balanced LedgerPosting records
-- EscrowRecord
-- durable Payout and Refund workflow records
-- WebhookEvent deduplication/audit record
-- provider-neutral PaymentGatewayPort
-- HUSTLE_SANDBOX adapter with HMAC-verified webhook ingress
+No browser endpoint may directly set `FUNDED`, `PAID`, `REFUNDED`, escrow release, wallet balance or payout success.
+
+## Finance ownership now built
+
+Financial entities:
+- `PaymentAttempt`
+- `LedgerAccount`
+- `LedgerTransaction`
+- `LedgerPosting`
+- `EscrowRecord`
+- `Payout`
+- `Refund`
+- `WebhookEvent`
+
+Financial infrastructure:
+- provider-neutral `PaymentGatewayPort`
+- `HUSTLE_SANDBOX` adapter
+- HMAC-SHA256 verified webhook ingress
+- idempotent payment initialization
+- provider event deduplication
+- exact amount/currency/reference verification
+- balanced capture ledger postings
 - server-only Booking funding integration
-- server-only Order payment + inventory integration
-
-Observation:
-- `SystemEvent`
+- server-only Order paid/inventory integration
+- ledger-backed wallet projection
 
 ## Supabase
 Dedicated project:
 - Ref: `pfgarmyygybmhiiuopym`
 - Region: `eu-west-1`
 
-Applied hosted migrations include:
-- `phase1_foundation`
-- `phase2_unified_account`
-- `api_database_role`
-- `phase3_hustler_application_foundation`
-- `phase3_hustler_proof_storage`
-- `phase4_professional_profile_foundation`
-- `phase5_service_foundation`
-- `phase6_product_foundation`
-- `phase7_content_foundation`
-- `phase7_content_interactions`
-- `phase10_messaging_foundation`
-- `phase10_messaging_attachments`
-- `phase11_booking_foundation`
-- `phase12_cart_order_foundation` — `20260910144537`
-- `phase13_financial_foundation` — `20260911143316`
+Latest hosted migration:
+- `20260911143316 phase13_financial_foundation`
 
-Phase 13 financial tables have RLS enabled and only the dedicated `hustle_api` policy for direct database access.
+Financial tables have RLS enabled with direct access restricted to the dedicated `hustle_api` role.
 
 ## Local development
 - Web: `http://localhost:3001`
@@ -134,208 +83,106 @@ Phase 13 financial tables have RLS enabled and only the dedicated `hustle_api` p
 - Auth/database/storage: hosted Hustle Supabase
 
 Secrets and `.env` files remain local and must never be committed.
-Phase 13 sandbox webhook verification requires server-only `HUSTLE_SANDBOX_WEBHOOK_SECRET`.
+Sandbox webhook verification requires server-only `HUSTLE_SANDBOX_WEBHOOK_SECRET`.
 
 ## Repository workflow
-ChatGPT may implement and commit directly to `realxpen/hustle-economy-of-you`. Project owner pulls and validates locally.
+ChatGPT implements and commits directly to `realxpen/hustle-economy-of-you`. Project owner pulls and runtime-validates locally at checkpoints.
 
-Before pulling remote work:
+Before pulling:
 1. `git status`
 2. commit/push intentional local source changes only
 3. do not blindly commit generated files
 
-`*.tsbuildinfo` is ignored. `apps/web/next-env.d.ts` is generated and should normally be restored rather than committed after builds.
+`apps/web/next-env.d.ts` is generated and should normally be restored after builds rather than committed.
 
-# Phase 12 validation evidence
-
-Real Order:
-- ID `cmtwre2ur000wdcclebkqiynp`
-- buyer `adminxpen`
-- seller `xpen`
-- Product `Hustle Creator T-Shirt`
-- variant `Large/Black`
-- subtotal ₦45,000
-
-Validated:
-- Product → Cart → Checkout → PENDING Order
-- buyer/seller relationship views
-- immutable transaction snapshot
-- stock validation
-- PENDING does not reserve stock
-- no browser PAID action
-- buyer cannot process Order
-- seller cannot confirm buyer completion
-- PENDING cannot process or ship
-- PENDING cancellation succeeds
-- repeated cancellation is rejected
-- final hosted state `CANCELLED`
-- `paidAt`, `processingAt`, `shippedAt`, `deliveredAt`, `completedAt`, `refundedAt` all remain null
-- hosted `order.cancelled` SystemEvent persisted without private delivery data
-- browser reflects cancelled state
-
-Therefore Phase 12 is closed honestly at the Phase 13 payment boundary.
-
-# Phase 13 — Payments + Escrow
-
-## Objective
-Solve the trust problem around money.
-
-Source flow for Services:
-
-`Client pays → Payment confirmed → Funds held → Service performed → Completion confirmed → Funds released → Hustler receives payout`
-
-Source build scope:
-- payment gateway
-- transaction ledger
-- escrow state
-- wallet balance
-- payout
-- refund
-- reconciliation
-- webhooks
-- idempotency
-
-MVP Wallet:
-- Available balance
-- Pending balance
-- Escrow
-- Transactions
-- Withdraw
-
-Source gate:
-
-`Money can move safely through a full sandbox transaction before production.`
+# Phase 13 implementation
 
 Canonical knowledge:
 - `Knowledge/Product/PAYMENTS_AND_ESCROW.md`
 - `Knowledge/Decisions/ADR-0012-payment-authority-ledger-and-escrow.md`
 - `Knowledge/Technical/PAYMENT_SANDBOX_FOUNDATION.md`
-
-## Locked financial architecture
-- one common financial layer for BOOKING and ORDER subjects
-- provider-neutral payment adapter/port
-- provider secrets server-side only
-- PaymentAttempt tracks provider collection workflow
-- append-only ledger transactions with balanced postings
-- escrow state is separate from payment status and Booking status
-- wallet remains a ledger-backed projection/read model, not a client-editable balance
-- verified webhook/provider response/reconciliation is authoritative
-- duplicate/out-of-order events must be idempotent
-- refunds/payouts require authoritative financial confirmation
-- production activation is a separate human risk gate after sandbox validation
-
-## Phase 13 implementation status
+- `Knowledge/Technical/WALLET_ESCROW_SETTLEMENT.md`
 
 ### 13A — Financial data foundation
-IMPLEMENTED; HOSTED MIGRATION APPLIED; RUNTIME GATE PENDING.
+IMPLEMENTED; HOSTED MIGRATION APPLIED; RUNTIME GATE DEFERRED TO CONSOLIDATED CHECKPOINT.
 
 Built:
-- `PaymentAttempt`
-- `LedgerAccount`
-- `LedgerTransaction`
-- `LedgerPosting`
-- `EscrowRecord`
-- `Payout`
-- `Refund`
-- `WebhookEvent`
-- financial enums/states
-- unique provider/idempotency constraints
-- positive money constraints
-- ledger posting/account indexes
-- subject/payment indexes
-- RLS on every financial table
-- dedicated `hustle_api` policies only
-
-Wallet projection remains derived from ledger accounts/postings; wallet API/UI is Phase 13C.
-
-Hosted migration:
-- `20260911143316 phase13_financial_foundation`
+- payment attempts
+- ledger accounts/transactions/postings
+- escrow state
+- payout/refund durable records
+- webhook audit/dedup records
+- uniqueness + idempotency constraints
+- financial RLS/API-role policies
 
 ### 13B — Payment gateway foundation
-IMPLEMENTED; CI PASSED; RUNTIME GATE PENDING.
+IMPLEMENTED; CI PASSED; RUNTIME GATE DEFERRED TO CONSOLIDATED CHECKPOINT.
 
 Built:
-- `PaymentGatewayPort`
-- `SandboxPaymentGateway` provider-neutral adapter implementation
-- HMAC-SHA256 verified sandbox financial webhook ingress
+- payment initialization for BOOKING and ORDER subjects
 - `POST /api/v1/payments/initialize`
 - `GET /api/v1/payments/:paymentAttemptId`
 - `POST /api/v1/payments/webhooks/sandbox`
-- required `Idempotency-Key` on payment initialization
-- server-derived payer/beneficiary/amount/currency
-- active payment-attempt reuse to prevent parallel duplicate collection
-- provider event deduplication
-- exact amount/currency/provider verification
-- authoritative success/failure transitions
-- balanced ledger capture posting exactly once
-- BOOKING success creates HELD escrow then calls server-only Booking funding boundary
-- ORDER success calls server-only Order payment/inventory boundary then posts seller PENDING funds
-- domain-application timestamp supports recovery/reconciliation when external success and internal business transition temporarily diverge
-- `reconciliation.mismatch` observation on domain application failure
-
-Current financial SystemEvent vocabulary:
-- `payment.initiated`
-- `payment.confirmed`
-- `payment.failed`
-- `escrow.held`
-- `reconciliation.mismatch`
-
-GitHub CI after the implementation passed:
-- locked install
-- web/admin/mobile typechecks
-- Prisma generate
-- API typecheck
-- web/admin/API builds
+- server-derived payer, beneficiary, amount and currency
+- signed webhook verification
+- payment success/failure handling
+- duplicate event protection
+- Booking `PAYMENT_PENDING → FUNDED` authoritative integration
+- Order `PENDING → PAID` authoritative integration with inventory deduction
+- ledger capture + Service escrow hold / Product pending proceeds
 
 ### 13C — Escrow + Wallet
-PENDING.
+IMPLEMENTED; CI/RUNTIME GATE PENDING.
 
-Build:
-- escrow release after valid completion
-- available/pending/escrow balances
-- wallet API
-- transaction history
+Built:
+- ledger-backed wallet projection
+- `GET /api/v1/wallet`
+- `GET /api/v1/wallet/transactions`
+- Booking escrow release after durable `COMPLETED` + `HELD` state
+- Product settlement release after durable `COMPLETED` + authoritative applied payment
+- balanced `ESCROW → AVAILABLE` movement
+- balanced `PENDING → AVAILABLE` movement
+- idempotent release references
+- `escrow.released` and `settlement.released` observations
+- `/wallet` web surface
+- Account → Wallet navigation
+
+Server-validated release endpoints:
+- `POST /api/v1/wallet/escrows/bookings/:bookingId/release`
+- `POST /api/v1/wallet/settlements/orders/:orderId/release`
 
 ### 13D — Payout + Refund + Reconciliation
-PENDING.
+NEXT.
 
-Build:
-- withdrawal/payout
-- payout confirmation/failure
-- authoritative refunds
+Build next:
+- withdrawal/payout request
+- atomic available-balance reservation
+- sandbox payout confirmation/failure
+- authoritative refund request/confirmation
 - compensating ledger entries
-- reconciliation tools/jobs
-- duplicate/out-of-order tests
+- domain `REFUNDED` integration
+- reconciliation report/tools
+- duplicate/out-of-order protection
 
 ### 13E — Financial web experience
 PENDING.
 
 Build:
-- payment initiation/status/retry UI
-- wallet
-- transactions
-- withdraw
-- escrow/refund/payout state
+- payment initiation/status/retry
+- withdrawal flow
+- escrow/refund/payout status
+- recovery/reconciliation surfaces
 
 ### 13F — Sandbox money gate
-PENDING.
+PENDING until project owner is back at the development machine.
 
-Immediate 13A/B validation:
-- initialize a fresh Booking payment as its client
-- reject initialization by non-payer
-- reject missing/invalid sandbox webhook signature
-- signed Booking success produces PaymentAttempt SUCCEEDED + ledger + HELD escrow + Booking FUNDED exactly once
-- initialize a fresh Order payment as its buyer
-- signed Order success revalidates/deducts inventory + Order PAID + ledger exactly once
-- duplicate signed event does not duplicate state/money/inventory
-- wrong amount/currency is rejected
-- signed failure leaves subject unfunded/unpaid
+Consolidated service gate:
+`PAYMENT_PENDING → verified payment → HELD → FUNDED → work → COMPLETED → RELEASED → AVAILABLE → payout`
 
-Full Phase 13F service gate:
-`Booking PAYMENT_PENDING → payment confirmed → escrow HELD → FUNDED → work → completion → escrow RELEASED → available balance → payout`
+Consolidated Product gate:
+`PENDING → verified payment + inventory deduction → PAID → fulfillment → COMPLETED → AVAILABLE`
 
-Full Phase 13F product gate:
-`Order PENDING → payment confirmed + inventory deduction → PAID → fulfillment → COMPLETED`
+Also validate duplicate webhook safety, stale/invalid payment rejection, inventory race safety, refunds, payout failure/retry and reconciliation.
 
-## Next gate
-**Runtime-validate Phase 13A + 13B, then build Phase 13C escrow release + wallet projection/API.**
+## Next build target
+**Phase 13D — payout + refund + reconciliation.**
