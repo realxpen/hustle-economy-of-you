@@ -6,6 +6,8 @@ import { CommerceModule } from "../commerce/commerce.module";
 import { FINANCIAL_OPERATION_GATEWAY } from "./financial-operation.port";
 import { FinancialOperationsWebhookController } from "./financial-operations.controller";
 import { FinancialOperationsService } from "./financial-operations.service";
+import { FinancialHistoryController, PaymentReadController } from "./financial-read.controller";
+import { FinancialReadService } from "./financial-read.service";
 import { PAYMENT_GATEWAY } from "./payment-gateway.port";
 import { PaymentController, PaymentWebhookController } from "./payment.controller";
 import { PaymentService } from "./payment.service";
@@ -18,19 +20,22 @@ import { WalletService } from "./wallet.service";
   imports: [AuthModule, BookingModule, CommerceModule],
   controllers: [
     PaymentController,
+    PaymentReadController,
     PaymentWebhookController,
     FinancialOperationsWebhookController,
-    WalletController
+    WalletController,
+    FinancialHistoryController
   ],
   providers: [
     PaymentService,
     WalletService,
     FinancialOperationsService,
+    FinancialReadService,
     SandboxPaymentGateway,
     SandboxFinancialOperationGateway,
     { provide: PAYMENT_GATEWAY, useExisting: SandboxPaymentGateway },
     { provide: FINANCIAL_OPERATION_GATEWAY, useExisting: SandboxFinancialOperationGateway }
   ],
-  exports: [PaymentService, WalletService, FinancialOperationsService]
+  exports: [PaymentService, WalletService, FinancialOperationsService, FinancialReadService]
 })
 export class PaymentModule {}
