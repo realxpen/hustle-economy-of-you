@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
+import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
 import {
   cancelOrder,
   completeOrder,
@@ -27,21 +28,18 @@ export default function OrderDetailPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
-  useEffect(() => {
+  async function load() {
     if (!params?.orderId) return;
-    getOrder(params.orderId).then(setOrder).catch((reason: Error) => setError(reason.message));
+    setOrder(await getOrder(params.orderId));
+  }
+
+  useEffect(() => {
+    load().catch((reason: Error) => setError(reason.message));
   }, [params?.orderId]);
 
-  const hasPhysical = useMemo(
-    () => order?.items.some((item) => item.productTypeSnapshot === "PHYSICAL") ?? false,
-    [order]
-  );
+  const hasPhysical = useMemo(() => order?.items.some((item) => item.productTypeSnapshot === "PHYSICAL") ?? false, [order]);
 
-  async function runAction(
-    label: string,
-    action: (orderId: string) => Promise<OrderRecord>,
-    confirmation?: string
-  ) {
+  async function runAction(label: string, action: (orderId: string) => Promise<OrderRecord>, confirmation?: string) {
     if (!order || busy) return;
     if (confirmation && !window.confirm(confirmation)) return;
     setBusy(label);
@@ -66,9 +64,7 @@ export default function OrderDetailPage() {
   const canCancel = order.status === "PENDING";
   const canProcess = order.viewerRole === "SELLER" && order.status === "PAID";
   const canShip = order.viewerRole === "SELLER" && hasPhysical && order.status === "PROCESSING";
-  const canDeliver = order.viewerRole === "SELLER" && (
-    (hasPhysical && order.status === "SHIPPED") || (!hasPhysical && order.status === "PROCESSING")
-  );
+  const canDeliver = order.viewerRole === "SELLER" && ((hasPhysical && order.status === "SHIPPED") || (!hasPhysical && order.status === "PROCESSING"));
   const canComplete = order.viewerRole === "BUYER" && order.status === "DELIVERED";
 
   const derivedNextAction = order.nextAction ?? (
@@ -84,22 +80,30 @@ export default function OrderDetailPage() {
   return <main className={styles.shell}>
     <header className={styles.header}>
       <a className={styles.brand} href="/">HUSTLE↗</a>
-      <nav className={styles.nav}><a href="/orders">Orders</a><a href="/cart">Cart</a><a href="/marketplace">Marketplace</a><a href="/messages">Messages</a></nav>
+      <nav className={styles.nav}><a href="/orders">Orders</a><a href="/wallet">Wallet</a><a href="/cart">Cart</a><a href="/marketplace">Marketplace</a><a href="/messages">Messages</a></nav>
     </header>
 
-    <section className={styles.hero}>
-      <div><p className={styles.eyebrow}>ORDER · {order.viewerRole}</p><h1>{order.status.replaceAll("_", " ")}</h1></div>
-      <p>{derivedNextAction}</p>
-    </section>
+    <section className={styles.hero}><div><p className={styles.eyebrow}>ORDER · {order.viewerRole}</p><h1>{order.status.replaceAll("_", " ")}</h1></div><p>{derivedNextAction}</p></section>
 
     {created && order.status === "PENDING" && <div className={styles.success}>Order created successfully. It is PENDING and has not been paid yet.</div>}
     {notice && <div className={styles.success}>{notice}</div>}
     {error && <div className={styles.error}>{error}</div>}
 
+    <section className={styles.panel} style={{ marginTop: 18 }}>
+      <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>PAYMENT · SETTLEMENT</small><h2>Financial state</h2></div></div>
+      <TransactionFinanceActions
+        subjectType="ORDER"
+        subjectId={order.id}
+        canInitialize={order.viewerRole === "BUYER" && order.status === "PENDING"}
+        canRefund={order.viewerRole === "BUYER" && order.status === "PAID"}
+        canRelease={order.viewerRole === "SELLER" && order.status === "COMPLETED"}
+        releaseKind="ORDER_SETTLEMENT"
+        onFinancialChange={load}
+      />
+    </section>
+
     {(canCancel || canProcess || canShip || canDeliver || canComplete) && <section className={styles.panel} style={{ marginTop: 18 }}>
-      <div className={styles.sectionTitle}>
-        <div><small className={styles.eyebrow}>AVAILABLE ACTION</small><h2>Move the transaction forward</h2></div>
-      </div>
+      <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>AVAILABLE ACTION</small><h2>Move the transaction forward</h2></div></div>
       <div className={styles.row}>
         {canProcess && <button className={styles.buttonAlt} disabled={Boolean(busy)} onClick={() => void runAction("Processing", processOrder)}>{busy === "Processing" ? "Updating…" : "Start processing"}</button>}
         {canShip && <button className={styles.buttonAlt} disabled={Boolean(busy)} onClick={() => void runAction("Shipment", shipOrder)}>{busy === "Shipment" ? "Updating…" : "Mark shipped"}</button>}
@@ -107,7 +111,7 @@ export default function OrderDetailPage() {
         {canComplete && <button className={styles.button} disabled={Boolean(busy)} onClick={() => void runAction("Completion", completeOrder, "Confirm that you have received this Order and want to mark it complete?")}>{busy === "Completion" ? "Updating…" : "Confirm completion"}</button>}
         {canCancel && <button className={styles.danger} disabled={Boolean(busy)} onClick={() => void runAction("Cancellation", cancelOrder, "Cancel this unpaid PENDING Order? This does not perform any refund because no payment has been confirmed.")}>{busy === "Cancellation" ? "Cancelling…" : "Cancel unpaid Order"}</button>}
       </div>
-      {order.status === "PENDING" && <div className={styles.notice} style={{ marginTop: 14 }}><strong>Before payment only</strong><p>Phase 12 permits cancellation only while the Order is PENDING. Once payment is authoritative, refund execution belongs to Phase 13.</p></div>}
+      {order.status === "PENDING" && <div className={styles.notice} style={{ marginTop: 14 }}><strong>Before payment only</strong><p>Cancellation is available while the Order is PENDING. Once provider-confirmed payment is applied, refunds use the Phase 13 financial workflow.</p></div>}
     </section>}
 
     <div className={styles.grid} style={{ marginTop: 18 }}>
@@ -131,25 +135,13 @@ export default function OrderDetailPage() {
     <section className={styles.panel} style={{ marginTop: 18 }}>
       <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>TRANSACTION STATE</small><h2>Order timeline</h2></div></div>
       <div className={styles.detailGrid}>
-        <div className={styles.detailBlock}><small>CREATED</small><p>{formatDate(order.createdAt)}</p></div>
-        <div className={styles.detailBlock}><small>PAID</small><p>{formatDate(order.paidAt)}</p></div>
-        <div className={styles.detailBlock}><small>PROCESSING</small><p>{formatDate(order.processingAt)}</p></div>
-        <div className={styles.detailBlock}><small>SHIPPED</small><p>{hasPhysical ? formatDate(order.shippedAt) : "Not required for digital-only orders"}</p></div>
-        <div className={styles.detailBlock}><small>DELIVERED</small><p>{formatDate(order.deliveredAt)}</p></div>
-        <div className={styles.detailBlock}><small>COMPLETED</small><p>{formatDate(order.completedAt)}</p></div>
-        <div className={styles.detailBlock}><small>CANCELLED</small><p>{formatDate(order.cancelledAt)}</p></div>
-        <div className={styles.detailBlock}><small>REFUNDED</small><p>{formatDate(order.refundedAt)}</p></div>
+        <div className={styles.detailBlock}><small>CREATED</small><p>{formatDate(order.createdAt)}</p></div><div className={styles.detailBlock}><small>PAID</small><p>{formatDate(order.paidAt)}</p></div><div className={styles.detailBlock}><small>PROCESSING</small><p>{formatDate(order.processingAt)}</p></div><div className={styles.detailBlock}><small>SHIPPED</small><p>{hasPhysical ? formatDate(order.shippedAt) : "Not required for digital-only orders"}</p></div><div className={styles.detailBlock}><small>DELIVERED</small><p>{formatDate(order.deliveredAt)}</p></div><div className={styles.detailBlock}><small>COMPLETED</small><p>{formatDate(order.completedAt)}</p></div><div className={styles.detailBlock}><small>CANCELLED</small><p>{formatDate(order.cancelledAt)}</p></div><div className={styles.detailBlock}><small>REFUNDED</small><p>{formatDate(order.refundedAt)}</p></div>
       </div>
     </section>
 
     {hasPhysical && <section className={styles.panel} style={{ marginTop: 18 }}>
       <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>PRIVATE DELIVERY DATA</small><h2>Delivery details</h2></div></div>
-      <div className={styles.detailGrid}>
-        <div className={styles.detailBlock}><small>RECIPIENT</small><p>{order.deliveryName ?? "Not provided"}</p></div>
-        <div className={styles.detailBlock}><small>PHONE</small><p>{order.deliveryPhone ?? "Not provided"}</p></div>
-        <div className={styles.detailBlock}><small>ADDRESS</small><p>{[order.deliveryAddress, order.deliveryCity, order.deliveryState, order.deliveryCountry].filter(Boolean).join(", ") || "Not provided"}</p></div>
-        <div className={styles.detailBlock}><small>NOTE</small><p>{order.deliveryNote ?? "No delivery note"}</p></div>
-      </div>
+      <div className={styles.detailGrid}><div className={styles.detailBlock}><small>RECIPIENT</small><p>{order.deliveryName ?? "Not provided"}</p></div><div className={styles.detailBlock}><small>PHONE</small><p>{order.deliveryPhone ?? "Not provided"}</p></div><div className={styles.detailBlock}><small>ADDRESS</small><p>{[order.deliveryAddress, order.deliveryCity, order.deliveryState, order.deliveryCountry].filter(Boolean).join(", ") || "Not provided"}</p></div><div className={styles.detailBlock}><small>NOTE</small><p>{order.deliveryNote ?? "No delivery note"}</p></div></div>
     </section>}
 
     <footer className={styles.footer}><span>Order #{order.id}</span><strong>Financial state remains authoritative.</strong></footer>
