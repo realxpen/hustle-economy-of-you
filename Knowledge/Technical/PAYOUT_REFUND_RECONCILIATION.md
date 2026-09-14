@@ -1,6 +1,6 @@
 # Payout, Refund and Reconciliation — Phase 13D
 
-Status: IMPLEMENTED — sandbox runtime validated; payout-taxonomy migration verification pending
+Status: COMPLETE — sandbox runtime and payout-taxonomy migration validated
 Updated: 2026-09-14
 
 ## Purpose
@@ -29,7 +29,7 @@ Payout ledger taxonomy:
 - ledger `subjectId` is the durable Payout ID
 - this applies to `PAYOUT_RESERVED`, `PAYOUT_SENT` and `PAYOUT_REVERSED`
 - `PAYOUT` is not accepted by collection/refund APIs; payment/refund transaction subjects remain `BOOKING` and `ORDER`
-- Phase 13 finalization migrations backfill early sandbox payout rows that used the temporary `ORDER` + `PAYOUT:<id>` representation
+- Phase 13 finalization migrations backfilled early sandbox payout rows that used the temporary `ORDER` + `PAYOUT:<id>` representation
 
 Signed payout success:
 - `PAYOUT_RESERVED` debit
@@ -150,8 +150,10 @@ Validated:
 - exact Booking refund replay remained idempotent
 - Order authoritative refund restored tracked inventory exactly once
 - tested variant inventory sequence `4 → 3` on payment, `3 → 4` on refund, and remained `4` after duplicate refund delivery
+- final payout-taxonomy migrations applied successfully after safely baselining the existing Prisma migration history
+- final payout smoke test wrote `PAYOUT_RESERVED` and `PAYOUT_SENT` with `subjectType=PAYOUT` and the payout UUID as `subjectId`
 - final payer and beneficiary reconciliation both returned `healthy: true`, `issueCount: 0`
 
 ## Gate
 
-The functional Phase 13 sandbox money gate passed on 2026-09-14. Before Phase 13 is formally closed, apply the final payout-subject migrations, regenerate Prisma Client, run API typecheck/build, perform one small payout smoke test, and confirm reconciliation remains healthy. Production payment activation remains a separate human risk gate.
+Phase 13D is complete. The Phase 13 financial sandbox gate and payout-taxonomy migration gate passed on 2026-09-14. Production payment activation remains a separate human risk gate.
