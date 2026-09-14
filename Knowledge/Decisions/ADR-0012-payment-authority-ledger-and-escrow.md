@@ -2,6 +2,7 @@
 
 Status: Accepted
 Date: 2026-09-11
+Updated: 2026-09-14
 
 ## Context
 
@@ -45,11 +46,16 @@ No browser/mobile request may directly set authoritative paid/funded/refunded/re
 
 ### 2. One common financial layer serves Bookings and Orders
 
-Financial records reference a transaction subject:
+Payment collection and refund records reference a transaction subject:
 - `BOOKING`
 - `ORDER`
 
 We will not create independent payment stacks for Services and Products.
+
+The ledger also records operational money movements that are not themselves a Booking or Order. Payout reservation, payout confirmation and payout reversal therefore use:
+- `PAYOUT` with the durable Payout ID as the ledger `subjectId`
+
+`PAYOUT` is a ledger-operation subject only. Payment initialization and refund APIs remain restricted to `BOOKING` and `ORDER`.
 
 ### 3. Provider integration is behind an adapter/port
 
@@ -71,7 +77,7 @@ Provider retries, duplicate webhooks or verification calls must never duplicate 
 
 Posted money movements are not rewritten.
 
-Corrections, refunds and reversals use compensating entries linked to their originating financial transaction.
+Corrections, refunds and reversals use compensating entries linked to their originating financial transaction or financial operation.
 
 Money is stored in integer minor units.
 
@@ -133,6 +139,12 @@ Passing sandbox payment flows does not automatically enable production money mov
 
 Production provider keys, webhook endpoints, payout configuration and operational procedures require explicit human approval after the Phase 13 sandbox gate.
 
+### 13. Financial retries must tolerate recoverable domain-application failure
+
+Provider payment success and internal domain application are separate durable facts. A verified successful provider event may be retried with the same provider event ID when internal application failed before `domainAppliedAt` was recorded.
+
+Interactive database transactions used by financial capture must have explicit bounds appropriate for the work performed. The Phase 13 sandbox gate exposed Prisma's default interactive-transaction timeout as too short for the multi-write payment capture path; the capture transaction now uses an explicit wait/timeout budget while retaining idempotent ledger and domain guards.
+
 ## Consequences
 
 ### Positive
@@ -143,12 +155,15 @@ Production provider keys, webhook endpoints, payout configuration and operationa
 - Escrow semantics remain distinct from transaction lifecycle semantics.
 - Wallet, refund and payout behavior can be reconciled against provider truth.
 - Provider replacement/addition does not require rewriting core commerce domains.
+- Payout ledger history is semantically queryable as `PAYOUT` instead of being disguised as an Order.
+- A provider-success/internal-application split can recover by replaying the same verified event without charging twice.
 
 ### Tradeoffs
 - More durable financial entities and idempotency constraints are required before a simple payment button can be considered complete.
 - Phase 13 must coordinate multiple domain transitions transactionally/idempotently.
 - A sandbox pass is necessary but not sufficient for production launch.
 - Wallet balances cannot be treated as a single convenient mutable number.
+- The shared financial subject enum includes `PAYOUT` for ledger operations even though collection/refund application services intentionally accept only `BOOKING` and `ORDER`.
 
 ## Rejected alternatives
 
@@ -169,3 +184,6 @@ Rejected because financial history must remain auditable; compensating entries a
 
 ### Treat webhook delivery as exactly-once
 Rejected because providers may retry or deliver events out of order. Idempotency is mandatory.
+
+### Classify payouts as Orders in the ledger
+Rejected because a payout is an operational financial subject, not a commerce Order. The early Phase 13 placeholder representation (`ORDER` + `PAYOUT:<id>`) is migrated to `PAYOUT` + the durable payout ID.
