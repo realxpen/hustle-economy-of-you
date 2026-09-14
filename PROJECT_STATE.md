@@ -10,6 +10,8 @@ Phase 14 — Trust + Reputation
 
 Phase 13 — Payments + Escrow is COMPLETE. All implementation, migration, runtime, idempotency, refund, payout, inventory-restoration, ledger-taxonomy and reconciliation gates passed on 2026-09-14.
 
+Phase 14A — Trust Model Foundation is IMPLEMENTED in code and awaiting local migration/runtime validation before Phase 14B begins.
+
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
 - Core loop: `Skill → Demonstration → Discovery → Trust → Opportunity → Transaction → Reputation → Growth`.
@@ -19,6 +21,8 @@ Phase 13 — Payments + Escrow is COMPLETE. All implementation, migration, runti
 - Financial state is server-authoritative.
 - Never fake payment, funding, escrow, refunds, wallet credit, payout, delivery or completion.
 - Browser/mobile clients may request financial operations, but verified provider/internal durable evidence determines success.
+- Reputation must be downstream of verified transaction evidence; browser/mobile clients cannot manufacture verified reviews.
+- Identity verification, transaction verification and reputation are distinct trust signals.
 
 ## Completed MVP phases
 - Phase 1 — Technical Foundation: COMPLETE
@@ -46,6 +50,9 @@ Order:
 Money:
 `payment confirmation → ledger → escrow/pending → available → payout reservation → provider-confirmed payout`
 
+Trust:
+`verified transaction → review eligibility → verified review → reputation projection → profile trust signals`
+
 ## Canonical Phase 13 knowledge
 - `Knowledge/Product/PAYMENTS_AND_ESCROW.md`
 - `Knowledge/Decisions/ADR-0012-payment-authority-ledger-and-escrow.md`
@@ -54,146 +61,105 @@ Money:
 - `Knowledge/Technical/PAYOUT_REFUND_RECONCILIATION.md`
 - `Knowledge/Technical/FINANCIAL_WEB_EXPERIENCE.md`
 
-## Phase 13 — Completion evidence
-
-### 13A — Financial data foundation
-COMPLETE.
-
-Financial records:
-- `PaymentAttempt`
-- `LedgerAccount`
-- `LedgerTransaction`
-- `LedgerPosting`
-- `EscrowRecord`
-- `Payout`
-- `Refund`
-- `WebhookEvent`
-
-Hosted financial migrations are applied. The existing production-like Supabase schema was safely baselined into Prisma migration history without resetting data.
-
-Final payout-taxonomy migrations applied successfully:
-- `20260914134000_phase13_payout_subject_type`
-- `20260914134100_phase13_payout_ledger_backfill`
-
-Payout ledger records now use `FinancialSubjectType.PAYOUT` with the durable payout ID as `subjectId`; historical sandbox payout rows were backfilled from the temporary `ORDER / PAYOUT:<id>` representation.
-
-### 13B — Payment gateway foundation
-COMPLETE; RUNTIME VALIDATED.
+## Phase 13 — Payments + Escrow
+COMPLETE — 2026-09-14.
 
 Validated:
-- provider-neutral collection port
-- HUSTLE_SANDBOX payment adapter
-- required initialization idempotency
-- server-derived payer, beneficiary, amount and currency
-- HMAC-SHA256 webhook verification
-- duplicate provider-event protection
-- exact reference/amount/currency validation
-- Booking `PAYMENT_PENDING → FUNDED`
-- Order `PENDING → PAID` with inventory revalidation/deduction
-- balanced payment-capture ledger postings
-- Service escrow `HELD`
-- Product seller `PENDING` proceeds
-- recoverable domain application through `domainAppliedAt`
+- Booking authoritative payment → escrow HELD → FUNDED
+- Booking completion + escrow release → AVAILABLE
+- Product Order authoritative payment + inventory deduction
+- Order fulfillment + settlement
+- successful payout
+- payout failure + wallet restoration
+- Booking refund + escrow compensation
+- Order refund + exact inventory restoration
+- duplicate payment/refund/payout webhooks are idempotent
+- recoverable payment domain application after Prisma interactive-transaction timeout fix
+- payout ledger taxonomy uses `FinancialSubjectType.PAYOUT`
+- historical payout rows backfilled from temporary `ORDER / PAYOUT:<id>` representation
+- final payer + beneficiary reconciliation both healthy
 
-Runtime defect discovered and fixed:
-- a verified `payment.succeeded` could reach `SUCCEEDED` while internal domain application failed because Prisma's default interactive-transaction timeout was too short for the multi-write payment-capture path
-- payment capture now uses explicit `maxWait: 10_000` and `timeout: 30_000`
-- replaying the exact same verified event completed domain application without a second charge
+Production payment activation remains a separate human risk gate.
 
-### 13C — Escrow + Wallet
-COMPLETE; RUNTIME VALIDATED.
+## Canonical Phase 14 knowledge
+- `Knowledge/Product/TRUST_AND_REPUTATION.md`
+- `Knowledge/Decisions/ADR-0013-verified-transaction-reviews.md`
 
-Validated:
-- ledger-derived AVAILABLE / PENDING / ESCROW / PAYOUT_RESERVED buckets
-- Booking escrow HELD → RELEASED with ESCROW debit → AVAILABLE credit
-- Product settlement PENDING → AVAILABLE after completed Order
-- idempotent release keys
-- wallet transaction history
-- `/wallet` web surface
+## Phase 14A — Trust Model Foundation
+IMPLEMENTED; migration/runtime gate pending.
 
-### 13D — Payout + Refund + Reconciliation
-COMPLETE; RUNTIME VALIDATED.
+Built:
+- `ReviewSubjectType`: BOOKING / ORDER
+- `ReviewPartyRole`: CLIENT / HUSTLER / BUYER / SELLER
+- `ReviewStatus`: PUBLISHED / HIDDEN / REMOVED
+- durable `Review` model
+- rebuildable `UserReputation` projection
+- DB constraints for rating range, review body length, no self-review, valid role pairs and one review per reviewer per transaction
+- RLS + API-role access for trust tables
+- authenticated participant-scoped review eligibility endpoint
+- server-derived reviewee identity and reviewer/reviewee roles
+- verified transaction requirement
 
-Validated:
-- atomic withdrawal reservation AVAILABLE → PAYOUT_RESERVED
-- signed provider payout success/failure
-- successful payout removes reserved funds to provider clearing
-- failed payout restores reserved funds to AVAILABLE exactly once
-- Booking authoritative refund with escrow compensation
-- Order authoritative refund with inventory restoration exactly once
-- compensating refund ledger postings
-- stale/duplicate operation event handling
-- reconciliation for unapplied payments, pending operations, failed webhooks, negative balances and unbalanced ledger transactions
-- payout ledger subject taxonomy uses `PAYOUT`
+Eligibility API:
+- `GET /api/v1/reviews/eligibility/:subjectType/:subjectId`
 
-### 13E — Financial web experience
-COMPLETE.
+Booking review eligibility requires:
+- requester is Client or Hustler
+- Booking `COMPLETED` or `CLOSED`
+- `completedAt` exists
+- successful authoritative applied payment
+- escrow `RELEASED` + `releasedAt`
+- not refunded
+- not disputed
+- no prior review by that reviewer
+- no self-review
 
-Web:
-- `/wallet` balances, history, withdrawals, refund status and reconciliation health
-- Account → Wallet navigation
-- Booking detail financial controls
-- Order detail financial controls
-- payment initialization/status/retry
-- refund request controls
-- Booking escrow release control
-- Order settlement release control
-- session-scoped idempotency keys
-- durable latest-payment recovery after refresh
+Order review eligibility requires:
+- requester is Buyer or Seller
+- Order `COMPLETED`
+- `completedAt` exists
+- successful authoritative applied payment
+- not refunded
+- no prior review by that reviewer
+- no self-review
 
-The web experience contains no control that directly declares provider success.
+Review policy locked for MVP:
+- one overall rating, integer 1–5
+- written review 10–2000 characters
+- no arbitrary reviewee ID from client
+- published review is immutable
+- author hard-delete is not exposed
+- moderation later uses PUBLISHED / HIDDEN / REMOVED while retaining durable review evidence
+- refunded/disputed/cancelled/unpaid/incomplete transactions do not enter verified reputation
+- average rating will be derived from exact `ratingSum / reviewCount`, not stored as mutable floating-point authority
 
-### 13F — Sandbox money gate
-PASSED — 2026-09-14.
+Migration:
+- `20260914160000_phase14a_trust_foundation`
 
-Service path validated:
-`PAYMENT_PENDING → signed payment success → PaymentAttempt SUCCEEDED → escrow HELD → Booking FUNDED → work → COMPLETED → escrow RELEASED → AVAILABLE → payout reserve → signed payout success`
+## Phase 14B — Review Creation + Read Models
+PENDING until Phase 14A runtime gate passes.
 
-Product path validated:
-`PENDING Order → signed payment success → inventory deduction → PAID → fulfillment → COMPLETED → seller PENDING → AVAILABLE → payout`
+Planned next:
+- create verified review from eligibility proof
+- transactional `UserReputation` update
+- received/given review lists
+- public review read model
+- duplicate/race handling
+- SystemEvent observations for review creation
 
-Refund validation:
-- Booking refund moved `FUNDED → REFUNDED`, removed held escrow, and duplicate webhook made no second compensation
-- Order tracked stock moved `4 → 3` on authoritative payment and `3 → 4` on authoritative refund; duplicate refund webhook left stock at `4`
+## Phase 14A runtime gate
+Before Phase 14B begins:
+1. pull current main after Phase 14A merge
+2. `prisma migrate deploy`
+3. `prisma generate`
+4. API typecheck/build
+5. completed released Booking returns `ELIGIBLE` for both participants
+6. completed paid Order returns `ELIGIBLE` for both participants
+7. refunded/disputed/incomplete subject returns ineligible
+8. non-participant access is forbidden
+9. schema constraints and RLS exist in hosted database
 
-Payout validation:
-- payout success completed and exact-event replay was idempotent
-- payout failure restored reserved funds to AVAILABLE exactly once
-- final post-migration payout wrote `PAYOUT_RESERVED` and `PAYOUT_SENT` rows with `subjectType=PAYOUT` and the payout UUID as `subjectId`
-
-Final reconciliation:
-- payer: `healthy: true`, `issueCount: 0`
-- Hustler/beneficiary: `healthy: true`, `issueCount: 0`
-
-## Production payment gate
-Phase 13 completion does not activate production money movement.
-
-Production provider keys, production webhook routing, payout destinations, monitoring, reconciliation operations and human risk approval remain a separate activation gate.
-
-## Phase 14 — Trust + Reputation
-OPEN.
-
-Goal:
-Make trust visible and meaningful through verified identity, completed transactions, reviews, ratings and behavioural trust signals.
-
-Core loop:
-`Verified transaction → review eligibility → rating/review → trust signals → stronger reputation → better discovery/opportunity`
-
-Phase 14 must build on real transaction truth from Phases 11–13. Reviews or reputation signals must not be manufactured from unverified interactions.
-
-Initial Phase 14 scope to define before implementation:
-- review eligibility rules for completed Bookings and Orders
-- one-review-per-eligible-transaction idempotency
-- rating dimensions / aggregate rating model
-- written reviews and optional media/proof rules
-- review authorship and subject relationships
-- received vs given reviews
-- verified-transaction badge semantics
-- profile trust/reputation summary
-- dispute/refund interaction with review eligibility
-- anti-spam / self-review / duplicate-review protections
-- moderation/reporting boundaries
-- reputation signals available to discovery/ranking later
+Do not begin review creation or reputation ranking effects until this gate passes.
 
 ## Supabase
 Dedicated project:
@@ -224,4 +190,4 @@ Before pulling:
 Use fresh auth sessions/tokens for financial sandbox validation. Never commit or print provider/webhook secrets.
 
 ## Next gate
-**Phase 14A — define the Trust + Reputation canonical product model, review eligibility rules, database entities and server-authority boundaries before implementation.**
+**Phase 14A — deploy the trust migration, regenerate Prisma Client, typecheck/build the API, then runtime-test review eligibility against completed/refunded/incomplete Booking and Order subjects. If clean, open Phase 14B — Review Creation + Read Models.**
