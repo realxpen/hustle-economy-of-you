@@ -1,7 +1,7 @@
 # Payout, Refund and Reconciliation — Phase 13D
 
-Status: IMPLEMENTED — sandbox runtime gate pending
-Updated: 2026-09-13
+Status: IMPLEMENTED — sandbox runtime validated; payout-taxonomy migration verification pending
+Updated: 2026-09-14
 
 ## Purpose
 
@@ -23,6 +23,13 @@ Rules:
 - reservation posts `AVAILABLE` debit and `PAYOUT_RESERVED` credit.
 - payout remains `PROCESSING` until a signed provider event arrives.
 - browser/API request alone never marks payout successful.
+
+Payout ledger taxonomy:
+- payout ledger movements use `FinancialSubjectType.PAYOUT`
+- ledger `subjectId` is the durable Payout ID
+- this applies to `PAYOUT_RESERVED`, `PAYOUT_SENT` and `PAYOUT_REVERSED`
+- `PAYOUT` is not accepted by collection/refund APIs; payment/refund transaction subjects remain `BOOKING` and `ORDER`
+- Phase 13 finalization migrations backfill early sandbox payout rows that used the temporary `ORDER` + `PAYOUT:<id>` representation
 
 Signed payout success:
 - `PAYOUT_RESERVED` debit
@@ -133,6 +140,18 @@ These permit UI recovery after refresh/network interruption without giving the b
 - Order inventory restoration happens only after authoritative refund confirmation
 - stale failure events after success are ignored
 
+## Runtime evidence — 2026-09-14
+
+Validated:
+- payout success and exact-event replay
+- payout failure with full wallet restoration
+- duplicate payout failure did not restore twice
+- Booking authoritative refund and escrow compensation
+- exact Booking refund replay remained idempotent
+- Order authoritative refund restored tracked inventory exactly once
+- tested variant inventory sequence `4 → 3` on payment, `3 → 4` on refund, and remained `4` after duplicate refund delivery
+- final payer and beneficiary reconciliation both returned `healthy: true`, `issueCount: 0`
+
 ## Gate
 
-Runtime validation is intentionally deferred to the consolidated Phase 13 sandbox gate. Production payment activation remains blocked until that gate passes.
+The functional Phase 13 sandbox money gate passed on 2026-09-14. Before Phase 13 is formally closed, apply the final payout-subject migrations, regenerate Prisma Client, run API typecheck/build, perform one small payout smoke test, and confirm reconciliation remains healthy. Production payment activation remains a separate human risk gate.
