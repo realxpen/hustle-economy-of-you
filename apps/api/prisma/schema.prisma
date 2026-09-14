@@ -196,6 +196,24 @@ enum WebhookEventStatus {
   FAILED
 }
 
+enum ReviewSubjectType {
+  BOOKING
+  ORDER
+}
+
+enum ReviewPartyRole {
+  CLIENT
+  HUSTLER
+  BUYER
+  SELLER
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN
+  REMOVED
+}
+
 model User {
   id                          String                    @id @default(cuid())
   authSubject                 String                    @unique
@@ -228,6 +246,9 @@ model User {
   cart                        Cart?
   buyerOrders                 Order[]                   @relation("OrderBuyer")
   sellerOrders                Order[]                   @relation("OrderSeller")
+  reviewsGiven                Review[]                  @relation("ReviewsGiven")
+  reviewsReceived             Review[]                  @relation("ReviewsReceived")
+  reputation                  UserReputation?
 }
 
 model UserCapability {
@@ -875,6 +896,48 @@ model WebhookEvent {
   @@index([paymentAttemptId, createdAt])
   @@index([providerReference, createdAt])
   @@index([status, createdAt])
+}
+
+model Review {
+  id                  String            @id @default(cuid())
+  subjectType         ReviewSubjectType
+  subjectId           String
+  reviewerUserId      String
+  revieweeUserId      String
+  reviewerRole        ReviewPartyRole
+  revieweeRole        ReviewPartyRole
+  rating              Int
+  body                String
+  status              ReviewStatus      @default(PUBLISHED)
+  verifiedTransaction Boolean           @default(true)
+  verifiedAt          DateTime          @default(now())
+  moderationReason    String?
+  hiddenAt            DateTime?
+  removedAt           DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  reviewer User @relation("ReviewsGiven", fields: [reviewerUserId], references: [id], onDelete: Restrict)
+  reviewee User @relation("ReviewsReceived", fields: [revieweeUserId], references: [id], onDelete: Restrict)
+
+  @@unique([subjectType, subjectId, reviewerUserId])
+  @@index([revieweeUserId, status, createdAt])
+  @@index([reviewerUserId, createdAt])
+  @@index([subjectType, subjectId])
+  @@index([status, createdAt])
+}
+
+model UserReputation {
+  userId              String   @id
+  ratingSum           Int      @default(0)
+  reviewCount         Int      @default(0)
+  verifiedReviewCount Int      @default(0)
+  bookingReviewCount  Int      @default(0)
+  orderReviewCount    Int      @default(0)
+  lastReviewAt        DateTime?
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SystemEvent {
