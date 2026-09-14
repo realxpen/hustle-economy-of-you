@@ -1,6 +1,6 @@
 # Payments + Escrow
 
-Status: CANONICAL — Phase 13 SANDBOX GATE PASSED; final migration verification pending
+Status: CANONICAL — Phase 13 COMPLETE
 Updated: 2026-09-14
 
 ## Purpose
@@ -37,6 +37,8 @@ Phase gate:
 
 > Money can move safely through a full sandbox transaction before production.
 
+This gate passed on 2026-09-14. Production payment activation remains a separate human risk gate.
+
 ## Financial authority
 
 Financial truth must come from verified server-side evidence, never a browser status change.
@@ -59,7 +61,7 @@ No client endpoint may directly manufacture:
 
 ## One financial system for Services and Products
 
-Phase 13 must not create separate incompatible payment systems for Bookings and Orders.
+Phase 13 does not create separate incompatible payment systems for Bookings and Orders.
 
 A common financial layer owns money movement while transaction domains retain their own business lifecycle.
 
@@ -83,9 +85,9 @@ The subject remains authoritative for non-financial lifecycle state:
 
 ## Payment gateway boundary
 
-Provider integration must sit behind a server-side adapter/port.
+Provider integration sits behind a server-side adapter/port.
 
-The domain should depend on provider-neutral concepts such as:
+The domain depends on provider-neutral concepts such as:
 - create payment intent/reference
 - inspect/verify payment
 - receive/verify webhook
@@ -97,13 +99,13 @@ Provider-specific payloads, signatures and status names stay inside the adapter.
 
 Secrets remain server-side and are never exposed through web/mobile bundles.
 
-The first implementation is sandbox-first. Provider choice must not leak through core domain models strongly enough to require a redesign later.
+The first implementation is sandbox-first. Provider choice does not leak through core domain models strongly enough to require a redesign later.
 
 ## Payment attempt
 
 A PaymentAttempt represents one attempt to collect money for one transaction subject.
 
-It should preserve transaction-critical facts:
+It preserves transaction-critical facts:
 - internal ID
 - transaction subject type + ID
 - payer User
@@ -123,9 +125,9 @@ PaymentAttempt is not the ledger itself. Provider events may be retried or dupli
 
 The ledger is the auditable financial record.
 
-Use immutable append-only entries rather than mutating historical money movements.
+It uses immutable append-only entries rather than mutating historical money movements.
 
-Every posted ledger entry should identify:
+Every posted ledger entry identifies:
 - transaction or financial-operation subject
 - payment/payout/refund reference where applicable
 - currency
@@ -137,7 +139,7 @@ Every posted ledger entry should identify:
 
 Corrections happen through compensating entries, not by rewriting old entries.
 
-The ledger must support deriving/reconciling:
+The ledger supports deriving/reconciling:
 - money collected
 - money currently held
 - money available to withdraw
@@ -145,17 +147,17 @@ The ledger must support deriving/reconciling:
 - refunds
 - payouts
 
-Payout ledger entries use `subjectType=PAYOUT` and `subjectId=<payoutId>`. Earlier Phase 13 sandbox rows that temporarily used `ORDER` with `PAYOUT:<id>` are repaired by the Phase 13 finalization migrations.
+Payout ledger entries use `subjectType=PAYOUT` and `subjectId=<payoutId>`. Earlier Phase 13 sandbox rows that temporarily used `ORDER` with `PAYOUT:<id>` were repaired by the Phase 13 finalization migrations.
 
 ## Escrow semantics
 
-For Services, successful payment should not immediately become withdrawable Hustler balance.
+For Services, successful payment does not immediately become withdrawable Hustler balance.
 
 Canonical service money lifecycle:
 
 `Payment confirmed → HELD → work lifecycle → completion confirmed → RELEASED → available balance → payout`
 
-Escrow state must be explicit and server-authoritative.
+Escrow state is explicit and server-authoritative.
 
 Minimum conceptual states:
 - `PENDING`
@@ -165,13 +167,13 @@ Minimum conceptual states:
 - `REFUNDED`
 - `CANCELLED`
 
-The precise schema may separate payment status from escrow status; do not collapse provider payment state, escrow state and Booking state into one enum.
+Payment status, escrow status and Booking status remain distinct concepts.
 
-For Product Orders, Phase 13 confirms payment and inventory ownership. Product funds may still use pending/available settlement semantics, but Order fulfillment remains in the Order domain.
+For Product Orders, Phase 13 confirms payment and inventory ownership. Product funds use settlement semantics while Order fulfillment remains in the Order domain.
 
 ## Booking integration
 
-Phase 11 intentionally stops paid Bookings at `PAYMENT_PENDING`.
+Phase 11 stops paid Bookings at `PAYMENT_PENDING` until authoritative funding exists.
 
 After authoritative payment confirmation:
 - payment is verified idempotently
@@ -179,13 +181,13 @@ After authoritative payment confirmation:
 - escrow is placed into held state for a Service payment
 - only then may the Booking move to `FUNDED`
 
-Phase 13 must call the existing server-side Booking integration boundary rather than exposing `FUNDED` to the client.
+Phase 13 calls the server-side Booking integration boundary rather than exposing `FUNDED` to the client.
 
 No payment confirmation means no `FUNDED`.
 
 ## Order integration
 
-Phase 12 creates seller-scoped `PENDING` Orders and intentionally does not reserve inventory.
+Phase 12 creates seller-scoped `PENDING` Orders and does not reserve inventory.
 
 After authoritative payment confirmation:
 - current inventory is revalidated
@@ -193,9 +195,9 @@ After authoritative payment confirmation:
 - financial records are posted exactly once
 - only then may the Order move to `PAID`
 
-Phase 13 must use the existing `CommerceService.markPaidFromAuthoritativePayment(...)` integration boundary.
+Phase 13 uses `CommerceService.markPaidFromAuthoritativePayment(...)`.
 
-If inventory is no longer available, the workflow must fail safely and not manufacture a paid Order.
+If inventory is no longer available, the workflow fails safely and does not manufacture a paid Order.
 
 ## Wallet model
 
@@ -207,7 +209,7 @@ User-facing buckets:
 - Escrow — funds held against active transactions
 - Transactions — durable financial history
 
-Balances should be derived from or transactionally maintained against the ledger with reconciliation checks. Never let a client write balances directly.
+Balances are derived from authoritative ledger records with reconciliation checks. Clients cannot write balances directly.
 
 ## Payout / withdrawal
 
@@ -216,12 +218,10 @@ A payout moves eligible available balance to an external destination.
 Rules:
 - only the owning authenticated User may request withdrawal
 - requested amount must not exceed eligible available balance
-- funds must be reserved/locked against concurrent withdrawal attempts
+- funds are reserved against concurrent withdrawal attempts
 - provider response/webhook is authoritative for payout completion
-- failed payouts must restore/reconcile reserved funds safely
+- failed payouts restore/reconcile reserved funds safely
 - idempotency is required
-
-Do not mark payout success from a browser response alone.
 
 Payout ledger movements are operational financial subjects, not Orders. They are classified as `PAYOUT` with the durable Payout ID as `subjectId`.
 
@@ -229,7 +229,7 @@ Payout ledger movements are operational financial subjects, not Orders. They are
 
 Refund state requires authoritative provider/financial evidence.
 
-A refund flow may be triggered by cancellation, dispute resolution or operations, but the transaction domain must not switch to `REFUNDED` before the financial action is verified.
+A refund flow may be triggered by cancellation, dispute resolution or operations, but the transaction domain does not switch to `REFUNDED` before the financial action is verified.
 
 After verified refund:
 - ledger receives compensating entries
@@ -240,20 +240,20 @@ After verified refund:
 
 Webhook endpoints are security-sensitive financial ingress.
 
-They must:
+They:
 - verify provider signature/authenticity before processing
-- store/derive an idempotency key from the provider event/reference
+- store/derive an idempotency key from provider event/reference
 - tolerate duplicate delivery
-- tolerate out-of-order delivery where possible
+- tolerate stale/out-of-order delivery where possible
 - never trust browser-provided webhook payloads
 - return safely on already-processed events
 - preserve enough sanitized provider metadata for debugging/reconciliation
 
-Raw secrets must never be logged.
+Raw secrets are never logged.
 
 ## Idempotency
 
-Every consequential money action needs an idempotency strategy:
+Every consequential money action has an idempotency strategy:
 - payment initialization
 - payment confirmation
 - webhook processing
@@ -263,25 +263,25 @@ Every consequential money action needs an idempotency strategy:
 - payout confirmation
 - refund request/confirmation
 
-Repeated delivery of the same authoritative event must not duplicate ledger entries, inventory deductions, wallet credits, escrow releases, refunds or payouts.
+Repeated delivery of the same authoritative event does not duplicate ledger entries, inventory deductions, wallet credits, escrow releases, refunds or payouts.
 
 ## Reconciliation
 
-Hustle must be able to compare internal financial truth with provider truth.
+Hustle can compare internal financial truth with provider/internal operation truth.
 
-Reconciliation should detect at least:
-- internal pending payment but provider succeeded
-- internal success but missing/contradictory provider state
-- duplicate provider references
-- payout stuck or failed
-- refund mismatch
-- ledger totals inconsistent with transaction financial state
+Current reconciliation detects:
+- confirmed payments whose domain application is missing
+- payouts awaiting provider confirmation
+- refunds awaiting provider confirmation
+- failed financial webhooks
+- negative ledger-account balances
+- unbalanced ledger transactions
 
-MVP may begin with explicit reconciliation endpoints/jobs for sandbox validation before automation expands.
+Reconciliation is an observation/recovery aid. It never invents provider success.
 
 ## Observability
 
-Minimum financial events should include IDs and non-sensitive financial metadata only.
+Financial events include IDs and non-sensitive financial metadata only.
 
 Examples:
 - `payment.initiated`
@@ -309,75 +309,41 @@ Never place card/bank secrets, provider credentials, full sensitive webhook bodi
 - External callbacks are verified before any state mutation.
 - Production activation requires separate operational approval after sandbox gate.
 
-## Phase 13 build slices
+## Phase 13 completion evidence
 
-### 13A — Financial data foundation
-Build:
-- PaymentAttempt
-- ledger accounts/entries
-- escrow record/state
-- wallet projection/read model
-- payout/refund records or equivalent durable financial entities
-- unique provider/idempotency constraints
-- RLS/API-role policies
-- financial event vocabulary
+### Data + migration
+- existing Supabase schema was safely baselined into Prisma migration history without reset/data loss
+- `20260914134000_phase13_payout_subject_type` applied
+- `20260914134100_phase13_payout_ledger_backfill` applied
+- Prisma Client regeneration, API typecheck and build passed
 
-### 13B — Payment gateway foundation
-Build:
-- provider-neutral payment port/adapter
-- sandbox provider implementation
-- create payment for Booking/Order
-- server-derived amount/currency/beneficiary
-- payment verification
-- verified webhook ingress
-- idempotent confirmation engine
-- Booking `PAYMENT_PENDING → FUNDED` integration
-- Order `PENDING → PAID` integration
-
-### 13C — Escrow + wallet
-Build:
-- hold service funds
-- release after valid completion confirmation
-- available/pending/escrow balances
-- transaction history
-- wallet API/web experience
-
-### 13D — Payout + refund + reconciliation
-Build:
-- withdrawal/payout request
-- provider payout confirmation/failure
-- authoritative refund workflow
-- compensating ledger entries
-- reconciliation tools/jobs
-- duplicate/out-of-order event tests
-
-### 13E — Financial web experience
-Build:
-- payment initiation UI
-- payment status/retry/recovery
-- wallet
-- transaction history
-- withdraw flow
-- explicit escrow status
-- refund/payout status
-
-### 13F — Sandbox money gate
-Runtime validation completed on 2026-09-14.
-
-Validated Service behavior:
+### Service path
 `Booking PAYMENT_PENDING → payment confirmed → escrow HELD → Booking FUNDED → work → completion → escrow RELEASED → available balance → payout`
 
-Validated Product behavior:
+### Product path
 `Order PENDING → payment confirmed + inventory deduction → PAID → fulfillment → COMPLETED → settlement`
 
-Validated resilience/compensation behavior:
-- duplicate payment webhook does not duplicate money movement
+### Refunds
+- Booking refund produced authoritative `REFUNDED` and removed held escrow exactly once
+- Order refund produced authoritative `REFUNDED` and restored tracked inventory exactly once
+- tested variant stock sequence `4 → 3 → 4`; duplicate refund webhook left stock at `4`
+
+### Payouts
 - payout success is authoritative and idempotent
 - payout failure restores `PAYOUT_RESERVED → AVAILABLE` exactly once
-- Booking refund produces authoritative `REFUNDED` and removes held escrow exactly once
-- Order refund produces authoritative `REFUNDED` and restores tracked inventory exactly once
-- duplicate Order refund webhook does not over-restore inventory
-- reconciliation returns healthy after completed operations
-- a Prisma interactive-transaction timeout that left a successful payment unapplied was reproduced, diagnosed and fixed; exact webhook replay then completed domain application without a second charge
+- final post-migration payout wrote `PAYOUT_RESERVED` and `PAYOUT_SENT` ledger rows with `subjectType=PAYOUT` and the durable payout UUID as `subjectId`
 
-The sandbox gate passing does not activate production payments. Production provider keys, production webhook routing, payout destinations, operational monitoring and production-risk approval remain a separate human gate.
+### Recovery defect fixed
+A Prisma interactive-transaction timeout could leave a provider-confirmed payment `SUCCEEDED` while domain application remained incomplete. Payment capture now uses explicit `maxWait: 10_000` and `timeout: 30_000`. Replaying the exact verified provider event completed domain application without a second charge.
+
+### Final reconciliation
+Both payer and beneficiary returned:
+- `healthy: true`
+- `issueCount: 0`
+- `issues: []`
+
+## Production activation boundary
+
+Phase 13 completion does not automatically enable production money movement.
+
+Production provider keys, production webhook routing, payout destinations, operational monitoring, reconciliation procedures and explicit human risk approval remain required before production activation.
