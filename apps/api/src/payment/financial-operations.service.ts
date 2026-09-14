@@ -99,8 +99,8 @@ export class FinancialOperationsService {
 
         await tx.ledgerTransaction.create({
           data: {
-            subjectType: FinancialSubjectType.ORDER,
-            subjectId: `PAYOUT:${created.id}`,
+            subjectType: FinancialSubjectType.PAYOUT,
+            subjectId: created.id,
             type: LedgerTransactionType.PAYOUT_RESERVED,
             reference: provider.reference,
             idempotencyKey: `payout:${created.id}:reserved`,
@@ -369,8 +369,8 @@ export class FinancialOperationsService {
         if (!existing) {
           await tx.ledgerTransaction.create({
             data: {
-              subjectType: FinancialSubjectType.ORDER,
-              subjectId: `PAYOUT:${payout.id}`,
+              subjectType: FinancialSubjectType.PAYOUT,
+              subjectId: payout.id,
               type: LedgerTransactionType.PAYOUT_REVERSED,
               reference: payout.providerReference,
               idempotencyKey: ledgerKey,
@@ -419,8 +419,8 @@ export class FinancialOperationsService {
       if (!existing) {
         await tx.ledgerTransaction.create({
           data: {
-            subjectType: FinancialSubjectType.ORDER,
-            subjectId: `PAYOUT:${payout.id}`,
+            subjectType: FinancialSubjectType.PAYOUT,
+            subjectId: payout.id,
             type: LedgerTransactionType.PAYOUT_SENT,
             reference: payout.providerReference,
             idempotencyKey: ledgerKey,
