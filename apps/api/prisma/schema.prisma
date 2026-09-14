@@ -137,6 +137,7 @@ enum OrderInventorySource {
 enum FinancialSubjectType {
   BOOKING
   ORDER
+  PAYOUT
 }
 
 enum PaymentAttemptStatus {
