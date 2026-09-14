@@ -305,103 +305,109 @@ export class PaymentService {
     const existing = await this.prisma.ledgerTransaction.findUnique({ where: { idempotencyKey } });
     if (existing) return existing;
 
-    return this.prisma.$transaction(async (tx) => {
-      const raced = await tx.ledgerTransaction.findUnique({ where: { idempotencyKey } });
-      if (raced) return raced;
+    return this.prisma.$transaction(
+      async (tx) => {
+        const raced = await tx.ledgerTransaction.findUnique({ where: { idempotencyKey } });
+        if (raced) return raced;
 
-      const clearing = await tx.ledgerAccount.upsert({
-        where: { key: `platform:${attempt.provider}:clearing:${attempt.currency}` },
-        create: {
-          key: `platform:${attempt.provider}:clearing:${attempt.currency}`,
-          type: FinancialAccountType.PROVIDER_CLEARING,
-          currency: attempt.currency
-        },
-        update: {}
-      });
-      const beneficiary = await tx.ledgerAccount.upsert({
-        where: { key: `user:${attempt.beneficiaryUserId}:${beneficiaryAccountType}:${attempt.currency}` },
-        create: {
-          key: `user:${attempt.beneficiaryUserId}:${beneficiaryAccountType}:${attempt.currency}`,
-          userId: attempt.beneficiaryUserId,
-          type: beneficiaryAccountType,
-          currency: attempt.currency
-        },
-        update: {}
-      });
-
-      const ledger = await tx.ledgerTransaction.create({
-        data: {
-          subjectType: attempt.subjectType,
-          subjectId: attempt.subjectId,
-          paymentAttemptId: attempt.id,
-          type: LedgerTransactionType.PAYMENT_CONFIRMED,
-          reference: attempt.providerReference,
-          idempotencyKey,
-          postings: {
-            create: [
-              { accountId: clearing.id, direction: LedgerPostingDirection.DEBIT, amountMinor: attempt.amountMinor },
-              { accountId: beneficiary.id, direction: LedgerPostingDirection.CREDIT, amountMinor: attempt.amountMinor }
-            ]
-          }
-        }
-      });
-
-      await tx.systemEvent.create({
-        data: {
-          name: "payment.confirmed",
-          source: "payment",
-          payload: {
-            paymentAttemptId: attempt.id,
-            subjectType: attempt.subjectType,
-            subjectId: attempt.subjectId,
-            provider: attempt.provider,
-            providerReference: attempt.providerReference,
-            amountMinor: attempt.amountMinor,
-            currency: attempt.currency
-          }
-        }
-      });
-
-      if (attempt.subjectType === FinancialSubjectType.BOOKING) {
-        const escrow = await tx.escrowRecord.upsert({
-          where: { subjectType_subjectId: { subjectType: attempt.subjectType, subjectId: attempt.subjectId } },
+        const clearing = await tx.ledgerAccount.upsert({
+          where: { key: `platform:${attempt.provider}:clearing:${attempt.currency}` },
           create: {
-            subjectType: attempt.subjectType,
-            subjectId: attempt.subjectId,
-            paymentAttemptId: attempt.id,
-            beneficiaryUserId: attempt.beneficiaryUserId,
-            amountMinor: attempt.amountMinor,
-            currency: attempt.currency,
-            status: EscrowStatus.HELD,
-            heldAt: new Date()
+            key: `platform:${attempt.provider}:clearing:${attempt.currency}`,
+            type: FinancialAccountType.PROVIDER_CLEARING,
+            currency: attempt.currency
           },
           update: {}
         });
-        if (escrow.paymentAttemptId !== attempt.id || escrow.amountMinor !== attempt.amountMinor || escrow.currency !== attempt.currency) {
-          throw new ConflictException("Existing escrow does not match this payment attempt");
-        }
-        if (escrow.status !== EscrowStatus.HELD) {
-          throw new ConflictException(`Booking escrow cannot be funded from ${escrow.status}`);
-        }
-        await tx.systemEvent.create({
+        const beneficiary = await tx.ledgerAccount.upsert({
+          where: { key: `user:${attempt.beneficiaryUserId}:${beneficiaryAccountType}:${attempt.currency}` },
+          create: {
+            key: `user:${attempt.beneficiaryUserId}:${beneficiaryAccountType}:${attempt.currency}`,
+            userId: attempt.beneficiaryUserId,
+            type: beneficiaryAccountType,
+            currency: attempt.currency
+          },
+          update: {}
+        });
+
+        const ledger = await tx.ledgerTransaction.create({
           data: {
-            name: "escrow.held",
-            source: "payment",
-            payload: {
-              escrowId: escrow.id,
-              paymentAttemptId: attempt.id,
-              bookingId: attempt.subjectId,
-              beneficiaryUserId: attempt.beneficiaryUserId,
-              amountMinor: attempt.amountMinor,
-              currency: attempt.currency,
-              status: EscrowStatus.HELD
+            subjectType: attempt.subjectType,
+            subjectId: attempt.subjectId,
+            paymentAttemptId: attempt.id,
+            type: LedgerTransactionType.PAYMENT_CONFIRMED,
+            reference: attempt.providerReference,
+            idempotencyKey,
+            postings: {
+              create: [
+                { accountId: clearing.id, direction: LedgerPostingDirection.DEBIT, amountMinor: attempt.amountMinor },
+                { accountId: beneficiary.id, direction: LedgerPostingDirection.CREDIT, amountMinor: attempt.amountMinor }
+              ]
             }
           }
         });
-      }
 
-      return ledger;
-    });
+        await tx.systemEvent.create({
+          data: {
+            name: "payment.confirmed",
+            source: "payment",
+            payload: {
+              paymentAttemptId: attempt.id,
+              subjectType: attempt.subjectType,
+              subjectId: attempt.subjectId,
+              provider: attempt.provider,
+              providerReference: attempt.providerReference,
+              amountMinor: attempt.amountMinor,
+              currency: attempt.currency
+            }
+          }
+        });
+
+        if (attempt.subjectType === FinancialSubjectType.BOOKING) {
+          const escrow = await tx.escrowRecord.upsert({
+            where: { subjectType_subjectId: { subjectType: attempt.subjectType, subjectId: attempt.subjectId } },
+            create: {
+              subjectType: attempt.subjectType,
+              subjectId: attempt.subjectId,
+              paymentAttemptId: attempt.id,
+              beneficiaryUserId: attempt.beneficiaryUserId,
+              amountMinor: attempt.amountMinor,
+              currency: attempt.currency,
+              status: EscrowStatus.HELD,
+              heldAt: new Date()
+            },
+            update: {}
+          });
+          if (escrow.paymentAttemptId !== attempt.id || escrow.amountMinor !== attempt.amountMinor || escrow.currency !== attempt.currency) {
+            throw new ConflictException("Existing escrow does not match this payment attempt");
+          }
+          if (escrow.status !== EscrowStatus.HELD) {
+            throw new ConflictException(`Booking escrow cannot be funded from ${escrow.status}`);
+          }
+          await tx.systemEvent.create({
+            data: {
+              name: "escrow.held",
+              source: "payment",
+              payload: {
+                escrowId: escrow.id,
+                paymentAttemptId: attempt.id,
+                bookingId: attempt.subjectId,
+                beneficiaryUserId: attempt.beneficiaryUserId,
+                amountMinor: attempt.amountMinor,
+                currency: attempt.currency,
+                status: EscrowStatus.HELD
+              }
+            }
+          });
+        }
+
+        return ledger;
+      },
+      {
+        maxWait: 10_000,
+        timeout: 30_000
+      }
+    );
   }
 
   private async resolveSubject(subjectType: FinancialSubjectType, subjectId: string, payerUserId: string): Promise<PaymentSubject> {
