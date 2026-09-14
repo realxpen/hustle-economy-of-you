@@ -1,7 +1,7 @@
 # Payments + Escrow
 
-Status: CANONICAL — Phase 13 ACTIVE
-Updated: 2026-09-11
+Status: CANONICAL — Phase 13 SANDBOX GATE PASSED; final migration verification pending
+Updated: 2026-09-14
 
 ## Purpose
 
@@ -63,13 +63,18 @@ Phase 13 must not create separate incompatible payment systems for Bookings and 
 
 A common financial layer owns money movement while transaction domains retain their own business lifecycle.
 
-Supported transaction subjects:
+Supported payment/refund transaction subjects:
 - `BOOKING`
 - `ORDER`
 
+Ledger subjects may additionally use:
+- `PAYOUT` — operational ledger movements for withdrawal reservation, provider-confirmed payout and failed-payout reversal
+
+`PAYOUT` is not a valid collection/refund transaction subject. Payment initialization and refund APIs remain restricted to `BOOKING` and `ORDER`.
+
 Canonical relationship:
 
-`Payment / Ledger / Escrow → transaction subject reference`
+`Payment / Ledger / Escrow → transaction or financial-operation subject reference`
 
 The subject remains authoritative for non-financial lifecycle state:
 - Booking owns work lifecycle
@@ -121,7 +126,7 @@ The ledger is the auditable financial record.
 Use immutable append-only entries rather than mutating historical money movements.
 
 Every posted ledger entry should identify:
-- transaction subject
+- transaction or financial-operation subject
 - payment/payout/refund reference where applicable
 - currency
 - amount
@@ -139,6 +144,8 @@ The ledger must support deriving/reconciling:
 - money released
 - refunds
 - payouts
+
+Payout ledger entries use `subjectType=PAYOUT` and `subjectId=<payoutId>`. Earlier Phase 13 sandbox rows that temporarily used `ORDER` with `PAYOUT:<id>` are repaired by the Phase 13 finalization migrations.
 
 ## Escrow semantics
 
@@ -215,6 +222,8 @@ Rules:
 - idempotency is required
 
 Do not mark payout success from a browser response alone.
+
+Payout ledger movements are operational financial subjects, not Orders. They are classified as `PAYOUT` with the durable Payout ID as `subjectId`.
 
 ## Refunds
 
@@ -353,19 +362,22 @@ Build:
 - refund/payout status
 
 ### 13F — Sandbox money gate
-Validate with real sandbox provider behavior:
+Runtime validation completed on 2026-09-14.
 
-Service:
+Validated Service behavior:
 `Booking PAYMENT_PENDING → payment confirmed → escrow HELD → Booking FUNDED → work → completion → escrow RELEASED → available balance → payout`
 
-Product:
-`Order PENDING → payment confirmed + inventory deduction → PAID → fulfillment → COMPLETED`
+Validated Product behavior:
+`Order PENDING → payment confirmed + inventory deduction → PAID → fulfillment → COMPLETED → settlement`
 
-Also validate:
-- duplicate webhook does not duplicate money movement
-- stale/invalid payment cannot advance transaction state
-- insufficient inventory safely blocks paid Order confirmation
-- refund produces authoritative financial + transaction state
-- payout failure/retry remains reconcilable
+Validated resilience/compensation behavior:
+- duplicate payment webhook does not duplicate money movement
+- payout success is authoritative and idempotent
+- payout failure restores `PAYOUT_RESERVED → AVAILABLE` exactly once
+- Booking refund produces authoritative `REFUNDED` and removes held escrow exactly once
+- Order refund produces authoritative `REFUNDED` and restores tracked inventory exactly once
+- duplicate Order refund webhook does not over-restore inventory
+- reconciliation returns healthy after completed operations
+- a Prisma interactive-transaction timeout that left a successful payment unapplied was reproduced, diagnosed and fixed; exact webhook replay then completed domain application without a second charge
 
-Only after this gate should production payment activation be considered.
+The sandbox gate passing does not activate production payments. Production provider keys, production webhook routing, payout destinations, operational monitoring and production-risk approval remain a separate human gate.
