@@ -226,6 +226,13 @@ enum CounterpartyFeedbackIssue {
   OTHER
 }
 
+enum SafetyReportSubjectType {
+  BOOKING
+  ORDER
+  PROFILE
+  CONVERSATION
+}
+
 enum SafetyReportCategory {
   HARASSMENT
   FRAUD_SCAM
@@ -542,12 +549,12 @@ model PostSave {
 
 model PostComment {
   id        String   @id @default(cuid())
-  postId    String
-  userId    String
-  parentId  String?
-  body      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  postId     String
+  userId     String
+  parentId   String?
+  body       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
   user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1003,19 +1010,19 @@ model CounterpartyFeedback {
 }
 
 model SafetyReport {
-  id             String               @id @default(cuid())
-  subjectType    ReviewSubjectType
+  id             String                  @id @default(cuid())
+  subjectType    SafetyReportSubjectType
   subjectId      String
   reporterUserId String
   targetUserId   String
   category       SafetyReportCategory
   details        String
-  status         SafetyReportStatus   @default(OPEN)
+  status         SafetyReportStatus      @default(OPEN)
   moderationNote String?
   reviewedAt     DateTime?
   resolvedAt     DateTime?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
 
   reporter User @relation("SafetyReportReporter", fields: [reporterUserId], references: [id], onDelete: Restrict)
   target   User @relation("SafetyReportTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
