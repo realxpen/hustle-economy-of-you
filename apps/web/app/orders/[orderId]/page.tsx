@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
+import { CounterpartyFeedbackCard } from "../../../components/trust/counterparty-feedback-card";
 import { ReviewEligibilityCard } from "../../../components/trust/review-eligibility-card";
 import {
   cancelOrder,
@@ -105,6 +106,10 @@ export default function OrderDetailPage() {
 
     <div style={{ marginTop: 18 }}>
       <ReviewEligibilityCard subjectType="ORDER" subjectId={order.id} />
+    </div>
+
+    <div style={{ marginTop: 18 }}>
+      <CounterpartyFeedbackCard subjectType="ORDER" subjectId={order.id} />
     </div>
 
     {(canCancel || canProcess || canShip || canDeliver || canComplete) && <section className={styles.panel} style={{ marginTop: 18 }}>
