@@ -14,6 +14,17 @@ export type CounterpartyFeedbackIssue =
   | "PAYMENT_ABUSE"
   | "OTHER";
 
+export type SafetyReportCategory =
+  | "HARASSMENT"
+  | "FRAUD_SCAM"
+  | "THREATS"
+  | "FAKE_IDENTITY"
+  | "PAYMENT_ABUSE"
+  | "PROHIBITED_GOODS_SERVICES"
+  | "SPAM"
+  | "OFF_PLATFORM_MANIPULATION"
+  | "OTHER";
+
 export interface ExistingCounterpartyFeedback {
   id: string;
   createdAt: string;
@@ -53,6 +64,30 @@ export interface CounterpartyFeedbackRecord {
   createdAt: string;
   updatedAt: string;
   target: ReviewUser;
+}
+
+export interface SafetyReportRecord {
+  id: string;
+  subjectType: ReviewSubjectType;
+  subjectId: string;
+  reporterUserId: string;
+  targetUserId: string;
+  category: SafetyReportCategory;
+  details: string;
+  status: "OPEN" | "UNDER_REVIEW" | "ACTIONED" | "DISMISSED";
+  reviewedAt?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  target: ReviewUser;
+}
+
+export interface BlockStatus {
+  target: ReviewUser;
+  isSelf: boolean;
+  viewerBlockedTarget: boolean;
+  targetBlockedViewer: boolean;
+  messagingAllowed: boolean;
 }
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
@@ -106,4 +141,45 @@ export async function createCounterpartyFeedback(input: {
     body: JSON.stringify(input)
   });
   return response.json() as Promise<CounterpartyFeedbackRecord>;
+}
+
+export async function createTransactionSafetyReport(input: {
+  subjectType: ReviewSubjectType;
+  subjectId: string;
+  category: SafetyReportCategory;
+  details: string;
+}) {
+  const response = await authenticatedFetch("/trust-safety/reports", {
+    method: "POST",
+    body: JSON.stringify(input)
+  });
+  return response.json() as Promise<SafetyReportRecord>;
+}
+
+export async function getBlockStatus(targetUserId: string) {
+  const response = await authenticatedFetch(
+    `/trust-safety/blocks/status/${encodeURIComponent(targetUserId)}`
+  );
+  return response.json() as Promise<BlockStatus>;
+}
+
+export async function blockUser(targetUserId: string) {
+  const response = await authenticatedFetch(
+    `/trust-safety/blocks/${encodeURIComponent(targetUserId)}`,
+    { method: "POST" }
+  );
+  return response.json() as Promise<{
+    blockerUserId: string;
+    blockedUserId: string;
+    blocked: true;
+    target: ReviewUser;
+  }>;
+}
+
+export async function unblockUser(targetUserId: string) {
+  const response = await authenticatedFetch(
+    `/trust-safety/blocks/${encodeURIComponent(targetUserId)}`,
+    { method: "DELETE" }
+  );
+  return response.json() as Promise<{ blocked: false; targetUserId: string }>;
 }
