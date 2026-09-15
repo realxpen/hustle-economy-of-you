@@ -165,7 +165,10 @@ export async function getLatestPayment(subjectType: FinancialSubjectType, subjec
   const response = await authenticatedFetch(
     `/payments/subjects/${encodeURIComponent(subjectType)}/${encodeURIComponent(subjectId)}/latest`
   );
-  return response.json() as Promise<PaymentAttemptRecord | null>;
+  if (response.status === 204) return null;
+  const body = await response.text();
+  if (!body.trim()) return null;
+  return JSON.parse(body) as PaymentAttemptRecord | null;
 }
 
 export async function getWallet() {
