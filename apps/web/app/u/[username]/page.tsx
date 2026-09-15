@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { PublicProfessionalProfile } from "@hustle/types";
+import { ProfileContactActions } from "../../../components/trust/profile-contact-actions";
 import { PublicReputationPanel } from "../../../components/trust/public-reputation-panel";
 import { getPublicProfessionalProfile } from "../../../lib/professional-profile";
 import { getPublicTrustSummary, type PublicTrustSummary } from "../../../lib/trust";
@@ -60,6 +61,8 @@ export default function PublicProfilePage() {
   const { user, profile } = data;
   const initial = (user.displayName ?? user.username ?? "H").charAt(0).toUpperCase();
   const skills = [profile.primarySkill, ...profile.secondarySkills].filter(Boolean) as string[];
+  const targetLabel = user.displayName ?? user.username ?? "this user";
+  const messageHref = `/messages/start?userId=${encodeURIComponent(user.id)}`;
 
   return <main className={styles.shell}>
     <header className={styles.header}>
@@ -87,7 +90,11 @@ export default function PublicProfilePage() {
             {user.verified && <span>IDENTITY VERIFIED</span>}
             {trust?.trust.hasVerifiedReviews && <span>VERIFIED REVIEWS</span>}
           </div>
-          <a className={styles.messageCta} href={`/messages/start?userId=${encodeURIComponent(user.id)}`}>Message →</a>
+          <ProfileContactActions
+            targetUserId={user.id}
+            targetLabel={targetLabel}
+            messageHref={messageHref}
+          />
         </div>
       </div>
     </section>
