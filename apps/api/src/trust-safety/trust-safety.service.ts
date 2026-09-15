@@ -12,7 +12,8 @@ import {
   Prisma,
   ReviewPartyRole,
   ReviewSubjectType,
-  SafetyReportCategory
+  SafetyReportCategory,
+  SafetyReportSubjectType
 } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
@@ -55,6 +56,16 @@ type ParticipantAuthority = {
   transactionStatusSnapshot: string;
 };
 
+type SafetyReportAuthority = {
+  subjectType: SafetyReportSubjectType;
+  subjectId: string;
+  reporterUserId: string;
+  targetUserId: string;
+  reporterRole: ReviewPartyRole | null;
+  targetRole: ReviewPartyRole | null;
+  transactionStatusSnapshot: string | null;
+};
+
 const privateUserSelect = {
   id: true,
   displayName: true,
@@ -72,7 +83,7 @@ export class TrustSafetyService {
     subjectIdInput: string
   ) {
     const user = await this.requireUser(identity);
-    const subjectType = this.subjectType(subjectTypeInput);
+    const subjectType = this.transactionSubjectType(subjectTypeInput);
     const subjectId = this.requiredId(subjectIdInput, "subjectId");
     const authority = await this.counterpartyAuthority(user.id, subjectType, subjectId);
 
@@ -169,7 +180,7 @@ export class TrustSafetyService {
 
   async createFeedback(identity: AuthIdentity, input: CreateCounterpartyFeedbackInput) {
     const user = await this.requireUser(identity);
-    const subjectType = this.subjectType(input.subjectType);
+    const subjectType = this.transactionSubjectType(input.subjectType);
     const subjectId = this.requiredId(input.subjectId, "subjectId");
     const wouldWorkAgain = this.requiredBoolean(input.wouldWorkAgain, "wouldWorkAgain");
     const experienceRating = this.optionalRating(input.experienceRating);
@@ -248,11 +259,11 @@ export class TrustSafetyService {
 
   async createReport(identity: AuthIdentity, input: CreateSafetyReportInput) {
     const user = await this.requireUser(identity);
-    const subjectType = this.subjectType(input.subjectType);
+    const subjectType = this.reportSubjectType(input.subjectType);
     const subjectId = this.requiredId(input.subjectId, "subjectId");
     const category = this.reportCategory(input.category);
     const details = this.requiredText(input.details, "details", 10, 2000);
-    const authority = await this.participantAuthority(user.id, subjectType, subjectId);
+    const authority = await this.reportAuthority(user.id, subjectType, subjectId);
 
     if (authority.reporterUserId === authority.targetUserId) {
       throw new BadRequestException("A user cannot report themselves");
@@ -306,7 +317,7 @@ export class TrustSafetyService {
       });
     } catch (error) {
       if (this.isUniqueConflict(error)) {
-        throw new ConflictException("You have already submitted this report category for this transaction");
+        throw new ConflictException("You have already submitted this report category for this context");
       }
       throw error;
     }
@@ -395,6 +406,73 @@ export class TrustSafetyService {
       orderBy: { createdAt: "desc" },
       include: { blocked: { select: privateUserSelect } }
     });
+  }
+
+  private async reportAuthority(
+    requesterUserId: string,
+    subjectType: SafetyReportSubjectType,
+    subjectId: string
+  ): Promise<SafetyReportAuthority> {
+    if (subjectType === SafetyReportSubjectType.BOOKING || subjectType === SafetyReportSubjectType.ORDER) {
+      const transactionType = subjectType === SafetyReportSubjectType.BOOKING
+        ? ReviewSubjectType.BOOKING
+        : ReviewSubjectType.ORDER;
+      const participant = await this.participantAuthority(requesterUserId, transactionType, subjectId);
+      return {
+        subjectType,
+        subjectId,
+        reporterUserId: participant.reporterUserId,
+        targetUserId: participant.targetUserId,
+        reporterRole: participant.reporterRole,
+        targetRole: participant.targetRole,
+        transactionStatusSnapshot: participant.transactionStatusSnapshot
+      };
+    }
+
+    if (subjectType === SafetyReportSubjectType.PROFILE) {
+      const target = await this.prisma.user.findUnique({
+        where: { id: subjectId },
+        select: { id: true }
+      });
+      if (!target) throw new NotFoundException("Profile user not found");
+      if (target.id === requesterUserId) throw new BadRequestException("A user cannot report themselves");
+      return {
+        subjectType,
+        subjectId,
+        reporterUserId: requesterUserId,
+        targetUserId: target.id,
+        reporterRole: null,
+        targetRole: null,
+        transactionStatusSnapshot: null
+      };
+    }
+
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: subjectId },
+      select: {
+        participants: {
+          select: { userId: true }
+        }
+      }
+    });
+    if (!conversation) throw new NotFoundException("Conversation not found");
+    const participantIds = conversation.participants.map((participant) => participant.userId);
+    if (!participantIds.includes(requesterUserId)) {
+      throw new ForbiddenException("Only conversation participants can report from this conversation");
+    }
+    const counterpartIds = participantIds.filter((userId) => userId !== requesterUserId);
+    if (counterpartIds.length !== 1) {
+      throw new ConflictException("Conversation safety reporting currently supports direct conversations only");
+    }
+    return {
+      subjectType,
+      subjectId,
+      reporterUserId: requesterUserId,
+      targetUserId: counterpartIds[0],
+      reporterRole: null,
+      targetRole: null,
+      transactionStatusSnapshot: null
+    };
   }
 
   private async counterpartyAuthority(
@@ -516,12 +594,20 @@ export class TrustSafetyService {
     return user;
   }
 
-  private subjectType(value: unknown) {
+  private transactionSubjectType(value: unknown) {
     const normalized = typeof value === "string" ? value.trim().toUpperCase() : "";
     if (normalized === ReviewSubjectType.BOOKING || normalized === ReviewSubjectType.ORDER) {
       return normalized as ReviewSubjectType;
     }
     throw new BadRequestException("subjectType must be BOOKING or ORDER");
+  }
+
+  private reportSubjectType(value: unknown) {
+    const normalized = typeof value === "string" ? value.trim().toUpperCase() : "";
+    if (Object.values(SafetyReportSubjectType).includes(normalized as SafetyReportSubjectType)) {
+      return normalized as SafetyReportSubjectType;
+    }
+    throw new BadRequestException("subjectType must be BOOKING, ORDER, PROFILE or CONVERSATION");
   }
 
   private reportCategory(value: unknown) {

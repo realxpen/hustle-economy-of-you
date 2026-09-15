@@ -14,6 +14,8 @@ export type CounterpartyFeedbackIssue =
   | "PAYMENT_ABUSE"
   | "OTHER";
 
+export type SafetyReportSubjectType = ReviewSubjectType | "PROFILE" | "CONVERSATION";
+
 export type SafetyReportCategory =
   | "HARASSMENT"
   | "FRAUD_SCAM"
@@ -68,7 +70,7 @@ export interface CounterpartyFeedbackRecord {
 
 export interface SafetyReportRecord {
   id: string;
-  subjectType: ReviewSubjectType;
+  subjectType: SafetyReportSubjectType;
   subjectId: string;
   reporterUserId: string;
   targetUserId: string;
@@ -143,8 +145,8 @@ export async function createCounterpartyFeedback(input: {
   return response.json() as Promise<CounterpartyFeedbackRecord>;
 }
 
-export async function createTransactionSafetyReport(input: {
-  subjectType: ReviewSubjectType;
+export async function createSafetyReport(input: {
+  subjectType: SafetyReportSubjectType;
   subjectId: string;
   category: SafetyReportCategory;
   details: string;
@@ -154,6 +156,15 @@ export async function createTransactionSafetyReport(input: {
     body: JSON.stringify(input)
   });
   return response.json() as Promise<SafetyReportRecord>;
+}
+
+export async function createTransactionSafetyReport(input: {
+  subjectType: ReviewSubjectType;
+  subjectId: string;
+  category: SafetyReportCategory;
+  details: string;
+}) {
+  return createSafetyReport(input);
 }
 
 export async function getBlockStatus(targetUserId: string) {

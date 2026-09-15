@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { ConversationSafetyActions } from "../../../components/trust/conversation-safety-actions";
 import {
   createMessageAttachmentUrl,
   deleteMessageAttachment,
@@ -299,6 +300,14 @@ export default function ConversationPage() {
       </div>
       <button className={styles.refresh} type="button" onClick={() => void refresh()}>Refresh</button>
     </header>
+
+    {conversationId && other && <div style={{ padding: "14px 18px 0" }}>
+      <ConversationSafetyActions
+        conversationId={conversationId}
+        targetUserId={other.id}
+        targetLabel={other.displayName ?? other.username ?? "this user"}
+      />
+    </div>}
 
     <div className={styles.threadBody}>
       <section className={styles.messages}>
