@@ -15,6 +15,7 @@ import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 type EligibilityReason =
   | "ELIGIBLE"
   | "ALREADY_REVIEWED"
+  | "REVIEWER_ROLE_NOT_ELIGIBLE"
   | "SELF_REVIEW_BLOCKED"
   | "TRANSACTION_REFUNDED"
   | "TRANSACTION_DISPUTED"
@@ -83,6 +84,7 @@ export class ReviewEligibilityService {
         reviewerRole: ReviewPartyRole.HUSTLER,
         revieweeRole: ReviewPartyRole.CLIENT
       };
+      return this.result(context, false, "REVIEWER_ROLE_NOT_ELIGIBLE", false);
     } else {
       throw new ForbiddenException("Only Booking participants can access review eligibility");
     }
@@ -167,6 +169,7 @@ export class ReviewEligibilityService {
         reviewerRole: ReviewPartyRole.SELLER,
         revieweeRole: ReviewPartyRole.BUYER
       };
+      return this.result(context, false, "REVIEWER_ROLE_NOT_ELIGIBLE", false);
     } else {
       throw new ForbiddenException("Only Order participants can access review eligibility");
     }
@@ -265,6 +268,7 @@ export class ReviewEligibilityService {
     const messages: Record<EligibilityReason, string> = {
       ELIGIBLE: "This verified transaction is eligible for a review.",
       ALREADY_REVIEWED: "You have already reviewed this transaction.",
+      REVIEWER_ROLE_NOT_ELIGIBLE: "Public reputation reviews are submitted by Clients and Buyers for providers in the Phase 14 MVP.",
       SELF_REVIEW_BLOCKED: "A user cannot review themselves.",
       TRANSACTION_REFUNDED: "Refunded transactions are not eligible for reviews.",
       TRANSACTION_DISPUTED: "Disputed transactions are not eligible for reviews until resolved through a reviewable completion path.",

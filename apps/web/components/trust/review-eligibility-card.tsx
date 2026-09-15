@@ -42,6 +42,13 @@ export function ReviewEligibilityCard({
     };
   }, [subjectId, subjectType]);
 
+  // Phase 14 public reputation is demand-side -> provider only. Provider-side
+  // callers may query eligibility for an authoritative answer, but they do not
+  // receive a public review surface in the product experience.
+  if (!loading && !error && eligibility?.reasonCode === "REVIEWER_ROLE_NOT_ELIGIBLE") {
+    return null;
+  }
+
   return <section className={styles.card} aria-live="polite">
     <div className={styles.heading}>
       <div>
