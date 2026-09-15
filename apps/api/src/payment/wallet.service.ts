@@ -199,8 +199,8 @@ export class WalletService {
       }
     });
     if (!order) throw new NotFoundException("Order not found");
-    if (order.sellerUserId !== user.id) {
-      throw new ForbiddenException("Only the Order seller can release completed settlement");
+    if (order.buyerUserId !== user.id) {
+      throw new ForbiddenException("Only the Order buyer can release completed settlement");
     }
     if (order.status !== OrderStatus.COMPLETED) {
       throw new ConflictException(`Order settlement cannot be released from ${order.status}`);
@@ -293,7 +293,7 @@ export class WalletService {
               amountMinor: order.totalMinor,
               currency: order.currency,
               actorUserId: user.id,
-              actorRelationship: "SELLER"
+              actorRelationship: "BUYER"
             }
           }
         });
