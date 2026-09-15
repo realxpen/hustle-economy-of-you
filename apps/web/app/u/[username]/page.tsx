@@ -3,20 +3,50 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { PublicProfessionalProfile } from "@hustle/types";
+import { PublicReputationPanel } from "../../../components/trust/public-reputation-panel";
 import { getPublicProfessionalProfile } from "../../../lib/professional-profile";
+import { getPublicTrustSummary, type PublicTrustSummary } from "../../../lib/trust";
 import styles from "./page.module.css";
 
 export default function PublicProfilePage() {
   const params = useParams<{ username: string }>();
   const [data, setData] = useState<PublicProfessionalProfile | null>(null);
+  const [trust, setTrust] = useState<PublicTrustSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [trustError, setTrustError] = useState<string | null>(null);
+  const [trustLoading, setTrustLoading] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const username = params?.username;
     if (!username) return;
+
+    setData(null);
+    setTrust(null);
+    setError(null);
+    setTrustError(null);
+
     getPublicProfessionalProfile(username)
-      .then(setData)
-      .catch((reason: Error) => setError(reason.message));
+      .then(async (profileData) => {
+        if (!active) return;
+        setData(profileData);
+        setTrustLoading(true);
+        try {
+          const summary = await getPublicTrustSummary(profileData.user.id, 8);
+          if (active) setTrust(summary);
+        } catch (reason) {
+          if (active) setTrustError(reason instanceof Error ? reason.message : "Could not load reputation");
+        } finally {
+          if (active) setTrustLoading(false);
+        }
+      })
+      .catch((reason: Error) => {
+        if (active) setError(reason.message);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [params?.username]);
 
   if (error) {
@@ -46,9 +76,17 @@ export default function PublicProfilePage() {
           <p className={styles.kicker}>PROFESSIONAL IDENTITY</p>
           <h1>{user.displayName ?? `@${user.username}`}</h1>
           <span>@{user.username} · {user.location ?? "Location not set"}</span>
+          {trust && trust.reputation.reviewCount > 0 && <div className={styles.ratingLine}>
+            <strong>★ {trust.reputation.averageRating?.toFixed(1)}</strong>
+            <span>{trust.reputation.verifiedReviewCount} verified review{trust.reputation.verifiedReviewCount === 1 ? "" : "s"}</span>
+          </div>}
         </div>
         <div className={styles.actions}>
-          <div className={styles.badges}><span>HUSTLER</span>{user.verified && <span>VERIFIED</span>}</div>
+          <div className={styles.badges}>
+            <span>HUSTLER</span>
+            {user.verified && <span>IDENTITY VERIFIED</span>}
+            {trust?.trust.hasVerifiedReviews && <span>VERIFIED REVIEWS</span>}
+          </div>
           <a className={styles.messageCta} href={`/messages/start?userId=${encodeURIComponent(user.id)}`}>Message →</a>
         </div>
       </div>
@@ -67,8 +105,14 @@ export default function PublicProfilePage() {
         <div><small>CATEGORY</small><strong>{profile.category}</strong></div>
         <div><small>EXPERIENCE</small><strong>{profile.yearsExperience ?? 0}+ years</strong></div>
         <div><small>IDENTITY</small><strong>CLIENT + HUSTLER</strong></div>
-        <p>Services, products, content and verified outcomes will attach to this same identity as Hustle evolves.</p>
+        <p>Services, products, content and verified outcomes attach to this same Hustle identity.</p>
       </aside>
+    </section>
+
+    <section className={styles.reputationWrap}>
+      {trustLoading && <div className={styles.trustState}>Loading verified reputation…</div>}
+      {trustError && <div className={styles.trustError}>Reputation is temporarily unavailable: {trustError}</div>}
+      {trust && <PublicReputationPanel summary={trust} />}
     </section>
   </main>;
 }

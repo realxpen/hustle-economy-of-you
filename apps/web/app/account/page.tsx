@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { HustleAccount } from "@hustle/types";
+import { GivenReviewHistory } from "../../components/trust/given-review-history";
 import { getMyAccount } from "../../lib/auth/hustle-account";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 
@@ -40,7 +41,7 @@ export default function AccountPage() {
     </section>
     <section className="accountGrid">
       <article className="capabilityCard"><small>CAPABILITIES</small><div className="capabilityList">{account.capabilities.map((item) => <div key={item.capability}><strong>{item.capability}</strong><span className={item.status.toLowerCase()}>{item.status}</span></div>)}</div><p>Capabilities accumulate on this identity. You never switch roles.</p></article>
-      <article className="trustCard"><small>TRUST FOUNDATION</small><div className="trustMetric"><strong>{account.emailVerified || account.phoneVerified ? "Verified" : "Pending"}</strong><span>Contact identity</span></div><div className="trustMetric"><strong>One</strong><span>Reputation history</span></div></article>
+      <article className="trustCard"><small>TRUST FOUNDATION</small><div className="trustMetric"><strong>{account.emailVerified || account.phoneVerified ? "Verified" : "Pending"}</strong><span>Contact identity</span></div><div className="trustMetric"><strong>Transaction-backed</strong><span>Public provider reviews only</span></div></article>
       <article className="nextCard">
         <small>{isHustler ? "PROFESSIONAL ECONOMY" : "NEXT UNLOCK"}</small>
         <h2>{isHustler ? "Turn capability into proof and offers." : "Show what you can do."}</h2>
@@ -59,5 +60,7 @@ export default function AccountPage() {
         {isHustler && <a className="futureTag" href="/products/manage">MANAGE PRODUCTS →</a>}
       </article>
     </section>
+
+    <GivenReviewHistory />
   </main>;
 }

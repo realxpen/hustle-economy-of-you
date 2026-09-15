@@ -84,6 +84,20 @@ export interface UserReputation {
   averageRating: number | null;
 }
 
+export interface PublicTrustSummary {
+  user: ReviewUser;
+  reputation: UserReputation;
+  trust: {
+    marker: "VERIFIED_REVIEWS" | "NO_VERIFIED_REVIEWS_YET";
+    hasVerifiedReviews: boolean;
+  };
+  reviews: {
+    items: ReviewRecord[];
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+}
+
 export interface CreateReviewResult {
   review: ReviewRecord;
   reputation: UserReputation;
@@ -161,6 +175,16 @@ export async function listReceivedReviews(userId: string, limit = 20, cursor?: s
 export async function getUserReputation(userId: string) {
   const response = await authenticatedFetch(`/reviews/users/${encodeURIComponent(userId)}/reputation`);
   return response.json() as Promise<{ user: ReviewUser; reputation: UserReputation }>;
+}
+
+export async function getPublicTrustSummary(userId: string, limit = 8) {
+  const query = new URLSearchParams({ limit: String(limit) });
+  const response = await fetch(
+    `${apiBase}/trust/users/${encodeURIComponent(userId)}/summary?${query.toString()}`,
+    { cache: "no-store" }
+  );
+  if (!response.ok) throw new Error(await parseError(response));
+  return response.json() as Promise<PublicTrustSummary>;
 }
 
 export function revieweeLabel(eligibility: ReviewEligibility) {
