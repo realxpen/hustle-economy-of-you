@@ -70,6 +70,12 @@
   gap: 10px;
 }
 
+.reportAction {
+  display: grid;
+  gap: 10px;
+  min-width: min(100%, 320px);
+}
+
 .primary,
 .secondary,
 .danger {
@@ -157,7 +163,8 @@
 
   .primary,
   .secondary,
-  .danger {
+  .danger,
+  .reportAction {
     width: 100%;
   }
 }
