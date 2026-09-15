@@ -11,6 +11,7 @@ import {
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
+import { BlockPolicyService } from "./block-policy.service";
 import {
   TrustSafetyService,
   type CreateCounterpartyFeedbackInput,
@@ -20,7 +21,10 @@ import {
 @Controller("trust-safety")
 @UseGuards(AuthGuard)
 export class TrustSafetyController {
-  constructor(private readonly trustSafety: TrustSafetyService) {}
+  constructor(
+    private readonly trustSafety: TrustSafetyService,
+    private readonly blockPolicy: BlockPolicyService
+  ) {}
 
   @Get("feedback/eligibility/:subjectType/:subjectId")
   feedbackEligibility(
@@ -55,6 +59,14 @@ export class TrustSafetyController {
   @Get("reports/me")
   myReports(@CurrentIdentity() identity: AuthIdentity) {
     return this.trustSafety.listMyReports(identity);
+  }
+
+  @Get("blocks/status/:targetUserId")
+  blockStatus(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("targetUserId") targetUserId: string
+  ) {
+    return this.blockPolicy.status(identity, targetUserId);
   }
 
   @Post("blocks/:targetUserId")
