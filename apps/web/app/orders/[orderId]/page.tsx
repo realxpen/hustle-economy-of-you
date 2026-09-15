@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
 import { CounterpartyFeedbackCard } from "../../../components/trust/counterparty-feedback-card";
 import { ReviewEligibilityCard } from "../../../components/trust/review-eligibility-card";
+import { TransactionSafetyActions } from "../../../components/trust/transaction-safety-actions";
 import {
   cancelOrder,
   completeOrder,
@@ -62,6 +63,8 @@ export default function OrderDetailPage() {
   if (!order) return <main className={styles.shell}><div className={styles.loading}>Loading Order…</div></main>;
 
   const counterpart = order.viewerRole === "BUYER" ? order.seller : order.buyer;
+  const counterpartLabel = counterpart.displayName ?? counterpart.username ?? "participant";
+  const messageUrl = `/messages/start?userId=${encodeURIComponent(counterpart.id)}`;
   const created = search.get("created") === "1";
   const canCancel = order.status === "PENDING";
   const canProcess = order.viewerRole === "SELLER" && order.status === "PAID";
@@ -112,6 +115,16 @@ export default function OrderDetailPage() {
       <CounterpartyFeedbackCard subjectType="ORDER" subjectId={order.id} />
     </div>
 
+    <div style={{ marginTop: 18 }}>
+      <TransactionSafetyActions
+        targetUserId={counterpart.id}
+        targetLabel={counterpartLabel}
+        subjectType="ORDER"
+        subjectId={order.id}
+        messageHref={messageUrl}
+      />
+    </div>
+
     {(canCancel || canProcess || canShip || canDeliver || canComplete) && <section className={styles.panel} style={{ marginTop: 18 }}>
       <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>AVAILABLE ACTION</small><h2>Move the transaction forward</h2></div></div>
       <div className={styles.row}>
@@ -138,7 +151,6 @@ export default function OrderDetailPage() {
         <div className={styles.summaryLine}><span>Total</span><strong>{formatMoney(order.totalMinor, order.currency)}</strong></div>
         <div className={styles.summaryLine}><span>Created</span><strong>{formatDate(order.createdAt)}</strong></div>
         <div className={styles.notice}><strong>{order.paymentBoundary.paid ? "Payment confirmed" : "Payment not confirmed"}</strong><p>{order.paymentBoundary.message ?? (order.paymentBoundary.paid ? "Payment state is authoritative; fulfillment actions are server-controlled." : "")}</p></div>
-        <a className={styles.button} href={`/messages/start?userId=${encodeURIComponent(counterpart.id)}`}>Message {order.viewerRole === "BUYER" ? "seller" : "buyer"} →</a>
       </aside>
     </div>
 
