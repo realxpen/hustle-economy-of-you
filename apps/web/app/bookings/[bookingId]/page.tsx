@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
+import { CounterpartyFeedbackCard } from "../../../components/trust/counterparty-feedback-card";
 import { ReviewEligibilityCard } from "../../../components/trust/review-eligibility-card";
 import {
   type BookingRecord,
@@ -142,6 +143,7 @@ export default function BookingDetailPage() {
         </section>}
 
         <ReviewEligibilityCard subjectType="BOOKING" subjectId={booking.id} />
+        <CounterpartyFeedbackCard subjectType="BOOKING" subjectId={booking.id} />
 
         <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>ACTIONS</p>
