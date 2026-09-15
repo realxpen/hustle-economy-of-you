@@ -9,8 +9,9 @@ Build
 Phase 14 — Trust + Reputation
 
 Phase 13 — Payments + Escrow is COMPLETE.
-Phase 14A — Trust Model Foundation is COMPLETE after backend + frontend runtime validation and authority corrections.
-Phase 14B — Verified Reviews + Ratings is IMPLEMENTED and awaiting local runtime validation before Phase 14C begins.
+Phase 14A — Trust Model Foundation is COMPLETE.
+Phase 14B — Verified Reviews + Ratings is COMPLETE after backend + frontend runtime validation.
+Phase 14C — Profile Reputation is ACTIVE.
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -23,7 +24,8 @@ Phase 14B — Verified Reviews + Ratings is IMPLEMENTED and awaiting local runti
 - Browser/mobile clients may request financial operations, but verified provider/internal durable evidence determines success.
 - Reputation must be downstream of verified transaction evidence; browser/mobile clients cannot manufacture verified reviews.
 - Public MVP reputation is one-way: `CLIENT → HUSTLER` for Bookings and `BUYER → SELLER` for Orders.
-- Identity verification, transaction verification and reputation are distinct trust signals.
+- Private counterparty trust is separate from public provider reputation: `HUSTLER → CLIENT` and `SELLER → BUYER` feedback is reserved for Phase 14D trust/safety intelligence and does not affect public UserReputation.
+- Identity verification, transaction verification, public reputation and private trust/safety signals remain distinct.
 
 ## Completed MVP phases
 - Phase 1 — Technical Foundation: COMPLETE
@@ -40,6 +42,7 @@ Phase 14B — Verified Reviews + Ratings is IMPLEMENTED and awaiting local runti
 - Phase 12 — Cart + Orders: COMPLETE
 - Phase 13 — Payments + Escrow: COMPLETE
 - Phase 14A — Trust Model Foundation: COMPLETE
+- Phase 14B — Verified Reviews + Ratings: COMPLETE
 
 ## Current transaction boundaries
 
@@ -55,12 +58,16 @@ Money:
 Trust:
 `verified transaction → eligible Client/Buyer review → verified immutable Review → atomic provider reputation projection → profile trust signals`
 
+Private trust/safety later:
+`transaction/interaction evidence → Hustler/Seller private counterparty feedback + reports → Admin safety intelligence → moderation decisions`
+
 ## Canonical Phase 14 knowledge
 - `Knowledge/Product/TRUST_AND_REPUTATION.md`
 - `Knowledge/Decisions/ADR-0013-verified-transaction-reviews.md`
 - `Knowledge/Decisions/ADR-0015-one-way-public-reputation-reviews.md`
 - `Knowledge/Decisions/ADR-0016-authoritative-release-state-read.md`
 - `Knowledge/Decisions/ADR-0017-verified-review-creation-and-reputation-projection.md`
+- `Knowledge/Decisions/ADR-0018-private-counterparty-trust.md`
 
 ## Phase 14A — Trust Model Foundation
 COMPLETE — runtime validated on 2026-09-15.
@@ -80,9 +87,9 @@ Validated:
 - empty latest-payment responses no longer produce JSON parse errors
 
 ## Phase 14B — Verified Reviews + Ratings
-IMPLEMENTED; runtime gate pending.
+COMPLETE — runtime validated on 2026-09-15.
 
-Built:
+Built and validated:
 - `POST /api/v1/reviews`
 - server re-validates transaction authority during review creation
 - browser cannot submit reviewee, roles, verification or reputation values
@@ -101,45 +108,66 @@ Built:
 - after submission the form is replaced immediately by the published immutable review
 - reload resolves the existing review and does not offer a duplicate form
 
-CI validation passed before merge:
-- web typecheck
-- admin typecheck
-- mobile typecheck
-- Prisma generate
-- API typecheck
-- web build
-- admin build
-- API build
+Runtime proof:
+- Booking review `CLIENT → HUSTLER` published and verified
+- Order review `BUYER → SELLER` published and verified
+- provider-side direct review attempt rejected with `403`
+- duplicate review attempt rejected with `409`
+- refunded transaction review attempt rejected with `409`
+- given-review list returns the durable Booking review
+- received-review list returns exactly the Booking + Order reviews with correct Service/Product contexts
+- review detail endpoint returns the immutable Order review and server-derived participants
+- frontend reload shows both published reviews instead of another form
+- UserReputation after two 5-star verified reviews is exact:
+  - `ratingSum = 10`
+  - `reviewCount = 2`
+  - `verifiedReviewCount = 2`
+  - `bookingReviewCount = 1`
+  - `orderReviewCount = 1`
+  - `averageRating = 5`
 
 Phase 14B merge:
 - `9bfc740f644e003a8b19a404d007be4733ed65fa`
 
-No new Phase 14B schema migration is required; Phase 14A already created Review/UserReputation and DB constraints.
+No Phase 14B schema migration was required; Phase 14A already created Review/UserReputation and DB constraints.
 
-## Phase 14B runtime gate
-Before Phase 14C begins:
-1. pull current `main`
-2. restart API + web
-3. Client submits one Booking review from the completed/released Booking
-4. verify returned Review is `PUBLISHED`, verified, `CLIENT → HUSTLER`, and target is server-derived
-5. verify Hustler UserReputation increments exactly once
-6. reload Booking page and confirm published review renders instead of another form
-7. duplicate submission returns conflict and does not change reputation
-8. invalid rating/body are rejected
-9. refunded/incomplete Booking review creation is rejected server-side
-10. Buyer submits one completed Order review
-11. verify `BUYER → SELLER`, published/verified Review and exact reputation increment
-12. Seller/Hustler direct POST attempt is rejected
-13. given/received/reputation read endpoints match durable Review rows
+## Phase 14C — Profile Reputation
+ACTIVE.
 
-## Next phase after gate
-Phase 14C — Profile Reputation:
-- average rating + review count surfaces
-- verified review badge
-- provider received-review profile tab
-- reviewer given-review history
+Build next:
+- provider profile reputation summary sourced from `UserReputation`
+- average rating + verified review count
+- verified-review trust marker
+- received reviews profile tab/section for Hustlers/Sellers
+- reviewer given-review history for the signed-in Client/Buyer
 - Service/Product context in review cards
-- trust summary for search/discovery consumption
+- empty/loading/error states
+- public/provider-facing trust summary reusable by Search + Marketplace discovery
+- no duplicate aggregate logic in the browser; API remains authoritative
+
+Phase 14C gate:
+1. Hustler profile shows exact server reputation values
+2. received reviews render both Service and Product contexts
+3. verified transaction marker is visible on review cards
+4. no Client/Buyer public rating is introduced
+5. profile counts/average match `/reviews/users/:userId/reputation`
+6. hidden/removed reviews are not surfaced as public reputation once moderation exists
+7. search/discovery can consume a single trust summary contract without recalculating ratings client-side
+
+## Phase 14D — Counterparty Trust + Safety
+Planned after 14C.
+
+Canonical direction:
+- Hustler → Client private feedback
+- Seller → Buyer private feedback
+- would-work-with-again signal
+- issue categories + private notes
+- reports available to either party
+- blocking
+- cancellation/refund/dispute/behavioural signals
+- Admin trust/safety intelligence
+- patterns/corroboration required before punitive action
+- private trust feedback must never mutate public provider `UserReputation`
 
 ## Supabase
 Dedicated project:
@@ -170,4 +198,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook secrets.
 
 ## Next gate
-**Phase 14B runtime validation — create real Booking and Order reviews from the web/API, prove duplicate/invalid/provider-side attempts fail safely, and confirm UserReputation increments exactly once.**
+**Phase 14C — build server-authoritative reputation/profile surfaces, wire received reviews into Hustler profiles, expose reviewer-given history, and validate that all public trust values match the Phase 14B read models exactly.**
