@@ -10,8 +10,9 @@ Phase 14 — Trust + Reputation
 
 Phase 13 — Payments + Escrow is COMPLETE.
 Phase 14A — Trust Model Foundation is COMPLETE.
-Phase 14B — Verified Reviews + Ratings is COMPLETE after backend + frontend runtime validation.
-Phase 14C — Profile Reputation is ACTIVE.
+Phase 14B — Verified Reviews + Ratings is COMPLETE.
+Phase 14C — Profile Reputation is COMPLETE after backend + frontend runtime validation.
+Phase 14D — Counterparty Trust + Safety is ACTIVE.
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -24,8 +25,9 @@ Phase 14C — Profile Reputation is ACTIVE.
 - Browser/mobile clients may request financial operations, but verified provider/internal durable evidence determines success.
 - Reputation must be downstream of verified transaction evidence; browser/mobile clients cannot manufacture verified reviews.
 - Public MVP reputation is one-way: `CLIENT → HUSTLER` for Bookings and `BUYER → SELLER` for Orders.
-- Private counterparty trust is separate from public provider reputation: `HUSTLER → CLIENT` and `SELLER → BUYER` feedback is reserved for Phase 14D trust/safety intelligence and does not affect public UserReputation.
+- Private counterparty trust is separate from public provider reputation: `HUSTLER → CLIENT` and `SELLER → BUYER` feedback belongs to Phase 14D trust/safety intelligence and must never affect public UserReputation.
 - Identity verification, transaction verification, public reputation and private trust/safety signals remain distinct.
+- Reports and private trust signals must not trigger punitive action from a single subjective complaint alone; patterns, corroboration and platform evidence matter.
 
 ## Completed MVP phases
 - Phase 1 — Technical Foundation: COMPLETE
@@ -43,6 +45,7 @@ Phase 14C — Profile Reputation is ACTIVE.
 - Phase 13 — Payments + Escrow: COMPLETE
 - Phase 14A — Trust Model Foundation: COMPLETE
 - Phase 14B — Verified Reviews + Ratings: COMPLETE
+- Phase 14C — Profile Reputation: COMPLETE
 
 ## Current transaction boundaries
 
@@ -55,10 +58,10 @@ Order:
 Money:
 `payment confirmation → ledger → escrow/pending → available → payout reservation → provider-confirmed payout`
 
-Trust:
-`verified transaction → eligible Client/Buyer review → verified immutable Review → atomic provider reputation projection → profile trust signals`
+Public reputation:
+`verified transaction → eligible Client/Buyer review → verified immutable Review → atomic provider reputation projection → public profile trust signals`
 
-Private trust/safety later:
+Private trust/safety:
 `transaction/interaction evidence → Hustler/Seller private counterparty feedback + reports → Admin safety intelligence → moderation decisions`
 
 ## Canonical Phase 14 knowledge
@@ -68,6 +71,7 @@ Private trust/safety later:
 - `Knowledge/Decisions/ADR-0016-authoritative-release-state-read.md`
 - `Knowledge/Decisions/ADR-0017-verified-review-creation-and-reputation-projection.md`
 - `Knowledge/Decisions/ADR-0018-private-counterparty-trust.md`
+- `Knowledge/Decisions/ADR-0019-public-provider-trust-summary.md`
 
 ## Phase 14A — Trust Model Foundation
 COMPLETE — runtime validated on 2026-09-15.
@@ -89,36 +93,22 @@ Validated:
 ## Phase 14B — Verified Reviews + Ratings
 COMPLETE — runtime validated on 2026-09-15.
 
-Built and validated:
+Validated:
 - `POST /api/v1/reviews`
 - server re-validates transaction authority during review creation
 - browser cannot submit reviewee, roles, verification or reputation values
-- 1–5 integer rating
-- written review 10–2000 characters
+- 1–5 integer rating and written review 10–2000 characters
 - published Review is immutable in MVP
-- Review creation + UserReputation projection update are one serializable transaction
-- exact duplicate/race protection through DB uniqueness + one serializable retry
-- `review.published` SystemEvent observation
-- `GET /api/v1/reviews/me/given`
-- `GET /api/v1/reviews/users/:userId/received`
-- `GET /api/v1/reviews/users/:userId/reputation`
-- `GET /api/v1/reviews/:reviewId`
-- read models include verified transaction metadata and Service/Product transaction context
-- web Booking/Order review form with accessible 1–5 stars and written review
-- after submission the form is replaced immediately by the published immutable review
-- reload resolves the existing review and does not offer a duplicate form
-
-Runtime proof:
+- Review creation + UserReputation update are one serializable transaction
+- duplicate/race protection through DB uniqueness + serializable retry
+- given, received, reputation and review-detail read models
 - Booking review `CLIENT → HUSTLER` published and verified
 - Order review `BUYER → SELLER` published and verified
 - provider-side direct review attempt rejected with `403`
 - duplicate review attempt rejected with `409`
 - refunded transaction review attempt rejected with `409`
-- given-review list returns the durable Booking review
-- received-review list returns exactly the Booking + Order reviews with correct Service/Product contexts
-- review detail endpoint returns the immutable Order review and server-derived participants
-- frontend reload shows both published reviews instead of another form
-- UserReputation after two 5-star verified reviews is exact:
+- frontend reload shows durable published reviews instead of another form
+- exact UserReputation after two 5-star reviews:
   - `ratingSum = 10`
   - `reviewCount = 2`
   - `verifiedReviewCount = 2`
@@ -129,45 +119,98 @@ Runtime proof:
 Phase 14B merge:
 - `9bfc740f644e003a8b19a404d007be4733ed65fa`
 
-No Phase 14B schema migration was required; Phase 14A already created Review/UserReputation and DB constraints.
-
 ## Phase 14C — Profile Reputation
-ACTIVE.
+COMPLETE — runtime validated on 2026-09-15.
 
-Build next:
-- provider profile reputation summary sourced from `UserReputation`
+Built and validated:
+- public server-authoritative trust-summary contract
+- public profile consumes one trust summary instead of recalculating rating data in the browser
+- exact public provider reputation from UserReputation
 - average rating + verified review count
+- service/product review counts
 - verified-review trust marker
-- received reviews profile tab/section for Hustlers/Sellers
-- reviewer given-review history for the signed-in Client/Buyer
-- Service/Product context in review cards
-- empty/loading/error states
-- public/provider-facing trust summary reusable by Search + Marketplace discovery
-- no duplicate aggregate logic in the browser; API remains authoritative
+- public received review cards with verified transaction label
+- Service and Product transaction context preserved
+- signed-in reviewer given-review history on `/account`
+- no Client/Buyer public rating introduced
+- private counterparty feedback, reports and moderation data remain excluded from public profile surfaces
+- public trust summary works without Authorization
 
-Phase 14C gate:
-1. Hustler profile shows exact server reputation values
-2. received reviews render both Service and Product contexts
-3. verified transaction marker is visible on review cards
-4. no Client/Buyer public rating is introduced
-5. profile counts/average match `/reviews/users/:userId/reputation`
-6. hidden/removed reviews are not surfaced as public reputation once moderation exists
-7. search/discovery can consume a single trust summary contract without recalculating ratings client-side
+Runtime proof for `xpen`:
+- `ratingSum = 10`
+- `reviewCount = 2`
+- `verifiedReviewCount = 2`
+- `bookingReviewCount = 1`
+- `orderReviewCount = 1`
+- `averageRating = 5`
+- `trust.marker = VERIFIED_REVIEWS`
+- `trust.hasVerifiedReviews = true`
+- public reviews contain exactly one verified Product Order review and one verified Service Booking review
+- `/u/xpen` shows 5.0, 2 verified reviews, 1 Service review and 1 Product review
+- `/account` shows the two durable reviews given by the Client/Buyer
+
+Phase 14C merge:
+- `ac2b8df27a8b364819fb2991af2ae2419575874a`
 
 ## Phase 14D — Counterparty Trust + Safety
-Planned after 14C.
+ACTIVE.
 
 Canonical direction:
 - Hustler → Client private feedback
 - Seller → Buyer private feedback
+- private feedback never affects public provider UserReputation
 - would-work-with-again signal
-- issue categories + private notes
-- reports available to either party
+- private experience rating for safety/operations only
+- issue categories such as no-show, abusive behaviour, scope manipulation, repeated cancellation, fraud/suspicious behaviour, dispute abuse and communication problems
+- private notes visible only to authorized trust/safety/admin surfaces
+- reports available to either party and usable even when a transaction did not complete
 - blocking
 - cancellation/refund/dispute/behavioural signals
 - Admin trust/safety intelligence
 - patterns/corroboration required before punitive action
-- private trust feedback must never mutate public provider `UserReputation`
+
+### Phase 14D build slices
+
+14D-A — Trust/safety data foundation
+- private CounterpartyFeedback entity
+- SafetyReport entity
+- UserBlock entity
+- server-authoritative participant/relationship checks
+- feedback and report category enums
+- RLS/server-only mutation authority
+- SystemEvent observation
+
+14D-B — Counterparty feedback flows
+- Hustler feedback on Client after meaningful Booking outcomes
+- Seller feedback on Buyer after meaningful Order outcomes
+- would-work-with-again
+- private rating + issue categories + note
+- duplicate feedback protection
+
+14D-C — Reports + blocking
+- report another user from profile/transaction/message context
+- report reasons + optional evidence context
+- block/unblock
+- blocking affects messaging/contact surfaces without rewriting historical transactions
+
+14D-D — Admin safety intelligence
+- private user safety summary
+- complaint/report counts
+- cancellation/refund/dispute behavioural signals
+- feedback pattern summaries
+- evidence-attributed risk indicators
+- no automatic punitive action from one subjective signal
+
+Phase 14D gate:
+1. provider-side private feedback can be created only for the canonical counterparty
+2. private feedback never changes public UserReputation
+3. duplicate private feedback for the same reporter/transaction is blocked
+4. reports are durable and visible only to authorized parties/admin
+5. either party can report serious behaviour even when the transaction does not complete
+6. block/unblock is server-authoritative and self-block is impossible
+7. private feedback/report content never appears on `/u/:username` public trust summary
+8. Admin can explain every displayed safety signal from durable evidence
+9. public reputation values remain exactly unchanged after private trust/safety actions
 
 ## Supabase
 Dedicated project:
@@ -198,4 +241,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook secrets.
 
 ## Next gate
-**Phase 14C — build server-authoritative reputation/profile surfaces, wire received reviews into Hustler profiles, expose reviewer-given history, and validate that all public trust values match the Phase 14B read models exactly.**
+**Phase 14D-A — create the private trust/safety data foundation with strict separation from public UserReputation, then runtime-test server-authoritative counterparty eligibility before enabling feedback UI.**
