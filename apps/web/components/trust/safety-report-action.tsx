@@ -60,7 +60,7 @@ export function SafetyReportAction({
     }
   }
 
-  return <>
+  return <div className={styles.reportAction}>
     <button
       type="button"
       className={styles.secondary}
@@ -101,5 +101,5 @@ export function SafetyReportAction({
         </button>
       </div>
     </div>}
-  </>;
+  </div>;
 }
