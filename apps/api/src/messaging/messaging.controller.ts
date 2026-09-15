@@ -87,11 +87,12 @@ export class MessagingController {
   }
 
   @Post("conversations/:conversationId/typing")
-  setTyping(
+  async setTyping(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("conversationId") conversationId: string,
     @Body() input: SetTypingInput
   ) {
+    await this.blockPolicy.assertConversationContact(identity, conversationId);
     return this.messagingPresenceService.setTyping(identity, conversationId, input);
   }
 
