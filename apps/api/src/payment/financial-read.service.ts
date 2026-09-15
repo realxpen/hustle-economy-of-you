@@ -45,6 +45,73 @@ export class FinancialReadService {
     };
   }
 
+  async releaseState(identity: AuthIdentity, subjectTypeInput: string, subjectIdInput: string) {
+    const user = await this.requireUser(identity);
+    const subjectType = this.subjectType(subjectTypeInput);
+    const subjectId = this.requiredId(subjectIdInput, "subjectId");
+
+    if (subjectType === FinancialSubjectType.BOOKING) {
+      const booking = await this.prisma.booking.findFirst({
+        where: {
+          id: subjectId,
+          OR: [{ clientUserId: user.id }, { hustlerUserId: user.id }]
+        },
+        select: { id: true }
+      });
+      if (!booking) throw new NotFoundException("Booking not found");
+
+      const escrow = await this.prisma.escrowRecord.findUnique({
+        where: {
+          subjectType_subjectId: {
+            subjectType: FinancialSubjectType.BOOKING,
+            subjectId
+          }
+        },
+        select: {
+          id: true,
+          status: true,
+          releasedAt: true
+        }
+      });
+
+      return {
+        subjectType,
+        subjectId,
+        releaseKind: "BOOKING_ESCROW" as const,
+        released: escrow?.status === "RELEASED" && Boolean(escrow.releasedAt),
+        status: escrow?.status ?? "NOT_CREATED",
+        releasedAt: escrow?.releasedAt ?? null,
+        releaseRecordId: escrow?.id ?? null,
+        authoritative: true
+      };
+    }
+
+    const order = await this.prisma.order.findFirst({
+      where: {
+        id: subjectId,
+        OR: [{ buyerUserId: user.id }, { sellerUserId: user.id }]
+      },
+      select: { id: true }
+    });
+    if (!order) throw new NotFoundException("Order not found");
+
+    const ledger = await this.prisma.ledgerTransaction.findUnique({
+      where: { idempotencyKey: `order:${subjectId}:settlement-released` },
+      select: { id: true, createdAt: true }
+    });
+
+    return {
+      subjectType,
+      subjectId,
+      releaseKind: "ORDER_SETTLEMENT" as const,
+      released: Boolean(ledger),
+      status: ledger ? "RELEASED" : "PENDING",
+      releasedAt: ledger?.createdAt ?? null,
+      releaseRecordId: ledger?.id ?? null,
+      authoritative: true
+    };
+  }
+
   async listPayouts(identity: AuthIdentity, limitInput?: unknown) {
     const user = await this.requireUser(identity);
     const limit = this.limit(limitInput);

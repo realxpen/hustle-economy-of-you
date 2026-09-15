@@ -29,6 +29,17 @@ export interface PaymentAttemptRecord {
   appliedToSubject: boolean;
 }
 
+export interface ReleaseStateRecord {
+  subjectType: FinancialSubjectType;
+  subjectId: string;
+  releaseKind: "BOOKING_ESCROW" | "ORDER_SETTLEMENT";
+  released: boolean;
+  status: string;
+  releasedAt: string | null;
+  releaseRecordId: string | null;
+  authoritative: true;
+}
+
 export interface WalletBalance {
   currency: string;
   availableMinor: number;
@@ -169,6 +180,13 @@ export async function getLatestPayment(subjectType: FinancialSubjectType, subjec
   const body = await response.text();
   if (!body.trim()) return null;
   return JSON.parse(body) as PaymentAttemptRecord | null;
+}
+
+export async function getReleaseState(subjectType: FinancialSubjectType, subjectId: string) {
+  const response = await authenticatedFetch(
+    `/wallet/release-state/${encodeURIComponent(subjectType)}/${encodeURIComponent(subjectId)}`
+  );
+  return response.json() as Promise<ReleaseStateRecord>;
 }
 
 export async function getWallet() {

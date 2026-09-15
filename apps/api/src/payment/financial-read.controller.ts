@@ -25,6 +25,15 @@ export class PaymentReadController {
 export class FinancialHistoryController {
   constructor(private readonly reads: FinancialReadService) {}
 
+  @Get("release-state/:subjectType/:subjectId")
+  releaseState(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("subjectType") subjectType: string,
+    @Param("subjectId") subjectId: string
+  ) {
+    return this.reads.releaseState(identity, subjectType, subjectId);
+  }
+
   @Get("withdrawals")
   payouts(@CurrentIdentity() identity: AuthIdentity, @Query("limit") limit?: string) {
     return this.reads.listPayouts(identity, limit);
