@@ -97,7 +97,7 @@ export default function OrderDetailPage() {
         subjectId={order.id}
         canInitialize={order.viewerRole === "BUYER" && order.status === "PENDING"}
         canRefund={order.viewerRole === "BUYER" && order.status === "PAID"}
-        canRelease={order.viewerRole === "SELLER" && order.status === "COMPLETED"}
+        canRelease={order.viewerRole === "BUYER" && order.status === "COMPLETED"}
         releaseKind="ORDER_SETTLEMENT"
         onFinancialChange={load}
       />
