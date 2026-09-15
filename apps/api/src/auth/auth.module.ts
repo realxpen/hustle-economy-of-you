@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AUTH_PORT } from "../infrastructure/auth/auth.port";
+import { AdminGuard } from "./admin.guard";
 import { AuthController } from "./auth.controller";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
@@ -12,9 +13,10 @@ import { SupabaseAuthService } from "./supabase-auth.service";
     SupabaseAuthService,
     { provide: AUTH_PORT, useExisting: SupabaseAuthService },
     AuthGuard,
+    AdminGuard,
     CapabilityGuard,
     AuthService
   ],
-  exports: [AUTH_PORT, AuthGuard, CapabilityGuard, AuthService]
+  exports: [AUTH_PORT, AuthGuard, AdminGuard, CapabilityGuard, AuthService]
 })
 export class AuthModule {}
