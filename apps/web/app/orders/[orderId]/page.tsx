@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
+import { ReviewEligibilityCard } from "../../../components/trust/review-eligibility-card";
 import {
   cancelOrder,
   completeOrder,
@@ -101,6 +102,10 @@ export default function OrderDetailPage() {
         onFinancialChange={load}
       />
     </section>
+
+    <div style={{ marginTop: 18 }}>
+      <ReviewEligibilityCard subjectType="ORDER" subjectId={order.id} />
+    </div>
 
     {(canCancel || canProcess || canShip || canDeliver || canComplete) && <section className={styles.panel} style={{ marginTop: 18 }}>
       <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>AVAILABLE ACTION</small><h2>Move the transaction forward</h2></div></div>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
+import { ReviewEligibilityCard } from "../../../components/trust/review-eligibility-card";
 import {
   type BookingRecord,
   acceptBooking,
@@ -139,6 +140,8 @@ export default function BookingDetailPage() {
           <p className={styles.eyebrow}>PAYMENT · ESCROW</p>
           <TransactionFinanceActions subjectType="BOOKING" subjectId={booking.id} canInitialize={booking.viewerRole === "CLIENT" && booking.status === "PAYMENT_PENDING"} canRefund={booking.viewerRole === "CLIENT" && booking.status === "FUNDED"} canRelease={booking.viewerRole === "CLIENT" && booking.status === "COMPLETED"} releaseKind="BOOKING_ESCROW" onFinancialChange={load} />
         </section>}
+
+        <ReviewEligibilityCard subjectType="BOOKING" subjectId={booking.id} />
 
         <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>ACTIONS</p>
