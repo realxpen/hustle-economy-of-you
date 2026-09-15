@@ -1,0 +1,113 @@
+.card {
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.heading small {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.verified {
+  border-radius: 999px;
+  background: rgba(25, 135, 84, 0.1);
+  color: #166534;
+  padding: 7px 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.success,
+.locked,
+.error {
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.success {
+  background: rgba(25, 135, 84, 0.09);
+  border: 1px solid rgba(25, 135, 84, 0.18);
+}
+
+.locked {
+  background: rgba(120, 113, 108, 0.08);
+  border: 1px solid rgba(120, 113, 108, 0.16);
+}
+
+.error {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.16);
+}
+
+.success p,
+.locked p,
+.error p {
+  margin: 6px 0 0;
+  line-height: 1.45;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.meta span {
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.05);
+  padding: 6px 9px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.actionBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.button {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: inherit;
+  font-weight: 800;
+  background: #111;
+  color: white;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.actionBlock small,
+.muted {
+  color: rgba(17, 17, 17, 0.62);
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .heading {
+    flex-direction: column;
+  }
+}
