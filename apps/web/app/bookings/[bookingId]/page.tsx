@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
 import { CounterpartyFeedbackCard } from "../../../components/trust/counterparty-feedback-card";
 import { ReviewEligibilityCard } from "../../../components/trust/review-eligibility-card";
+import { TransactionSafetyActions } from "../../../components/trust/transaction-safety-actions";
 import {
   type BookingRecord,
   acceptBooking,
@@ -96,6 +97,7 @@ export default function BookingDetailPage() {
   if (!booking) return <main className={styles.shell}><p className={styles.loading}>Loading booking…</p></main>;
 
   const other = booking.viewerRole === "CLIENT" ? booking.hustler : booking.client;
+  const otherLabel = other.displayName ?? other.username ?? "participant";
   const canCancel = booking.viewerRole === "CLIENT" ? ["REQUESTED", "ACCEPTED", "PAYMENT_PENDING"].includes(booking.status) : ["ACCEPTED", "PAYMENT_PENDING"].includes(booking.status);
   const canAccept = booking.viewerRole === "HUSTLER" && booking.status === "REQUESTED";
   const canStart = booking.viewerRole === "HUSTLER" && ["ACCEPTED", "FUNDED"].includes(booking.status);
@@ -105,7 +107,7 @@ export default function BookingDetailPage() {
   return <main className={styles.shell}>
     <header className={styles.header}>
       <a className={styles.brand} href="/">HUSTLE↗</a>
-      <nav><a href="/bookings">Bookings</a><a href={`/services/${booking.serviceId}`}>Service</a><a href="/wallet">Wallet</a><a href={messageUrl}>Messages</a></nav>
+      <nav><a href="/bookings">Bookings</a><a href={`/services/${booking.serviceId}`}>Service</a><a href="/wallet">Wallet</a><a href="/messages">Messages</a></nav>
     </header>
 
     <div className={styles.detailGrid}>
@@ -144,6 +146,13 @@ export default function BookingDetailPage() {
 
         <ReviewEligibilityCard subjectType="BOOKING" subjectId={booking.id} />
         <CounterpartyFeedbackCard subjectType="BOOKING" subjectId={booking.id} />
+        <TransactionSafetyActions
+          targetUserId={other.id}
+          targetLabel={otherLabel}
+          subjectType="BOOKING"
+          subjectId={booking.id}
+          messageHref={messageUrl}
+        />
 
         <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>ACTIONS</p>
@@ -152,7 +161,7 @@ export default function BookingDetailPage() {
             {canStart && <button className={styles.primary} disabled={busy} onClick={() => void act(() => startBooking(booking.id))}>Start work</button>}
             {canComplete && <button className={styles.primary} disabled={busy} onClick={() => void act(() => completeBooking(booking.id))}>Mark work complete</button>}
             {canCancel && <button className={styles.danger} disabled={busy} onClick={() => { const reason = window.prompt("Optional cancellation reason") ?? undefined; void act(() => cancelBooking(booking.id, reason)); }}>Cancel booking</button>}
-            <a className={styles.secondary} href={messageUrl}>Message {other.displayName ?? other.username ?? "participant"}</a><a className={styles.secondary} href={`/services/${booking.serviceId}`}>Open Service</a>
+            <a className={styles.secondary} href={`/services/${booking.serviceId}`}>Open Service</a>
           </div>
           {error && <div className={styles.error}>{error}</div>}
         </section>
