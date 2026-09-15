@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { blockUser, getBlockStatus, unblockUser, type BlockStatus } from "../../lib/trust-safety";
+import { SafetyReportAction } from "./safety-report-action";
 import styles from "./transaction-safety-actions.module.css";
 
 export function ProfileContactActions({
@@ -61,6 +62,12 @@ export function ProfileContactActions({
 
   return <div className={styles.actions}>
     {status?.messagingAllowed && <a className={styles.primary} href={messageHref}>Message →</a>}
+    {status && <SafetyReportAction
+      subjectType="PROFILE"
+      subjectId={targetUserId}
+      targetLabel={targetLabel}
+      placeholder="Describe the profile or account safety concern clearly."
+    />}
     {status && <button
       type="button"
       className={status.viewerBlockedTarget ? styles.secondary : styles.danger}
