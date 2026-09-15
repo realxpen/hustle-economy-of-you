@@ -1,6 +1,6 @@
 # Hustle Project State
 
-Updated: 2026-09-14
+Updated: 2026-09-15
 
 ## Current AED capability
 Build
@@ -8,9 +8,9 @@ Build
 ## Current MVP phase
 Phase 14 — Trust + Reputation
 
-Phase 13 — Payments + Escrow is COMPLETE. All implementation, migration, runtime, idempotency, refund, payout, inventory-restoration, ledger-taxonomy and reconciliation gates passed on 2026-09-14.
-
-Phase 14A — Trust Model Foundation is IMPLEMENTED in code and awaiting local migration/runtime validation before Phase 14B begins.
+Phase 13 — Payments + Escrow is COMPLETE.
+Phase 14A — Trust Model Foundation is COMPLETE after backend + frontend runtime validation and authority corrections.
+Phase 14B — Verified Reviews + Ratings is IMPLEMENTED and awaiting local runtime validation before Phase 14C begins.
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -22,6 +22,7 @@ Phase 14A — Trust Model Foundation is IMPLEMENTED in code and awaiting local m
 - Never fake payment, funding, escrow, refunds, wallet credit, payout, delivery or completion.
 - Browser/mobile clients may request financial operations, but verified provider/internal durable evidence determines success.
 - Reputation must be downstream of verified transaction evidence; browser/mobile clients cannot manufacture verified reviews.
+- Public MVP reputation is one-way: `CLIENT → HUSTLER` for Bookings and `BUYER → SELLER` for Orders.
 - Identity verification, transaction verification and reputation are distinct trust signals.
 
 ## Completed MVP phases
@@ -38,6 +39,7 @@ Phase 14A — Trust Model Foundation is IMPLEMENTED in code and awaiting local m
 - Phase 11 — Booking System: COMPLETE
 - Phase 12 — Cart + Orders: COMPLETE
 - Phase 13 — Payments + Escrow: COMPLETE
+- Phase 14A — Trust Model Foundation: COMPLETE
 
 ## Current transaction boundaries
 
@@ -45,121 +47,99 @@ Booking:
 `REQUESTED → PAYMENT_PENDING → verified payment → FUNDED → IN_PROGRESS → COMPLETED → escrow release → Hustler AVAILABLE`
 
 Order:
-`PENDING → verified payment + inventory deduction → PAID → PROCESSING → SHIPPED/DELIVERED → COMPLETED → seller AVAILABLE`
+`PENDING → verified payment + inventory deduction → PAID → PROCESSING → SHIPPED/DELIVERED → COMPLETED → buyer-authorized settlement → seller AVAILABLE`
 
 Money:
 `payment confirmation → ledger → escrow/pending → available → payout reservation → provider-confirmed payout`
 
 Trust:
-`verified transaction → review eligibility → verified review → reputation projection → profile trust signals`
-
-## Canonical Phase 13 knowledge
-- `Knowledge/Product/PAYMENTS_AND_ESCROW.md`
-- `Knowledge/Decisions/ADR-0012-payment-authority-ledger-and-escrow.md`
-- `Knowledge/Technical/PAYMENT_SANDBOX_FOUNDATION.md`
-- `Knowledge/Technical/WALLET_ESCROW_SETTLEMENT.md`
-- `Knowledge/Technical/PAYOUT_REFUND_RECONCILIATION.md`
-- `Knowledge/Technical/FINANCIAL_WEB_EXPERIENCE.md`
-
-## Phase 13 — Payments + Escrow
-COMPLETE — 2026-09-14.
-
-Validated:
-- Booking authoritative payment → escrow HELD → FUNDED
-- Booking completion + escrow release → AVAILABLE
-- Product Order authoritative payment + inventory deduction
-- Order fulfillment + settlement
-- successful payout
-- payout failure + wallet restoration
-- Booking refund + escrow compensation
-- Order refund + exact inventory restoration
-- duplicate payment/refund/payout webhooks are idempotent
-- recoverable payment domain application after Prisma interactive-transaction timeout fix
-- payout ledger taxonomy uses `FinancialSubjectType.PAYOUT`
-- historical payout rows backfilled from temporary `ORDER / PAYOUT:<id>` representation
-- final payer + beneficiary reconciliation both healthy
-
-Production payment activation remains a separate human risk gate.
+`verified transaction → eligible Client/Buyer review → verified immutable Review → atomic provider reputation projection → profile trust signals`
 
 ## Canonical Phase 14 knowledge
 - `Knowledge/Product/TRUST_AND_REPUTATION.md`
 - `Knowledge/Decisions/ADR-0013-verified-transaction-reviews.md`
+- `Knowledge/Decisions/ADR-0015-one-way-public-reputation-reviews.md`
+- `Knowledge/Decisions/ADR-0016-authoritative-release-state-read.md`
+- `Knowledge/Decisions/ADR-0017-verified-review-creation-and-reputation-projection.md`
 
 ## Phase 14A — Trust Model Foundation
-IMPLEMENTED; migration/runtime gate pending.
+COMPLETE — runtime validated on 2026-09-15.
+
+Validated:
+- Review + UserReputation schema and hosted migrations
+- participant-scoped review eligibility
+- completed released Booking: Client eligible
+- Booking Hustler: public-review role ineligible and no public review UI
+- completed paid Order: Buyer eligible
+- Order Seller: public-review role ineligible and no public review UI
+- refunded/incomplete/cancelled transactions blocked
+- review verification is server-derived only
+- public-review DB role-pair constraint permits only Client→Hustler and Buyer→Seller
+- Booking/Order release actions follow authoritative financial state after refresh
+- seller cannot release own Order settlement
+- empty latest-payment responses no longer produce JSON parse errors
+
+## Phase 14B — Verified Reviews + Ratings
+IMPLEMENTED; runtime gate pending.
 
 Built:
-- `ReviewSubjectType`: BOOKING / ORDER
-- `ReviewPartyRole`: CLIENT / HUSTLER / BUYER / SELLER
-- `ReviewStatus`: PUBLISHED / HIDDEN / REMOVED
-- durable `Review` model
-- rebuildable `UserReputation` projection
-- DB constraints for rating range, review body length, no self-review, valid role pairs and one review per reviewer per transaction
-- RLS + API-role access for trust tables
-- authenticated participant-scoped review eligibility endpoint
-- server-derived reviewee identity and reviewer/reviewee roles
-- verified transaction requirement
-
-Eligibility API:
-- `GET /api/v1/reviews/eligibility/:subjectType/:subjectId`
-
-Booking review eligibility requires:
-- requester is Client or Hustler
-- Booking `COMPLETED` or `CLOSED`
-- `completedAt` exists
-- successful authoritative applied payment
-- escrow `RELEASED` + `releasedAt`
-- not refunded
-- not disputed
-- no prior review by that reviewer
-- no self-review
-
-Order review eligibility requires:
-- requester is Buyer or Seller
-- Order `COMPLETED`
-- `completedAt` exists
-- successful authoritative applied payment
-- not refunded
-- no prior review by that reviewer
-- no self-review
-
-Review policy locked for MVP:
-- one overall rating, integer 1–5
+- `POST /api/v1/reviews`
+- server re-validates transaction authority during review creation
+- browser cannot submit reviewee, roles, verification or reputation values
+- 1–5 integer rating
 - written review 10–2000 characters
-- no arbitrary reviewee ID from client
-- published review is immutable
-- author hard-delete is not exposed
-- moderation later uses PUBLISHED / HIDDEN / REMOVED while retaining durable review evidence
-- refunded/disputed/cancelled/unpaid/incomplete transactions do not enter verified reputation
-- average rating will be derived from exact `ratingSum / reviewCount`, not stored as mutable floating-point authority
+- published Review is immutable in MVP
+- Review creation + UserReputation projection update are one serializable transaction
+- exact duplicate/race protection through DB uniqueness + one serializable retry
+- `review.published` SystemEvent observation
+- `GET /api/v1/reviews/me/given`
+- `GET /api/v1/reviews/users/:userId/received`
+- `GET /api/v1/reviews/users/:userId/reputation`
+- `GET /api/v1/reviews/:reviewId`
+- read models include verified transaction metadata and Service/Product transaction context
+- web Booking/Order review form with accessible 1–5 stars and written review
+- after submission the form is replaced immediately by the published immutable review
+- reload resolves the existing review and does not offer a duplicate form
 
-Migration:
-- `20260914160000_phase14a_trust_foundation`
+CI validation passed before merge:
+- web typecheck
+- admin typecheck
+- mobile typecheck
+- Prisma generate
+- API typecheck
+- web build
+- admin build
+- API build
 
-## Phase 14B — Review Creation + Read Models
-PENDING until Phase 14A runtime gate passes.
+Phase 14B merge:
+- `9bfc740f644e003a8b19a404d007be4733ed65fa`
 
-Planned next:
-- create verified review from eligibility proof
-- transactional `UserReputation` update
-- received/given review lists
-- public review read model
-- duplicate/race handling
-- SystemEvent observations for review creation
+No new Phase 14B schema migration is required; Phase 14A already created Review/UserReputation and DB constraints.
 
-## Phase 14A runtime gate
-Before Phase 14B begins:
-1. pull current main after Phase 14A merge
-2. `prisma migrate deploy`
-3. `prisma generate`
-4. API typecheck/build
-5. completed released Booking returns `ELIGIBLE` for both participants
-6. completed paid Order returns `ELIGIBLE` for both participants
-7. refunded/disputed/incomplete subject returns ineligible
-8. non-participant access is forbidden
-9. schema constraints and RLS exist in hosted database
+## Phase 14B runtime gate
+Before Phase 14C begins:
+1. pull current `main`
+2. restart API + web
+3. Client submits one Booking review from the completed/released Booking
+4. verify returned Review is `PUBLISHED`, verified, `CLIENT → HUSTLER`, and target is server-derived
+5. verify Hustler UserReputation increments exactly once
+6. reload Booking page and confirm published review renders instead of another form
+7. duplicate submission returns conflict and does not change reputation
+8. invalid rating/body are rejected
+9. refunded/incomplete Booking review creation is rejected server-side
+10. Buyer submits one completed Order review
+11. verify `BUYER → SELLER`, published/verified Review and exact reputation increment
+12. Seller/Hustler direct POST attempt is rejected
+13. given/received/reputation read endpoints match durable Review rows
 
-Do not begin review creation or reputation ranking effects until this gate passes.
+## Next phase after gate
+Phase 14C — Profile Reputation:
+- average rating + review count surfaces
+- verified review badge
+- provider received-review profile tab
+- reviewer given-review history
+- Service/Product context in review cards
+- trust summary for search/discovery consumption
 
 ## Supabase
 Dedicated project:
@@ -187,7 +167,7 @@ Before pulling:
 4. use Node 22
 5. restore generated `apps/web/next-env.d.ts` after builds rather than committing it
 
-Use fresh auth sessions/tokens for financial sandbox validation. Never commit or print provider/webhook secrets.
+Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook secrets.
 
 ## Next gate
-**Phase 14A — deploy the trust migration, regenerate Prisma Client, typecheck/build the API, then runtime-test review eligibility against completed/refunded/incomplete Booking and Order subjects. If clean, open Phase 14B — Review Creation + Read Models.**
+**Phase 14B runtime validation — create real Booking and Order reviews from the web/API, prove duplicate/invalid/provider-side attempts fail safely, and confirm UserReputation increments exactly once.**
