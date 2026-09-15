@@ -15,8 +15,8 @@ export interface ReviewEligibilityUser {
 
 export interface ExistingReviewSummary {
   id: string;
-  rating: number;
   status: string;
+  verifiedTransaction: boolean;
   createdAt: string;
 }
 
