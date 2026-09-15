@@ -214,6 +214,37 @@ enum ReviewStatus {
   REMOVED
 }
 
+enum CounterpartyFeedbackIssue {
+  NO_SHOW
+  ABUSIVE_BEHAVIOR
+  SCOPE_MANIPULATION
+  REPEATED_CANCELLATION
+  FRAUD_SUSPICIOUS
+  DISPUTE_ABUSE
+  COMMUNICATION_PROBLEMS
+  PAYMENT_ABUSE
+  OTHER
+}
+
+enum SafetyReportCategory {
+  HARASSMENT
+  FRAUD_SCAM
+  THREATS
+  FAKE_IDENTITY
+  PAYMENT_ABUSE
+  PROHIBITED_GOODS_SERVICES
+  SPAM
+  OFF_PLATFORM_MANIPULATION
+  OTHER
+}
+
+enum SafetyReportStatus {
+  OPEN
+  UNDER_REVIEW
+  ACTIONED
+  DISMISSED
+}
+
 model User {
   id                          String                    @id @default(cuid())
   authSubject                 String                    @unique
@@ -248,6 +279,12 @@ model User {
   sellerOrders                Order[]                   @relation("OrderSeller")
   reviewsGiven                Review[]                  @relation("ReviewsGiven")
   reviewsReceived             Review[]                  @relation("ReviewsReceived")
+  counterpartyFeedbackGiven   CounterpartyFeedback[]    @relation("CounterpartyFeedbackAuthor")
+  counterpartyFeedbackReceived CounterpartyFeedback[]   @relation("CounterpartyFeedbackTarget")
+  safetyReportsMade           SafetyReport[]            @relation("SafetyReportReporter")
+  safetyReportsReceived       SafetyReport[]            @relation("SafetyReportTarget")
+  blocksCreated               UserBlock[]               @relation("UserBlockBlocker")
+  blocksReceived              UserBlock[]               @relation("UserBlockBlocked")
   reputation                  UserReputation?
 }
 
@@ -938,6 +975,67 @@ model UserReputation {
   updatedAt           DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CounterpartyFeedback {
+  id                        String                       @id @default(cuid())
+  subjectType               ReviewSubjectType
+  subjectId                 String
+  authorUserId              String
+  targetUserId              String
+  authorRole                ReviewPartyRole
+  targetRole                ReviewPartyRole
+  wouldWorkAgain            Boolean
+  experienceRating          Int?
+  issueCategories           CounterpartyFeedbackIssue[] @default([])
+  privateNote               String?
+  transactionStatusSnapshot String
+  createdAt                 DateTime                     @default(now())
+  updatedAt                 DateTime                     @updatedAt
+
+  author User @relation("CounterpartyFeedbackAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+  target User @relation("CounterpartyFeedbackTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
+
+  @@unique([subjectType, subjectId, authorUserId])
+  @@index([targetUserId, createdAt])
+  @@index([authorUserId, createdAt])
+  @@index([subjectType, subjectId])
+}
+
+model SafetyReport {
+  id             String               @id @default(cuid())
+  subjectType    ReviewSubjectType
+  subjectId      String
+  reporterUserId String
+  targetUserId   String
+  category       SafetyReportCategory
+  details        String
+  status         SafetyReportStatus   @default(OPEN)
+  moderationNote String?
+  reviewedAt     DateTime?
+  resolvedAt     DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  reporter User @relation("SafetyReportReporter", fields: [reporterUserId], references: [id], onDelete: Restrict)
+  target   User @relation("SafetyReportTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
+
+  @@unique([reporterUserId, subjectType, subjectId, category])
+  @@index([targetUserId, status, createdAt])
+  @@index([reporterUserId, createdAt])
+  @@index([status, createdAt])
+}
+
+model UserBlock {
+  blockerUserId String
+  blockedUserId String
+  createdAt     DateTime @default(now())
+
+  blocker User @relation("UserBlockBlocker", fields: [blockerUserId], references: [id], onDelete: Cascade)
+  blocked User @relation("UserBlockBlocked", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@id([blockerUserId, blockedUserId])
+  @@index([blockedUserId, createdAt])
 }
 
 model SystemEvent {
