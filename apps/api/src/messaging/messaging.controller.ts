@@ -3,6 +3,7 @@ import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/co
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
+import { BlockPolicyService } from "../trust-safety/block-policy.service";
 import {
   MessagingPresenceService,
   type SetTypingInput
@@ -20,14 +21,16 @@ import {
 export class MessagingController {
   constructor(
     private readonly messagingService: MessagingService,
-    private readonly messagingPresenceService: MessagingPresenceService
+    private readonly messagingPresenceService: MessagingPresenceService,
+    private readonly blockPolicy: BlockPolicyService
   ) {}
 
   @Post("conversations/direct")
-  openDirectConversation(
+  async openDirectConversation(
     @CurrentIdentity() identity: AuthIdentity,
     @Body() input: OpenDirectConversationInput
   ) {
+    await this.blockPolicy.assertDirectContact(identity, input.recipientUserId);
     return this.messagingService.openDirect(identity, input);
   }
 
@@ -57,11 +60,12 @@ export class MessagingController {
   }
 
   @Post("conversations/:conversationId/messages")
-  sendMessage(
+  async sendMessage(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("conversationId") conversationId: string,
     @Body() input: SendMessageInput
   ) {
+    await this.blockPolicy.assertConversationContact(identity, conversationId);
     return this.messagingService.sendMessage(identity, conversationId, input);
   }
 
