@@ -39,12 +39,14 @@
 
 .success,
 .locked,
-.error {
+.error,
+.published {
   border-radius: 14px;
   padding: 14px;
 }
 
-.success {
+.success,
+.published {
   background: rgba(25, 135, 84, 0.09);
   border: 1px solid rgba(25, 135, 84, 0.18);
 }
@@ -61,9 +63,28 @@
 
 .success p,
 .locked p,
-.error p {
+.error p,
+.published p {
   margin: 6px 0 0;
   line-height: 1.45;
+}
+
+.publishedHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.publishedHeading span {
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+}
+
+.published small {
+  display: block;
+  margin-top: 10px;
+  color: rgba(17, 17, 17, 0.62);
 }
 
 .meta {
@@ -80,9 +101,76 @@
   font-weight: 700;
 }
 
-.actionBlock {
+.reviewForm {
+  display: grid;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.reviewForm label {
   display: grid;
   gap: 8px;
+}
+
+.reviewForm label > span {
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+}
+
+.reviewForm textarea {
+  width: 100%;
+  resize: vertical;
+  box-sizing: border-box;
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  border-radius: 14px;
+  padding: 12px 13px;
+  background: rgba(248, 246, 240, 0.8);
+  color: #111;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.reviewForm textarea:focus {
+  outline: 2px solid rgba(17, 17, 17, 0.18);
+  outline-offset: 2px;
+}
+
+.stars {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.star,
+.starActive {
+  border: 0;
+  background: transparent;
+  padding: 0 3px;
+  font-size: 1.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.star {
+  color: rgba(17, 17, 17, 0.2);
+}
+
+.starActive {
+  color: #111;
+}
+
+.star:disabled,
+.starActive:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.formFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .button {
@@ -93,21 +181,29 @@
   font-weight: 800;
   background: #111;
   color: white;
+  cursor: pointer;
 }
 
 .button:disabled {
-  opacity: 0.55;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-.actionBlock small,
+.formFooter small,
 .muted {
   color: rgba(17, 17, 17, 0.62);
   line-height: 1.4;
 }
 
 @media (max-width: 640px) {
-  .heading {
+  .heading,
+  .formFooter,
+  .publishedHeading {
+    align-items: flex-start;
     flex-direction: column;
+  }
+
+  .button {
+    width: 100%;
   }
 }
