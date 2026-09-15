@@ -5,13 +5,15 @@ import { useCallback, useEffect, useState } from "react";
 import {
   formatWalletMoney,
   getLatestPayment,
+  getReleaseState,
   initializePayment,
   newIdempotencyKey,
   releaseBookingEscrow,
   releaseOrderSettlement,
   requestRefund,
   type FinancialSubjectType,
-  type PaymentAttemptRecord
+  type PaymentAttemptRecord,
+  type ReleaseStateRecord
 } from "../../lib/finance";
 
 type Props = {
@@ -42,17 +44,24 @@ export function TransactionFinanceActions({
   onFinancialChange
 }: Props) {
   const [payment, setPayment] = useState<PaymentAttemptRecord | null>(null);
+  const [releaseState, setReleaseState] = useState<ReleaseStateRecord | null | undefined>(undefined);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      setPayment(await getLatestPayment(subjectType, subjectId));
+      setError(null);
+      const [nextPayment, nextReleaseState] = await Promise.all([
+        getLatestPayment(subjectType, subjectId),
+        releaseKind ? getReleaseState(subjectType, subjectId) : Promise.resolve(null)
+      ]);
+      setPayment(nextPayment);
+      setReleaseState(nextReleaseState);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not load payment status");
+      setError(reason instanceof Error ? reason.message : "Could not load financial status");
     }
-  }, [subjectId, subjectType]);
+  }, [releaseKind, subjectId, subjectType]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
@@ -105,7 +114,7 @@ export function TransactionFinanceActions({
   }
 
   async function release() {
-    if (busy || !releaseKind) return;
+    if (busy || !releaseKind || releaseState?.released) return;
     setBusy("release");
     setError(null);
     setNotice(null);
@@ -125,7 +134,9 @@ export function TransactionFinanceActions({
     }
   }
 
-  const hasAction = canInitialize || canRefund || (canRelease && releaseKind);
+  const releaseAvailable = Boolean(canRelease && releaseKind && releaseState && !releaseState.released);
+  const hasAction = canInitialize || canRefund || releaseAvailable;
+  const releaseLabel = releaseKind === "BOOKING_ESCROW" ? "Escrow" : "Settlement";
 
   return (
     <div style={{ display: "grid", gap: 10 }}>
@@ -147,6 +158,11 @@ export function TransactionFinanceActions({
         ) : (
           <p style={{ margin: "8px 0 0", fontSize: 12, color: "#66635a" }}>No payment attempt has been created for this transaction yet.</p>
         )}
+
+        {releaseKind && releaseState && <p style={{ margin: "8px 0 0", fontSize: 12, fontWeight: releaseState.released ? 800 : 600, color: releaseState.released ? "#176b3a" : "#66635a" }}>
+          {releaseLabel}: {releaseState.released ? "RELEASED" : releaseState.status.replaceAll("_", " ")}
+          {releaseState.releasedAt ? ` · ${new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(releaseState.releasedAt))}` : ""}
+        </p>}
       </div>
 
       {hasAction && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -160,7 +176,7 @@ export function TransactionFinanceActions({
             {busy === "refund" ? "Requesting…" : "Request refund"}
           </button>
         )}
-        {canRelease && releaseKind && (
+        {releaseAvailable && releaseKind && (
           <button disabled={Boolean(busy)} onClick={() => void release()} style={{ border: 0, borderRadius: 999, padding: "12px 16px", background: "#ff5a1f", color: "#fff", fontWeight: 800, cursor: "pointer" }}>
             {busy === "release" ? "Releasing…" : releaseKind === "BOOKING_ESCROW" ? "Confirm completion & release escrow" : "Release completed settlement"}
           </button>
