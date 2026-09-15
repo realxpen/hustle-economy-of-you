@@ -414,13 +414,13 @@ export class TrustSafetyService {
         ...participant,
         authorUserId: participant.reporterUserId,
         authorRole: participant.reporterRole,
-        terminalForFeedback: [
+        terminalForFeedback: ([
           BookingStatus.COMPLETED,
           BookingStatus.CLOSED,
           BookingStatus.CANCELLED,
           BookingStatus.REFUNDED,
           BookingStatus.DISPUTED
-        ].includes(booking.status)
+        ] as BookingStatus[]).includes(booking.status)
       };
     }
 
@@ -433,7 +433,11 @@ export class TrustSafetyService {
       ...participant,
       authorUserId: participant.reporterUserId,
       authorRole: participant.reporterRole,
-      terminalForFeedback: [OrderStatus.COMPLETED, OrderStatus.CANCELLED, OrderStatus.REFUNDED].includes(order.status)
+      terminalForFeedback: ([
+        OrderStatus.COMPLETED,
+        OrderStatus.CANCELLED,
+        OrderStatus.REFUNDED
+      ] as OrderStatus[]).includes(order.status)
     };
   }
 
