@@ -92,6 +92,13 @@ export interface BlockStatus {
   messagingAllowed: boolean;
 }
 
+export interface UserBlockRecord {
+  blockerUserId: string;
+  blockedUserId: string;
+  createdAt: string;
+  blocked: ReviewUser;
+}
+
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 async function parseError(response: Response) {
@@ -145,6 +152,11 @@ export async function createCounterpartyFeedback(input: {
   return response.json() as Promise<CounterpartyFeedbackRecord>;
 }
 
+export async function listMyCounterpartyFeedback() {
+  const response = await authenticatedFetch("/trust-safety/feedback/me");
+  return response.json() as Promise<CounterpartyFeedbackRecord[]>;
+}
+
 export async function createSafetyReport(input: {
   subjectType: SafetyReportSubjectType;
   subjectId: string;
@@ -165,6 +177,11 @@ export async function createTransactionSafetyReport(input: {
   details: string;
 }) {
   return createSafetyReport(input);
+}
+
+export async function listMySafetyReports() {
+  const response = await authenticatedFetch("/trust-safety/reports/me");
+  return response.json() as Promise<SafetyReportRecord[]>;
 }
 
 export async function getBlockStatus(targetUserId: string) {
@@ -193,4 +210,9 @@ export async function unblockUser(targetUserId: string) {
     { method: "DELETE" }
   );
   return response.json() as Promise<{ blocked: false; targetUserId: string }>;
+}
+
+export async function listMyBlocks() {
+  const response = await authenticatedFetch("/trust-safety/blocks");
+  return response.json() as Promise<UserBlockRecord[]>;
 }
