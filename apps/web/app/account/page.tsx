@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { HustleAccount } from "@hustle/types";
-import { GivenReviewHistory } from "../../components/trust/given-review-history";
+import { TrustActivityCenter } from "../../components/trust/trust-activity-center";
 import { getMyAccount } from "../../lib/auth/hustle-account";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 
@@ -41,12 +41,13 @@ export default function AccountPage() {
     </section>
     <section className="accountGrid">
       <article className="capabilityCard"><small>CAPABILITIES</small><div className="capabilityList">{account.capabilities.map((item) => <div key={item.capability}><strong>{item.capability}</strong><span className={item.status.toLowerCase()}>{item.status}</span></div>)}</div><p>Capabilities accumulate on this identity. You never switch roles.</p></article>
-      <article className="trustCard"><small>TRUST FOUNDATION</small><div className="trustMetric"><strong>{account.emailVerified || account.phoneVerified ? "Verified" : "Pending"}</strong><span>Contact identity</span></div><div className="trustMetric"><strong>Transaction-backed</strong><span>Public provider reviews only</span></div></article>
+      <article className="trustCard"><small>TRUST FOUNDATION</small><div className="trustMetric"><strong>{account.emailVerified || account.phoneVerified ? "Verified" : "Pending"}</strong><span>Contact identity</span></div><div className="trustMetric"><strong>Transaction-backed</strong><span>Public provider reviews only</span></div><div className="trustMetric"><strong>Private by design</strong><span>Feedback, reports and blocks stay outside public reputation</span></div></article>
       <article className="nextCard">
         <small>{isHustler ? "PROFESSIONAL ECONOMY" : "NEXT UNLOCK"}</small>
         <h2>{isHustler ? "Turn capability into proof and offers." : "Show what you can do."}</h2>
         <p>{isHustler ? "Your professional identity carries services, products and capability-led content on this same account." : "Apply with your skill, experience and real proof. Approval adds Hustler to this identity without creating another account."}</p>
         <a className="primaryLink" href="/home"><span>Open discovery feed</span><b>↗</b></a>
+        <a className="futureTag" href="#trust-activity">TRUST ACTIVITY ↓</a>
         <a className="futureTag" href="/wallet">WALLET →</a>
         <a className="futureTag" href="/cart">CART →</a>
         <a className="futureTag" href="/orders">ORDERS →</a>
@@ -61,6 +62,6 @@ export default function AccountPage() {
       </article>
     </section>
 
-    <GivenReviewHistory />
+    <div id="trust-activity"><TrustActivityCenter /></div>
   </main>;
 }

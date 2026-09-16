@@ -10,6 +10,8 @@ import {
 import type { ReviewSubjectType } from "../../lib/trust";
 import styles from "./counterparty-feedback-card.module.css";
 
+const MAX_ISSUES = 8;
+
 const issueOptions: Array<{ value: CounterpartyFeedbackIssue; label: string }> = [
   { value: "NO_SHOW", label: "No-show" },
   { value: "ABUSIVE_BEHAVIOR", label: "Abusive behaviour" },
@@ -66,18 +68,32 @@ export function CounterpartyFeedbackCard({
       eligibility?.eligible
       && wouldWorkAgain !== null
       && !submitting
+      && issues.length <= MAX_ISSUES
       && privateNote.length <= 2000
     );
-  }, [eligibility?.eligible, privateNote.length, submitting, wouldWorkAgain]);
+  }, [eligibility?.eligible, issues.length, privateNote.length, submitting, wouldWorkAgain]);
 
   function toggleIssue(issue: CounterpartyFeedbackIssue) {
-    setIssues((current) => current.includes(issue)
-      ? current.filter((item) => item !== issue)
-      : [...current, issue]);
+    setIssues((current) => {
+      if (current.includes(issue)) {
+        setError(null);
+        return current.filter((item) => item !== issue);
+      }
+      if (current.length >= MAX_ISSUES) {
+        setError(`Choose up to ${MAX_ISSUES} issue categories.`);
+        return current;
+      }
+      setError(null);
+      return [...current, issue];
+    });
   }
 
   async function submit() {
     if (!eligibility?.eligible || wouldWorkAgain === null) return;
+    if (issues.length > MAX_ISSUES) {
+      setError(`Choose up to ${MAX_ISSUES} issue categories.`);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -151,20 +167,26 @@ export function CounterpartyFeedbackCard({
             type="button"
             key={rating}
             aria-label={`${rating} star${rating === 1 ? "" : "s"}`}
-            className={experienceRating === rating ? styles.starActive : styles.star}
+            className={experienceRating !== null && rating <= experienceRating ? styles.starActive : styles.star}
             onClick={() => setExperienceRating(experienceRating === rating ? null : rating)}
           >★</button>)}
         </div>
       </div>
 
       <div className={styles.questionBlock}>
-        <strong>Anything Hustle should know? <span>optional</span></strong>
+        <strong>Anything Hustle should know? <span>optional · choose up to {MAX_ISSUES}</span></strong>
         <div className={styles.issueGrid}>
           {issueOptions.map((issue) => <label key={issue.value} className={issues.includes(issue.value) ? styles.issueActive : styles.issue}>
-            <input type="checkbox" checked={issues.includes(issue.value)} onChange={() => toggleIssue(issue.value)} />
+            <input
+              type="checkbox"
+              checked={issues.includes(issue.value)}
+              disabled={!issues.includes(issue.value) && issues.length >= MAX_ISSUES}
+              onChange={() => toggleIssue(issue.value)}
+            />
             <span>{issue.label}</span>
           </label>)}
         </div>
+        <small className={styles.counter}>{issues.length}/{MAX_ISSUES} issue categories selected</small>
       </div>
 
       <div className={styles.questionBlock}>
