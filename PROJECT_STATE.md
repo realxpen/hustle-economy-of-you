@@ -1,6 +1,6 @@
 # Hustle Project State
 
-Updated: 2026-09-15
+Updated: 2026-09-16
 
 ## Current AED capability
 Build
@@ -12,9 +12,9 @@ Phase 13 — Payments + Escrow is COMPLETE.
 Phase 14A — Trust Model Foundation is COMPLETE.
 Phase 14B — Verified Reviews + Ratings is COMPLETE.
 Phase 14C — Profile Reputation is COMPLETE.
-Phase 14D — Counterparty Trust + Safety is ACTIVE.
+Phase 14D — Counterparty Trust + Safety is COMPLETE.
 
-Current active slice: **14D-D — Admin Safety Intelligence**.
+Current active slice: **14E — Full Trust Experience + final trust runtime gate**.
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -24,11 +24,11 @@ Current active slice: **14D-D — Admin Safety Intelligence**.
 - No role switcher and no separate Client/Hustler/Agent accounts.
 - Financial state is server-authoritative.
 - Never fake payment, funding, escrow, refunds, wallet credit, payout, delivery or completion.
-- Reputation must be downstream of verified transaction evidence; browser/mobile clients cannot manufacture verified reviews.
+- Reputation is downstream of verified transaction evidence; clients cannot manufacture verified reviews.
 - Public MVP reputation is one-way: `CLIENT → HUSTLER` for Bookings and `BUYER → SELLER` for Orders.
-- Private counterparty trust is separate from public provider reputation: `HUSTLER → CLIENT` and `SELLER → BUYER` feedback never affects public UserReputation.
+- Private counterparty trust is separate: `HUSTLER → CLIENT` and `SELLER → BUYER` feedback never affects public UserReputation.
 - Identity verification, transaction verification, public reputation and private trust/safety signals remain distinct.
-- Reports and private trust signals must not trigger punitive action from a single subjective complaint alone; patterns, corroboration and authoritative platform evidence matter.
+- A single subjective complaint must never trigger automatic punitive action.
 - Admin safety intelligence must explain every surfaced indicator from durable evidence and must not use an opaque automatic risk score.
 
 ## Completed MVP phases
@@ -48,6 +48,7 @@ Current active slice: **14D-D — Admin Safety Intelligence**.
 - Phase 14A — Trust Model Foundation: COMPLETE
 - Phase 14B — Verified Reviews + Ratings: COMPLETE
 - Phase 14C — Profile Reputation: COMPLETE
+- Phase 14D — Counterparty Trust + Safety: COMPLETE
 
 ## Current transaction boundaries
 
@@ -64,7 +65,7 @@ Public reputation:
 `verified transaction → eligible Client/Buyer review → verified immutable Review → atomic provider reputation projection → public profile trust signals`
 
 Private trust/safety:
-`transaction/interaction evidence → Hustler/Seller private counterparty feedback + reports + blocks → explainable Admin safety intelligence → human moderation decisions`
+`interaction/transaction evidence → private counterparty feedback + reports + blocks → explainable Admin intelligence → human moderation`
 
 ## Canonical Phase 14 knowledge
 - `Knowledge/Product/TRUST_AND_REPUTATION.md`
@@ -74,24 +75,26 @@ Private trust/safety:
 - `Knowledge/Decisions/ADR-0017-verified-review-creation-and-reputation-projection.md`
 - `Knowledge/Decisions/ADR-0018-private-counterparty-trust.md`
 - `Knowledge/Decisions/ADR-0019-public-provider-trust-summary.md`
+- `Knowledge/Decisions/ADR-0020-counterparty-trust-safety-foundation.md`
 - `Knowledge/Decisions/ADR-0021-profile-conversation-safety-report-context.md`
 - `Knowledge/Decisions/ADR-0022-explainable-admin-safety-intelligence.md`
 
 ## Phase 14A — Trust Model Foundation
-COMPLETE — runtime validated on 2026-09-15.
+COMPLETE — runtime validated 2026-09-15.
 
 Validated:
-- Review + UserReputation schema and hosted migrations
+- Review + UserReputation schema and migrations
 - participant-scoped review eligibility
-- public-review DB role-pair constraint permits only Client→Hustler and Buyer→Seller
+- public-review role pair constrained to Client→Hustler and Buyer→Seller
 - verified transaction and authoritative settlement gates
 - refunded/incomplete transactions blocked from public reviews
+- public reputation remained server-authoritative
 
 ## Phase 14B — Verified Reviews + Ratings
-COMPLETE — runtime validated on 2026-09-15.
+COMPLETE — runtime validated 2026-09-15.
 
 Validated:
-- server-authoritative immutable verified reviews
+- immutable verified public reviews
 - serializable Review + UserReputation mutation
 - duplicate/race protection
 - given/received/reputation/detail read models
@@ -107,105 +110,138 @@ Phase 14B merge:
 - `9bfc740f644e003a8b19a404d007be4733ed65fa`
 
 ## Phase 14C — Profile Reputation
-COMPLETE — runtime validated on 2026-09-15.
+COMPLETE — runtime validated 2026-09-15.
 
 Validated:
 - public server-authoritative trust summary
-- public Hustler profile reputation + verified review cards
+- public Hustler reputation + verified review cards
 - signed-in given-review history
 - no Client/Buyer public rating
 - private feedback/reports/moderation excluded from public profile
-- unauthenticated public trust-summary read works
+- unauthenticated public trust-summary read
 
 Phase 14C merge:
 - `ac2b8df27a8b364819fb2991af2ae2419575874a`
 
 ## Phase 14D — Counterparty Trust + Safety
-ACTIVE.
+COMPLETE — runtime validated 2026-09-16.
 
 Canonical direction:
 - Hustler → Client private feedback
 - Seller → Buyer private feedback
 - private feedback never affects public provider UserReputation
-- reports may come from Booking, Order, Profile or Conversation context
-- block/unblock is server-authoritative and stops new messaging while preserving historical evidence
-- Admin trust/safety intelligence combines subjective signals and objective platform evidence without conflating them
-- patterns/corroboration required before punitive action
+- reports support BOOKING, ORDER, PROFILE and CONVERSATION contexts
+- report targets are server-derived
+- block/unblock is server-authoritative
+- blocking prevents new direct contact while preserving historical evidence
+- Admin intelligence separates subjective signals from authoritative platform evidence
+- human review is required for moderation outcomes
 
 ### 14D-A — Trust/safety data foundation
-COMPLETE — runtime validated on 2026-09-15.
+COMPLETE — runtime validated 2026-09-15.
 
 Validated:
 - CounterpartyFeedback, SafetyReport and UserBlock durability
 - canonical counterparty authority
-- terminal-state feedback eligibility
+- terminal-state private-feedback eligibility
 - duplicate feedback protection
 - unfinished-transaction reporting
 - self-block protection
 - public UserReputation unchanged
 
-### 14D-B — Private counterparty feedback UI
-COMPLETE — runtime validated on 2026-09-15.
+### 14D-B — Private counterparty feedback
+COMPLETE — runtime validated 2026-09-15.
 
 Validated:
-- completed Booking already-submitted persistence
-- pending Booking locked state
-- Seller → Buyer Order feedback form
-- Client/Buyer does not receive reciprocal public/private provider form
+- Hustler → Client Booking feedback
+- Seller → Buyer Order feedback
+- would-work-again signal
+- optional private rating/issues/note
+- provider-only feedback authority
+- submitted/locked frontend states
 - public UserReputation unchanged
 
+Phase 14D-B merge:
+- `2458789ff4ad8c7660c5c5849c827a30fb695560`
+
 ### 14D-C — Reports + blocking
-COMPLETE — runtime validated on 2026-09-15.
+COMPLETE — runtime validated 2026-09-15.
 
 Validated C1:
 - transaction report UI + durable reports
 - block/unblock UI
-- blocked users cannot start direct conversations
+- blocked users cannot create direct conversations
 - blocked users cannot send new messages
 - historical messages remain readable
 - unblock restores messaging
 - public UserReputation unchanged
 
 Validated C2:
-- PROFILE report created with server-derived target
+- PROFILE report with server-derived target
 - self-profile report rejected with HTTP 400
-- CONVERSATION report created with server-derived other participant
-- durable report history contains BOOKING, ORDER, PROFILE and CONVERSATION contexts
-- public xpen reputation remains exactly 10 / 2 / 5.0 after all safety reports
+- CONVERSATION report with server-derived other participant
+- durable report history contains BOOKING, ORDER, PROFILE and CONVERSATION
+- public xpen reputation remained exactly 10 / 2 / 5.0
+
+Phase 14D-C1 merge:
+- `9e0bfdd441db9dd49d6e64b59a71f6c73ca60f4c`
 
 Phase 14D-C2 merge:
 - `50953872e93b2bff4da98c98df64e43e8543286b`
 
-### 14D-D — Admin safety intelligence
-IMPLEMENTED — CI/runtime validation pending.
+### 14D-D — Admin Safety Intelligence
+COMPLETE — CI + runtime validated 2026-09-16.
 
-Built:
-- authenticated + explicit admin-allowlist boundary through `HUSTLE_ADMIN_USER_IDS`
-- `GET /api/v1/admin/trust-safety/overview`
-- `GET /api/v1/admin/trust-safety/reports`
-- `GET /api/v1/admin/trust-safety/users/:userId/summary`
-- `PATCH /api/v1/admin/trust-safety/reports/:reportId`
-- private user safety summaries combining reports, private feedback, blocks and authoritative transaction outcomes
-- distinct subjective vs platform evidence
-- explainable indicators with evidence payloads instead of an opaque score
-- serious single allegations surface for human review but do not automatically penalize the user
-- report moderation states: OPEN, UNDER_REVIEW, ACTIONED, DISMISSED
-- moderation notes required for ACTIONED/DISMISSED outcomes
-- SystemEvent audit trail for admin report-state changes
-- internal Admin Trust & Safety console on port 3002
-- internal console keeps the bearer token in browser sessionStorage only and API authorization remains server-enforced
+Built and validated:
+- AuthGuard + server-only `HUSTLE_ADMIN_USER_IDS` allowlist
+- non-admin `xpen` receives HTTP 403 from Admin safety endpoints
+- allowlisted `adminxpen` receives HTTP 200
+- Admin overview exposes report counts, private-feedback count, active blocks and users needing review
+- xpen Admin summary exposes 4 report contexts with `uniqueReporters = 1`
+- xpen summary separates reports, private feedback and authoritative platform evidence
+- xpen safety policy returns `automaticPunitiveAction = false`
+- explainable `SERIOUS_UNRESOLVED_REPORT` and transaction-outcome indicators contain exact evidence values
+- adminxpen summary exposes two private counterparty feedback records: one Booking HUSTLER→CLIENT and one Order SELLER→BUYER
+- moderation transition `OPEN/UNDER_REVIEW` works
+- `ACTIONED` without moderation note returns HTTP 400
+- synthetic Profile report successfully transitioned to `DISMISSED` with durable reviewed/resolved timestamps
+- hosted `SystemEvent` audit proof exists for both `UNDER_REVIEW` and `DISMISSED` transitions under event name `safety.admin_report_status_changed`
+- internal Trust & Safety Admin console loads and operates successfully on port 3003
+- local Admin CORS for port 3003 validated
+- public xpen reputation remains exactly:
+  - `ratingSum = 10`
+  - `reviewCount = 2`
+  - `verifiedReviewCount = 2`
+  - `bookingReviewCount = 1`
+  - `orderReviewCount = 1`
+  - `averageRating = 5`
 
-14D-D runtime gate:
-1. non-admin authenticated user receives HTTP 403 from admin safety endpoints
-2. allowlisted admin can read overview and report queue
-3. xpen summary exposes the four durable report contexts and private transaction-backed feedback
-4. displayed indicators contain human-readable explanation + exact evidence values
-5. one subjective report does not create punitive state or alter public UserReputation
-6. report can move OPEN → UNDER_REVIEW
-7. ACTIONED/DISMISSED requires a moderation note
-8. admin report-state change emits durable audit event
-9. Admin UI loads queue and user evidence from the same server contracts
-10. public xpen reputation remains exactly `ratingSum 10 / reviewCount 2 / averageRating 5`
+Phase 14D-D merge:
+- `077042743e4cc949dc235d6c7527a5c269ae0be8`
+
+Admin port migration:
+- Admin moved from port 3002 to 3003: `9b9d347e3a2c117976bbf4586690cf0afc0e5166`
+- local Admin CORS fix: `00d9ef8c47dff35faae2a406baef93b0d75d49fc`
+
+## Phase 14E — Full Trust Experience + final trust runtime gate
+ACTIVE.
+
+Goal:
+- validate the complete public + private trust experience as one coherent product flow
+- remove remaining trust/safety UX inconsistencies
+- verify all public/private/admin boundaries together
+- finish Phase 14 with one final end-to-end gate before moving deeper into the next MVP capability area
+
+Planned final gate:
+1. public provider trust summary remains verified-transaction-only
+2. Client/Buyer can create eligible public provider reviews only once
+3. Hustler/Seller can create private counterparty feedback only for canonical counterparties
+4. report contexts work from transaction, profile and conversation surfaces
+5. blocking prevents new contact without erasing historical evidence
+6. Admin intelligence remains private and explainable
+7. no private signal changes public UserReputation
+8. trust/safety UI states are consistent across web surfaces
+9. final xpen public reputation regression remains 10 / 2 / 5.0
 
 ## Supabase
 Dedicated project:
@@ -216,12 +252,18 @@ Auth/database/storage remain hosted in the dedicated Hustle project.
 
 ## Local development
 - Web: `http://localhost:3001`
+- Admin: `http://localhost:3003`
 - API: `http://localhost:4000/api/v1`
-- Admin: `http://localhost:3002`
 - Node: 22.x via `.nvmrc`
 
 Secrets and `.env` files remain local and must never be committed.
 `HUSTLE_ADMIN_USER_IDS` is a server-only comma-separated allowlist of canonical Hustle User IDs permitted to access internal Admin APIs during the MVP bootstrap stage.
+
+In non-production local development, the canonical Hustle origins are:
+- `http://localhost:3001`
+- `http://localhost:3003`
+
+Production CORS remains configuration-driven.
 
 ## Repository workflow
 ChatGPT commits directly to `realxpen/hustle-economy-of-you`. The project owner pulls and performs development-machine runtime validation.
@@ -236,4 +278,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook/admin secrets.
 
 ## Next gate
-**Phase 14D-D — runtime-validate admin authorization, explainable user safety summaries, moderation transitions, Admin UI, audit evidence, and the unchanged public reputation invariant.**
+**Phase 14E — run the complete Trust Experience audit, fix remaining trust UX inconsistencies, then execute the final end-to-end public/private/admin trust runtime gate.**
