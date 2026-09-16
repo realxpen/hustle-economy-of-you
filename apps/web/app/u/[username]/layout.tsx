@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { StorefrontDistributionDock } from "../../../components/storefront/storefront-distribution-dock";
 import { getCanonicalStorefrontUrl, getStorefrontWebOrigin } from "../../../lib/storefront-url";
 
 type StorefrontMetadataPayload = {
@@ -134,6 +135,16 @@ export async function generateMetadata({
   };
 }
 
-export default function StorefrontLayout({ children }: Readonly<{ children: ReactNode }>) {
-  return children;
+export default async function StorefrontLayout({
+  children,
+  params
+}: Readonly<{
+  children: ReactNode;
+  params: Promise<{ username: string }>;
+}>) {
+  const { username } = await params;
+  return <>
+    {children}
+    <StorefrontDistributionDock username={username.replace(/^@/, "")} />
+  </>;
 }
