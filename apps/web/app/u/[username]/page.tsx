@@ -12,6 +12,7 @@ import {
   type PublicStorefront,
   type StorefrontPost
 } from "../../../lib/storefront";
+import { getCanonicalStorefrontUrl } from "../../../lib/storefront-url";
 import styles from "./page.module.css";
 
 function firstPostMedia(post: StorefrontPost) {
@@ -23,6 +24,7 @@ export default function PublicProfilePage() {
   const [data, setData] = useState<PublicStorefront | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const canonicalUrl = getCanonicalStorefrontUrl(params?.username ?? "");
 
   useEffect(() => {
     let active = true;
@@ -45,13 +47,12 @@ export default function PublicProfilePage() {
   }, [params?.username]);
 
   async function copyStorefront() {
-    const url = window.location.href;
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(canonicalUrl);
       } else {
         const field = document.createElement("textarea");
-        field.value = url;
+        field.value = canonicalUrl;
         field.style.position = "fixed";
         field.style.opacity = "0";
         document.body.appendChild(field);
@@ -59,7 +60,7 @@ export default function PublicProfilePage() {
         document.execCommand("copy");
         field.remove();
       }
-      setShareNotice("Storefront link copied");
+      setShareNotice("Canonical storefront link copied");
       window.setTimeout(() => setShareNotice(null), 2200);
     } catch {
       setShareNotice("Could not copy link");
@@ -72,7 +73,7 @@ export default function PublicProfilePage() {
     const text = data.profile.headline ?? "View this Hustle storefront";
     if (navigator.share) {
       try {
-        await navigator.share({ title, text, url: window.location.href });
+        await navigator.share({ title, text, url: canonicalUrl });
         return;
       } catch {
         return;
