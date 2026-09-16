@@ -17,6 +17,7 @@ import { CommerceModule } from "./commerce/commerce.module";
 import { PaymentModule } from "./payment/payment.module";
 import { TrustModule } from "./trust/trust.module";
 import { TrustSafetyModule } from "./trust-safety/trust-safety.module";
+import { StorefrontModule } from "./storefront/storefront.module";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
 
 @Module({
@@ -40,7 +41,8 @@ import { RequestContextMiddleware } from "./common/middleware/request-context.mi
     CommerceModule,
     PaymentModule,
     TrustModule,
-    TrustSafetyModule
+    TrustSafetyModule,
+    StorefrontModule
   ]
 })
 export class AppModule implements NestModule {
