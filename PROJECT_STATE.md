@@ -11,7 +11,7 @@ Phase 15 — Public Hustle Storefront Website
 Phase 13 — Payments + Escrow is COMPLETE.
 Phase 14 — Trust + Reputation is COMPLETE.
 
-Current active slice: **Phase 15 — Public Hustle Storefront Website**.
+Current active slice: **Phase 15B — Storefront Distribution**.
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -27,6 +27,7 @@ Current active slice: **Phase 15 — Public Hustle Storefront Website**.
 - Identity verification, transaction verification, public reputation and private trust/safety signals remain distinct.
 - A single subjective complaint must never trigger automatic punitive action.
 - Admin safety intelligence must be explainable and evidence-backed rather than an opaque risk score.
+- Public storefronts are generated from the same Hustle identity and authoritative published data; there is no separate website-builder identity in the MVP.
 
 ## Completed MVP phases
 - Phase 1 — Technical Foundation: COMPLETE
@@ -56,7 +57,7 @@ Money:
 `payment confirmation → ledger → escrow/pending → available → payout reservation → provider-confirmed payout`
 
 Public reputation:
-`verified transaction → eligible Client/Buyer review → verified immutable Review → atomic provider reputation projection → public profile trust signals`
+`verified transaction → eligible Client/Buyer review → verified immutable Review → atomic provider reputation projection → public profile/storefront trust signals`
 
 Private trust/safety:
 `interaction/transaction evidence → private counterparty feedback + reports + blocks → explainable Admin intelligence → human moderation`
@@ -156,35 +157,67 @@ ACTIVE.
 Canonical goal:
 Give every Hustler an automatically generated, shareable public web presence from existing Hustle data. This is not a drag-and-drop website builder in the MVP.
 
-Canonical public route direction:
-`/u/:username` remains the Hustler identity route and should evolve into the full public storefront experience rather than creating a disconnected second identity.
+Canonical public route:
+`/u/:username`
 
-Storefront should assemble from:
+Storefront composes from:
 - professional profile
-- portfolio / capability proof
 - services
 - products
 - posts / featured work
+- public follower/activity counts
 - verified public reviews and reputation
 - contact / message / book / buy actions
 
-Distribution requirements:
-- direct public URL
-- share to WhatsApp
-- share to Instagram/X through normal platform share flows where supported
-- copy link
-- QR code
-- signed-out visitors can understand the Hustler and browse public offers without a Hustle session
+### 15A — Storefront Foundation
+COMPLETE — CI + runtime validated 2026-09-16.
+
+Built and validated:
+- public signed-out `GET /api/v1/storefronts/:username` aggregate read model
+- ACTIVE HUSTLER + PUBLISHED ProfessionalProfile gate
+- published Services, Products and Posts only
+- existing `PublicTrustService` reused as public reputation authority
+- product stock derived from authoritative inventory fields
+- follower and published-content counts
+- `/u/:username` redesigned into a signed-out-friendly storefront
+- real service, product and post links use canonical Hustle records rather than storefront copies
+- signed-out `xpen` storefront renders identity, services, products, work/content and verified reputation
+- private-data leak grep returns no private feedback, moderation notes, safety reports, blocks, Admin data or auth subjects
+- xpen runtime storefront contains 1 service, 1 product, 2 posts and 2 verified reviews
+- public xpen reputation remains exactly 10 / 2 / 5.0
+
+Phase 15A merge:
+- `a3798fea0ebd577c2f305419a57a9d2e81c26fb6`
+
+### 15B — Storefront Distribution
+ACTIVE — implementation in progress.
+
+Build target:
+- canonical storefront URL contract
+- dynamic SEO metadata from public storefront data
+- canonical link metadata
+- Open Graph previews
+- X/Twitter card metadata
+- copy canonical link
+- native device share
+- WhatsApp share intent
+- X share intent
+- QR representation of the canonical storefront URL
+- no private trust/safety data in metadata/share payloads
+
+Canonical Phase 15 knowledge:
+- `Knowledge/Decisions/ADR-0024-public-storefront-read-model.md`
+- `Knowledge/Decisions/ADR-0025-storefront-distribution.md`
 
 Phase 15 gate:
 1. a signed-out visitor can open a Hustler storefront by username;
 2. profile identity, capability proof, services, products, content and verified reputation are composed coherently;
 3. private trust/safety information never appears;
 4. Book/Buy/Message CTAs route correctly and authentication is requested only when an action requires it;
-5. storefront has useful social/share metadata and a copy/share path;
+5. storefront has useful canonical/social metadata and deliberate share paths;
 6. a QR code can represent the canonical storefront URL;
 7. storefront remains generated from authoritative Hustle data, not duplicated manually;
-8. `xpen` storefront can be used as the runtime reference profile.
+8. `xpen` storefront is the runtime reference profile.
 
 ## Supabase
 Dedicated project:
@@ -206,6 +239,10 @@ In non-production local development, canonical Hustle origins are:
 - `http://localhost:3001`
 - `http://localhost:3003`
 
+Canonical storefront origin:
+- `NEXT_PUBLIC_WEB_URL=http://localhost:3001` locally
+- configure the production Hustle web origin in deployment environments
+
 Production CORS remains configuration-driven.
 
 ## Repository workflow
@@ -221,4 +258,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook/admin secrets.
 
 ## Next gate
-**Phase 15 — build the public Hustle storefront from the existing `/u/:username` identity surface, preserving one identity and composing profile, proof, offers, content, verified reputation and distribution into one signed-out-friendly page.**
+**Phase 15B — validate canonical/social metadata plus copy/native/WhatsApp/X/QR distribution on the signed-out `xpen` storefront, then continue to the next storefront capability slice.**
