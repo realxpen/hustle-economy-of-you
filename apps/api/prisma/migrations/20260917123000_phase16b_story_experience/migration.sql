@@ -25,6 +25,19 @@ CREATE TABLE "StoryReaction" (
 CREATE INDEX "StoryReaction_storyId_reaction_idx" ON "StoryReaction"("storyId", "reaction");
 CREATE INDEX "StoryReaction_userId_updatedAt_idx" ON "StoryReaction"("userId", "updatedAt");
 
+CREATE TABLE "StoryReply" (
+  "id" TEXT NOT NULL,
+  "storyId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "body" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "StoryReply_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX "StoryReply_storyId_createdAt_idx" ON "StoryReply"("storyId", "createdAt");
+CREATE INDEX "StoryReply_userId_createdAt_idx" ON "StoryReply"("userId", "createdAt");
+
 ALTER TYPE "MessageContextType" ADD VALUE IF NOT EXISTS 'STORY';
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
