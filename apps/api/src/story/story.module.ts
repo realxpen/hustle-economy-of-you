@@ -1,11 +1,12 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module";
+import { TrustSafetyModule } from "../trust-safety/trust-safety.module";
 import { StoryController } from "./story.controller";
 import { StoryService } from "./story.service";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, TrustSafetyModule],
   controllers: [StoryController],
   providers: [StoryService],
   exports: [StoryService]

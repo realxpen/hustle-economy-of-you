@@ -1,0 +1,111 @@
+.viewerPrev,
+.viewerNext {
+  position: absolute;
+  top: 50%;
+  z-index: 6;
+  width: 42px;
+  height: 56px;
+  transform: translateY(-50%);
+  border: 1px solid rgba(255,255,255,.26);
+  border-radius: 999px;
+  background: rgba(8,8,8,.52);
+  color: #fff;
+  font-size: 32px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.viewerPrev { left: 14px; }
+.viewerNext { right: 14px; }
+.viewerPrev:disabled,
+.viewerNext:disabled { opacity: .2; cursor: default; }
+
+.interactionCard {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(17,17,17,.12);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.metricLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 12px;
+  color: #666;
+}
+
+.reactionRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.reactionRow button {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 10px 6px;
+  border: 1px solid rgba(17,17,17,.12);
+  border-radius: 14px;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.reactionRow button span { font-size: 21px; }
+.reactionRow button small { font-size: 10px; color: #666; }
+.reactionRow .activeReaction { border-color: #111; background: #111; color: #fff; }
+.reactionRow .activeReaction small { color: #fff; }
+
+.replyForm {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.replyForm input {
+  min-width: 0;
+  border: 1px solid rgba(17,17,17,.15);
+  border-radius: 12px;
+  padding: 12px 13px;
+  font: inherit;
+}
+
+.replyForm button,
+.textLink {
+  border: 0;
+  border-radius: 12px;
+  background: #111;
+  color: #fff;
+  padding: 10px 13px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.textLink {
+  display: inline-flex;
+  width: fit-content;
+  text-align: left;
+}
+
+.replyList {
+  display: grid;
+  gap: 9px;
+  max-height: 230px;
+  overflow: auto;
+  border-top: 1px solid rgba(17,17,17,.08);
+  padding-top: 12px;
+}
+
+.replyList > small { color: #777; letter-spacing: .08em; }
+.replyList > div { padding: 10px 0; border-bottom: 1px solid rgba(17,17,17,.08); }
+.replyList strong { font-size: 12px; }
+.replyList p { margin: 4px 0 0; line-height: 1.45; }
+
+@media (max-width: 720px) {
+  .viewerPrev,
+  .viewerNext { width: 36px; height: 48px; font-size: 26px; }
+  .replyForm { grid-template-columns: 1fr; }
+}

@@ -5,21 +5,57 @@ enum StoryType {
 }
 
 model Story {
-  id          String    @id @default(cuid())
-  userId      String
-  type        StoryType
-  text        String?
-  mediaUrl    String?
-  background  String?
-  serviceId   String?
-  productId   String?
-  publishedAt DateTime  @default(now())
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  userId          String
+  type            StoryType
+  text            String?
+  mediaUrl        String?
+  mediaStorageKey String?
+  background      String?
+  serviceId       String?
+  productId       String?
+  publishedAt     DateTime  @default(now())
+  expiresAt       DateTime
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([expiresAt, publishedAt])
   @@index([userId, expiresAt])
   @@index([serviceId])
   @@index([productId])
+}
+
+model StoryView {
+  id            String   @id @default(cuid())
+  storyId       String
+  viewerKey     String
+  firstViewedAt DateTime @default(now())
+  lastViewedAt  DateTime @updatedAt
+
+  @@unique([storyId, viewerKey])
+  @@index([storyId, firstViewedAt])
+}
+
+model StoryReaction {
+  storyId   String
+  userId    String
+  reaction  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([storyId, userId])
+  @@index([storyId, reaction])
+  @@index([userId, updatedAt])
+}
+
+model StoryReply {
+  id        String   @id @default(cuid())
+  storyId   String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storyId, createdAt])
+  @@index([userId, createdAt])
 }

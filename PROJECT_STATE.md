@@ -14,7 +14,7 @@ Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16A — Stories Foundation is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 Phase 16 universal-content authority correction is COMPLETE — CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 16B — Stories Experience.**
+Current active slice: **Phase 16B — Stories Experience — IMPLEMENTED + CI GREEN; runtime migration/validation pending.**
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -28,6 +28,8 @@ Current active slice: **Phase 16B — Stories Experience.**
 - Referencing another Hustler's Service/Product never transfers merchant ownership and never implies the content author owns the offer.
 - Social recommendations, opinions and review-style Posts/Stories are community content and never manufacture verified reputation.
 - Verified public reputation remains downstream of eligible transaction evidence and a canonical Review record.
+- Story views, reactions and private replies are social/observation signals only and never affect verified `UserReputation`.
+- Private Story replies must respect the existing UserBlock policy and never become a public comment surface.
 - Financial state is server-authoritative.
 - Never fake payment, funding, escrow, refunds, wallet credit, payout, delivery or completion.
 - Public MVP reputation is one-way: `CLIENT → HUSTLER` for Bookings and `BUYER → SELLER` for Orders.
@@ -171,21 +173,29 @@ Validated:
 - review-style community content does not create a verified Review
 - xpen public `UserReputation` remains unchanged after the cross-identity content test: ratingSum 10, reviewCount 2, verifiedReviewCount 2, bookingReviewCount 1, orderReviewCount 1, averageRating 5
 
+### 16B — Stories Experience
+IMPLEMENTED + CI GREEN — runtime pending.
+
+Migration: `20260917123000_phase16b_story_experience`
+
+Implemented:
+- unique Story views using opaque browser viewer keys and `(storyId, viewerKey)` deduplication
+- authenticated one-reaction-per-user Story reactions: HEART / FIRE / CLAP / HUNDRED
+- private Story replies visible only to the Story creator and the reply author
+- existing UserBlock policy enforced on private Story replies
+- public Story interaction counts without exposing private reply content
+- sequential previous/next Story viewer with video completion advancing to the next active Story
+- native authenticated Story photo/video upload through dedicated `story-media` Supabase Storage bucket
+- Story media ownership enforced through auth-subject path validation + owner-scoped Storage RLS
+- image limit 10 MB; video limit 50 MB with explicit MIME allowlist
+- active Stories rail directly on Home plus Add Story entry
+- controlled Story → profile / Service / Product conversion SystemEvents with server-derived targets
+- Story interaction signals remain separated from verified reputation authority
+
 Canonical Phase 16 knowledge:
 - `Knowledge/Decisions/ADR-0026-stories-foundation.md`
 - `Knowledge/Decisions/ADR-0027-universal-user-content.md`
-
-### 16B — Stories Experience
-ACTIVE.
-
-Build target:
-- Story view tracking
-- reactions and replies
-- Home Stories row
-- sequential Story viewer
-- native media upload/storage
-- Story → person/Service/Product conversion events
-- preserve universal User content authority and verified-reputation separation
+- `Knowledge/Decisions/ADR-0028-stories-experience.md`
 
 ## Supabase
 Dedicated project:
@@ -218,4 +228,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook/admin secrets.
 
 ## Next gate
-**Phase 16B — implement Story views, reactions/replies, Home Stories row, sequential viewing, native media upload/storage, and measurable Story → person/Service/Product conversion events while preserving the universal User content model.**
+**Phase 16B runtime: deploy `20260917123000_phase16b_story_experience`; verify `story-media` bucket/RLS, unique view deduplication, reactions, private block-aware replies, Home Stories rail, sequential viewing, native image/video upload, Story conversion events, private-reply non-leakage, and the unchanged xpen 10 / 2 / 5.0 public reputation invariant.**
