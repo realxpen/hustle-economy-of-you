@@ -39,7 +39,7 @@ export interface FeedItem {
       category: string | null;
       professionalSummary: string | null;
       yearsExperience: number | null;
-    };
+    } | null;
   };
   engagement: {
     likes: number;
