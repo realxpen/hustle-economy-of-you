@@ -11,9 +11,10 @@ Phase 16 — Stories + Universal User Content
 Phase 13 — Payments + Escrow is COMPLETE.
 Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
-Phase 16A — Stories Foundation is IMPLEMENTED + CI COMPLETE; runtime migration/validation remains.
+Phase 16A — Stories Foundation is COMPLETE — implementation, CI and runtime validated 2026-09-17.
+Phase 16 universal-content authority correction is COMPLETE — CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 16 authority correction — Posts and Stories belong to every Hustle User identity, not only HUSTLER.**
+Current active slice: **Phase 16B — Stories Experience.**
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -23,8 +24,9 @@ Current active slice: **Phase 16 authority correction — Posts and Stories belo
 - No role switcher and no separate Client/Hustler/Agent accounts.
 - **Posts and Stories are User-level content capabilities. Every authenticated Client or Hustler can publish.**
 - HUSTLER is required for owning/selling professional Services and Products, not for having a public voice.
-- Client-authored Posts/Stories may @mention users and reference any currently published Service/Product, including another Hustler's.
-- Social recommendations/opinions are community content and never manufacture verified reputation.
+- Client-authored Posts/Stories may `@mention` users and reference any currently published Service/Product, including another Hustler's.
+- Referencing another Hustler's Service/Product never transfers merchant ownership and never implies the content author owns the offer.
+- Social recommendations, opinions and review-style Posts/Stories are community content and never manufacture verified reputation.
 - Verified public reputation remains downstream of eligible transaction evidence and a canonical Review record.
 - Financial state is server-authoritative.
 - Never fake payment, funding, escrow, refunds, wallet credit, payout, delivery or completion.
@@ -137,12 +139,12 @@ Canonical Phase 15 knowledge:
 ACTIVE.
 
 ### 16A — Stories Foundation
-IMPLEMENTED + CI GREEN; runtime pending.
+COMPLETE — implementation + CI + runtime validated 2026-09-17.
 
 Merge: `eaecc981f29a55cf587ae40fd885eb591e40e3e8`
 Migration: `20260917110000_phase16a_stories`
 
-Foundation includes:
+Validated foundation:
 - TEXT / IMAGE / VIDEO Stories
 - fixed server-owned 24-hour lifetime
 - public active Story list/detail
@@ -151,35 +153,39 @@ Foundation includes:
 - Story publication/removal SystemEvents
 - canonical Service/Product action routing
 
-### Phase 16 authority correction
-ACTIVE.
+### Phase 16 universal-content authority correction
+COMPLETE — implementation + CI + runtime validated 2026-09-17.
 
-Correction prompted by the unified-account rule:
-- any authenticated Hustle User can create Posts and Stories
-- Client-only users do not need HUSTLER capability to publish
-- Client-only Posts use a DRAFT ProfessionalProfile only as a temporary internal Post-schema anchor; it does not grant HUSTLER or publish professional identity
-- public Post/Story reads suppress unpublished professional profile data
-- public Posts from Client and Hustler identities are eligible for Home discovery and interactions
-- `@username` references resolve public Hustle identities
-- Posts and Stories can reference any currently published Service/Product, not only offers owned by the author
-- references do not transfer offer ownership or imply author/merchant identity
-- professional storefront links render only when a public professional profile exists
-- review-style social content remains distinct from verified Review/UserReputation authority
+Merge: `dcb73676e64e840f166fe8dd53f73d709b977ee0`
+
+Validated:
+- Client-only identity can create and publish Posts
+- Client-only identity can create Stories
+- Client-only users do not gain HUSTLER capability by publishing content
+- Client-only Post storage may use an internal DRAFT ProfessionalProfile compatibility anchor, but public professional context remains absent until legitimately published
+- public Posts from Client and Hustler identities are eligible for discovery and normal interactions
+- Client-authored Post/Story can `@mention` `xpen`
+- Client-authored Post/Story can reference xpen's published Service `cmttw02cy0001dc02zzd5j89x`
+- Client-authored Post/Story can reference xpen's published Product `cmtty8gfs0001dcavtny1iiuh`
+- referenced offers still route to their canonical Hustle entities and remain owned by xpen
+- review-style community content does not create a verified Review
+- xpen public `UserReputation` remains unchanged after the cross-identity content test: ratingSum 10, reviewCount 2, verifiedReviewCount 2, bookingReviewCount 1, orderReviewCount 1, averageRating 5
 
 Canonical Phase 16 knowledge:
 - `Knowledge/Decisions/ADR-0026-stories-foundation.md`
 - `Knowledge/Decisions/ADR-0027-universal-user-content.md`
 
 ### 16B — Stories Experience
-NEXT after correction runtime gate.
+ACTIVE.
 
-Target:
-- Story views
-- reactions/replies
+Build target:
+- Story view tracking
+- reactions and replies
 - Home Stories row
 - sequential Story viewer
 - native media upload/storage
 - Story → person/Service/Product conversion events
+- preserve universal User content authority and verified-reputation separation
 
 ## Supabase
 Dedicated project:
@@ -212,4 +218,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook/admin secrets.
 
 ## Next gate
-**Validate a Client-only identity creating a Post and Story that reference xpen/@xpen and xpen's published Service/Product, prove those references route to canonical Hustle entities, and prove xpen `UserReputation` remains unchanged. Then continue Phase 16B.**
+**Phase 16B — implement Story views, reactions/replies, Home Stories row, sequential viewing, native media upload/storage, and measurable Story → person/Service/Product conversion events while preserving the universal User content model.**
