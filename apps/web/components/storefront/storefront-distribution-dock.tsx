@@ -8,8 +8,9 @@ import styles from "./storefront-distribution-dock.module.css";
 export function StorefrontDistributionDock({ username }: { username: string }) {
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const normalizedUsername = username.replace(/^@/, "");
   const canonicalUrl = useMemo(() => getCanonicalStorefrontUrl(username), [username]);
-  const shareText = `View @${username.replace(/^@/, "")}'s Hustle storefront — The Economy of You.`;
+  const shareText = `View @${normalizedUsername}'s Hustle storefront — The Economy of You.`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=12&data=${encodeURIComponent(canonicalUrl)}`;
 
   async function copyLink() {
@@ -29,7 +30,7 @@ export function StorefrontDistributionDock({ username }: { username: string }) {
     }
     try {
       await navigator.share({
-        title: `@${username.replace(/^@/, "")} on Hustle`,
+        title: `@${normalizedUsername} on Hustle`,
         text: shareText,
         url: canonicalUrl
       });
@@ -40,6 +41,7 @@ export function StorefrontDistributionDock({ username }: { username: string }) {
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${canonicalUrl}`)}`;
   const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(canonicalUrl)}`;
+  const emailUrl = `mailto:?subject=${encodeURIComponent(`@${normalizedUsername} on Hustle`)}&body=${encodeURIComponent(`${shareText}\n\n${canonicalUrl}`)}`;
 
   return <>
     <div className={styles.dock}>
@@ -60,9 +62,9 @@ export function StorefrontDistributionDock({ username }: { username: string }) {
 
         <div className={styles.body}>
           <div className={styles.qrCard}>
-            <img src={qrUrl} alt={`QR code for @${username}'s Hustle storefront`} />
+            <img src={qrUrl} alt={`QR code for @${normalizedUsername}'s Hustle storefront`} />
             <small>SCAN TO OPEN</small>
-            <strong>@{username.replace(/^@/, "")}</strong>
+            <strong>@{normalizedUsername}</strong>
           </div>
 
           <div className={styles.shareColumn}>
@@ -74,6 +76,7 @@ export function StorefrontDistributionDock({ username }: { username: string }) {
             <button type="button" onClick={() => void nativeShare()}>Share with device</button>
             <a href={whatsappUrl} target="_blank" rel="noreferrer">Share to WhatsApp</a>
             <a href={xUrl} target="_blank" rel="noreferrer">Share to X</a>
+            <a href={emailUrl}>Share by email</a>
             <p className={styles.platformNote}>For Instagram and other installed apps, use <strong>Share with device</strong> where your browser supports native sharing.</p>
           </div>
         </div>
