@@ -20,6 +20,7 @@ import {
   type StoryViewerInteraction
 } from "../../../lib/story";
 import styles from "../stories.module.css";
+import experience from "../experience.module.css";
 
 const reactions: Array<{ value: StoryReaction; emoji: string; label: string }> = [
   { value: "HEART", emoji: "❤️", label: "Love" },
@@ -191,8 +192,8 @@ export default function StoryViewerPage() {
           <button type="button" onClick={() => void share()}>Share ↗</button>
         </div>
 
-        <button type="button" className={styles.viewerPrev} onClick={() => navigate(previous)} disabled={!previous} aria-label="Previous Story">‹</button>
-        <button type="button" className={styles.viewerNext} onClick={() => navigate(next)} disabled={!next} aria-label="Next Story">›</button>
+        <button type="button" className={experience.viewerPrev} onClick={() => navigate(previous)} disabled={!previous} aria-label="Previous Story">‹</button>
+        <button type="button" className={experience.viewerNext} onClick={() => navigate(next)} disabled={!next} aria-label="Next Story">›</button>
         {story.type !== "TEXT" && story.text && <div className={styles.viewerBottom}><div className={styles.viewerCaption}>{story.text}</div></div>}
       </div>
     </section>
@@ -204,23 +205,23 @@ export default function StoryViewerPage() {
         <h2>{creatorName}</h2>
         <p>@{story.creator.username ?? "user"}{story.creator.verified ? " · Verified identity" : ""}</p>
         {story.creator.professionalProfile?.headline && <p>{story.creator.professionalProfile.headline}</p>}
-        {story.creator.username && <button className={styles.textLink} type="button" onClick={() => recordAndNavigate("PROFILE_CLICKED", `/u/${encodeURIComponent(story.creator.username!)}`)}>Visit profile / storefront →</button>}
+        {story.creator.username && <button className={experience.textLink} type="button" onClick={() => recordAndNavigate("PROFILE_CLICKED", `/u/${encodeURIComponent(story.creator.username!)}`)}>Visit profile / storefront →</button>}
       </section>
 
-      <section className={styles.interactionCard}>
-        <div className={styles.metricLine}><span>{story.interactions.views} views</span><span>{Object.values(story.interactions.reactions).reduce((sum, value) => sum + (value ?? 0), 0)} reactions</span><span>{story.interactions.replies} replies</span></div>
-        {!viewer?.isOwner && <div className={styles.reactionRow}>
-          {reactions.map((item) => <button key={item.value} type="button" title={item.label} className={viewer?.reaction === item.value ? styles.activeReaction : undefined} disabled={busy === "reaction"} onClick={() => void chooseReaction(item.value)}>
+      <section className={experience.interactionCard}>
+        <div className={experience.metricLine}><span>{story.interactions.views} views</span><span>{Object.values(story.interactions.reactions).reduce((sum, value) => sum + (value ?? 0), 0)} reactions</span><span>{story.interactions.replies} replies</span></div>
+        {!viewer?.isOwner && <div className={experience.reactionRow}>
+          {reactions.map((item) => <button key={item.value} type="button" title={item.label} className={viewer?.reaction === item.value ? experience.activeReaction : undefined} disabled={busy === "reaction"} onClick={() => void chooseReaction(item.value)}>
             <span>{item.emoji}</span><small>{story.interactions.reactions[item.value] ?? 0}</small>
           </button>)}
         </div>}
 
-        {!viewer?.isOwner && <form className={styles.replyForm} onSubmit={sendReply}>
+        {!viewer?.isOwner && <form className={experience.replyForm} onSubmit={sendReply}>
           <input value={replyBody} maxLength={1200} onChange={(event) => setReplyBody(event.target.value)} placeholder={viewer ? "Reply privately to this Story…" : "Sign in to reply…"} />
           <button type="submit" disabled={busy === "reply" || !replyBody.trim()}>{busy === "reply" ? "Sending…" : "Reply"}</button>
         </form>}
 
-        {viewer && replies.length > 0 && <div className={styles.replyList}>
+        {viewer && replies.length > 0 && <div className={experience.replyList}>
           <small>{viewer.isOwner ? "PRIVATE REPLIES TO YOUR STORY" : "YOUR PRIVATE REPLIES"}</small>
           {replies.map((reply) => <div key={reply.id}><strong>@{reply.user.username ?? "user"}</strong><p>{reply.body}</p></div>)}
         </div>}
@@ -237,14 +238,14 @@ export default function StoryViewerPage() {
         <small>REFERENCED SERVICE</small>
         <h3>{story.service.title ?? "Service"}</h3>
         <p>{story.service.category ?? story.service.deliveryMode} · {money(story.service.priceMinor, story.service.currency)}</p>
-        <button className={styles.textLink} type="button" onClick={() => recordAndNavigate("SERVICE_CLICKED", `/services/${encodeURIComponent(story.service!.id)}`)}>View & book service →</button>
+        <button className={experience.textLink} type="button" onClick={() => recordAndNavigate("SERVICE_CLICKED", `/services/${encodeURIComponent(story.service!.id)}`)}>View & book service →</button>
       </section>}
 
       {story.product && <section className={styles.commerceCard}>
         <small>REFERENCED PRODUCT</small>
         <h3>{story.product.title ?? "Product"}</h3>
         <p>{story.product.category ?? story.product.type} · {money(story.product.priceMinor, story.product.currency)}</p>
-        <button className={styles.textLink} type="button" onClick={() => recordAndNavigate("PRODUCT_CLICKED", `/products/${encodeURIComponent(story.product!.id)}`)}>View & buy product →</button>
+        <button className={experience.textLink} type="button" onClick={() => recordAndNavigate("PRODUCT_CLICKED", `/products/${encodeURIComponent(story.product!.id)}`)}>View & buy product →</button>
       </section>}
 
       <div className={styles.storyMeta}>
