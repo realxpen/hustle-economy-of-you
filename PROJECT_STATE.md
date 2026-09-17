@@ -6,15 +6,14 @@ Updated: 2026-09-17
 Build
 
 ## Current MVP phase
-Phase 16 — Stories + Universal User Content
+Phase 17 — Live Commerce Beta
 
 Phase 13 — Payments + Escrow is COMPLETE.
 Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
-Phase 16A — Stories Foundation is COMPLETE — implementation, CI and runtime validated 2026-09-17.
-Phase 16 universal-content authority correction is COMPLETE — CI and runtime validated 2026-09-17.
+Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 16B — Stories Experience — IMPLEMENTED + CI GREEN; runtime migration/validation pending.**
+Current active slice: **Phase 17A — Live Commerce Foundation — IMPLEMENTED + CI GREEN; runtime migration/validation pending.**
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -22,7 +21,7 @@ Current active slice: **Phase 16B — Stories Experience — IMPLEMENTED + CI GR
 - One User identity; everyone begins as CLIENT.
 - HUSTLER and AGENT are additive capabilities on the same identity.
 - No role switcher and no separate Client/Hustler/Agent accounts.
-- **Posts and Stories are User-level content capabilities. Every authenticated Client or Hustler can publish.**
+- Posts and Stories are User-level content capabilities. Every authenticated Client or Hustler can publish.
 - HUSTLER is required for owning/selling professional Services and Products, not for having a public voice.
 - Client-authored Posts/Stories may `@mention` users and reference any currently published Service/Product, including another Hustler's.
 - Referencing another Hustler's Service/Product never transfers merchant ownership and never implies the content author owns the offer.
@@ -30,6 +29,12 @@ Current active slice: **Phase 16B — Stories Experience — IMPLEMENTED + CI GR
 - Verified public reputation remains downstream of eligible transaction evidence and a canonical Review record.
 - Story views, reactions and private replies are social/observation signals only and never affect verified `UserReputation`.
 - Private Story replies must respect the existing UserBlock policy and never become a public comment surface.
+- Live viewing is public; Live commenting is authenticated; commerce Live hosting requires ACTIVE HUSTLER + PUBLISHED ProfessionalProfile.
+- A Live host may pin only their own currently PUBLISHED Service or Product, one offer at a time.
+- Live references canonical Service/Product entities and never creates separate price, inventory, Booking, Order, payment or reputation authority.
+- Live presence/comments/conversion events are social or observation signals only and never affect verified `UserReputation`.
+- Live comments must respect existing UserBlock direct-contact policy.
+- Native Live broadcasting must never be claimed before real media transport is integrated and runtime validated.
 - Financial state is server-authoritative.
 - Never fake payment, funding, escrow, refunds, wallet credit, payout, delivery or completion.
 - Public MVP reputation is one-way: `CLIENT → HUSTLER` for Bookings and `BUYER → SELLER` for Orders.
@@ -55,6 +60,7 @@ Current active slice: **Phase 16B — Stories Experience — IMPLEMENTED + CI GR
 - Phase 13 — Payments + Escrow: COMPLETE
 - Phase 14 — Trust + Reputation: COMPLETE
 - Phase 15 — Public Hustle Storefront Website: COMPLETE
+- Phase 16 — Stories + Universal User Content: COMPLETE
 
 ## Current transaction and trust boundaries
 
@@ -73,7 +79,10 @@ Verified public reputation:
 Community content:
 `User → Post/Story → @mentions + public Service/Product references → discovery/conversation/opportunity`
 
-Community content must never silently become verified reputation.
+Live commerce:
+`Hustler → Live session → demonstration/conversation → pinned canonical Service/Product → existing Booking/Order transaction flow`
+
+Community and Live interaction signals must never silently become verified reputation.
 
 Private trust/safety:
 `interaction/transaction evidence → private counterparty feedback + reports + blocks → explainable Admin intelligence → human moderation`
@@ -95,7 +104,7 @@ Canonical Phase 14 knowledge:
 - `Knowledge/Product/TRUST_AND_REPUTATION.md`
 - `Knowledge/Decisions/ADR-0013-verified-transaction-reviews.md`
 - `Knowledge/Decisions/ADR-0015-one-way-public-reputation-reviews.md`
-- `Knowledge/Decisions/ADR-0016-authoritative-release-state-read.md`
+- `Knowledge/Decisions/ADR-0016-authoritative-release-state-ui.md`
 - `Knowledge/Decisions/ADR-0017-verified-review-creation-and-reputation-projection.md`
 - `Knowledge/Decisions/ADR-0018-private-counterparty-trust.md`
 - `Knowledge/Decisions/ADR-0019-public-provider-trust-summary.md`
@@ -107,29 +116,15 @@ Canonical Phase 14 knowledge:
 ## Phase 15 — Public Hustle Storefront Website
 COMPLETE.
 
-### 15A — Storefront Foundation
-COMPLETE — CI + runtime validated 2026-09-16.
-
 Validated:
-- public signed-out `GET /api/v1/storefronts/:username`
-- `/u/:username` composes professional identity, published Services/Products/Posts and verified reputation
+- public signed-out storefront read model
+- `/u/:username` professional identity + published Services/Products/Posts + verified reputation
 - no private trust/safety leakage
-- canonical real Service/Product/Post routes
-- xpen runtime storefront: 1 Service, 1 Product, 2 Posts, 2 verified Reviews
-
-Merge: `a3798fea0ebd577c2f305419a57a9d2e81c26fb6`
-
-### 15B/15C — Storefront Distribution
-COMPLETE — CI merged.
-
-Built:
-- canonical storefront URL
-- dynamic SEO/Open Graph/X metadata
-- copy/native/WhatsApp/X/email sharing
-- QR representation of canonical URL
-- public-data-only metadata/share payloads
+- canonical Service/Product/Post routes
+- canonical URL, SEO/Open Graph/X metadata, copy/native/WhatsApp/X/email sharing and QR
 
 Merges:
+- foundation `a3798fea0ebd577c2f305419a57a9d2e81c26fb6`
 - distribution `76a24ace7ac4c363a0e549978fdf29c1b61c80ef`
 - email/closure `464f0f3cb162d5625deb2506a6a3c0224fd2da95`
 
@@ -138,64 +133,77 @@ Canonical Phase 15 knowledge:
 - `Knowledge/Decisions/ADR-0025-storefront-distribution.md`
 
 ## Phase 16 — Stories + Universal User Content
-ACTIVE.
+COMPLETE — final runtime validated 2026-09-17.
 
 ### 16A — Stories Foundation
-COMPLETE — implementation + CI + runtime validated 2026-09-17.
-
 Merge: `eaecc981f29a55cf587ae40fd885eb591e40e3e8`
 Migration: `20260917110000_phase16a_stories`
 
-Validated foundation:
-- TEXT / IMAGE / VIDEO Stories
-- fixed server-owned 24-hour lifetime
-- public active Story list/detail
-- authenticated create/mine/delete
-- `/stories`, `/stories/create`, `/stories/:storyId`
-- Story publication/removal SystemEvents
-- canonical Service/Product action routing
-
-### Phase 16 universal-content authority correction
-COMPLETE — implementation + CI + runtime validated 2026-09-17.
-
+### Universal User-content authority correction
 Merge: `dcb73676e64e840f166fe8dd53f73d709b977ee0`
+Runtime closeout: `cfa7174103941d427e0ac3422f65ed2a33316691`
 
 Validated:
-- Client-only identity can create and publish Posts
-- Client-only identity can create Stories
-- Client-only users do not gain HUSTLER capability by publishing content
-- Client-only Post storage may use an internal DRAFT ProfessionalProfile compatibility anchor, but public professional context remains absent until legitimately published
-- public Posts from Client and Hustler identities are eligible for discovery and normal interactions
-- Client-authored Post/Story can `@mention` `xpen`
-- Client-authored Post/Story can reference xpen's published Service `cmttw02cy0001dc02zzd5j89x`
-- Client-authored Post/Story can reference xpen's published Product `cmtty8gfs0001dcavtny1iiuh`
-- referenced offers still route to their canonical Hustle entities and remain owned by xpen
-- review-style community content does not create a verified Review
-- xpen public `UserReputation` remains unchanged after the cross-identity content test: ratingSum 10, reviewCount 2, verifiedReviewCount 2, bookingReviewCount 1, orderReviewCount 1, averageRating 5
+- Client-only and Hustler identities can create Posts and Stories
+- Client-only publishing does not grant HUSTLER capability
+- Client-authored Post/Story can `@mention` users and reference another Hustler's published Service/Product
+- referenced offers remain owned by the canonical merchant
+- review-style community content does not create verified Review records
 
 ### 16B — Stories Experience
-IMPLEMENTED + CI GREEN — runtime pending.
+Merge: `f0452ffbeb9a5649dffcb88c15f572b935b715f4`
+Security hardening merge: `de3cff67727ab83b233c61a51c28a133936eb656`
+Migrations:
+- `20260917123000_phase16b_story_experience`
+- `20260917130500_phase16b_story_rls_hardening`
 
-Migration: `20260917123000_phase16b_story_experience`
-
-Implemented:
-- unique Story views using opaque browser viewer keys and `(storyId, viewerKey)` deduplication
-- authenticated one-reaction-per-user Story reactions: HEART / FIRE / CLAP / HUNDRED
-- private Story replies visible only to the Story creator and the reply author
-- existing UserBlock policy enforced on private Story replies
-- public Story interaction counts without exposing private reply content
-- sequential previous/next Story viewer with video completion advancing to the next active Story
-- native authenticated Story photo/video upload through dedicated `story-media` Supabase Storage bucket
-- Story media ownership enforced through auth-subject path validation + owner-scoped Storage RLS
-- image limit 10 MB; video limit 50 MB with explicit MIME allowlist
-- active Stories rail directly on Home plus Add Story entry
-- controlled Story → profile / Service / Product conversion SystemEvents with server-derived targets
-- Story interaction signals remain separated from verified reputation authority
+Runtime validated:
+- `story-media` native image/video upload
+- Story application tables protected by RLS; no direct anon/authenticated table access
+- unique viewer-key view deduplication
+- HEART / FIRE / CLAP / HUNDRED reactions
+- private replies readable only by creator/replier and protected by UserBlock policy
+- Home active Stories rail
+- sequential previous/next viewing and video completion advance
+- Story → profile / Service / Product controlled conversion events
+- no private reply content leakage in public interaction summaries
+- xpen verified public reputation remained ratingSum 10, reviewCount 2, verifiedReviewCount 2, bookingReviewCount 1, orderReviewCount 1, averageRating 5
 
 Canonical Phase 16 knowledge:
 - `Knowledge/Decisions/ADR-0026-stories-foundation.md`
 - `Knowledge/Decisions/ADR-0027-universal-user-content.md`
 - `Knowledge/Decisions/ADR-0028-stories-experience.md`
+- `Knowledge/Decisions/ADR-0029-story-table-data-api-hardening.md`
+
+## Phase 17 — Live Commerce Beta
+ACTIVE.
+
+### 17A — Live Commerce Foundation
+IMPLEMENTED + CI GREEN — runtime pending.
+
+Migration: `20260917143000_phase17a_live_commerce_foundation`
+
+Implemented:
+- server-authoritative `DRAFT → LIVE → ENDED` session lifecycle
+- hosting requires ACTIVE HUSTLER + PUBLISHED ProfessionalProfile
+- public active Live directory and public Live viewer
+- host control room
+- optional real external playback URL; no fake native stream state
+- public viewer heartbeat/presence counts using opaque viewer keys
+- authenticated Live comments with UserBlock enforcement for non-host commenters
+- host responses through the same room-comment authority
+- one pinned canonical published Service or Product at a time
+- pin authority restricted to the host's own offers
+- pinned Service/Product actions route to existing canonical Booking/Order surfaces
+- Live → profile / Service / Product controlled conversion SystemEvents
+- Live tables API-owned with RLS and direct anon/authenticated Data API access revoked
+- `nativeBroadcasting: false` until real in-app media transport exists
+
+Canonical Phase 17 knowledge:
+- `Knowledge/Decisions/ADR-0030-live-commerce-foundation.md`
+
+Next Live slice after the 17A runtime gate:
+- **17B — Native Live Media Transport**: browser camera/microphone capture, provider/ingest integration, server-issued publishing credentials, real playback delivery, connection/reconnect states and runtime proof. No provider secret or stream key may be committed or exposed publicly.
 
 ## Supabase
 Dedicated project:
@@ -228,4 +236,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook/admin secrets.
 
 ## Next gate
-**Phase 16B runtime: deploy `20260917123000_phase16b_story_experience`; verify `story-media` bucket/RLS, unique view deduplication, reactions, private block-aware replies, Home Stories rail, sequential viewing, native image/video upload, Story conversion events, private-reply non-leakage, and the unchanged xpen 10 / 2 / 5.0 public reputation invariant.**
+**Phase 17A runtime: deploy `20260917143000_phase17a_live_commerce_foundation`; verify Client-only hosting rejection, Hustler session creation/start/end, host-owned pin authority, public discovery/viewer presence, authenticated block-aware comments, canonical Service/Product actions, conversion events, Live-table RLS, ended-session behavior and unchanged xpen 10 / 2 / 5.0 public reputation invariant.**
