@@ -28,7 +28,10 @@ MVP limits:
 - JPEG, PNG, WebP, GIF images: max 10 MB
 - MP4, WebM, QuickTime video: max 50 MB
 
-The bucket is public because active Stories are public. Insert/delete authority remains owner-scoped by Storage RLS.
+The bucket is public because active Stories are public. Insert/delete authority remains owner-scoped by Storage RLS. A public bucket already serves public object URLs, so Hustle does not add a blanket public `SELECT` policy on `storage.objects` merely to make those URLs readable.
+
+### Database authority
+`Story`, `StoryView`, `StoryReaction`, and `StoryReply` remain server-owned application tables. Row Level Security is enabled on all four, and only Hustle's trusted `hustle_api` database role receives CRUD policies. Supabase `anon` and `authenticated` Data API roles do not receive direct Story-table access; browser clients go through the Nest API for Story data and interactions.
 
 ### Conversion observation
 Story → profile, Service and Product clicks emit controlled SystemEvents with server-derived targets. These are product observation events only.
@@ -39,3 +42,4 @@ Story → profile, Service and Product clicks emit controlled SystemEvents with 
 - Service/Product references continue to resolve canonical published offers and do not transfer ownership.
 - Private trust/safety information never appears in the public Story read model.
 - Block policy applies to private Story replies.
+- Direct PostgREST access to Story application tables remains denied; Story reads/writes are API-authoritative.
