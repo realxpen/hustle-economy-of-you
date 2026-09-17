@@ -38,8 +38,6 @@ CREATE TABLE "StoryReply" (
 CREATE INDEX "StoryReply_storyId_createdAt_idx" ON "StoryReply"("storyId", "createdAt");
 CREATE INDEX "StoryReply_userId_createdAt_idx" ON "StoryReply"("userId", "createdAt");
 
-ALTER TYPE "MessageContextType" ADD VALUE IF NOT EXISTS 'STORY';
-
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'story-media',
@@ -71,11 +69,5 @@ BEGIN
         bucket_id = 'story-media'
         AND (storage.foldername(name))[1] = (SELECT auth.uid()::text)
       );
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'story_media_select_public') THEN
-    CREATE POLICY story_media_select_public ON storage.objects
-      FOR SELECT TO public
-      USING (bucket_id = 'story-media');
   END IF;
 END $$;
