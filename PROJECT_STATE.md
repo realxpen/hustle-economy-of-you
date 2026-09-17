@@ -155,7 +155,7 @@ Merge: `f0452ffbeb9a5649dffcb88c15f572b935b715f4`
 Security hardening merge: `de3cff67727ab83b233c61a51c28a133936eb656`
 Migrations:
 - `20260917123000_phase16b_story_experience`
-- `20260917130500_phase16b_story_rls_hardening`
+- `20260917124500_phase16b_story_rls_hardening`
 
 Runtime validated:
 - `story-media` native image/video upload
@@ -169,6 +169,13 @@ Runtime validated:
 - no private reply content leakage in public interaction summaries
 - xpen verified public reputation remained ratingSum 10, reviewCount 2, verifiedReviewCount 2, bookingReviewCount 1, orderReviewCount 1, averageRating 5
 
+Migration recovery:
+- the hosted Story RLS state existed before Prisma recorded `20260917124500_phase16b_story_rls_hardening`
+- Prisma deploy therefore hit PostgreSQL `42710` on an already-existing Story policy
+- the failed migration record was marked rolled back after hosted RLS/policies/grants were verified
+- the repository migration is now retry-safe and deterministically revokes browser Data API table privileges before recreating the `hustle_api` policies
+- stale raw `story_media_select_public` Storage policy was removed through Supabase migration authority
+
 Canonical Phase 16 knowledge:
 - `Knowledge/Decisions/ADR-0026-stories-foundation.md`
 - `Knowledge/Decisions/ADR-0027-universal-user-content.md`
@@ -181,6 +188,7 @@ ACTIVE.
 ### 17A — Live Commerce Foundation
 IMPLEMENTED + CI GREEN — runtime pending.
 
+Merge: `ae8b843a67c56f502a8446700aa8fb3b41cbf745`
 Migration: `20260917143000_phase17a_live_commerce_foundation`
 
 Implemented:
@@ -236,4 +244,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook/admin secrets.
 
 ## Next gate
-**Phase 17A runtime: deploy `20260917143000_phase17a_live_commerce_foundation`; verify Client-only hosting rejection, Hustler session creation/start/end, host-owned pin authority, public discovery/viewer presence, authenticated block-aware comments, canonical Service/Product actions, conversion events, Live-table RLS, ended-session behavior and unchanged xpen 10 / 2 / 5.0 public reputation invariant.**
+**Phase 17A runtime: run normal Prisma deploy so the repaired Phase 16B hardening and `20260917143000_phase17a_live_commerce_foundation` apply cleanly; then verify Client-only hosting rejection, Hustler session creation/start/end, host-owned pin authority, public discovery/viewer presence, authenticated block-aware comments, canonical Service/Product actions, conversion events, Live-table RLS, ended-session behavior and unchanged xpen 10 / 2 / 5.0 public reputation invariant.**
