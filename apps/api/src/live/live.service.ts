@@ -9,6 +9,7 @@ import {
   CapabilityStatus,
   LivePinnedOfferType,
   LiveSessionStatus,
+  Prisma,
   ProductStatus,
   ProfessionalProfileStatus,
   ServiceStatus
@@ -524,7 +525,7 @@ export class LiveService {
     });
   }
 
-  private async event(name: string, payload: Record<string, unknown>, source = "api") {
+  private async event(name: string, payload: Prisma.InputJsonObject, source = "api") {
     await this.prisma.systemEvent.create({ data: { name, source, payload } });
   }
 
