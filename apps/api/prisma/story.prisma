@@ -47,3 +47,15 @@ model StoryReaction {
   @@index([storyId, reaction])
   @@index([userId, updatedAt])
 }
+
+model StoryReply {
+  id        String   @id @default(cuid())
+  storyId   String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storyId, createdAt])
+  @@index([userId, createdAt])
+}
