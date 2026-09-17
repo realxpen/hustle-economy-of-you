@@ -1,9 +1,14 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 
 import { getMarketplacePage } from "../../../lib/search";
-import { createStory, type StoryType } from "../../../lib/story";
+import {
+  createStory,
+  removeStoryMedia,
+  uploadStoryMedia,
+  type StoryType
+} from "../../../lib/story";
 import styles from "../stories.module.css";
 
 type OfferOption = {
@@ -17,7 +22,7 @@ const storyTypes: StoryType[] = ["TEXT", "IMAGE", "VIDEO"];
 export default function CreateStoryPage() {
   const [type, setType] = useState<StoryType>("TEXT");
   const [text, setText] = useState("");
-  const [mediaUrl, setMediaUrl] = useState("");
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [background, setBackground] = useState("#111111");
   const [serviceId, setServiceId] = useState("");
   const [productId, setProductId] = useState("");
@@ -47,8 +52,7 @@ export default function CreateStoryPage() {
         owner: item.owner.displayName ?? item.owner.username ?? "Hustle user"
       }] : []));
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : "Could not load public references";
-      setError(message);
+      setError(reason instanceof Error ? reason.message : "Could not load public references");
     } finally {
       setLoadingReferences(false);
     }
@@ -60,25 +64,48 @@ export default function CreateStoryPage() {
 
   const canSubmit = useMemo(() => {
     if (type === "TEXT") return text.trim().length > 0;
-    return mediaUrl.trim().length > 0;
-  }, [mediaUrl, text, type]);
+    return Boolean(mediaFile);
+  }, [mediaFile, text, type]);
+
+  function chooseType(next: StoryType) {
+    setType(next);
+    setMediaFile(null);
+    setError(null);
+  }
+
+  function chooseMedia(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setMediaFile(file);
+    setError(null);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
+
+    let uploadedStorageKey: string | null = null;
     try {
+      const uploaded = type !== "TEXT" && mediaFile
+        ? await uploadStoryMedia(mediaFile, type)
+        : null;
+      uploadedStorageKey = uploaded?.mediaStorageKey ?? null;
+
       const story = await createStory({
         type,
         text: text.trim() || null,
-        mediaUrl: type === "TEXT" ? null : mediaUrl.trim(),
+        mediaUrl: uploaded?.mediaUrl ?? null,
+        mediaStorageKey: uploaded?.mediaStorageKey ?? null,
         background: type === "TEXT" ? background : null,
         serviceId: serviceId || null,
         productId: productId || null
       });
       window.location.assign(`/stories/${story.id}`);
     } catch (reason) {
+      if (uploadedStorageKey) {
+        await removeStoryMedia(uploadedStorageKey).catch(() => undefined);
+      }
       const message = reason instanceof Error ? reason.message : "Could not publish Story";
       setError(message);
       if (message.toLowerCase().includes("sign in")) {
@@ -99,7 +126,7 @@ export default function CreateStoryPage() {
       <div className={styles.formHeader}>
         <p className={styles.eyebrow}>CREATE · EXPIRES IN 24 HOURS</p>
         <h1>Share what is happening now.</h1>
-        <p>Every Hustle user can publish a Story. You can share an experience, recommendation, review-style opinion, update or proof of work. Mention people with <strong>@username</strong>, and optionally reference any currently published Service or Product on Hustle.</p>
+        <p>Every Hustle user can publish a Story. Share an experience, recommendation, update or proof of work, mention people with <strong>@username</strong>, and reference any currently published Service or Product.</p>
       </div>
 
       <div className={styles.typeTabs}>
@@ -107,7 +134,7 @@ export default function CreateStoryPage() {
           key={storyType}
           type="button"
           className={type === storyType ? styles.activeType : undefined}
-          onClick={() => setType(storyType)}
+          onClick={() => chooseType(storyType)}
         >{storyType === "TEXT" ? "Text" : storyType === "IMAGE" ? "Photo" : "Video"}</button>)}
       </div>
 
@@ -119,9 +146,17 @@ export default function CreateStoryPage() {
         </div>
 
         {type !== "TEXT" && <div className={styles.field}>
-          <label htmlFor="story-media">{type === "IMAGE" ? "PHOTO URL" : "VIDEO URL"}</label>
-          <input id="story-media" type="url" value={mediaUrl} onChange={(event) => setMediaUrl(event.target.value)} placeholder="https://…" required />
-          <span className={styles.hint}>Native Hustle media upload is the next media layer; this lifecycle currently accepts an http/https media URL.</span>
+          <label htmlFor="story-media">{type === "IMAGE" ? "UPLOAD PHOTO" : "UPLOAD VIDEO"}</label>
+          <input
+            id="story-media"
+            type="file"
+            accept={type === "IMAGE" ? "image/jpeg,image/png,image/webp,image/gif" : "video/mp4,video/webm,video/quicktime"}
+            onChange={chooseMedia}
+            required
+          />
+          <span className={styles.hint}>
+            {mediaFile ? `${mediaFile.name} · ${(mediaFile.size / 1024 / 1024).toFixed(1)} MB` : type === "IMAGE" ? "JPEG, PNG, WebP or GIF · up to 10 MB" : "MP4, WebM or QuickTime · up to 50 MB"}
+          </span>
         </div>}
 
         {type === "TEXT" && <div className={styles.field}>
@@ -135,7 +170,7 @@ export default function CreateStoryPage() {
             <input id="reference-search" value={referenceQuery} onChange={(event) => setReferenceQuery(event.target.value)} placeholder="Search a product, service or creator name" />
             <button type="button" className={styles.submit} onClick={() => void loadReferences(referenceQuery.trim())} disabled={loadingReferences}>{loadingReferences ? "Searching…" : "Search Hustle references"}</button>
           </div>
-          <span className={styles.hint}>The referenced offer does not have to belong to you. This is how a Client can recommend or review a Hustler's work without becoming a Hustler.</span>
+          <span className={styles.hint}>The referenced offer does not have to belong to you. A Client can recommend a Hustler's work without becoming a Hustler.</span>
         </div>
 
         <div className={styles.formGrid}>
@@ -155,12 +190,9 @@ export default function CreateStoryPage() {
           </div>
         </div>
 
-        <div className={styles.notice}>
-          A Story or post can contain your opinion or recommendation. It only becomes a <strong>verified transaction review</strong> in Hustle's reputation system when the separate review eligibility rules from a completed Booking/Order are satisfied.
-        </div>
-
+        <div className={styles.notice}>Story opinions remain community content. Verified reputation still requires an eligible completed Booking/Order and the separate verified Review flow.</div>
         {error && <div className={styles.notice}>{error}</div>}
-        <button className={styles.submit} type="submit" disabled={!canSubmit || submitting}>{submitting ? "Publishing…" : "Publish Story for 24 hours →"}</button>
+        <button className={styles.submit} type="submit" disabled={!canSubmit || submitting}>{submitting ? "Uploading & publishing…" : "Publish Story for 24 hours →"}</button>
       </form>
     </section>
   </main>;
