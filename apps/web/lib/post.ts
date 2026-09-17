@@ -66,6 +66,14 @@ export interface AddPostMediaInput {
   durationMs?: number | null;
 }
 
+export interface PublicPostMention {
+  id: string;
+  displayName: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  location: string | null;
+}
+
 export interface PublicPost {
   post: Post;
   owner: {
@@ -86,6 +94,7 @@ export interface PublicPost {
       yearsExperience: number | null;
     };
   };
+  mentions: PublicPostMention[];
 }
 
 export interface PostComment {
@@ -182,27 +191,42 @@ export async function addPostMedia(postId: string, input: AddPostMediaInput): Pr
 }
 
 export async function removePostMedia(postId: string, mediaId: string): Promise<Post> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/media/${encodeURIComponent(mediaId)}`, { method: "DELETE" });
+  const response = await authenticatedFetch(
+    `/posts/${encodeURIComponent(postId)}/media/${encodeURIComponent(mediaId)}`,
+    { method: "DELETE" }
+  );
   return response.json() as Promise<Post>;
 }
 
 export async function attachPostService(postId: string, serviceId: string): Promise<Post> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/services/${encodeURIComponent(serviceId)}`, { method: "POST" });
+  const response = await authenticatedFetch(
+    `/posts/${encodeURIComponent(postId)}/services/${encodeURIComponent(serviceId)}`,
+    { method: "POST" }
+  );
   return response.json() as Promise<Post>;
 }
 
 export async function detachPostService(postId: string, serviceId: string): Promise<Post> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/services/${encodeURIComponent(serviceId)}`, { method: "DELETE" });
+  const response = await authenticatedFetch(
+    `/posts/${encodeURIComponent(postId)}/services/${encodeURIComponent(serviceId)}`,
+    { method: "DELETE" }
+  );
   return response.json() as Promise<Post>;
 }
 
 export async function attachPostProduct(postId: string, productId: string): Promise<Post> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/products/${encodeURIComponent(productId)}`, { method: "POST" });
+  const response = await authenticatedFetch(
+    `/posts/${encodeURIComponent(postId)}/products/${encodeURIComponent(productId)}`,
+    { method: "POST" }
+  );
   return response.json() as Promise<Post>;
 }
 
 export async function detachPostProduct(postId: string, productId: string): Promise<Post> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/products/${encodeURIComponent(productId)}`, { method: "DELETE" });
+  const response = await authenticatedFetch(
+    `/posts/${encodeURIComponent(postId)}/products/${encodeURIComponent(productId)}`,
+    { method: "DELETE" }
+  );
   return response.json() as Promise<Post>;
 }
 
@@ -222,7 +246,30 @@ export async function getPublicPost(postId: string): Promise<PublicPost> {
     if (response.status === 404) throw new Error("This post is not currently public.");
     throw new Error(await parseError(response));
   }
-  return response.json() as Promise<PublicPost>;
+
+  const raw = await response.json() as Omit<PublicPost, "owner"> & {
+    owner: Omit<PublicPost["owner"], "professionalProfile"> & {
+      professionalProfile: PublicPost["owner"]["professionalProfile"] | null;
+    };
+    mentions?: PublicPostMention[];
+  };
+
+  return {
+    ...raw,
+    owner: {
+      ...raw.owner,
+      professionalProfile: raw.owner.professionalProfile ?? {
+        id: "",
+        headline: null,
+        primarySkill: null,
+        secondarySkills: [],
+        category: null,
+        professionalSummary: null,
+        yearsExperience: null
+      }
+    },
+    mentions: raw.mentions ?? []
+  };
 }
 
 export async function getPostInteractions(postId: string): Promise<PostInteractionSummary> {
@@ -265,7 +312,11 @@ export async function unsavePublicPost(postId: string): Promise<PostInteractionS
   return response.json() as Promise<PostInteractionState>;
 }
 
-export async function addPostComment(postId: string, body: string, parentId?: string | null): Promise<PostComment> {
+export async function addPostComment(
+  postId: string,
+  body: string,
+  parentId?: string | null
+): Promise<PostComment> {
   const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/comments`, {
     method: "POST",
     body: JSON.stringify({ body, parentId: parentId ?? null })
@@ -273,8 +324,14 @@ export async function addPostComment(postId: string, body: string, parentId?: st
   return response.json() as Promise<PostComment>;
 }
 
-export async function deletePostComment(postId: string, commentId: string): Promise<{ deleted: true; id: string }> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, { method: "DELETE" });
+export async function deletePostComment(
+  postId: string,
+  commentId: string
+): Promise<{ deleted: true; id: string }> {
+  const response = await authenticatedFetch(
+    `/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+    { method: "DELETE" }
+  );
   return response.json() as Promise<{ deleted: true; id: string }>;
 }
 
