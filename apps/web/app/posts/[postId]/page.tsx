@@ -153,7 +153,7 @@ export default function PublicPostPage() {
     try {
       const shareData = {
         title: data?.post.caption?.slice(0, 80) ?? "Hustle post",
-        text: data?.post.caption ?? "See this demonstrated capability on Hustle.",
+        text: data?.post.caption ?? "See this post on Hustle.",
         url: window.location.href
       };
       if (navigator.share) {
@@ -176,11 +176,12 @@ export default function PublicPostPage() {
   if (error) return <main className={styles.shell}><section className={styles.notFound}><p>CONTENT UNAVAILABLE</p><h1>This post is not public.</h1><span>{error}</span><a href="/">Back to Hustle →</a></section></main>;
   if (!data || !interactions) return <main className={styles.shell}><p className={styles.loading}>Loading post…</p></main>;
 
-  const { post, owner } = data;
+  const { post, owner, mentions } = data;
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
+  const hasProfessionalIdentity = Boolean(owner.professionalProfile.id);
 
   return <main className={styles.shell}>
-    <header className={styles.header}><a className={styles.brand} href="/">HUSTLE↗</a><span>DEMONSTRATED CAPABILITY</span></header>
+    <header className={styles.header}><a className={styles.brand} href="/">HUSTLE↗</a><span>USER CONTENT · THE ECONOMY OF YOU</span></header>
 
     <section className={styles.layout}>
       <div className={styles.content}>
@@ -192,6 +193,7 @@ export default function PublicPostPage() {
         <div className={styles.body}>
           <div className={styles.meta}><span>{post.category}</span>{post.location && <span>{post.location}</span>}</div>
           <p className={styles.caption}>{post.caption}</p>
+          {mentions.length > 0 && <div className={styles.tags}>{mentions.map((mention) => <span key={mention.id}>@{mention.username ?? "user"}</span>)}</div>}
           {post.tags.length > 0 && <div className={styles.tags}>{post.tags.map((tag) => <span key={tag}>#{tag}</span>)}</div>}
           <div className={styles.interactionBar}>
             <button type="button" className={viewer?.liked ? styles.activeAction : ""} onClick={toggleLike} disabled={busy === "like"}>{viewer?.liked ? "♥" : "♡"} {interactions.likeCount} Like</button>
@@ -204,34 +206,35 @@ export default function PublicPostPage() {
       </div>
 
       <aside className={styles.ownerCard}>
-        <small>CREATOR</small>
+        <small>POSTED BY</small>
         <div className={styles.ownerTop}>
           <div className={styles.avatar}>{owner.avatarUrl ? <img src={owner.avatarUrl} alt="" /> : initial}</div>
-          <div><h2>{owner.displayName ?? owner.username ?? "Hustler"}</h2><span>@{owner.username ?? "hustler"}{owner.verified ? " · Verified" : ""}</span></div>
+          <div><h2>{owner.displayName ?? owner.username ?? "Hustle user"}</h2><span>@{owner.username ?? "user"}{owner.verified ? " · Verified identity" : ""}</span></div>
         </div>
-        <p>{owner.professionalProfile.headline ?? owner.professionalProfile.professionalSummary ?? owner.bio}</p>
-        <div className={styles.skills}>{[owner.professionalProfile.primarySkill, ...owner.professionalProfile.secondarySkills].filter(Boolean).map((skill) => <span key={skill ?? "skill"}>{skill}</span>)}</div>
+        <p>{hasProfessionalIdentity ? owner.professionalProfile.headline ?? owner.professionalProfile.professionalSummary ?? owner.bio : owner.bio ?? "Hustle user"}</p>
+        {hasProfessionalIdentity && <div className={styles.skills}>{[owner.professionalProfile.primarySkill, ...owner.professionalProfile.secondarySkills].filter(Boolean).map((skill) => <span key={skill ?? "skill"}>{skill}</span>)}</div>}
         <div className={styles.followLine}><span>{interactions.followerCount} follower{interactions.followerCount === 1 ? "" : "s"}</span>{!viewer?.isCreator && <button type="button" onClick={toggleFollow} disabled={busy === "follow"}>{viewer?.followingCreator ? "Following" : "Follow"}</button>}</div>
-        {!viewer?.isCreator && <a className={styles.profileLink} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=POST&contextId=${encodeURIComponent(post.id)}`}>Message creator about this post →</a>}
-        {owner.username && <a className={styles.profileLink} href={`/u/${owner.username}`}>View professional identity →</a>}
+        {!viewer?.isCreator && <a className={styles.profileLink} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=POST&contextId=${encodeURIComponent(post.id)}`}>Message about this post →</a>}
+        {hasProfessionalIdentity && owner.username && <a className={styles.profileLink} href={`/u/${owner.username}`}>View professional storefront →</a>}
       </aside>
     </section>
 
     {(post.serviceAttachments.length > 0 || post.productAttachments.length > 0) && <section className={styles.offers}>
-      <div className={styles.sectionHeading}><small>ATTACHED OPPORTUNITIES</small><h2>Move from proof to action.</h2></div>
+      <div className={styles.sectionHeading}><small>REFERENCED ON HUSTLE</small><h2>See the Services and Products mentioned in this post.</h2></div>
       <div className={styles.offerGrid}>
         {post.serviceAttachments.map(({ service }) => <a className={styles.offerCard} key={service.id} href={`/services/${service.id}`}>
-          <span>SERVICE</span><h3>{service.title ?? "Service"}</h3><p>{service.description?.slice(0, 150)}</p><strong>{formatServicePrice(service)}</strong><b>View service →</b>
+          <span>REFERENCED SERVICE</span><h3>{service.title ?? "Service"}</h3><p>{service.description?.slice(0, 150)}</p><strong>{formatServicePrice(service)}</strong><b>View service →</b>
         </a>)}
         {post.productAttachments.map(({ product }) => <a className={styles.offerCard} key={product.id} href={`/products/${product.id}`}>
-          <span>PRODUCT</span><h3>{product.title ?? "Product"}</h3><p>{product.description?.slice(0, 150)}</p><strong>{formatProductPrice(product)}</strong><b>View product →</b>
+          <span>REFERENCED PRODUCT</span><h3>{product.title ?? "Product"}</h3><p>{product.description?.slice(0, 150)}</p><strong>{formatProductPrice(product)}</strong><b>View product →</b>
         </a>)}
       </div>
+      <p className={styles.muted}>References, recommendations and opinions in posts are community content. Only eligible transaction-backed Reviews affect Hustle public reputation.</p>
     </section>}
 
     <section className={styles.comments}>
       <div className={styles.sectionHeading}><small>CONVERSATION</small><h2>{interactions.commentCount} comment{interactions.commentCount === 1 ? "" : "s"}</h2></div>
-      {viewer ? <form className={styles.commentForm} onSubmit={submitComment}><textarea maxLength={1200} rows={3} value={commentBody} onChange={(event) => setCommentBody(event.target.value)} placeholder="Add useful context, ask about the work, or respond to the capability shown…" /><button type="submit" disabled={busy === "comment" || !commentBody.trim()}>{busy === "comment" ? "Posting…" : "Post comment"}</button></form> : <div className={styles.signInPrompt}><span>Join the conversation with your Hustle identity.</span><a href="/auth">Sign in →</a></div>}
+      {viewer ? <form className={styles.commentForm} onSubmit={submitComment}><textarea maxLength={1200} rows={3} value={commentBody} onChange={(event) => setCommentBody(event.target.value)} placeholder="Add useful context, ask a question, or respond to this post…" /><button type="submit" disabled={busy === "comment" || !commentBody.trim()}>{busy === "comment" ? "Posting…" : "Post comment"}</button></form> : <div className={styles.signInPrompt}><span>Join the conversation with your Hustle identity.</span><a href="/auth">Sign in →</a></div>}
       <div className={styles.commentList}>
         {interactions.comments.length === 0 && <p className={styles.muted}>No comments yet.</p>}
         {interactions.comments.map((comment) => <article key={comment.id} className={comment.parentId ? styles.replyComment : styles.commentCard}>
