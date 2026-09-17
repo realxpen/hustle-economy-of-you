@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { PostStatus, ProfessionalProfileStatus } from "@prisma/client";
+import { PostStatus } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
@@ -15,7 +15,6 @@ export class PostInteractionService {
 
   async getPublic(postId: string) {
     const post = await this.requirePublicPost(postId);
-
     const [likeCount, saveCount, commentCount, followerCount, comments] = await Promise.all([
       this.prisma.postLike.count({ where: { postId } }),
       this.prisma.postSave.count({ where: { postId } }),
@@ -33,32 +32,16 @@ export class PostInteractionService {
           createdAt: true,
           updatedAt: true,
           user: {
-            select: {
-              id: true,
-              displayName: true,
-              username: true,
-              avatarUrl: true
-            }
+            select: { id: true, displayName: true, username: true, avatarUrl: true }
           }
         }
       })
     ]);
-
-    return {
-      likeCount,
-      saveCount,
-      commentCount,
-      followerCount,
-      comments
-    };
+    return { likeCount, saveCount, commentCount, followerCount, comments };
   }
 
   async getViewerState(identity: AuthIdentity, postId: string) {
-    const [user, post] = await Promise.all([
-      this.requireUser(identity),
-      this.requirePublicPost(postId)
-    ]);
-
+    const [user, post] = await Promise.all([this.requireUser(identity), this.requirePublicPost(postId)]);
     const [like, save, follow] = await Promise.all([
       this.prisma.postLike.findUnique({
         where: { postId_userId: { postId, userId: user.id } },
@@ -69,16 +52,10 @@ export class PostInteractionService {
         select: { postId: true }
       }),
       this.prisma.userFollow.findUnique({
-        where: {
-          followerId_followingId: {
-            followerId: user.id,
-            followingId: post.ownerUserId
-          }
-        },
+        where: { followerId_followingId: { followerId: user.id, followingId: post.ownerUserId } },
         select: { followerId: true }
       })
     ]);
-
     return {
       liked: Boolean(like),
       saved: Boolean(save),
@@ -124,7 +101,6 @@ export class PostInteractionService {
     const [user] = await Promise.all([this.requireUser(identity), this.requirePublicPost(postId)]);
     const body = this.requiredBody(input.body);
     const parentId = this.optionalId(input.parentId, "parentId");
-
     if (parentId) {
       const parent = await this.prisma.postComment.findFirst({
         where: { id: parentId, postId },
@@ -132,14 +108,8 @@ export class PostInteractionService {
       });
       if (!parent) throw new BadRequestException("Reply parent must belong to this post");
     }
-
     return this.prisma.postComment.create({
-      data: {
-        postId,
-        userId: user.id,
-        body,
-        parentId: parentId ?? null
-      },
+      data: { postId, userId: user.id, body, parentId: parentId ?? null },
       select: {
         id: true,
         postId: true,
@@ -147,14 +117,7 @@ export class PostInteractionService {
         body: true,
         createdAt: true,
         updatedAt: true,
-        user: {
-          select: {
-            id: true,
-            displayName: true,
-            username: true,
-            avatarUrl: true
-          }
-        }
+        user: { select: { id: true, displayName: true, username: true, avatarUrl: true } }
       }
     });
   }
@@ -166,7 +129,6 @@ export class PostInteractionService {
       select: { id: true }
     });
     if (!comment) throw new NotFoundException("Comment not found or not owned by you");
-
     await this.prisma.postComment.delete({ where: { id: comment.id } });
     return { deleted: true, id: comment.id };
   }
@@ -174,21 +136,13 @@ export class PostInteractionService {
   async follow(identity: AuthIdentity, followingId: string) {
     const user = await this.requireUser(identity);
     if (user.id === followingId) throw new BadRequestException("You cannot follow yourself");
-
     const target = await this.prisma.user.findUnique({ where: { id: followingId }, select: { id: true } });
     if (!target) throw new NotFoundException("User not found");
-
     await this.prisma.userFollow.upsert({
-      where: {
-        followerId_followingId: {
-          followerId: user.id,
-          followingId
-        }
-      },
+      where: { followerId_followingId: { followerId: user.id, followingId } },
       update: {},
       create: { followerId: user.id, followingId }
     });
-
     return { following: true, userId: followingId };
   }
 
@@ -201,11 +155,7 @@ export class PostInteractionService {
   async recordShare(postId: string) {
     await this.requirePublicPost(postId);
     await this.prisma.systemEvent.create({
-      data: {
-        name: "post.shared",
-        source: "web",
-        payload: { postId }
-      }
+      data: { name: "post.shared", source: "web", payload: { postId } }
     });
     return { recorded: true, postId };
   }
@@ -221,20 +171,7 @@ export class PostInteractionService {
 
   private async requirePublicPost(postId: string) {
     const post = await this.prisma.post.findFirst({
-      where: {
-        id: postId,
-        status: PostStatus.PUBLISHED,
-        professionalProfile: {
-          is: {
-            status: ProfessionalProfileStatus.PUBLISHED,
-            user: {
-              capabilities: {
-                some: { capability: "HUSTLER", status: "ACTIVE" }
-              }
-            }
-          }
-        }
-      },
+      where: { id: postId, status: PostStatus.PUBLISHED },
       select: {
         id: true,
         professionalProfile: { select: { userId: true } }

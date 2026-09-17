@@ -109,6 +109,27 @@ async function authenticatedFetch(path: string, init?: RequestInit) {
   return response;
 }
 
+function normalizeFeedPage(page: FeedPage): FeedPage {
+  return {
+    ...page,
+    items: page.items.map((item) => ({
+      ...item,
+      creator: {
+        ...item.creator,
+        professionalProfile: item.creator.professionalProfile ?? {
+          id: "",
+          headline: null,
+          primarySkill: null,
+          secondarySkills: [],
+          category: null,
+          professionalSummary: null,
+          yearsExperience: null
+        }
+      }
+    }))
+  };
+}
+
 export async function getFeedPage(
   tab: FeedTab,
   options: { cursor?: string | null; limit?: number; location?: string | null } = {}
@@ -119,7 +140,8 @@ export async function getFeedPage(
   if (options.location?.trim()) params.set("location", options.location.trim());
 
   const response = await authenticatedFetch(`/feed/${tab}?${params.toString()}`);
-  return response.json() as Promise<FeedPage>;
+  const page = await response.json() as FeedPage;
+  return normalizeFeedPage(page);
 }
 
 export async function captureFeedEvent(input: CaptureFeedEventInput) {

@@ -1,7 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import {
-  Capability,
-  CapabilityStatus,
   PostStatus,
   ProductStatus,
   ProfessionalProfileStatus,
@@ -60,10 +58,7 @@ const feedCandidateInclude = {
     include: {
       product: {
         include: {
-          variants: {
-            where: { isActive: true },
-            orderBy: { createdAt: "asc" as const }
-          }
+          variants: { where: { isActive: true }, orderBy: { createdAt: "asc" as const } }
         }
       }
     },
@@ -85,20 +80,13 @@ const feedCandidateInclude = {
       }
     }
   },
-  _count: {
-    select: { likes: true, saves: true, comments: true }
-  }
+  _count: { select: { likes: true, saves: true, comments: true } }
 } satisfies Prisma.PostInclude;
 
 type FeedCandidate = Prisma.PostGetPayload<{ include: typeof feedCandidateInclude }>;
+type RankedCandidate = { candidate: FeedCandidate; score: number; reasons: string[] };
 
-type RankedCandidate = {
-  candidate: FeedCandidate;
-  score: number;
-  reasons: string[];
-};
-
-const discoveryEvents = new Set<FeedDiscoveryEventName>([
+const eventNames = new Set<FeedDiscoveryEventName>([
   "feed.impression",
   "feed.view",
   "feed.watch",
@@ -106,9 +94,8 @@ const discoveryEvents = new Set<FeedDiscoveryEventName>([
   "feed.service_clicked",
   "feed.product_clicked"
 ]);
-
-const feedTabs = new Set<FeedTab>(["for-you", "nearby", "connections"]);
-const feedSources = new Set(["web", "mobile"]);
+const tabs = new Set<FeedTab>(["for-you", "nearby", "connections"]);
+const sources = new Set(["web", "mobile"]);
 
 @Injectable()
 export class FeedService {
@@ -133,7 +120,6 @@ export class FeedService {
         select: { followingId: true }
       })
     ]);
-
     const followingIds = new Set(followingRows.map((row) => row.followingId));
 
     if (tab === "connections" && followingIds.size === 0) {
@@ -148,26 +134,16 @@ export class FeedService {
       };
     }
 
-    const profileWhere: Prisma.ProfessionalProfileWhereInput = {
-      status: ProfessionalProfileStatus.PUBLISHED,
-      userId: {
-        ...(tab === "connections" ? { in: [...followingIds] } : {}),
-        not: viewer.id
-      },
-      user: {
-        capabilities: {
-          some: {
-            capability: Capability.HUSTLER,
-            status: CapabilityStatus.ACTIVE
-          }
-        }
-      }
-    };
-
     const candidates = await this.prisma.post.findMany({
       where: {
         status: PostStatus.PUBLISHED,
-        professionalProfile: { is: profileWhere }
+        professionalProfile: {
+          is: {
+            userId: tab === "connections"
+              ? { in: [...followingIds] }
+              : { not: viewer.id }
+          }
+        }
       },
       include: feedCandidateInclude,
       orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
@@ -181,13 +157,7 @@ export class FeedService {
         ))
       : candidates;
 
-    const context: RankingContext = {
-      viewerLocation,
-      categoryAffinity,
-      followingIds,
-      tab
-    };
-
+    const context: RankingContext = { viewerLocation, categoryAffinity, followingIds, tab };
     const ranked = locationFiltered
       .map((candidate) => this.rank(candidate, context))
       .sort((left, right) => this.compareRanked(left, right));
@@ -196,7 +166,6 @@ export class FeedService {
     const afterCursor = cursor
       ? ranked.filter((item) => this.isAfterCursor(item, cursor))
       : ranked;
-
     const window = afterCursor.slice(0, limit + 1);
     const hasMore = window.length > limit;
     const page = hasMore ? window.slice(0, limit) : window;
@@ -217,14 +186,12 @@ export class FeedService {
 
     const likedIds = new Set(viewerLikes.map((item) => item.postId));
     const savedIds = new Set(viewerSaves.map((item) => item.postId));
-
     const items = page.map((item) => this.toFeedItem(
       item,
       likedIds.has(item.candidate.id),
       savedIds.has(item.candidate.id),
       followingIds.has(item.candidate.professionalProfile.user.id)
     ));
-
     const last = page.at(-1);
 
     return {
@@ -277,35 +244,21 @@ export class FeedService {
       }
     }
 
-    const payload = {
-      viewerUserId: viewer.id,
-      postId,
-      targetUserId: post.professionalProfile.userId,
-      ...(feedTab !== undefined ? { feedTab } : {}),
-      ...(position !== undefined ? { position } : {}),
-      ...(sessionId !== undefined ? { sessionId } : {}),
-      ...(watchMs !== undefined ? { watchMs } : {}),
-      ...(serviceId !== undefined ? { serviceId } : {}),
-      ...(productId !== undefined ? { productId } : {})
-    } satisfies Prisma.InputJsonObject;
-
-    if (sessionId && name !== "feed.watch") {
-      const duplicate = await this.findRecentDuplicate(name, payload);
-      if (duplicate) {
-        return {
-          id: duplicate.id,
-          name,
-          occurredAt: duplicate.occurredAt,
-          deduplicated: true
-        };
-      }
-    }
-
     const event = await this.prisma.systemEvent.create({
       data: {
         name,
         source,
-        payload
+        payload: {
+          viewerUserId: viewer.id,
+          postId,
+          targetUserId: post.ownerUserId,
+          ...(feedTab !== undefined ? { feedTab } : {}),
+          ...(position !== undefined ? { position } : {}),
+          ...(sessionId !== undefined ? { sessionId } : {}),
+          ...(watchMs !== undefined ? { watchMs } : {}),
+          ...(serviceId !== undefined ? { serviceId } : {}),
+          ...(productId !== undefined ? { productId } : {})
+        }
       },
       select: { id: true, name: true, source: true, occurredAt: true }
     });
@@ -324,61 +277,34 @@ export class FeedService {
 
   private async requireEligiblePost(postId: string) {
     const post = await this.prisma.post.findFirst({
-      where: {
-        id: postId,
-        status: PostStatus.PUBLISHED,
-        professionalProfile: {
-          is: {
-            status: ProfessionalProfileStatus.PUBLISHED,
-            user: {
-              capabilities: {
-                some: {
-                  capability: Capability.HUSTLER,
-                  status: CapabilityStatus.ACTIVE
-                }
-              }
-            }
-          }
-        }
-      },
-      select: {
-        id: true,
-        professionalProfile: { select: { userId: true } }
-      }
+      where: { id: postId, status: PostStatus.PUBLISHED },
+      select: { id: true, professionalProfile: { select: { userId: true } } }
     });
     if (!post) throw new NotFoundException("Post is not eligible for discovery");
-    return post;
+    return { id: post.id, ownerUserId: post.professionalProfile.userId };
   }
 
   private async loadCategoryAffinity(userId: string) {
     const [likes, saves, comments] = await Promise.all([
       this.prisma.postLike.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: 60,
+        where: { userId }, orderBy: { createdAt: "desc" }, take: 60,
         select: { post: { select: { category: true } } }
       }),
       this.prisma.postSave.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: 60,
+        where: { userId }, orderBy: { createdAt: "desc" }, take: 60,
         select: { post: { select: { category: true } } }
       }),
       this.prisma.postComment.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: 60,
+        where: { userId }, orderBy: { createdAt: "desc" }, take: 60,
         select: { post: { select: { category: true } } }
       })
     ]);
-
     const affinity = new Map<string, number>();
     const add = (category: string | null, weight: number) => {
       const key = this.normalizeCategory(category);
       if (!key) return;
       affinity.set(key, (affinity.get(key) ?? 0) + weight);
     };
-
     likes.forEach((item) => add(item.post.category, 2));
     saves.forEach((item) => add(item.post.category, 3));
     comments.forEach((item) => add(item.post.category, 2));
@@ -388,7 +314,7 @@ export class FeedService {
   private rank(candidate: FeedCandidate, context: RankingContext): RankedCandidate {
     let score = 0;
     const reasons: string[] = [];
-
+    const creator = candidate.professionalProfile.user;
     const categoryKey = this.normalizeCategory(candidate.category);
     const categoryStrength = categoryKey ? context.categoryAffinity.get(categoryKey) ?? 0 : 0;
     if (categoryStrength > 0) {
@@ -396,9 +322,7 @@ export class FeedService {
       reasons.push("category-affinity");
     }
 
-    const creator = candidate.professionalProfile.user;
-    const candidateLocation = candidate.location ?? creator.location;
-    if (this.locationMatches(context.viewerLocation, candidateLocation)) {
+    if (this.locationMatches(context.viewerLocation, candidate.location ?? creator.location)) {
       score += 20;
       reasons.push("location");
     }
@@ -420,42 +344,45 @@ export class FeedService {
       score += engagementScore;
       reasons.push("engagement");
     }
-
     if (creator.emailVerified || creator.phoneVerified) {
       score += 8;
       reasons.push("verified-identity");
     }
-
-    if ((candidate.professionalProfile.yearsExperience ?? 0) > 0) {
+    if (
+      candidate.professionalProfile.status === ProfessionalProfileStatus.PUBLISHED
+      && (candidate.professionalProfile.yearsExperience ?? 0) > 0
+    ) {
       score += Math.min(4, candidate.professionalProfile.yearsExperience ?? 0);
       reasons.push("experience");
     }
-
     if (context.followingIds.has(creator.id)) {
       score += 18;
       reasons.push("connection");
     }
-
     if (candidate.serviceAttachments.length > 0 || candidate.productAttachments.length > 0) {
       score += 5;
-      reasons.push("economic-context");
+      reasons.push("referenced-opportunity");
     }
-
     if (context.tab === "nearby") score += 6;
     if (context.tab === "connections") score += 8;
-
     return { candidate, score, reasons };
   }
 
-  private toFeedItem(
-    ranked: RankedCandidate,
-    liked: boolean,
-    saved: boolean,
-    following: boolean
-  ) {
+  private toFeedItem(ranked: RankedCandidate, liked: boolean, saved: boolean, following: boolean) {
     const candidate = ranked.candidate;
     const profile = candidate.professionalProfile;
     const creator = profile.user;
+    const publicProfile = profile.status === ProfessionalProfileStatus.PUBLISHED
+      ? {
+          id: profile.id,
+          headline: profile.headline,
+          primarySkill: profile.primarySkill,
+          secondarySkills: profile.secondarySkills,
+          category: profile.category,
+          professionalSummary: profile.professionalSummary,
+          yearsExperience: profile.yearsExperience
+        }
+      : null;
 
     return {
       post: {
@@ -475,15 +402,7 @@ export class FeedService {
         bio: creator.bio,
         location: creator.location,
         verified: creator.emailVerified || creator.phoneVerified,
-        professionalProfile: {
-          id: profile.id,
-          headline: profile.headline,
-          primarySkill: profile.primarySkill,
-          secondarySkills: profile.secondarySkills,
-          category: profile.category,
-          professionalSummary: profile.professionalSummary,
-          yearsExperience: profile.yearsExperience
-        }
+        professionalProfile: publicProfile
       },
       engagement: {
         likes: candidate._count.likes,
@@ -491,140 +410,90 @@ export class FeedService {
         comments: candidate._count.comments
       },
       viewer: { liked, saved, following },
-      services: candidate.serviceAttachments.map((attachment) => attachment.service),
-      products: candidate.productAttachments.map((attachment) => attachment.product),
-      ranking: {
-        score: ranked.score,
-        reasons: ranked.reasons
-      }
+      services: candidate.serviceAttachments.map((item) => item.service),
+      products: candidate.productAttachments.map((item) => item.product),
+      ranking: { score: ranked.score, reasons: ranked.reasons }
     };
   }
 
   private compareRanked(left: RankedCandidate, right: RankedCandidate) {
     if (left.score !== right.score) return right.score - left.score;
-    const leftTime = (left.candidate.publishedAt ?? left.candidate.createdAt).getTime();
-    const rightTime = (right.candidate.publishedAt ?? right.candidate.createdAt).getTime();
-    if (leftTime !== rightTime) return rightTime - leftTime;
+    const leftAt = (left.candidate.publishedAt ?? left.candidate.createdAt).getTime();
+    const rightAt = (right.candidate.publishedAt ?? right.candidate.createdAt).getTime();
+    if (leftAt !== rightAt) return rightAt - leftAt;
     return right.candidate.id.localeCompare(left.candidate.id);
   }
 
-  private isAfterCursor(item: RankedCandidate, cursor: FeedCursor) {
-    if (item.score !== cursor.score) return item.score < cursor.score;
-    const time = (item.candidate.publishedAt ?? item.candidate.createdAt).toISOString();
-    if (time !== cursor.publishedAt) return time < cursor.publishedAt;
-    return item.candidate.id < cursor.id;
-  }
-
   private encodeCursor(item: RankedCandidate) {
-    const payload: FeedCursor = {
+    return Buffer.from(JSON.stringify({
       score: item.score,
       publishedAt: (item.candidate.publishedAt ?? item.candidate.createdAt).toISOString(),
       id: item.candidate.id
-    };
-    return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+    } satisfies FeedCursor)).toString("base64url");
   }
 
-  private decodeCursor(value?: string): FeedCursor | null {
+  private decodeCursor(value?: string) {
     if (!value) return null;
     try {
-      const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<FeedCursor>;
-      if (
-        typeof parsed.score !== "number" ||
-        typeof parsed.publishedAt !== "string" ||
-        Number.isNaN(new Date(parsed.publishedAt).getTime()) ||
-        typeof parsed.id !== "string" ||
-        !parsed.id
-      ) {
-        throw new Error("invalid");
-      }
-      return parsed as FeedCursor;
+      const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as FeedCursor;
+      if (typeof parsed.score !== "number" || typeof parsed.publishedAt !== "string" || typeof parsed.id !== "string") throw new Error();
+      return parsed;
     } catch {
       throw new BadRequestException("Invalid feed cursor");
     }
   }
 
-  private async findRecentDuplicate(name: FeedDiscoveryEventName, payload: Prisma.InputJsonObject) {
-    const since = new Date(Date.now() - 30 * 60_000);
-    const recent = await this.prisma.systemEvent.findMany({
-      where: { name, occurredAt: { gte: since } },
-      orderBy: { occurredAt: "desc" },
-      take: 100,
-      select: { id: true, occurredAt: true, payload: true }
-    });
-
-    const keys = ["viewerUserId", "postId", "sessionId", "serviceId", "productId"];
-    return recent.find((event) => {
-      const eventPayload = this.asObject(event.payload);
-      if (!eventPayload) return false;
-      return keys.every((key) => {
-        const expected = payload[key];
-        return expected === undefined || eventPayload[key] === expected;
-      });
-    });
-  }
-
-  private asObject(value: Prisma.JsonValue | null): Record<string, unknown> | null {
-    if (!value || Array.isArray(value) || typeof value !== "object") return null;
-    return value as unknown as Record<string, unknown>;
+  private isAfterCursor(item: RankedCandidate, cursor: FeedCursor) {
+    if (item.score !== cursor.score) return item.score < cursor.score;
+    const itemAt = (item.candidate.publishedAt ?? item.candidate.createdAt).toISOString();
+    if (itemAt !== cursor.publishedAt) return itemAt < cursor.publishedAt;
+    return item.candidate.id < cursor.id;
   }
 
   private parseTab(value?: string): FeedTab {
-    const normalized = value ?? "for-you";
-    if (!feedTabs.has(normalized as FeedTab)) {
-      throw new BadRequestException("Feed tab must be for-you, nearby, or connections");
-    }
-    return normalized as FeedTab;
+    const normalized = (value ?? "for-you") as FeedTab;
+    if (!tabs.has(normalized)) throw new BadRequestException("Feed tab must be for-you, nearby or connections");
+    return normalized;
   }
 
-  private parseEventName(value: unknown): FeedDiscoveryEventName {
-    if (typeof value !== "string" || !discoveryEvents.has(value as FeedDiscoveryEventName)) {
-      throw new BadRequestException("Invalid discovery event name");
+  private parseEventName(value: unknown) {
+    if (typeof value !== "string" || !eventNames.has(value as FeedDiscoveryEventName)) {
+      throw new BadRequestException("Invalid feed event name");
     }
     return value as FeedDiscoveryEventName;
   }
 
   private parseSource(value: unknown) {
-    const source = value === undefined ? "web" : value;
-    if (typeof source !== "string" || !feedSources.has(source)) {
-      throw new BadRequestException("Discovery event source must be web or mobile");
-    }
-    return source;
+    if (value === undefined || value === null || value === "") return "web";
+    if (typeof value !== "string" || !sources.has(value)) throw new BadRequestException("Invalid feed event source");
+    return value;
   }
 
   private parseLimit(value?: string) {
-    if (value === undefined) return 10;
+    if (!value) return 8;
     const parsed = Number(value);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 30) {
-      throw new BadRequestException("Feed limit must be an integer between 1 and 30");
-    }
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 30) throw new BadRequestException("limit must be between 1 and 30");
     return parsed;
   }
 
-  private requiredText(value: unknown, field: string, maxLength: number) {
-    const text = this.optionalText(value, field, maxLength);
-    if (!text) throw new BadRequestException(`${field} is required`);
-    return text;
-  }
-
-  private optionalText(value: unknown, field: string, maxLength: number): string | undefined {
-    if (value === undefined || value === null || value === "") return undefined;
-    if (typeof value !== "string") throw new BadRequestException(`${field} must be text`);
+  private requiredText(value: unknown, field: string, max: number) {
+    if (typeof value !== "string") throw new BadRequestException(`${field} is required`);
     const normalized = value.trim();
-    if (!normalized) return undefined;
-    if (normalized.length > maxLength) {
-      throw new BadRequestException(`${field} must be at most ${maxLength} characters`);
-    }
+    if (!normalized || normalized.length > max) throw new BadRequestException(`${field} is invalid`);
     return normalized;
   }
 
-  private optionalInteger(
-    value: unknown,
-    field: string,
-    min: number,
-    max: number
-  ): number | undefined {
+  private optionalText(value: unknown, field: string, max: number) {
     if (value === undefined || value === null || value === "") return undefined;
-    const parsed = typeof value === "number" ? value : Number(value);
+    if (typeof value !== "string") throw new BadRequestException(`${field} must be text`);
+    const normalized = value.trim();
+    if (!normalized || normalized.length > max) throw new BadRequestException(`${field} is invalid`);
+    return normalized;
+  }
+
+  private optionalInteger(value: unknown, field: string, min: number, max: number) {
+    if (value === undefined || value === null || value === "") return undefined;
+    const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
       throw new BadRequestException(`${field} must be an integer between ${min} and ${max}`);
     }
@@ -632,30 +501,19 @@ export class FeedService {
   }
 
   private normalizeOptionalLocation(value?: string) {
-    if (value === undefined) return null;
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    if (trimmed.length > 160) throw new BadRequestException("location must be at most 160 characters");
-    return trimmed;
+    if (!value?.trim()) return null;
+    return value.trim().slice(0, 160);
   }
 
   private normalizeCategory(value: string | null) {
-    return value?.trim().toLowerCase().replace(/\s+/g, " ") ?? "";
+    return value?.trim().toLowerCase() || null;
   }
 
-  private normalizeLocation(value: string | null) {
-    if (!value) return "";
-    const city = value.split(",")[0] ?? value;
-    return city
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, " ");
-  }
-
-  private locationMatches(viewerLocation: string | null, candidateLocation: string | null) {
-    const viewer = this.normalizeLocation(viewerLocation);
-    const candidate = this.normalizeLocation(candidateLocation);
-    return Boolean(viewer && candidate && viewer === candidate);
+  private locationMatches(left: string | null, right: string | null) {
+    if (!left || !right) return false;
+    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const a = normalize(left);
+    const b = normalize(right);
+    return Boolean(a && b && (a.includes(b) || b.includes(a) || a.split(" ").some((part) => part.length > 2 && b.includes(part))));
   }
 }

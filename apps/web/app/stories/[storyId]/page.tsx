@@ -44,7 +44,7 @@ export default function StoryViewerPage() {
   async function share() {
     if (!story) return;
     const url = window.location.href.split("#")[0]!;
-    const text = story.text ?? `View @${story.creator.username ?? "this Hustler"}'s Story on Hustle.`;
+    const text = story.text ?? `View @${story.creator.username ?? "this user"}'s Story on Hustle.`;
     try {
       if (navigator.share) {
         await navigator.share({ title: "Hustle Story", text, url });
@@ -65,7 +65,7 @@ export default function StoryViewerPage() {
 
   if (!story) return <main className={styles.shell}><section className={styles.loading}>Opening Story…</section></main>;
 
-  const creatorName = story.creator.displayName ?? story.creator.username ?? "Hustler";
+  const creatorName = story.creator.displayName ?? story.creator.username ?? "Hustle user";
   const initial = creatorName.charAt(0).toUpperCase();
 
   return <main className={styles.viewerShell}>
@@ -89,20 +89,26 @@ export default function StoryViewerPage() {
         <div className={styles.miniAvatar}>{story.creator.avatarUrl ? <img src={story.creator.avatarUrl} alt="" /> : initial}</div>
         <p className={styles.eyebrow}>HUSTLE STORY</p>
         <h2>{creatorName}</h2>
-        <p>@{story.creator.username ?? "user"}{story.creator.verified ? " · Verified" : ""}</p>
+        <p>@{story.creator.username ?? "user"}{story.creator.verified ? " · Verified identity" : ""}</p>
         {story.creator.professionalProfile?.headline && <p>{story.creator.professionalProfile.headline}</p>}
-        {story.creator.username && <a href={`/u/${encodeURIComponent(story.creator.username)}`}>Visit profile / storefront →</a>}
+        {story.creator.professionalProfile?.published && story.creator.username && <a href={`/u/${encodeURIComponent(story.creator.username)}`}>Visit professional storefront →</a>}
       </section>
 
+      {story.mentions.length > 0 && <section className={styles.commerceCard}>
+        <small>PEOPLE REFERENCED</small>
+        <h3>{story.mentions.length} Hustle {story.mentions.length === 1 ? "identity" : "identities"}</h3>
+        <p>{story.mentions.map((mention) => `@${mention.username ?? "user"}`).join(" · ")}</p>
+      </section>}
+
       {story.service && <section className={styles.commerceCard}>
-        <small>ATTACHED SERVICE</small>
+        <small>REFERENCED SERVICE</small>
         <h3>{story.service.title ?? "Service"}</h3>
         <p>{story.service.category ?? story.service.deliveryMode} · {money(story.service.priceMinor, story.service.currency)}</p>
         <a href={`/services/${encodeURIComponent(story.service.id)}`}>View & book service →</a>
       </section>}
 
       {story.product && <section className={styles.commerceCard}>
-        <small>ATTACHED PRODUCT</small>
+        <small>REFERENCED PRODUCT</small>
         <h3>{story.product.title ?? "Product"}</h3>
         <p>{story.product.category ?? story.product.type} · {money(story.product.priceMinor, story.product.currency)}</p>
         <a href={`/products/${encodeURIComponent(story.product.id)}`}>View & buy product →</a>
@@ -111,6 +117,7 @@ export default function StoryViewerPage() {
       <div className={styles.storyMeta}>
         <strong>{formatStoryRemaining(story.expiresAt)}</strong><br />
         Stories expire automatically 24 hours after publication.<br />
+        Story opinions and recommendations are community content; verified transaction reviews remain a separate trust signal.<br />
         HUSTLE · THE ECONOMY OF YOU
       </div>
       {notice && <p>{notice}</p>}

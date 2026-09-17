@@ -18,6 +18,14 @@ export interface StoryCreator {
   } | null;
 }
 
+export interface StoryMention {
+  id: string;
+  displayName: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  location: string | null;
+}
+
 export interface StoryServiceAttachment {
   id: string;
   title: string | null;
@@ -55,6 +63,7 @@ export interface StoryRecord {
   active: boolean;
   remainingMs: number;
   creator: StoryCreator;
+  mentions: StoryMention[];
   service: StoryServiceAttachment | null;
   product: StoryProductAttachment | null;
 }
@@ -96,10 +105,15 @@ async function authenticatedFetch(path: string, init?: RequestInit) {
   return response;
 }
 
+function normalizeStory(story: StoryRecord): StoryRecord {
+  return { ...story, mentions: story.mentions ?? [] };
+}
+
 export async function getActiveStories(limit = 60): Promise<StoryRecord[]> {
   const response = await fetch(`${apiBase}/stories?limit=${limit}`, { cache: "no-store" });
   if (!response.ok) throw new Error(await parseError(response));
-  return response.json() as Promise<StoryRecord[]>;
+  const stories = await response.json() as StoryRecord[];
+  return stories.map(normalizeStory);
 }
 
 export async function getPublicStory(storyId: string): Promise<StoryRecord> {
@@ -108,12 +122,13 @@ export async function getPublicStory(storyId: string): Promise<StoryRecord> {
     if (response.status === 404) throw new Error("This Story has expired or is unavailable.");
     throw new Error(await parseError(response));
   }
-  return response.json() as Promise<StoryRecord>;
+  return normalizeStory(await response.json() as StoryRecord);
 }
 
 export async function getMyStories(): Promise<StoryRecord[]> {
   const response = await authenticatedFetch("/stories/mine");
-  return response.json() as Promise<StoryRecord[]>;
+  const stories = await response.json() as StoryRecord[];
+  return stories.map(normalizeStory);
 }
 
 export async function createStory(input: CreateStoryInput): Promise<StoryRecord> {
@@ -121,7 +136,7 @@ export async function createStory(input: CreateStoryInput): Promise<StoryRecord>
     method: "POST",
     body: JSON.stringify(input)
   });
-  return response.json() as Promise<StoryRecord>;
+  return normalizeStory(await response.json() as StoryRecord);
 }
 
 export async function deleteStory(storyId: string): Promise<{ deleted: true; id: string }> {

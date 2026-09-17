@@ -8,11 +8,8 @@ import {
   Put,
   UseGuards
 } from "@nestjs/common";
-import { Capability } from "@prisma/client";
 
 import { AuthGuard } from "../auth/auth.guard";
-import { CapabilityGuard } from "../auth/capability.guard";
-import { RequireCapability } from "../auth/capability.decorator";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import {
@@ -22,8 +19,7 @@ import {
 } from "./post.service";
 
 @Controller("posts")
-@UseGuards(AuthGuard, CapabilityGuard)
-@RequireCapability(Capability.HUSTLER)
+@UseGuards(AuthGuard)
 export class OwnerPostController {
   constructor(private readonly posts: PostService) {}
 

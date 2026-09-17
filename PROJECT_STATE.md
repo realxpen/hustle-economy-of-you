@@ -1,17 +1,19 @@
 # Hustle Project State
 
-Updated: 2026-09-16
+Updated: 2026-09-17
 
 ## Current AED capability
 Build
 
 ## Current MVP phase
-Phase 15 — Public Hustle Storefront Website
+Phase 16 — Stories + Universal User Content
 
 Phase 13 — Payments + Escrow is COMPLETE.
 Phase 14 — Trust + Reputation is COMPLETE.
+Phase 15 — Public Hustle Storefront Website is COMPLETE.
+Phase 16A — Stories Foundation is IMPLEMENTED + CI COMPLETE; runtime migration/validation remains.
 
-Current active slice: **Phase 15B — Storefront Distribution**.
+Current active slice: **Phase 16 authority correction — Posts and Stories belong to every Hustle User identity, not only HUSTLER.**
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -19,15 +21,19 @@ Current active slice: **Phase 15B — Storefront Distribution**.
 - One User identity; everyone begins as CLIENT.
 - HUSTLER and AGENT are additive capabilities on the same identity.
 - No role switcher and no separate Client/Hustler/Agent accounts.
+- **Posts and Stories are User-level content capabilities. Every authenticated Client or Hustler can publish.**
+- HUSTLER is required for owning/selling professional Services and Products, not for having a public voice.
+- Client-authored Posts/Stories may @mention users and reference any currently published Service/Product, including another Hustler's.
+- Social recommendations/opinions are community content and never manufacture verified reputation.
+- Verified public reputation remains downstream of eligible transaction evidence and a canonical Review record.
 - Financial state is server-authoritative.
 - Never fake payment, funding, escrow, refunds, wallet credit, payout, delivery or completion.
-- Reputation is downstream of verified transaction evidence; clients cannot manufacture verified reviews.
 - Public MVP reputation is one-way: `CLIENT → HUSTLER` for Bookings and `BUYER → SELLER` for Orders.
 - Private counterparty trust is separate: `HUSTLER → CLIENT` and `SELLER → BUYER` feedback never affects public `UserReputation`.
 - Identity verification, transaction verification, public reputation and private trust/safety signals remain distinct.
 - A single subjective complaint must never trigger automatic punitive action.
 - Admin safety intelligence must be explainable and evidence-backed rather than an opaque risk score.
-- Public storefronts are generated from the same Hustle identity and authoritative published data; there is no separate website-builder identity in the MVP.
+- Public Hustler storefronts are generated from the same Hustle identity and authoritative published professional data; there is no second website-builder identity.
 
 ## Completed MVP phases
 - Phase 1 — Technical Foundation: COMPLETE
@@ -36,16 +42,17 @@ Current active slice: **Phase 15B — Storefront Distribution**.
 - Phase 4 — Professional Profile: COMPLETE
 - Phase 5 — Services: COMPLETE
 - Phase 6 — Products: COMPLETE
-- Phase 7 — Content Creation Engine: COMPLETE
-- Phase 8 — Home Discovery Feed: COMPLETE
+- Phase 7 — Content Creation Engine: COMPLETE, authority amended to universal User content in Phase 16
+- Phase 8 — Home Discovery Feed: COMPLETE, authority amended to discover Client + Hustler posts in Phase 16
 - Phase 9 — Search + Marketplace: COMPLETE
 - Phase 10 — Messaging: COMPLETE
 - Phase 11 — Booking System: COMPLETE
 - Phase 12 — Cart + Orders: COMPLETE
 - Phase 13 — Payments + Escrow: COMPLETE
 - Phase 14 — Trust + Reputation: COMPLETE
+- Phase 15 — Public Hustle Storefront Website: COMPLETE
 
-## Current transaction boundaries
+## Current transaction and trust boundaries
 
 Booking:
 `REQUESTED → PAYMENT_PENDING → verified payment → FUNDED → IN_PROGRESS → COMPLETED → escrow release → Hustler AVAILABLE`
@@ -56,8 +63,13 @@ Order:
 Money:
 `payment confirmation → ledger → escrow/pending → available → payout reservation → provider-confirmed payout`
 
-Public reputation:
-`verified transaction → eligible Client/Buyer review → verified immutable Review → atomic provider reputation projection → public profile/storefront trust signals`
+Verified public reputation:
+`eligible verified transaction → Client/Buyer Review → immutable verified Review → UserReputation`
+
+Community content:
+`User → Post/Story → @mentions + public Service/Product references → discovery/conversation/opportunity`
+
+Community content must never silently become verified reputation.
 
 Private trust/safety:
 `interaction/transaction evidence → private counterparty feedback + reports + blocks → explainable Admin intelligence → human moderation`
@@ -65,78 +77,15 @@ Private trust/safety:
 ## Phase 14 — Trust + Reputation
 COMPLETE — final end-to-end runtime validated 2026-09-16.
 
-### 14A — Trust Model Foundation
-COMPLETE.
-
 Validated:
-- Review + `UserReputation` schema and migrations
-- participant-scoped eligibility
-- Client→Hustler and Buyer→Seller public-review authority only
-- verified transaction and authoritative settlement gates
-- refunded/incomplete transactions blocked from public review
-
-### 14B — Verified Reviews + Ratings
-COMPLETE.
-
-Validated:
-- immutable verified public reviews
-- duplicate/race protection
-- atomic reputation projection
-- given/received/reputation/detail read models
-
-### 14C — Profile Reputation
-COMPLETE.
-
-Validated:
-- public server-authoritative trust summary
-- Hustler reputation and verified review cards
-- signed-in given-review history
-- no public Client/Buyer rating
-- private trust/safety data excluded from public profile
-
-### 14D — Counterparty Trust + Safety
-COMPLETE.
-
-Validated:
-- Hustler→Client and Seller→Buyer private feedback
-- transaction-backed feedback authority
-- reports from BOOKING, ORDER, PROFILE and CONVERSATION contexts
-- server-derived report targets
-- block/unblock authority
-- blocking prevents new direct contact while preserving historical evidence
-- Admin allowlist and private moderation console
-- subjective reports separated from authoritative platform evidence
-- explainable indicators only
-- moderation notes required for ACTIONED/DISMISSED
-- durable `safety.admin_report_status_changed` audit events
-- Admin console operational on port 3003
-
-### 14E — Full Trust Experience
-COMPLETE — CI + end-to-end runtime validated 2026-09-16.
-
-Built and validated:
-- unified signed-in Trust Activity center on `/account`
-- separate Public reviews / Private feedback / Reports / Blocked users surfaces
-- explicit PUBLIC / PRIVATE / ADMIN ONLY trust boundaries
-- `adminxpen` sees 2 public reviews, 0 authored private feedback, 4 durable reports, and block state
-- `xpen` sees the 2 private feedback records they authored
-- report moderation statuses display in the signed-in account surface
-- block → Trust Activity → unblock loop works and restores contact
-- historical messages, transactions, reviews and reports survive block/unblock
-- private notes remain private to the author/Admin path and do not leak publicly
-- private feedback stars are cumulative
-- private feedback issue selection is capped at the backend-supported maximum of 8
-- Admin intelligence remains private and explainable
-- public xpen reputation remains unchanged at the final regression gate:
-  - `ratingSum = 10`
-  - `reviewCount = 2`
-  - `verifiedReviewCount = 2`
-  - `bookingReviewCount = 1`
-  - `orderReviewCount = 1`
-  - `averageRating = 5`
-
-Phase 14E merge:
-- `530d3505ed5ddee18b8f1576f01cf3ad697e774d`
+- one-way verified provider reviews and atomic `UserReputation`
+- private Hustler→Client / Seller→Buyer feedback kept separate
+- reports across Booking, Order, Profile and Conversation contexts
+- block/unblock authority and preserved historical evidence
+- explainable Admin safety intelligence with human moderation
+- durable moderation audit events
+- unified Trust Activity center
+- final xpen public reputation invariant: ratingSum 10, reviewCount 2, verifiedReviewCount 2, bookingReviewCount 1, orderReviewCount 1, averageRating 5
 
 Canonical Phase 14 knowledge:
 - `Knowledge/Product/TRUST_AND_REPUTATION.md`
@@ -152,72 +101,85 @@ Canonical Phase 14 knowledge:
 - `Knowledge/Decisions/ADR-0023-full-trust-experience.md`
 
 ## Phase 15 — Public Hustle Storefront Website
-ACTIVE.
-
-Canonical goal:
-Give every Hustler an automatically generated, shareable public web presence from existing Hustle data. This is not a drag-and-drop website builder in the MVP.
-
-Canonical public route:
-`/u/:username`
-
-Storefront composes from:
-- professional profile
-- services
-- products
-- posts / featured work
-- public follower/activity counts
-- verified public reviews and reputation
-- contact / message / book / buy actions
+COMPLETE.
 
 ### 15A — Storefront Foundation
 COMPLETE — CI + runtime validated 2026-09-16.
 
-Built and validated:
-- public signed-out `GET /api/v1/storefronts/:username` aggregate read model
-- ACTIVE HUSTLER + PUBLISHED ProfessionalProfile gate
-- published Services, Products and Posts only
-- existing `PublicTrustService` reused as public reputation authority
-- product stock derived from authoritative inventory fields
-- follower and published-content counts
-- `/u/:username` redesigned into a signed-out-friendly storefront
-- real service, product and post links use canonical Hustle records rather than storefront copies
-- signed-out `xpen` storefront renders identity, services, products, work/content and verified reputation
-- private-data leak grep returns no private feedback, moderation notes, safety reports, blocks, Admin data or auth subjects
-- xpen runtime storefront contains 1 service, 1 product, 2 posts and 2 verified reviews
-- public xpen reputation remains exactly 10 / 2 / 5.0
+Validated:
+- public signed-out `GET /api/v1/storefronts/:username`
+- `/u/:username` composes professional identity, published Services/Products/Posts and verified reputation
+- no private trust/safety leakage
+- canonical real Service/Product/Post routes
+- xpen runtime storefront: 1 Service, 1 Product, 2 Posts, 2 verified Reviews
 
-Phase 15A merge:
-- `a3798fea0ebd577c2f305419a57a9d2e81c26fb6`
+Merge: `a3798fea0ebd577c2f305419a57a9d2e81c26fb6`
 
-### 15B — Storefront Distribution
-ACTIVE — implementation in progress.
+### 15B/15C — Storefront Distribution
+COMPLETE — CI merged.
 
-Build target:
-- canonical storefront URL contract
-- dynamic SEO metadata from public storefront data
-- canonical link metadata
-- Open Graph previews
-- X/Twitter card metadata
-- copy canonical link
-- native device share
-- WhatsApp share intent
-- X share intent
-- QR representation of the canonical storefront URL
-- no private trust/safety data in metadata/share payloads
+Built:
+- canonical storefront URL
+- dynamic SEO/Open Graph/X metadata
+- copy/native/WhatsApp/X/email sharing
+- QR representation of canonical URL
+- public-data-only metadata/share payloads
+
+Merges:
+- distribution `76a24ace7ac4c363a0e549978fdf29c1b61c80ef`
+- email/closure `464f0f3cb162d5625deb2506a6a3c0224fd2da95`
 
 Canonical Phase 15 knowledge:
 - `Knowledge/Decisions/ADR-0024-public-storefront-read-model.md`
 - `Knowledge/Decisions/ADR-0025-storefront-distribution.md`
 
-Phase 15 gate:
-1. a signed-out visitor can open a Hustler storefront by username;
-2. profile identity, capability proof, services, products, content and verified reputation are composed coherently;
-3. private trust/safety information never appears;
-4. Book/Buy/Message CTAs route correctly and authentication is requested only when an action requires it;
-5. storefront has useful canonical/social metadata and deliberate share paths;
-6. a QR code can represent the canonical storefront URL;
-7. storefront remains generated from authoritative Hustle data, not duplicated manually;
-8. `xpen` storefront is the runtime reference profile.
+## Phase 16 — Stories + Universal User Content
+ACTIVE.
+
+### 16A — Stories Foundation
+IMPLEMENTED + CI GREEN; runtime pending.
+
+Merge: `eaecc981f29a55cf587ae40fd885eb591e40e3e8`
+Migration: `20260917110000_phase16a_stories`
+
+Foundation includes:
+- TEXT / IMAGE / VIDEO Stories
+- fixed server-owned 24-hour lifetime
+- public active Story list/detail
+- authenticated create/mine/delete
+- `/stories`, `/stories/create`, `/stories/:storyId`
+- Story publication/removal SystemEvents
+- canonical Service/Product action routing
+
+### Phase 16 authority correction
+ACTIVE.
+
+Correction prompted by the unified-account rule:
+- any authenticated Hustle User can create Posts and Stories
+- Client-only users do not need HUSTLER capability to publish
+- Client-only Posts use a DRAFT ProfessionalProfile only as a temporary internal Post-schema anchor; it does not grant HUSTLER or publish professional identity
+- public Post/Story reads suppress unpublished professional profile data
+- public Posts from Client and Hustler identities are eligible for Home discovery and interactions
+- `@username` references resolve public Hustle identities
+- Posts and Stories can reference any currently published Service/Product, not only offers owned by the author
+- references do not transfer offer ownership or imply author/merchant identity
+- professional storefront links render only when a public professional profile exists
+- review-style social content remains distinct from verified Review/UserReputation authority
+
+Canonical Phase 16 knowledge:
+- `Knowledge/Decisions/ADR-0026-stories-foundation.md`
+- `Knowledge/Decisions/ADR-0027-universal-user-content.md`
+
+### 16B — Stories Experience
+NEXT after correction runtime gate.
+
+Target:
+- Story views
+- reactions/replies
+- Home Stories row
+- sequential Story viewer
+- native media upload/storage
+- Story → person/Service/Product conversion events
 
 ## Supabase
 Dedicated project:
@@ -233,16 +195,8 @@ Auth/database/storage remain hosted in the dedicated Hustle project.
 - Node: 22.x via `.nvmrc`
 
 Secrets and `.env` files remain local and must never be committed.
-`HUSTLE_ADMIN_USER_IDS` is a server-only comma-separated allowlist of canonical Hustle User IDs permitted to access internal Admin APIs during the MVP bootstrap stage.
-
-In non-production local development, canonical Hustle origins are:
-- `http://localhost:3001`
-- `http://localhost:3003`
-
-Canonical storefront origin:
-- `NEXT_PUBLIC_WEB_URL=http://localhost:3001` locally
-- configure the production Hustle web origin in deployment environments
-
+`HUSTLE_ADMIN_USER_IDS` is server-only.
+Canonical local storefront origin: `NEXT_PUBLIC_WEB_URL=http://localhost:3001`.
 Production CORS remains configuration-driven.
 
 ## Repository workflow
@@ -258,4 +212,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook/admin secrets.
 
 ## Next gate
-**Phase 15B — validate canonical/social metadata plus copy/native/WhatsApp/X/QR distribution on the signed-out `xpen` storefront, then continue to the next storefront capability slice.**
+**Validate a Client-only identity creating a Post and Story that reference xpen/@xpen and xpen's published Service/Product, prove those references route to canonical Hustle entities, and prove xpen `UserReputation` remains unchanged. Then continue Phase 16B.**
