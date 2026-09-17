@@ -13,12 +13,13 @@ import {
 } from "../../lib/post";
 import { formatProductPrice } from "../../lib/product";
 import { formatServicePrice } from "../../lib/service";
+import { HomeStoriesRow } from "./home-stories-row";
 import styles from "./page.module.css";
 
 const tabs: Array<{ id: FeedTab; label: string; note: string }> = [
-  { id: "for-you", label: "For You", note: "Relevant capability, even with zero connections." },
-  { id: "nearby", label: "Nearby", note: "Useful people and work around your location." },
-  { id: "connections", label: "Connections", note: "Published work from people you follow." }
+  { id: "for-you", label: "For You", note: "Relevant people and content, even with zero connections." },
+  { id: "nearby", label: "Nearby", note: "Useful people, experiences and work around your location." },
+  { id: "connections", label: "Connections", note: "Published content from people you follow." }
 ];
 
 function createSessionId() {
@@ -54,7 +55,7 @@ function youtubeEmbedUrl(raw: string | null) {
 
 function MediaRail({ item }: { item: FeedItem }) {
   if (item.post.media.length === 0) {
-    return <div className={styles.mediaFallback}>Capability in motion.</div>;
+    return <div className={styles.mediaFallback}>A moment worth discovering.</div>;
   }
 
   return <div className={styles.mediaRail}>
@@ -74,7 +75,7 @@ function MediaRail({ item }: { item: FeedItem }) {
         }
         return <video className={styles.media} key={media.id} src={media.mediaUrl ?? undefined} controls playsInline preload="metadata" />;
       }
-      return <img className={styles.media} key={media.id} src={media.mediaUrl ?? ""} alt="Demonstrated capability" loading="lazy" />;
+      return <img className={styles.media} key={media.id} src={media.mediaUrl ?? ""} alt="Hustle content" loading="lazy" />;
     })}
   </div>;
 }
@@ -273,8 +274,8 @@ function FeedCard({
       >
         <div className={styles.avatar}>{item.creator.avatarUrl ? <img src={item.creator.avatarUrl} alt="" /> : initial}</div>
         <div>
-          <strong>{item.creator.displayName ?? item.creator.username ?? "Hustler"}</strong>
-          <span>@{item.creator.username ?? "hustler"}{item.creator.verified ? " · Verified" : ""}</span>
+          <strong>{item.creator.displayName ?? item.creator.username ?? "Hustle user"}</strong>
+          <span>@{item.creator.username ?? "user"}{item.creator.verified ? " · Verified" : ""}</span>
         </div>
       </a>
       <button className={item.viewer.following ? styles.following : styles.follow} type="button" onClick={toggleFollow} disabled={working === "follow"}>
@@ -283,7 +284,7 @@ function FeedCard({
     </div>
 
     <div className={styles.contextLine}>
-      <span>{skill ?? "Capability"}</span>
+      <span>{skill ?? item.post.category ?? "Hustle content"}</span>
       <span>{item.post.location ?? item.creator.location ?? "Location not set"}</span>
     </div>
 
@@ -297,13 +298,11 @@ function FeedCard({
         <button type="button" onClick={share} disabled={working === "share"}>↗ Share</button>
       </div>
 
-      <a className={styles.captionLink} href={`/posts/${item.post.id}`}>
-        <p>{item.post.caption}</p>
-      </a>
+      <a className={styles.captionLink} href={`/posts/${item.post.id}`}><p>{item.post.caption}</p></a>
       {item.post.tags.length > 0 && <div className={styles.tags}>{item.post.tags.slice(0, 6).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
 
       {(item.services.length > 0 || item.products.length > 0) && <div className={styles.opportunityBlock}>
-        <div className={styles.opportunityHeading}><span>ATTACHED OPPORTUNITIES</span><b>Proof → action</b></div>
+        <div className={styles.opportunityHeading}><span>REFERENCED OPPORTUNITIES</span><b>Content → action</b></div>
         <div className={styles.opportunityGrid}>
           {item.services.map((service) => <a
             key={service.id}
@@ -407,8 +406,10 @@ export default function DiscoveryHomePage() {
       <div className={styles.headerActions}><a href="/posts/manage">Create / manage content</a><a href="/account">Your identity</a></div>
     </header>
 
+    <HomeStoriesRow />
+
     <section className={styles.hero}>
-      <div><p>HOME · DISCOVERY</p><h1>Find people by what they can <em>do.</em></h1><span>{activeTab.note}</span></div>
+      <div><p>HOME · DISCOVERY</p><h1>Find people by what they <em>share and do.</em></h1><span>{activeTab.note}</span></div>
       <div className={styles.locationBadge}><small>YOUR DISCOVERY LOCATION</small><strong>{meta.viewerLocation ?? "Loading…"}</strong></div>
     </section>
 
@@ -416,15 +417,15 @@ export default function DiscoveryHomePage() {
       {tabs.map((item) => <button key={item.id} type="button" className={tab === item.id ? styles.activeTab : undefined} onClick={() => setTab(item.id)}>{item.label}</button>)}
     </nav>
 
-    {meta.coldStart && tab === "for-you" && <section className={styles.coldStart}><strong>Cold start, not an empty start.</strong><span>Hustle is using location, recency, trust and useful published capability while it learns from real interactions.</span></section>}
+    {meta.coldStart && tab === "for-you" && <section className={styles.coldStart}><strong>Cold start, not an empty start.</strong><span>Hustle is using location, recency, trust and useful published content while it learns from real interactions.</span></section>}
 
     {loading && <section className={styles.loading}>Building your discovery feed…</section>}
     {error && <section className={styles.error}><strong>Feed unavailable.</strong><span>{error}</span><button type="button" onClick={() => void load(tab)}>Retry</button></section>}
 
     {!loading && !error && items.length === 0 && <section className={styles.empty}>
       <small>{tab.toUpperCase()}</small>
-      <h2>{tab === "connections" ? "No connected creators in this feed yet." : "No eligible published work yet."}</h2>
-      <p>{meta.reason ?? (tab === "connections" ? "Follow a Hustler from For You, then return here to see their published capability." : "Discovery will populate as eligible Hustlers publish content.")}</p>
+      <h2>{tab === "connections" ? "No connected people in this feed yet." : "No eligible published content yet."}</h2>
+      <p>{meta.reason ?? (tab === "connections" ? "Follow people from For You, then return here to see what they publish." : "Discovery will populate as Hustle users publish content.")}</p>
       {tab === "connections" && <button type="button" onClick={() => setTab("for-you")}>Discover people →</button>}
     </section>}
 
@@ -440,7 +441,7 @@ export default function DiscoveryHomePage() {
       />)}
     </section>
 
-    {!loading && meta.hasMore && <div className={styles.loadMore}><button type="button" disabled={loadingMore} onClick={() => void load(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more capability ↓"}</button></div>}
+    {!loading && meta.hasMore && <div className={styles.loadMore}><button type="button" disabled={loadingMore} onClick={() => void load(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more ↓"}</button></div>}
 
     <footer className={styles.footer}><span>Hustle — The Economy of You</span><span>Content → Discovery → Identity → Opportunity</span></footer>
   </main>;
