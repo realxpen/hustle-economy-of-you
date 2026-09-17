@@ -101,7 +101,6 @@ enum MessageContextType {
   POST
   SERVICE
   PRODUCT
-  STORY
 }
 
 enum BookingStatus {
@@ -179,14 +178,22 @@ enum EscrowStatus {
   RELEASED
   REFUND_PENDING
   REFUNDED
+  CANCELLED
 }
 
-enum PayoutStatus {
+enum FinancialOperationStatus {
   REQUESTED
   PROCESSING
-  SENT
+  SUCCEEDED
   FAILED
   CANCELLED
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
 }
 
 enum ReviewSubjectType {
@@ -194,17 +201,20 @@ enum ReviewSubjectType {
   ORDER
 }
 
+enum ReviewPartyRole {
+  CLIENT
+  HUSTLER
+  BUYER
+  SELLER
+}
+
 enum ReviewStatus {
   PUBLISHED
+  HIDDEN
   REMOVED
 }
 
-enum CounterpartyFeedbackSubjectType {
-  BOOKING
-  ORDER
-}
-
-enum CounterpartyFeedbackIssueCategory {
+enum CounterpartyFeedbackIssue {
   NO_SHOW
   ABUSIVE_BEHAVIOR
   SCOPE_MANIPULATION
@@ -214,6 +224,13 @@ enum CounterpartyFeedbackIssueCategory {
   COMMUNICATION_PROBLEMS
   PAYMENT_ABUSE
   OTHER
+}
+
+enum SafetyReportSubjectType {
+  BOOKING
+  ORDER
+  PROFILE
+  CONVERSATION
 }
 
 enum SafetyReportCategory {
@@ -226,13 +243,6 @@ enum SafetyReportCategory {
   SPAM
   OFF_PLATFORM_MANIPULATION
   OTHER
-}
-
-enum SafetyReportSubjectType {
-  BOOKING
-  ORDER
-  PROFILE
-  CONVERSATION
 }
 
 enum SafetyReportStatus {
@@ -709,6 +719,21 @@ model Order {
   currency         String      @default("NGN")
   subtotalMinor    Int
   totalMinor       Int
+  deliveryName     String?
+  deliveryPhone    String?
+  deliveryAddress  String?
+  deliveryCity     String?
+  deliveryState    String?
+  deliveryCountry  String?
+  deliveryNote     String?
+  paymentReference String?     @unique
+  paidAt           DateTime?
+  processingAt     DateTime?
+  shippedAt        DateTime?
+  deliveredAt      DateTime?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  refundedAt       DateTime?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
@@ -722,127 +747,199 @@ model Order {
 }
 
 model OrderItem {
-  id                     String               @id @default(cuid())
-  orderId                String
-  productId              String
-  productVariantId       String?
-  productTitleSnapshot   String
-  variantNameSnapshot    String?
-  unitPriceMinor         Int
-  quantity               Int
-  lineTotalMinor         Int
-  inventorySource        OrderInventorySource @default(NONE)
-  inventoryQuantityBefore Int?
-  createdAt              DateTime             @default(now())
+  id                   String               @id @default(cuid())
+  orderId              String
+  productId            String
+  productVariantId     String?
+  productTitleSnapshot String
+  variantNameSnapshot  String?
+  skuSnapshot          String?
+  optionValuesSnapshot Json?
+  productTypeSnapshot  ProductType
+  unitPriceMinor       Int
+  quantity             Int
+  lineTotalMinor       Int
+  inventorySource      OrderInventorySource @default(NONE)
+  createdAt            DateTime             @default(now())
 
   order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product        Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
-  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: SetNull)
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
 
-  @@index([orderId])
+  @@index([orderId, createdAt])
   @@index([productId])
   @@index([productVariantId])
 }
 
-model FinancialAccount {
+model PaymentAttempt {
+  id                String               @id @default(cuid())
+  subjectType       FinancialSubjectType
+  subjectId         String
+  payerUserId       String
+  beneficiaryUserId String
+  provider          String
+  providerReference String               @unique
+  idempotencyKey    String               @unique
+  status            PaymentAttemptStatus @default(PENDING)
+  amountMinor       Int
+  currency          String
+  checkoutUrl       String?
+  providerMetadata  Json?
+  confirmedAt       DateTime?
+  domainAppliedAt   DateTime?
+  failedAt          DateTime?
+  failureCode       String?
+  failureReason     String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  ledgerTransactions LedgerTransaction[]
+  escrow              EscrowRecord?
+  refunds             Refund[]
+  webhookEvents       WebhookEvent[]
+
+  @@index([payerUserId, status, createdAt])
+  @@index([beneficiaryUserId, status, createdAt])
+  @@index([subjectType, subjectId, createdAt])
+  @@index([status, createdAt])
+}
+
+model LedgerAccount {
   id        String               @id @default(cuid())
   userId    String?
   type      FinancialAccountType
-  currency  String               @default("NGN")
-  balanceMinor BigInt             @default(0)
+  currency  String
+  key       String               @unique
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
 
-  @@unique([userId, type, currency])
+  postings LedgerPosting[]
+
+  @@index([userId, type, currency])
   @@index([type, currency])
 }
 
 model LedgerTransaction {
-  id          String                @id @default(cuid())
-  type        LedgerTransactionType
-  subjectType FinancialSubjectType
-  subjectId   String
-  reference   String                @unique
-  description String?
-  createdAt   DateTime              @default(now())
+  id               String                @id @default(cuid())
+  subjectType      FinancialSubjectType
+  subjectId        String
+  paymentAttemptId String?
+  type             LedgerTransactionType
+  reference        String?
+  idempotencyKey   String                @unique
+  createdAt        DateTime              @default(now())
 
-  postings LedgerPosting[]
+  paymentAttempt PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id], onDelete: SetNull)
+  postings       LedgerPosting[]
 
   @@index([subjectType, subjectId, createdAt])
+  @@index([paymentAttemptId, createdAt])
   @@index([type, createdAt])
 }
 
 model LedgerPosting {
-  id            String                 @id @default(cuid())
-  transactionId String
-  accountId     String
-  direction     LedgerPostingDirection
-  amountMinor   BigInt
-  createdAt     DateTime               @default(now())
+  id                  String                 @id @default(cuid())
+  ledgerTransactionId String
+  accountId           String
+  direction           LedgerPostingDirection
+  amountMinor         Int
+  createdAt           DateTime               @default(now())
 
-  transaction LedgerTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  ledgerTransaction LedgerTransaction @relation(fields: [ledgerTransactionId], references: [id], onDelete: Restrict)
+  account           LedgerAccount     @relation(fields: [accountId], references: [id], onDelete: Restrict)
 
-  @@index([transactionId])
+  @@index([ledgerTransactionId])
   @@index([accountId, createdAt])
 }
 
-model PaymentAttempt {
-  id              String               @id @default(cuid())
-  subjectType     FinancialSubjectType
-  subjectId       String
-  userId          String
-  provider        String
-  providerReference String              @unique
-  idempotencyKey  String                @unique
-  amountMinor     Int
-  currency        String                @default("NGN")
-  status          PaymentAttemptStatus @default(INITIATED)
-  verifiedAt      DateTime?
-  rawReference    String?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+model EscrowRecord {
+  id                String               @id @default(cuid())
+  subjectType       FinancialSubjectType
+  subjectId         String
+  paymentAttemptId  String               @unique
+  beneficiaryUserId String
+  amountMinor       Int
+  currency          String
+  status            EscrowStatus         @default(PENDING)
+  heldAt            DateTime?
+  releasedAt        DateTime?
+  refundedAt        DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
-  @@index([subjectType, subjectId])
+  paymentAttempt PaymentAttempt @relation(fields: [paymentAttemptId], references: [id], onDelete: Restrict)
+
+  @@unique([subjectType, subjectId])
+  @@index([beneficiaryUserId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+model Payout {
+  id                String                   @id @default(cuid())
+  userId            String
+  currency          String
+  amountMinor       Int
+  status            FinancialOperationStatus @default(REQUESTED)
+  provider          String
+  providerReference String?                  @unique
+  idempotencyKey    String                   @unique
+  requestedAt       DateTime                 @default(now())
+  confirmedAt       DateTime?
+  failedAt          DateTime?
+  failureReason     String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
   @@index([userId, status, createdAt])
   @@index([status, createdAt])
 }
 
-model Escrow {
-  id             String       @id @default(cuid())
-  subjectType    FinancialSubjectType
-  subjectId      String       @unique
-  payerUserId    String
-  beneficiaryUserId String
-  amountMinor    Int
-  currency       String       @default("NGN")
-  status         EscrowStatus @default(PENDING)
-  heldAt         DateTime?
-  releasedAt     DateTime?
-  refundedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+model Refund {
+  id                String                   @id @default(cuid())
+  subjectType       FinancialSubjectType
+  subjectId         String
+  paymentAttemptId  String
+  requestedByUserId String?
+  currency          String
+  amountMinor       Int
+  status            FinancialOperationStatus @default(REQUESTED)
+  providerReference String?                  @unique
+  idempotencyKey    String                   @unique
+  requestedAt       DateTime                 @default(now())
+  confirmedAt       DateTime?
+  failedAt          DateTime?
+  failureReason     String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
-  @@index([payerUserId, status])
-  @@index([beneficiaryUserId, status])
+  paymentAttempt PaymentAttempt @relation(fields: [paymentAttemptId], references: [id], onDelete: Restrict)
+
+  @@index([subjectType, subjectId, createdAt])
+  @@index([paymentAttemptId, status])
+  @@index([status, createdAt])
 }
 
-model Payout {
-  id                String       @id @default(cuid())
-  userId            String
-  amountMinor       Int
-  currency          String       @default("NGN")
-  status            PayoutStatus @default(REQUESTED)
+model WebhookEvent {
+  id                String             @id @default(cuid())
   provider          String
+  eventId           String
+  paymentAttemptId  String?
+  eventType         String
   providerReference String?
-  idempotencyKey    String       @unique
-  requestedAt       DateTime     @default(now())
+  payloadDigest     String
+  status            WebhookEventStatus @default(RECEIVED)
   processedAt       DateTime?
-  failureReason     String?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  errorCode         String?
+  errorMessage      String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
-  @@index([userId, status, requestedAt])
-  @@index([status, requestedAt])
+  paymentAttempt PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, eventId])
+  @@index([paymentAttemptId, createdAt])
+  @@index([providerReference, createdAt])
+  @@index([status, createdAt])
 }
 
 model Review {
@@ -851,53 +948,57 @@ model Review {
   subjectId           String
   reviewerUserId      String
   revieweeUserId      String
-  reviewerRole        String
-  revieweeRole        String
+  reviewerRole        ReviewPartyRole
+  revieweeRole        ReviewPartyRole
   rating              Int
-  body                String?
+  body                String
   status              ReviewStatus      @default(PUBLISHED)
   verifiedTransaction Boolean           @default(true)
-  verifiedAt          DateTime           @default(now())
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  verifiedAt          DateTime          @default(now())
+  moderationReason    String?
+  hiddenAt            DateTime?
+  removedAt           DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   reviewer User @relation("ReviewsGiven", fields: [reviewerUserId], references: [id], onDelete: Restrict)
   reviewee User @relation("ReviewsReceived", fields: [revieweeUserId], references: [id], onDelete: Restrict)
 
   @@unique([subjectType, subjectId, reviewerUserId])
   @@index([revieweeUserId, status, createdAt])
-  @@index([reviewerUserId, status, createdAt])
+  @@index([reviewerUserId, createdAt])
   @@index([subjectType, subjectId])
+  @@index([status, createdAt])
 }
 
 model UserReputation {
-  userId             String   @id
-  ratingSum          Int      @default(0)
-  reviewCount        Int      @default(0)
-  verifiedReviewCount Int     @default(0)
-  bookingReviewCount Int      @default(0)
-  orderReviewCount   Int      @default(0)
-  lastReviewAt       DateTime?
-  updatedAt          DateTime @updatedAt
+  userId              String   @id
+  ratingSum           Int      @default(0)
+  reviewCount         Int      @default(0)
+  verifiedReviewCount Int      @default(0)
+  bookingReviewCount  Int      @default(0)
+  orderReviewCount    Int      @default(0)
+  lastReviewAt        DateTime?
+  updatedAt           DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model CounterpartyFeedback {
-  id               String                              @id @default(cuid())
-  subjectType      CounterpartyFeedbackSubjectType
-  subjectId        String
-  authorUserId     String
-  targetUserId     String
-  authorRole       String
-  targetRole       String
-  wouldWorkAgain   Boolean
-  experienceRating Int?
-  issueCategories  CounterpartyFeedbackIssueCategory[] @default([])
-  privateNote      String?
-  transactionSnapshot Json
-  createdAt        DateTime                            @default(now())
-  updatedAt        DateTime                            @updatedAt
+  id                        String                       @id @default(cuid())
+  subjectType               ReviewSubjectType
+  subjectId                 String
+  authorUserId              String
+  targetUserId              String
+  authorRole                ReviewPartyRole
+  targetRole                ReviewPartyRole
+  wouldWorkAgain            Boolean
+  experienceRating          Int?
+  issueCategories           CounterpartyFeedbackIssue[] @default([])
+  privateNote               String?
+  transactionStatusSnapshot String
+  createdAt                 DateTime                     @default(now())
+  updatedAt                 DateTime                     @updatedAt
 
   author User @relation("CounterpartyFeedbackAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
   target User @relation("CounterpartyFeedbackTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
@@ -910,12 +1011,12 @@ model CounterpartyFeedback {
 
 model SafetyReport {
   id             String                  @id @default(cuid())
-  reporterUserId String
-  targetUserId   String
   subjectType    SafetyReportSubjectType
   subjectId      String
+  reporterUserId String
+  targetUserId   String
   category       SafetyReportCategory
-  description    String?
+  details        String
   status         SafetyReportStatus      @default(OPEN)
   moderationNote String?
   reviewedAt     DateTime?
@@ -926,11 +1027,10 @@ model SafetyReport {
   reporter User @relation("SafetyReportReporter", fields: [reporterUserId], references: [id], onDelete: Restrict)
   target   User @relation("SafetyReportTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
 
-  @@unique([reporterUserId, subjectType, subjectId, targetUserId])
+  @@unique([reporterUserId, subjectType, subjectId, category])
   @@index([targetUserId, status, createdAt])
   @@index([reporterUserId, createdAt])
   @@index([status, createdAt])
-  @@index([subjectType, subjectId])
 }
 
 model UserBlock {
@@ -949,8 +1049,9 @@ model SystemEvent {
   id         String   @id @default(cuid())
   name       String
   source     String
-  payload    Json
+  payload    Json?
   occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   @@index([name, occurredAt])
 }
