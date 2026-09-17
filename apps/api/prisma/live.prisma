@@ -1,0 +1,59 @@
+enum LiveSessionStatus {
+  DRAFT
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum LivePinnedOfferType {
+  SERVICE
+  PRODUCT
+}
+
+model LiveSession {
+  id              String              @id @default(cuid())
+  hostUserId      String
+  title           String
+  category        String?
+  status          LiveSessionStatus   @default(DRAFT)
+  pinnedOfferType LivePinnedOfferType?
+  pinnedServiceId String?
+  pinnedProductId String?
+  playbackUrl     String?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  viewers  LiveViewerPresence[]
+  comments LiveComment[]
+
+  @@index([status, startedAt])
+  @@index([hostUserId, createdAt])
+}
+
+model LiveViewerPresence {
+  sessionId   String
+  viewerKey   String
+  firstSeenAt DateTime    @default(now())
+  lastSeenAt  DateTime    @updatedAt
+
+  session LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, viewerKey])
+  @@index([sessionId, lastSeenAt])
+}
+
+model LiveComment {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@index([userId, createdAt])
+}
