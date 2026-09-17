@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { ProductStatus, ServiceStatus, StoryType } from "@prisma/client";
+import { ProductStatus, ProfessionalProfileStatus, ServiceStatus, StoryType } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
@@ -23,12 +23,11 @@ export class StoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listActive(limitInput?: unknown) {
-    const limit = this.limit(limitInput);
     const now = new Date();
     const stories = await this.prisma.story.findMany({
       where: { expiresAt: { gt: now } },
       orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
-      take: limit
+      take: this.limit(limitInput)
     });
     return this.resolveStories(stories, now);
   }
@@ -74,41 +73,24 @@ export class StoryService {
       throw new BadRequestException("A text Story cannot include mediaUrl");
     }
 
-    if ((serviceId || productId) && !user.professionalProfile) {
-      throw new BadRequestException("Only a Hustler with a professional profile can attach an offer to a Story");
-    }
-
     if (serviceId) {
       const service = await this.prisma.service.findFirst({
-        where: {
-          id: serviceId,
-          professionalProfileId: user.professionalProfile!.id,
-          status: ServiceStatus.PUBLISHED
-        },
+        where: { id: serviceId, status: ServiceStatus.PUBLISHED },
         select: { id: true }
       });
-      if (!service) {
-        throw new BadRequestException("Attached service must be your own published service");
-      }
+      if (!service) throw new BadRequestException("Attached service must be currently published");
     }
 
     if (productId) {
       const product = await this.prisma.product.findFirst({
-        where: {
-          id: productId,
-          professionalProfileId: user.professionalProfile!.id,
-          status: ProductStatus.PUBLISHED
-        },
+        where: { id: productId, status: ProductStatus.PUBLISHED },
         select: { id: true }
       });
-      if (!product) {
-        throw new BadRequestException("Attached product must be your own published product");
-      }
+      if (!product) throw new BadRequestException("Attached product must be currently published");
     }
 
     const publishedAt = new Date();
     const expiresAt = new Date(publishedAt.getTime() + 24 * 60 * 60 * 1000);
-
     const story = await this.prisma.story.create({
       data: {
         userId: user.id,
@@ -129,10 +111,11 @@ export class StoryService {
         source: "api",
         payload: {
           storyId: story.id,
-          userId: user.id,
+          contentAuthorUserId: user.id,
           type,
           serviceId,
           productId,
+          mentionedUsernames: this.mentionUsernames(text),
           expiresAt: expiresAt.toISOString()
         }
       }
@@ -155,11 +138,10 @@ export class StoryService {
         data: {
           name: "story.removed",
           source: "api",
-          payload: { storyId: story.id, userId: user.id }
+          payload: { storyId: story.id, contentAuthorUserId: user.id }
         }
       })
     ]);
-
     return { deleted: true, id: story.id };
   }
 
@@ -185,8 +167,9 @@ export class StoryService {
     const userIds = [...new Set(stories.map((story) => story.userId))];
     const serviceIds = [...new Set(stories.flatMap((story) => story.serviceId ? [story.serviceId] : []))];
     const productIds = [...new Set(stories.flatMap((story) => story.productId ? [story.productId] : []))];
+    const mentionNames = [...new Set(stories.flatMap((story) => this.mentionUsernames(story.text)))];
 
-    const [users, services, products] = await Promise.all([
+    const [users, services, products, mentionedUsers] = await Promise.all([
       this.prisma.user.findMany({
         where: { id: { in: userIds } },
         select: {
@@ -198,11 +181,7 @@ export class StoryService {
           emailVerified: true,
           phoneVerified: true,
           professionalProfile: {
-            select: {
-              status: true,
-              headline: true,
-              primarySkill: true
-            }
+            select: { status: true, headline: true, primarySkill: true }
           }
         }
       }),
@@ -215,7 +194,10 @@ export class StoryService {
           priceMinor: true,
           currency: true,
           pricingType: true,
-          deliveryMode: true
+          deliveryMode: true,
+          professionalProfile: {
+            select: { user: { select: { id: true, displayName: true, username: true, avatarUrl: true } } }
+          }
         }
       }),
       productIds.length === 0 ? Promise.resolve([]) : this.prisma.product.findMany({
@@ -228,19 +210,36 @@ export class StoryService {
           currency: true,
           type: true,
           trackInventory: true,
-          inventoryQuantity: true
+          inventoryQuantity: true,
+          professionalProfile: {
+            select: { user: { select: { id: true, displayName: true, username: true, avatarUrl: true } } }
+          }
         }
+      }),
+      mentionNames.length === 0 ? Promise.resolve([]) : this.prisma.user.findMany({
+        where: { username: { in: mentionNames, mode: "insensitive" } },
+        select: { id: true, displayName: true, username: true, avatarUrl: true, location: true }
       })
     ]);
 
     const usersById = new Map(users.map((user) => [user.id, user]));
     const servicesById = new Map(services.map((service) => [service.id, service]));
     const productsById = new Map(products.map((product) => [product.id, product]));
+    const mentionedByUsername = new Map(
+      mentionedUsers.flatMap((user) => user.username ? [[user.username.toLowerCase(), user] as const] : [])
+    );
 
     return stories.flatMap((story) => {
       const creator = usersById.get(story.userId);
       if (!creator) return [];
       const remainingMs = Math.max(0, story.expiresAt.getTime() - now.getTime());
+      const creatorProfile = creator.professionalProfile?.status === ProfessionalProfileStatus.PUBLISHED
+        ? {
+            headline: creator.professionalProfile.headline,
+            primarySkill: creator.professionalProfile.primarySkill,
+            published: true
+          }
+        : null;
       return [{
         ...story,
         active: remainingMs > 0,
@@ -252,14 +251,11 @@ export class StoryService {
           avatarUrl: creator.avatarUrl,
           location: creator.location,
           verified: creator.emailVerified || creator.phoneVerified,
-          professionalProfile: creator.professionalProfile
-            ? {
-                headline: creator.professionalProfile.headline,
-                primarySkill: creator.professionalProfile.primarySkill,
-                published: creator.professionalProfile.status === "PUBLISHED"
-              }
-            : null
+          professionalProfile: creatorProfile
         },
+        mentions: this.mentionUsernames(story.text)
+          .map((username) => mentionedByUsername.get(username))
+          .filter(Boolean),
         service: story.serviceId ? servicesById.get(story.serviceId) ?? null : null,
         product: story.productId ? productsById.get(story.productId) ?? null : null
       }];
@@ -269,14 +265,16 @@ export class StoryService {
   private async requireUser(identity: AuthIdentity) {
     const user = await this.prisma.user.findUnique({
       where: { authSubject: identity.subject },
-      select: {
-        id: true,
-        username: true,
-        professionalProfile: { select: { id: true } }
-      }
+      select: { id: true, username: true }
     });
     if (!user) throw new NotFoundException("Hustle account is not synchronized");
     return user;
+  }
+
+  private mentionUsernames(value: string | null) {
+    if (!value) return [];
+    const matches = value.matchAll(/(^|\s)@([a-zA-Z0-9._-]{2,40})\b/g);
+    return [...new Set(Array.from(matches, (match) => match[2].toLowerCase()))].slice(0, 12);
   }
 
   private requiredType(value: unknown) {
@@ -291,9 +289,7 @@ export class StoryService {
     if (typeof value !== "string") throw new BadRequestException(`${field} must be text`);
     const normalized = value.trim();
     if (!normalized) return null;
-    if (normalized.length > maxLength) {
-      throw new BadRequestException(`${field} must be at most ${maxLength} characters`);
-    }
+    if (normalized.length > maxLength) throw new BadRequestException(`${field} must be at most ${maxLength} characters`);
     return normalized;
   }
 
