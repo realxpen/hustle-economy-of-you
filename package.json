@@ -23,8 +23,9 @@
     "typecheck": "turbo run typecheck",
     "ci": "npm run typecheck && npm run build",
     "live:setup": "node scripts/setup-livekit-local.mjs",
-    "live:up": "npm run live:setup && node scripts/start-livekit-local.mjs",
-    "live:down": "node scripts/stop-livekit-local.mjs"
+    "live:up": "npm run live:setup && node scripts/livekit-local.mjs up",
+    "live:down": "node scripts/livekit-local.mjs down",
+    "live:status": "node scripts/livekit-local.mjs status"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
