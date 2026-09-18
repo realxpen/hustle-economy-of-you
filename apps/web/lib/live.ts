@@ -40,6 +40,15 @@ export interface LiveProductOffer {
   inventoryQuantity: number | null;
 }
 
+export interface NativeLiveCredential {
+  provider: "LIVEKIT";
+  serverUrl: string;
+  participantToken: string;
+  expiresAt: string;
+  ttlSeconds: number;
+  role: "HOST" | "VIEWER";
+}
+
 export interface LiveSessionRecord {
   id: string;
   hostUserId: string;
@@ -62,8 +71,10 @@ export interface LiveSessionRecord {
     comments: number;
   };
   media: {
+    provider: "LIVEKIT" | "EXTERNAL" | "NONE";
     playbackUrl: string | null;
     ready: boolean;
+    nativeTransportAvailable: boolean;
     nativeBroadcasting: boolean;
   };
 }
@@ -178,6 +189,32 @@ export async function pinLiveOffer(liveId: string, offerType: "SERVICE" | "PRODU
     body: JSON.stringify({ offerType, offerId: offerId ?? null })
   });
   return response.json() as Promise<LiveSessionRecord>;
+}
+
+export async function getLivePublishCredential(liveId: string): Promise<NativeLiveCredential> {
+  const response = await authenticatedFetch(`/live/${encodeURIComponent(liveId)}/media/publish-token`, {
+    method: "POST"
+  });
+  return response.json() as Promise<NativeLiveCredential>;
+}
+
+export async function getLiveViewerCredential(liveId: string): Promise<NativeLiveCredential> {
+  const response = await fetch(`${apiBase}/live/${encodeURIComponent(liveId)}/media/view-token`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ viewerKey: getLiveViewerKey() }),
+    cache: "no-store"
+  });
+  if (!response.ok) throw new Error(await parseError(response));
+  return response.json() as Promise<NativeLiveCredential>;
+}
+
+export async function recordLiveMediaPresence(liveId: string, connected: boolean) {
+  const response = await authenticatedFetch(`/live/${encodeURIComponent(liveId)}/media/presence`, {
+    method: "POST",
+    body: JSON.stringify({ connected })
+  });
+  return response.json() as Promise<{ recorded: true; connected: boolean; liveId: string }>;
 }
 
 export async function heartbeatLiveViewer(liveId: string) {
