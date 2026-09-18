@@ -23,8 +23,8 @@
     "typecheck": "turbo run typecheck",
     "ci": "npm run typecheck && npm run build",
     "live:setup": "node scripts/setup-livekit-local.mjs",
-    "live:up": "npm run live:setup && docker compose --profile live up -d livekit",
-    "live:down": "docker compose --profile live stop livekit"
+    "live:up": "npm run live:setup && node scripts/start-livekit-local.mjs",
+    "live:down": "node scripts/stop-livekit-local.mjs"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
