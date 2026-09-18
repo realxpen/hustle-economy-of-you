@@ -13,3 +13,4 @@ coverage
 *.tsbuildinfo
 apps/api/prisma/dev.db
 .hustle-tools
+.hustle
