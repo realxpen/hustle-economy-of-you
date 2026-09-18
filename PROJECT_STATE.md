@@ -243,7 +243,7 @@ Implemented:
 - native Live preferred over external playback when broadcasting is active
 - external playback retained as legitimate fallback
 - secret-safe `npm run live:setup`
-- opt-in local LiveKit v1.13.7 container through `npm run live:up`
+- `npm run live:up` uses Docker when available and otherwise downloads/runs the pinned official LiveKit Server v1.13.7 Linux binary from a gitignored local tools cache
 - no reusable provider secret or stream key committed or exposed through public APIs
 
 Canonical Phase 17 knowledge:
@@ -253,7 +253,7 @@ Canonical Phase 17 knowledge:
 Runtime still required:
 - deploy the 17B migration
 - generate local LiveKit credentials
-- start local LiveKit transport
+- start local LiveKit transport without requiring Docker
 - connect xpen camera/microphone from a DRAFT control room
 - verify `nativeBroadcasting` becomes true only while publisher heartbeat is fresh
 - start Live and confirm signed-out browser receives real video/audio
