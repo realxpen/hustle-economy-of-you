@@ -89,11 +89,23 @@ export default function LiveControlRoomPage() {
   }
 
   async function start() {
-    if (!liveId) return;
-    setBusy("start"); setError(null);
-    try { setSession(await startLiveSession(liveId)); setNotice("You are live"); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not start Live"); }
-    finally { setBusy(null); }
+    if (!liveId || !session) return;
+    setError(null);
+
+    if (session.media.nativeTransportAvailable && !mediaConnected && !session.playbackUrl) {
+      setError("Connect camera + microphone first, or add a legitimate external playback URL before going Live.");
+      return;
+    }
+
+    setBusy("start");
+    try {
+      setSession(await startLiveSession(liveId));
+      setNotice("You are live");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not start Live");
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function end() {
@@ -147,7 +159,11 @@ export default function LiveControlRoomPage() {
 
       {session && <>
         <section className={styles.sectionTitle}>
-          <div><div className={styles.eyebrow}>SESSION STATUS</div><h2>{session.status === "LIVE" ? <span className={styles.liveDot}>LIVE NOW</span> : session.status}</h2></div>
+          <div>
+            <div className={styles.eyebrow}>SESSION STATUS</div>
+            <h2>{session.status === "LIVE" ? <span className={styles.liveDot}>LIVE NOW</span> : session.status}</h2>
+            <div className={styles.hint}>Session ID: <code>{session.id}</code></div>
+          </div>
           <div className={styles.stats}><span>{session.interactions.viewers} watching</span><span>{session.interactions.comments} comments</span></div>
         </section>
 
@@ -182,13 +198,16 @@ export default function LiveControlRoomPage() {
             </div>
 
             <div className={styles.actions} style={{marginTop:22}}>
-              {session.status === "DRAFT" && <button
-                className={`${styles.button} ${styles.primary}`}
-                disabled={busy !== null || (session.media.nativeTransportAvailable && !mediaConnected && !session.playbackUrl)}
-                type="button"
-                onClick={() => void start()}
-                title={session.media.nativeTransportAvailable && !mediaConnected && !session.playbackUrl ? "Connect camera + microphone first, or provide a real fallback playback URL." : undefined}
-              >Go Live →</button>}
+              {session.status === "DRAFT" && <>
+                <button
+                  className={`${styles.button} ${styles.primary}`}
+                  disabled={busy !== null}
+                  type="button"
+                  onClick={() => void start()}
+                >{busy === "start" ? "Starting…" : "Go Live →"}</button>
+                {session.media.nativeTransportAvailable && !mediaConnected && !session.playbackUrl &&
+                  <span className={styles.hint}>Connect camera + microphone first, or add an external playback URL. Draft sessions are not public until Go Live succeeds.</span>}
+              </>}
               {session.status === "LIVE" && <button className={`${styles.button} ${styles.danger}`} disabled={busy !== null} type="button" onClick={() => void end()}>End Live</button>}
             </div>
           </section>
