@@ -1,6 +1,6 @@
 # Hustle Project State
 
-Updated: 2026-09-17
+Updated: 2026-09-18
 
 ## Current AED capability
 Build
@@ -13,7 +13,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 17A — Live Commerce Foundation — IMPLEMENTED + CI GREEN; runtime migration/validation pending.**
+Current active slice: **Phase 17B — Native Live Media Transport.**
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -186,9 +186,10 @@ Canonical Phase 16 knowledge:
 ACTIVE.
 
 ### 17A — Live Commerce Foundation
-IMPLEMENTED + CI GREEN — runtime pending.
+COMPLETE — implementation, CI, migration recovery and end-to-end runtime validated 2026-09-18.
 
 Merge: `ae8b843a67c56f502a8446700aa8fb3b41cbf745`
+Auth wiring hotfix: `c8150ca56bb2024da3ae33b3561f5f8a49a6b918`
 Migration: `20260917143000_phase17a_live_commerce_foundation`
 
 Implemented:
@@ -210,8 +211,29 @@ Implemented:
 Canonical Phase 17 knowledge:
 - `Knowledge/Decisions/ADR-0030-live-commerce-foundation.md`
 
-Next Live slice after the 17A runtime gate:
-- **17B — Native Live Media Transport**: browser camera/microphone capture, provider/ingest integration, server-issued publishing credentials, real playback delivery, connection/reconnect states and runtime proof. No provider secret or stream key may be committed or exposed publicly.
+Runtime validated:
+- Client-only hosting rejection
+- Hustler Live creation and control-room access
+- DRAFT → LIVE → ENDED lifecycle
+- host-owned Service pinning and canonical View & book routing
+- public Live discovery/viewer flow and viewer presence
+- authenticated Live comments and host responses
+- external playback path when supplied
+- ended sessions disappear from the active directory while remaining directly readable
+- API startup auth dependency wiring corrected by importing AuthModule into LiveModule
+- xpen verified public reputation remained unchanged
+
+### 17B — Native Live Media Transport
+ACTIVE.
+
+Target:
+- browser camera/microphone capture
+- media-provider/ingest integration
+- server-issued short-lived publishing credentials
+- real playback delivery
+- host connection/reconnect/device-permission states
+- viewer playback states and recovery
+- runtime proof with no provider secret or reusable stream key exposed to the client or committed to the repository.
 
 ## Supabase
 Dedicated project:
@@ -244,4 +266,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook/admin secrets.
 
 ## Next gate
-**Phase 17A runtime: run normal Prisma deploy so the repaired Phase 16B hardening and `20260917143000_phase17a_live_commerce_foundation` apply cleanly; then verify Client-only hosting rejection, Hustler session creation/start/end, host-owned pin authority, public discovery/viewer presence, authenticated block-aware comments, canonical Service/Product actions, conversion events, Live-table RLS, ended-session behavior and unchanged xpen 10 / 2 / 5.0 public reputation invariant.**
+**Phase 17B — Native Live Media Transport: integrate real browser camera/microphone publishing through a proper media provider/ingest layer, issue publish authority only from the server, deliver real viewer playback, handle permission/connection/reconnect states, and runtime-prove that no long-lived provider secret or stream key is exposed client-side.**
