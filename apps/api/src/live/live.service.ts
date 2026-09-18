@@ -18,6 +18,7 @@ import {
 import { PrismaService } from "../database/prisma.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { BlockPolicyService } from "../trust-safety/block-policy.service";
+import { LIVE_MEDIA_PRESENCE_WINDOW_MS, LiveMediaService } from "./live-media.service";
 
 export interface CreateLiveSessionInput {
   title?: unknown;
@@ -72,7 +73,8 @@ type LiveSessionRow = {
 export class LiveService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly blockPolicy: BlockPolicyService
+    private readonly blockPolicy: BlockPolicyService,
+    private readonly media: LiveMediaService
   ) {}
 
   async listActive(limitInput?: unknown) {
@@ -199,6 +201,7 @@ export class LiveService {
       data: { status: LiveSessionStatus.ENDED, endedAt }
     });
 
+    await this.media.clearPresence(session.id);
     await this.event("live.ended", { liveId: session.id, hostUserId: host.id });
     const [resolved] = await this.resolveSessions([updated]);
     return resolved;
@@ -437,8 +440,9 @@ export class LiveService {
     const productIds = [...new Set(sessions.flatMap((session) => session.pinnedProductId ? [session.pinnedProductId] : []))];
     const sessionIds = sessions.map((session) => session.id);
     const cutoff = new Date(Date.now() - LIVE_VIEWER_WINDOW_MS);
+    const mediaCutoff = new Date(Date.now() - LIVE_MEDIA_PRESENCE_WINDOW_MS);
 
-    const [hosts, services, products, viewers, comments] = await Promise.all([
+    const [hosts, services, products, viewers, comments, mediaPresence] = await Promise.all([
       this.prisma.user.findMany({
         where: { id: { in: hostIds } },
         select: {
@@ -471,6 +475,13 @@ export class LiveService {
         by: ["sessionId"],
         where: { sessionId: { in: sessionIds } },
         _count: { _all: true }
+      }),
+      this.prisma.liveMediaPresence.findMany({
+        where: {
+          sessionId: { in: sessionIds },
+          lastSeenAt: { gte: mediaCutoff }
+        },
+        select: { sessionId: true }
       })
     ]);
 
@@ -479,6 +490,7 @@ export class LiveService {
     const productsById = new Map(products.map((product) => [product.id, product]));
     const viewersById = new Map(viewers.map((item) => [item.sessionId, item._count._all]));
     const commentsById = new Map(comments.map((item) => [item.sessionId, item._count._all]));
+    const nativeBroadcastingById = new Set(mediaPresence.map((item) => item.sessionId));
 
     return sessions.flatMap((session) => {
       const host = hostsById.get(session.hostUserId);
@@ -507,11 +519,10 @@ export class LiveService {
           viewers: viewersById.get(session.id) ?? 0,
           comments: commentsById.get(session.id) ?? 0
         },
-        media: {
-          playbackUrl: session.playbackUrl,
-          ready: Boolean(session.playbackUrl),
-          nativeBroadcasting: false
-        }
+        media: this.media.descriptor(
+          session.playbackUrl,
+          nativeBroadcastingById.has(session.id)
+        )
       }];
     });
   }

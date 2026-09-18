@@ -14,6 +14,7 @@ import {
   type LiveCommentRecord,
   type LiveSessionRecord
 } from "../../../lib/live";
+import { NativeLiveViewer } from "../../../components/live/native-live-viewer";
 import styles from "../live.module.css";
 
 export default function LiveViewerPage() {
@@ -114,10 +115,10 @@ export default function LiveViewerPage() {
           <section>
             <div className={styles.stage}>
               {session.status === "LIVE" && <div className={styles.stageBadge}>LIVE</div>}
-              {embedUrl ? <iframe src={embedUrl} title={session.title} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen /> : session.playbackUrl ? <video src={session.playbackUrl} controls autoPlay playsInline /> : <div className={styles.stagePlaceholder}>
-                <div className={styles.eyebrow}>{session.status === "ENDED" ? "SESSION ENDED" : "LIVE ROOM ACTIVE"}</div>
-                <h2>{session.status === "ENDED" ? "This Live has ended." : "The commerce room is live."}</h2>
-                <p>{session.status === "ENDED" ? "The transaction links and session context remain available, but there is no replay media in the foundation slice." : "This host has not attached a playback source. Hustle is preserving the real session, comments and commerce state without pretending a placeholder is video."}</p>
+              {session.status === "LIVE" && session.media.nativeBroadcasting ? <NativeLiveViewer liveId={liveId!} /> : embedUrl ? <iframe src={embedUrl} title={session.title} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen /> : session.playbackUrl ? <video src={session.playbackUrl} controls autoPlay playsInline /> : <div className={styles.stagePlaceholder}>
+                <div className={styles.eyebrow}>{session.status === "ENDED" ? "SESSION ENDED" : session.media.nativeTransportAvailable ? "NATIVE LIVE · WAITING FOR HOST" : "LIVE ROOM ACTIVE"}</div>
+                <h2>{session.status === "ENDED" ? "This Live has ended." : session.media.nativeTransportAvailable ? "The host media is reconnecting." : "The commerce room is live."}</h2>
+                <p>{session.status === "ENDED" ? "The transaction links and session context remain available. Native Live replay/recording is not part of this slice." : session.media.nativeTransportAvailable ? "Hustle is waiting for a fresh publisher heartbeat. The stream will appear automatically when the host reconnects." : "Native media is not configured for this environment and the host has not attached an external playback source."}</p>
               </div>}
             </div>
 

@@ -13,7 +13,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 17B — Native Live Media Transport.**
+Current active slice: **Phase 17B — Native Live Media Transport — IMPLEMENTED + CI GREEN; runtime migration/media validation pending.**
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -224,16 +224,44 @@ Runtime validated:
 - xpen verified public reputation remained unchanged
 
 ### 17B — Native Live Media Transport
-ACTIVE.
+IMPLEMENTED + CI GREEN — runtime migration/media validation pending.
 
-Target:
-- browser camera/microphone capture
-- media-provider/ingest integration
-- server-issued short-lived publishing credentials
-- real playback delivery
-- host connection/reconnect/device-permission states
-- viewer playback states and recovery
-- runtime proof with no provider secret or reusable stream key exposed to the client or committed to the repository.
+Migration:
+- `20260918110000_phase17b_native_live_media`
+
+Implemented:
+- LiveKit-compatible WebRTC transport boundary
+- server-only `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET`
+- 10-minute server-signed host publishing credentials
+- host publish grants limited to camera + microphone
+- signed-out subscribe-only viewer credentials using hashed opaque viewer identity
+- browser camera/microphone publishing controls
+- camera/microphone mute/unmute and disconnect controls
+- host connection, reconnect and permission/error states
+- viewer track subscription, playback, audio unlock and full-rejoin recovery
+- API-owned `LiveMediaPresence` heartbeat projection so `nativeBroadcasting` reflects a recent real publisher
+- native Live preferred over external playback when broadcasting is active
+- external playback retained as legitimate fallback
+- secret-safe `npm run live:setup`
+- opt-in local LiveKit v1.13.7 container through `npm run live:up`
+- no reusable provider secret or stream key committed or exposed through public APIs
+
+Canonical Phase 17 knowledge:
+- `Knowledge/Decisions/ADR-0030-live-commerce-foundation.md`
+- `Knowledge/Decisions/ADR-0031-native-live-media-transport.md`
+
+Runtime still required:
+- deploy the 17B migration
+- generate local LiveKit credentials
+- start local LiveKit transport
+- connect xpen camera/microphone from a DRAFT control room
+- verify `nativeBroadcasting` becomes true only while publisher heartbeat is fresh
+- start Live and confirm signed-out browser receives real video/audio
+- verify camera/mic toggles, host reconnect, viewer reconnect and sound unlock
+- verify publish credential is host-only and viewer token cannot publish
+- end Live and verify media presence clears
+- verify provider secret never appears in browser/public responses
+- re-check unchanged xpen verified reputation invariant.
 
 ## Supabase
 Dedicated project:
@@ -266,4 +294,4 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook/admin secrets.
 
 ## Next gate
-**Phase 17B — Native Live Media Transport: integrate real browser camera/microphone publishing through a proper media provider/ingest layer, issue publish authority only from the server, deliver real viewer playback, handle permission/connection/reconnect states, and runtime-prove that no long-lived provider secret or stream key is exposed client-side.**
+**Phase 17B runtime: deploy `20260918110000_phase17b_native_live_media`, run secret-safe local LiveKit setup, connect xpen camera/microphone, prove a real native publisher drives `nativeBroadcasting`, verify signed-out subscribe-only playback and reconnect behavior, end the session cleanly, and confirm no provider secret/reusable stream key reaches the browser or changes verified reputation.**

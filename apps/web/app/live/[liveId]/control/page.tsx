@@ -17,6 +17,7 @@ import {
 } from "../../../../lib/live";
 import { getMyProducts } from "../../../../lib/product";
 import { getMyServices } from "../../../../lib/service";
+import { NativeLiveBroadcaster } from "../../../../components/live/native-live-broadcaster";
 import styles from "../../live.module.css";
 
 export default function LiveControlRoomPage() {
@@ -33,6 +34,7 @@ export default function LiveControlRoomPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [mediaConnected, setMediaConnected] = useState(false);
 
   useEffect(() => {
     if (!liveId) return;
@@ -149,15 +151,22 @@ export default function LiveControlRoomPage() {
           <div className={styles.stats}><span>{session.interactions.viewers} watching</span><span>{session.interactions.comments} comments</span></div>
         </section>
 
+        {liveId && <NativeLiveBroadcaster
+          liveId={liveId}
+          status={session.status}
+          available={session.media.nativeTransportAvailable}
+          onConnectionChange={setMediaConnected}
+        />}
+
         <div className={styles.controlGrid}>
           <section className={styles.panel}>
             <form className={styles.form} onSubmit={save}>
               <div className={styles.field}><label>Title</label><input maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} disabled={session.status === "ENDED"} /></div>
               <div className={styles.field}><label>Category</label><input maxLength={80} value={category} onChange={(event) => setCategory(event.target.value)} disabled={session.status === "ENDED"} /></div>
               <div className={styles.field}>
-                <label>Playback URL · optional in 17A</label>
+                <label>External playback URL · optional fallback</label>
                 <input type="url" value={playbackUrl} onChange={(event) => setPlaybackUrl(event.target.value)} disabled={session.status === "ENDED"} placeholder="https://youtube.com/live/..." />
-                <span className={styles.hint}>This must be a real external playback source. Native Hustle camera/microphone publishing is not faked here; it arrives in the media-transport slice.</span>
+                <span className={styles.hint}>Native camera/microphone is now the primary transport when configured. Keep this only as a legitimate external fallback source.</span>
               </div>
               {session.status !== "ENDED" && <button className={styles.button} disabled={busy === "save"} type="submit">{busy === "save" ? "Saving…" : "Save details"}</button>}
             </form>
@@ -173,7 +182,13 @@ export default function LiveControlRoomPage() {
             </div>
 
             <div className={styles.actions} style={{marginTop:22}}>
-              {session.status === "DRAFT" && <button className={`${styles.button} ${styles.primary}`} disabled={busy !== null} type="button" onClick={() => void start()}>Go Live →</button>}
+              {session.status === "DRAFT" && <button
+                className={`${styles.button} ${styles.primary}`}
+                disabled={busy !== null || (session.media.nativeTransportAvailable && !mediaConnected && !session.playbackUrl)}
+                type="button"
+                onClick={() => void start()}
+                title={session.media.nativeTransportAvailable && !mediaConnected && !session.playbackUrl ? "Connect camera + microphone first, or provide a real fallback playback URL." : undefined}
+              >Go Live →</button>}
               {session.status === "LIVE" && <button className={`${styles.button} ${styles.danger}`} disabled={busy !== null} type="button" onClick={() => void end()}>End Live</button>}
             </div>
           </section>

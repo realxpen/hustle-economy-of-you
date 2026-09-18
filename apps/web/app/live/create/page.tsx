@@ -42,7 +42,7 @@ export default function CreateLivePage() {
           <div className={styles.eyebrow}>HOST A LIVE</div>
           <h1 style={{fontSize:"clamp(42px,6vw,72px)",lineHeight:.95,letterSpacing:"-.055em",margin:"10px 0 18px"}}>Turn demonstration into <em style={{fontStyle:"normal",color:"#b6ff5f"}}>opportunity.</em></h1>
           <p className={styles.muted}>Only an approved Hustler with a published professional profile can host commerce Live. Viewers can still be any Hustle User—or signed-out visitors when watching.</p>
-          <div className={styles.transportNote} style={{marginTop:20}}><strong>17A media boundary:</strong> Hustle is not pretending a placeholder is a broadcast. You may optionally provide a real public playback URL now. Native camera/microphone broadcast transport is the next Live slice.</div>
+          <div className={styles.transportNote} style={{marginTop:20}}><strong>17B native media:</strong> Create the room first, then connect your camera and microphone from the control room. Publishing credentials are issued by the Hustle API and provider secrets never enter the browser.</div>
         </div>
 
         <section className={styles.panel}>
@@ -59,7 +59,7 @@ export default function CreateLivePage() {
             <div className={styles.field}>
               <label htmlFor="playback">External playback URL · optional</label>
               <input id="playback" type="url" value={playbackUrl} onChange={(event) => setPlaybackUrl(event.target.value)} placeholder="https://youtube.com/live/..." />
-              <span className={styles.hint}>Useful for a legitimate existing YouTube Live or browser-playable stream while native Hustle broadcast transport is still being integrated.</span>
+              <span className={styles.hint}>Optional fallback only. Native Hustle camera/microphone publishing is configured from the control room when LiveKit transport is available.</span>
             </div>
             <button className={`${styles.button} ${styles.primary}`} disabled={busy} type="submit">{busy ? "Creating…" : "Create control room →"}</button>
           </form>

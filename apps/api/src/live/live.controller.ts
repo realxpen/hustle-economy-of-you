@@ -13,6 +13,11 @@ import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import {
+  LiveMediaService,
+  type LiveMediaPresenceInput,
+  type LiveMediaViewerInput
+} from "./live-media.service";
+import {
   LiveService,
   type CreateLiveSessionInput,
   type LiveCommentInput,
@@ -24,7 +29,10 @@ import {
 
 @Controller("live")
 export class LiveController {
-  constructor(private readonly live: LiveService) {}
+  constructor(
+    private readonly live: LiveService,
+    private readonly media: LiveMediaService
+  ) {}
 
   @Get()
   listActive(@Query("limit") limit?: string) {
@@ -91,6 +99,33 @@ export class LiveController {
     @Body() body: LivePinInput
   ) {
     return this.live.pin(identity, liveId, body);
+  }
+
+  @Post(":liveId/media/publish-token")
+  @UseGuards(AuthGuard)
+  issuePublishCredential(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("liveId") liveId: string
+  ) {
+    return this.media.issuePublishCredential(identity, liveId);
+  }
+
+  @Post(":liveId/media/view-token")
+  issueViewerCredential(
+    @Param("liveId") liveId: string,
+    @Body() body: LiveMediaViewerInput
+  ) {
+    return this.media.issueViewerCredential(liveId, body);
+  }
+
+  @Post(":liveId/media/presence")
+  @UseGuards(AuthGuard)
+  recordMediaPresence(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("liveId") liveId: string,
+    @Body() body: LiveMediaPresenceInput
+  ) {
+    return this.media.recordHostPresence(identity, liveId, body);
   }
 
   @Post(":liveId/view")
