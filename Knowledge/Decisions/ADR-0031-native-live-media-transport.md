@@ -67,7 +67,7 @@ The repository contains no reusable provider secret.
 
 `npm run live:setup` generates/preserves local LiveKit credentials inside gitignored `.env` and `apps/api/.env`.
 
-`npm run live:up` starts the opt-in local LiveKit container using those local credentials.
+`npm run live:up` starts local LiveKit using Docker when available. On Linux without Docker, Hustle downloads the pinned official LiveKit Server v1.13.7 release binary into the gitignored `.hustle-tools/` cache and starts it with the same local credentials.
 
 ### Out of scope
 Phase 17B does not add:
