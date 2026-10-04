@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 import type {
@@ -15,8 +14,6 @@ const PROVIDER = "HUSTLE_SANDBOX";
 
 @Injectable()
 export class SandboxFinancialOperationGateway implements FinancialOperationPort {
-  constructor(private readonly config: ConfigService) {}
-
   async createPayout(input: SandboxPayoutRequest): Promise<SandboxOperationReference> {
     return {
       provider: PROVIDER,
@@ -36,7 +33,7 @@ export class SandboxFinancialOperationGateway implements FinancialOperationPort 
     signature: string | undefined
   ): Promise<VerifiedFinancialOperationWebhook> {
     const parsed = this.parsePayload(payload);
-    const secret = this.config.get<string>("HUSTLE_SANDBOX_WEBHOOK_SECRET")?.trim();
+    const secret = process.env.HUSTLE_SANDBOX_WEBHOOK_SECRET?.trim();
     if (!secret) throw new UnauthorizedException("Sandbox webhook verification is not configured");
     if (!signature?.trim()) throw new UnauthorizedException("Missing sandbox webhook signature");
 
