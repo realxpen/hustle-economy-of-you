@@ -1,12 +1,14 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
-import { AppModule } from "../src/app.module";
-import { AllExceptionsFilter } from "../src/common/filters/all-exceptions.filter";
 
 let serverPromise: Promise<any> | null = null;
 
 async function createServer() {
   try {
+    const [{ AppModule }, { AllExceptionsFilter }] = await Promise.all([
+      import("../src/app.module"),
+      import("../src/common/filters/all-exceptions.filter")
+    ]);
     const app = await NestFactory.create(AppModule, { bufferLogs: false });
 
     app.setGlobalPrefix("api/v1");
