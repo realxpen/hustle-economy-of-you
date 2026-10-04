@@ -5,7 +5,6 @@ import {
   NotFoundException,
   ServiceUnavailableException
 } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { HustlerApplicationStatus, VerificationStatus } from "@prisma/client";
 import { createClient } from "@supabase/supabase-js";
 
@@ -27,10 +26,7 @@ const reviewerStatuses = new Set<HustlerApplicationStatus>([
 
 @Injectable()
 export class HustlerReviewService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly config: ConfigService
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async list(identity: AuthIdentity, status?: string) {
     await this.requireReviewerUser(identity);
@@ -198,8 +194,8 @@ export class HustlerReviewService {
       throw new NotFoundException("Hustler proof item not found");
     }
 
-    const supabaseUrl = this.config.get<string>("SUPABASE_URL");
-    const supabaseSecretKey = this.config.get<string>("SUPABASE_SECRET_KEY");
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
     if (!supabaseUrl || !supabaseSecretKey) {
       throw new ServiceUnavailableException(
