@@ -4,7 +4,6 @@ import {
   ForbiddenException,
   Injectable
 } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import type { Request } from "express";
 
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
@@ -13,8 +12,6 @@ type AuthenticatedRequest = Request & { authIdentity?: AuthIdentity };
 
 @Injectable()
 export class HustleReviewerGuard implements CanActivate {
-  constructor(private readonly config: ConfigService) {}
-
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const identity = request.authIdentity;
@@ -23,7 +20,7 @@ export class HustleReviewerGuard implements CanActivate {
       throw new ForbiddenException("A verified reviewer email is required");
     }
 
-    const reviewers = (this.config.get<string>("HUSTLE_REVIEWER_EMAILS") ?? "")
+    const reviewers = (process.env.HUSTLE_REVIEWER_EMAILS ?? "")
       .split(",")
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean);
