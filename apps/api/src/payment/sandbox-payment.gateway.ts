@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 import type {
@@ -14,8 +13,6 @@ const PROVIDER = "HUSTLE_SANDBOX";
 
 @Injectable()
 export class SandboxPaymentGateway implements PaymentGatewayPort {
-  constructor(private readonly config: ConfigService) {}
-
   async initializePayment(input: InitializeGatewayPaymentInput): Promise<InitializeGatewayPaymentResult> {
     return {
       provider: PROVIDER,
@@ -31,7 +28,7 @@ export class SandboxPaymentGateway implements PaymentGatewayPort {
 
   async verifyWebhook(payload: unknown, signature: string | undefined): Promise<VerifiedGatewayWebhook> {
     const parsed = this.parsePayload(payload);
-    const secret = this.config.get<string>("HUSTLE_SANDBOX_WEBHOOK_SECRET")?.trim();
+    const secret = process.env.HUSTLE_SANDBOX_WEBHOOK_SECRET?.trim();
     if (!secret) {
       throw new UnauthorizedException("Sandbox webhook verification is not configured");
     }
