@@ -4,6 +4,14 @@ import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 
 async function bootstrap() {
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      process.loadEnvFile?.();
+    } catch {
+      // Local .env loading is best-effort; deployed environments inject variables directly.
+    }
+  }
+
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.setGlobalPrefix("api/v1");
 
