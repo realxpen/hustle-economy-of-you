@@ -9,7 +9,7 @@ type Mode = "signin" | "signup" | "phone" | "forgot";
 function authErrorMessage(reason: unknown) {
   if (reason instanceof Error) {
     if (/load failed|failed to fetch|network request failed|networkerror/i.test(reason.message)) {
-      return "Could not reach Supabase Auth. Check NEXT_PUBLIC_SUPABASE_URL and your network connection, then try again.";
+      return "Could not reach Hustle authentication. Check your connection and try again.";
     }
     return reason.message;
   }
@@ -20,6 +20,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -36,7 +37,7 @@ export default function AuthPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError(null); setMessage(null);
-    if (!configured) { setError("Connect a dedicated Hustle Supabase project to activate authentication."); return; }
+    if (!configured) { setError("Connect the Hustle Supabase project to activate authentication."); return; }
     setLoading(true);
     try {
       const supabase = getSupabaseBrowserClient();
@@ -102,7 +103,40 @@ export default function AuthPage() {
             ) : (
               <>
                 <label><span>Email address</span><input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" autoComplete="email" required /></label>
-                {mode !== "forgot" && <label><span>Password</span><input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="At least 8 characters" minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} required /></label>}
+                {mode !== "forgot" && <label>
+                  <span>Password</span>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      type={showPassword ? "text" : "password"}
+                      placeholder="At least 8 characters"
+                      minLength={8}
+                      autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                      style={{ paddingRight: 78 }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((visible) => !visible)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        border: 0,
+                        background: "transparent",
+                        color: "#4f4d46",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        padding: "8px 6px"
+                      }}
+                    >{showPassword ? "Hide" : "Show"}</button>
+                  </div>
+                </label>}
               </>
             )}
 
