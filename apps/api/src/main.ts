@@ -16,7 +16,8 @@ async function bootstrap() {
   app.setGlobalPrefix("api/v1");
 
   const configuredOrigins = [process.env.WEB_ORIGIN, process.env.ADMIN_ORIGIN]
-    .map((origin) => origin?.trim())
+    .flatMap((value) => value?.split(",") ?? [])
+    .map((origin) => origin.trim())
     .filter((origin): origin is string => Boolean(origin));
 
   const developmentOrigins = process.env.NODE_ENV === "production"
