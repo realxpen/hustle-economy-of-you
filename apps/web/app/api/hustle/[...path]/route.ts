@@ -2,7 +2,8 @@ import type { NextRequest } from "next/server";
 
 // Same-origin Hustle API transport: browser -> Hustle web -> Hustle API.
 // This avoids mobile-browser CORS failures while keeping API authentication
-// server-authoritative through the caller's bearer token.
+// server-authoritative through the caller's bearer token. The upstream URL is
+// server-only so browser clients never need to know or call the API origin.
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
