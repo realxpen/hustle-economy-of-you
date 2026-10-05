@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 
+// Same-origin Auth transport: browser -> Hustle web -> Supabase Auth.
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
