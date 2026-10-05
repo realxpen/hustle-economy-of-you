@@ -29,11 +29,49 @@ function readSupabaseConfig() {
     throw new Error("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY does not look like a valid Supabase publishable key");
   }
 
-  const browserUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/_supabase`
-    : parsed.origin;
+  return { url: parsed.origin, key };
+}
 
-  return { url: browserUrl, key };
+function createAuthAwareFetch(supabaseOrigin: string): typeof fetch {
+  return async (input: RequestInfo | URL, init?: RequestInit) => {
+    const requestUrl = input instanceof Request
+      ? new URL(input.url)
+      : new URL(typeof input === "string" ? input : input.toString());
+
+    if (
+      typeof window !== "undefined" &&
+      requestUrl.origin === supabaseOrigin &&
+      requestUrl.pathname.startsWith("/auth/v1/")
+    ) {
+      const suffix = requestUrl.pathname.slice("/auth/v1/".length);
+      const proxyUrl = new URL(`/api/supabase-auth/${suffix}`, window.location.origin);
+      proxyUrl.search = requestUrl.search;
+
+      const headers = new Headers(input instanceof Request ? input.headers : undefined);
+      new Headers(init?.headers).forEach((value, key) => headers.set(key, value));
+
+      return window.fetch(proxyUrl.toString(), {
+        ...(input instanceof Request
+          ? {
+              method: input.method,
+              body: input.method === "GET" || input.method === "HEAD" ? undefined : await input.clone().arrayBuffer(),
+              credentials: input.credentials,
+              cache: input.cache,
+              redirect: input.redirect,
+              referrer: input.referrer,
+              referrerPolicy: input.referrerPolicy,
+              integrity: input.integrity,
+              keepalive: input.keepalive,
+              signal: input.signal
+            }
+          : {}),
+        ...init,
+        headers
+      });
+    }
+
+    return window.fetch(input, init);
+  };
 }
 
 export function isSupabaseConfigured() {
@@ -47,6 +85,10 @@ export function isSupabaseConfigured() {
 
 export function getSupabaseBrowserClient(): SupabaseClient {
   const { url, key } = readSupabaseConfig();
-  client ??= createBrowserClient(url, key);
+  client ??= createBrowserClient(url, key, {
+    global: {
+      fetch: createAuthAwareFetch(url)
+    }
+  });
   return client;
 }
