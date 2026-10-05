@@ -29,7 +29,11 @@ function readSupabaseConfig() {
     throw new Error("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY does not look like a valid Supabase publishable key");
   }
 
-  return { url: parsed.origin, key };
+  const browserUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/_supabase`
+    : parsed.origin;
+
+  return { url: browserUrl, key };
 }
 
 export function isSupabaseConfigured() {
