@@ -200,7 +200,11 @@ export async function getConversationTyping(conversationId: string) {
   const response = await authenticatedFetch(
     `/messaging/conversations/${encodeURIComponent(conversationId)}/typing`
   );
-  return response.json() as Promise<{ conversationId: string; typingUserIds: string[] }>;
+  return response.json() as Promise<{
+    conversationId: string;
+    typingUserIds: string[];
+    otherLastReadAt: string | null;
+  }>;
 }
 
 export async function uploadMessageAttachment(
