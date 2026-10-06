@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { captureFeedEvent, getFeedPage, type FeedItem, type FeedPage, type FeedTab } from "../../lib/feed";
 import {
   followUser,
@@ -165,25 +167,25 @@ function FeedCard({
   }, [item.post.id, position, sessionId, tab]);
 
   async function toggleLike() {
+    if (working === "like") return;
+    const wasLiked = item.viewer.liked;
+    const optimistic: FeedItem = {
+      ...item,
+      viewer: { ...item.viewer, liked: !wasLiked },
+      engagement: {
+        ...item.engagement,
+        likes: Math.max(0, item.engagement.likes + (wasLiked ? -1 : 1))
+      }
+    };
+
     setWorking("like");
     setNotice(null);
+    onChange(optimistic);
     try {
-      if (item.viewer.liked) {
-        await unlikePost(item.post.id);
-        onChange({
-          ...item,
-          viewer: { ...item.viewer, liked: false },
-          engagement: { ...item.engagement, likes: Math.max(0, item.engagement.likes - 1) }
-        });
-      } else {
-        await likePost(item.post.id);
-        onChange({
-          ...item,
-          viewer: { ...item.viewer, liked: true },
-          engagement: { ...item.engagement, likes: item.engagement.likes + 1 }
-        });
-      }
+      if (wasLiked) await unlikePost(item.post.id);
+      else await likePost(item.post.id);
     } catch (reason) {
+      onChange(item);
       setNotice(reason instanceof Error ? reason.message : "Could not update like");
     } finally {
       setWorking(null);
@@ -191,25 +193,25 @@ function FeedCard({
   }
 
   async function toggleSave() {
+    if (working === "save") return;
+    const wasSaved = item.viewer.saved;
+    const optimistic: FeedItem = {
+      ...item,
+      viewer: { ...item.viewer, saved: !wasSaved },
+      engagement: {
+        ...item.engagement,
+        saves: Math.max(0, item.engagement.saves + (wasSaved ? -1 : 1))
+      }
+    };
+
     setWorking("save");
     setNotice(null);
+    onChange(optimistic);
     try {
-      if (item.viewer.saved) {
-        await unsavePublicPost(item.post.id);
-        onChange({
-          ...item,
-          viewer: { ...item.viewer, saved: false },
-          engagement: { ...item.engagement, saves: Math.max(0, item.engagement.saves - 1) }
-        });
-      } else {
-        await savePublicPost(item.post.id);
-        onChange({
-          ...item,
-          viewer: { ...item.viewer, saved: true },
-          engagement: { ...item.engagement, saves: item.engagement.saves + 1 }
-        });
-      }
+      if (wasSaved) await unsavePublicPost(item.post.id);
+      else await savePublicPost(item.post.id);
     } catch (reason) {
+      onChange(item);
       setNotice(reason instanceof Error ? reason.message : "Could not update save");
     } finally {
       setWorking(null);
@@ -217,17 +219,16 @@ function FeedCard({
   }
 
   async function toggleFollow() {
+    if (working === "follow") return;
+    const wasFollowing = item.viewer.following;
     setWorking("follow");
     setNotice(null);
+    onCreatorFollowChange(item.creator.id, !wasFollowing);
     try {
-      if (item.viewer.following) {
-        await unfollowUser(item.creator.id);
-        onCreatorFollowChange(item.creator.id, false);
-      } else {
-        await followUser(item.creator.id);
-        onCreatorFollowChange(item.creator.id, true);
-      }
+      if (wasFollowing) await unfollowUser(item.creator.id);
+      else await followUser(item.creator.id);
     } catch (reason) {
+      onCreatorFollowChange(item.creator.id, wasFollowing);
       setNotice(reason instanceof Error ? reason.message : "Could not update connection");
     } finally {
       setWorking(null);
@@ -247,7 +248,7 @@ function FeedCard({
       } else {
         window.prompt("Copy this Hustle link", url);
       }
-      await recordPostShare(item.post.id);
+      void recordPostShare(item.post.id).catch(() => undefined);
     } catch (reason) {
       if (reason instanceof DOMException && reason.name === "AbortError") return;
       setNotice(reason instanceof Error ? reason.message : "Could not share post");
@@ -258,12 +259,13 @@ function FeedCard({
 
   const initial = (item.creator.displayName ?? item.creator.username ?? "H").charAt(0).toUpperCase();
   const skill = item.creator.professionalProfile.primarySkill ?? item.creator.professionalProfile.headline ?? item.post.category;
+  const creatorHref = item.creator.username ? `/u/${item.creator.username}` : "/home";
 
   return <article ref={cardRef} className={styles.card}>
     <div className={styles.cardTop}>
-      <a
+      <Link
         className={styles.creator}
-        href={item.creator.username ? `/u/${item.creator.username}` : "#"}
+        href={creatorHref}
         onClick={() => void captureFeedEvent({
           name: "feed.profile_clicked",
           postId: item.post.id,
@@ -277,7 +279,7 @@ function FeedCard({
           <strong>{item.creator.displayName ?? item.creator.username ?? "Hustle user"}</strong>
           <span>@{item.creator.username ?? "user"}{item.creator.verified ? " · Verified" : ""}</span>
         </div>
-      </a>
+      </Link>
       <button className={item.viewer.following ? styles.following : styles.follow} type="button" onClick={toggleFollow} disabled={working === "follow"}>
         {item.viewer.following ? "Following" : "Follow"}
       </button>
@@ -293,18 +295,18 @@ function FeedCard({
     <div className={styles.cardBody}>
       <div className={styles.actions}>
         <button type="button" className={item.viewer.liked ? styles.activeAction : undefined} onClick={toggleLike} disabled={working === "like"}>♥ {item.engagement.likes}</button>
-        <a href={`/posts/${item.post.id}`}>◌ {item.engagement.comments}</a>
+        <Link href={`/posts/${item.post.id}`}>◌ {item.engagement.comments}</Link>
         <button type="button" className={item.viewer.saved ? styles.activeAction : undefined} onClick={toggleSave} disabled={working === "save"}>◇ {item.engagement.saves}</button>
         <button type="button" onClick={share} disabled={working === "share"}>↗ Share</button>
       </div>
 
-      <a className={styles.captionLink} href={`/posts/${item.post.id}`}><p>{item.post.caption}</p></a>
+      <Link className={styles.captionLink} href={`/posts/${item.post.id}`}><p>{item.post.caption}</p></Link>
       {item.post.tags.length > 0 && <div className={styles.tags}>{item.post.tags.slice(0, 6).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
 
       {(item.services.length > 0 || item.products.length > 0) && <div className={styles.opportunityBlock}>
         <div className={styles.opportunityHeading}><span>REFERENCED OPPORTUNITIES</span><b>Content → action</b></div>
         <div className={styles.opportunityGrid}>
-          {item.services.map((service) => <a
+          {item.services.map((service) => <Link
             key={service.id}
             href={`/services/${service.id}`}
             onClick={() => void captureFeedEvent({
@@ -317,8 +319,8 @@ function FeedCard({
             }).catch(() => undefined)}
           >
             <small>SERVICE</small><strong>{service.title ?? "Service"}</strong><span>{formatServicePrice(service)}</span>
-          </a>)}
-          {item.products.map((product) => <a
+          </Link>)}
+          {item.products.map((product) => <Link
             key={product.id}
             href={`/products/${product.id}`}
             onClick={() => void captureFeedEvent({
@@ -331,7 +333,7 @@ function FeedCard({
             }).catch(() => undefined)}
           >
             <small>PRODUCT</small><strong>{product.title ?? "Product"}</strong><span>{formatProductPrice(product)}</span>
-          </a>)}
+          </Link>)}
         </div>
       </div>}
 
@@ -341,6 +343,7 @@ function FeedCard({
 }
 
 export default function DiscoveryHomePage() {
+  const router = useRouter();
   const [tab, setTab] = useState<FeedTab>("for-you");
   const [items, setItems] = useState<FeedItem[]>([]);
   const [meta, setMeta] = useState<Pick<FeedPage, "nextCursor" | "hasMore" | "viewerLocation" | "coldStart" | "reason">>({
@@ -374,12 +377,12 @@ export default function DiscoveryHomePage() {
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Could not load discovery feed";
       setError(message);
-      if (message.toLowerCase().includes("sign in")) setTimeout(() => window.location.assign("/auth"), 900);
+      if (message.toLowerCase().includes("sign in")) setTimeout(() => router.replace("/auth"), 900);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -402,8 +405,8 @@ export default function DiscoveryHomePage() {
 
   return <main className={styles.shell}>
     <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE<span>↗</span></a>
-      <div className={styles.headerActions}><a href="/posts/manage">Create / manage content</a><a href="/account">Your identity</a></div>
+      <Link className={styles.brand} href="/">HUSTLE<span>↗</span></Link>
+      <div className={styles.headerActions}><Link href="/posts/manage">Create / manage content</Link><Link href="/account">Your identity</Link></div>
     </header>
 
     <HomeStoriesRow />
