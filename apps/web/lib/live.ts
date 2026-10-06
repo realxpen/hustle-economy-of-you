@@ -1,6 +1,6 @@
 "use client";
 
-import { getSupabaseBrowserClient } from "./supabase/client";
+import { apiUrl, authenticatedApiFetch, parseApiError } from "./api-client";
 
 export type LiveSessionStatus = "DRAFT" | "LIVE" | "ENDED" | "CANCELLED";
 export type LivePinnedOfferType = "SERVICE" | "PRODUCT";
@@ -94,29 +94,6 @@ export interface LiveCommentRecord {
   };
 }
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
-
-async function parseError(response: Response) {
-  const body = await response.json().catch(() => null) as {
-    error?: { message?: string };
-    message?: string;
-  } | null;
-  return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) throw new Error("You need to sign in again");
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-  const response = await fetch(`${apiBase}${path}`, { ...init, headers, cache: "no-store" });
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
-}
-
 export function getLiveViewerKey() {
   if (typeof window === "undefined") return "server:live-viewer";
   const storageKey = "hustle.live.viewerKey";
@@ -128,24 +105,24 @@ export function getLiveViewerKey() {
 }
 
 export async function getActiveLiveSessions(limit = 20): Promise<LiveSessionRecord[]> {
-  const response = await fetch(`${apiBase}/live?limit=${limit}`, { cache: "no-store" });
-  if (!response.ok) throw new Error(await parseError(response));
+  const response = await fetch(apiUrl(`/live?limit=${limit}`), { cache: "no-store" });
+  if (!response.ok) throw new Error(await parseApiError(response));
   return response.json() as Promise<LiveSessionRecord[]>;
 }
 
 export async function getPublicLiveSession(liveId: string): Promise<LiveSessionRecord> {
-  const response = await fetch(`${apiBase}/live/${encodeURIComponent(liveId)}`, { cache: "no-store" });
-  if (!response.ok) throw new Error(await parseError(response));
+  const response = await fetch(apiUrl(`/live/${encodeURIComponent(liveId)}`), { cache: "no-store" });
+  if (!response.ok) throw new Error(await parseApiError(response));
   return response.json() as Promise<LiveSessionRecord>;
 }
 
 export async function getMyLiveSessions(): Promise<LiveSessionRecord[]> {
-  const response = await authenticatedFetch("/live/mine");
+  const response = await authenticatedApiFetch("/live/mine");
   return response.json() as Promise<LiveSessionRecord[]>;
 }
 
 export async function getMyLiveSession(liveId: string): Promise<LiveSessionRecord> {
-  const response = await authenticatedFetch(`/live/mine/${encodeURIComponent(liveId)}`);
+  const response = await authenticatedApiFetch(`/live/mine/${encodeURIComponent(liveId)}`);
   return response.json() as Promise<LiveSessionRecord>;
 }
 
@@ -154,7 +131,7 @@ export async function createLiveSession(input: {
   category?: string | null;
   playbackUrl?: string | null;
 }): Promise<LiveSessionRecord> {
-  const response = await authenticatedFetch("/live", {
+  const response = await authenticatedApiFetch("/live", {
     method: "POST",
     body: JSON.stringify(input)
   });
@@ -166,7 +143,7 @@ export async function updateLiveSession(liveId: string, input: {
   category?: string | null;
   playbackUrl?: string | null;
 }): Promise<LiveSessionRecord> {
-  const response = await authenticatedFetch(`/live/${encodeURIComponent(liveId)}`, {
+  const response = await authenticatedApiFetch(`/live/${encodeURIComponent(liveId)}`, {
     method: "PATCH",
     body: JSON.stringify(input)
   });
@@ -174,17 +151,17 @@ export async function updateLiveSession(liveId: string, input: {
 }
 
 export async function startLiveSession(liveId: string): Promise<LiveSessionRecord> {
-  const response = await authenticatedFetch(`/live/${encodeURIComponent(liveId)}/start`, { method: "POST" });
+  const response = await authenticatedApiFetch(`/live/${encodeURIComponent(liveId)}/start`, { method: "POST" });
   return response.json() as Promise<LiveSessionRecord>;
 }
 
 export async function endLiveSession(liveId: string): Promise<LiveSessionRecord> {
-  const response = await authenticatedFetch(`/live/${encodeURIComponent(liveId)}/end`, { method: "POST" });
+  const response = await authenticatedApiFetch(`/live/${encodeURIComponent(liveId)}/end`, { method: "POST" });
   return response.json() as Promise<LiveSessionRecord>;
 }
 
 export async function pinLiveOffer(liveId: string, offerType: "SERVICE" | "PRODUCT" | "NONE", offerId?: string | null): Promise<LiveSessionRecord> {
-  const response = await authenticatedFetch(`/live/${encodeURIComponent(liveId)}/pin`, {
+  const response = await authenticatedApiFetch(`/live/${encodeURIComponent(liveId)}/pin`, {
     method: "POST",
     body: JSON.stringify({ offerType, offerId: offerId ?? null })
   });
@@ -192,25 +169,25 @@ export async function pinLiveOffer(liveId: string, offerType: "SERVICE" | "PRODU
 }
 
 export async function getLivePublishCredential(liveId: string): Promise<NativeLiveCredential> {
-  const response = await authenticatedFetch(`/live/${encodeURIComponent(liveId)}/media/publish-token`, {
+  const response = await authenticatedApiFetch(`/live/${encodeURIComponent(liveId)}/media/publish-token`, {
     method: "POST"
   });
   return response.json() as Promise<NativeLiveCredential>;
 }
 
 export async function getLiveViewerCredential(liveId: string): Promise<NativeLiveCredential> {
-  const response = await fetch(`${apiBase}/live/${encodeURIComponent(liveId)}/media/view-token`, {
+  const response = await fetch(apiUrl(`/live/${encodeURIComponent(liveId)}/media/view-token`), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ viewerKey: getLiveViewerKey() }),
     cache: "no-store"
   });
-  if (!response.ok) throw new Error(await parseError(response));
+  if (!response.ok) throw new Error(await parseApiError(response));
   return response.json() as Promise<NativeLiveCredential>;
 }
 
 export async function recordLiveMediaPresence(liveId: string, connected: boolean) {
-  const response = await authenticatedFetch(`/live/${encodeURIComponent(liveId)}/media/presence`, {
+  const response = await authenticatedApiFetch(`/live/${encodeURIComponent(liveId)}/media/presence`, {
     method: "POST",
     body: JSON.stringify({ connected })
   });
@@ -218,24 +195,24 @@ export async function recordLiveMediaPresence(liveId: string, connected: boolean
 }
 
 export async function heartbeatLiveViewer(liveId: string) {
-  const response = await fetch(`${apiBase}/live/${encodeURIComponent(liveId)}/view`, {
+  const response = await fetch(apiUrl(`/live/${encodeURIComponent(liveId)}/view`), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ viewerKey: getLiveViewerKey() }),
     cache: "no-store"
   });
-  if (!response.ok) throw new Error(await parseError(response));
+  if (!response.ok) throw new Error(await parseApiError(response));
   return response.json() as Promise<{ recorded: true; viewers: number }>;
 }
 
 export async function getLiveComments(liveId: string): Promise<LiveCommentRecord[]> {
-  const response = await fetch(`${apiBase}/live/${encodeURIComponent(liveId)}/comments`, { cache: "no-store" });
-  if (!response.ok) throw new Error(await parseError(response));
+  const response = await fetch(apiUrl(`/live/${encodeURIComponent(liveId)}/comments`), { cache: "no-store" });
+  if (!response.ok) throw new Error(await parseApiError(response));
   return response.json() as Promise<LiveCommentRecord[]>;
 }
 
 export async function createLiveComment(liveId: string, body: string): Promise<LiveCommentRecord> {
-  const response = await authenticatedFetch(`/live/${encodeURIComponent(liveId)}/comments`, {
+  const response = await authenticatedApiFetch(`/live/${encodeURIComponent(liveId)}/comments`, {
     method: "POST",
     body: JSON.stringify({ body })
   });
@@ -243,13 +220,13 @@ export async function createLiveComment(liveId: string, body: string): Promise<L
 }
 
 export async function recordLiveEvent(liveId: string, name: LiveEventName) {
-  const response = await fetch(`${apiBase}/live/${encodeURIComponent(liveId)}/events`, {
+  const response = await fetch(apiUrl(`/live/${encodeURIComponent(liveId)}/events`), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ name, viewerKey: getLiveViewerKey() }),
     cache: "no-store"
   });
-  if (!response.ok) throw new Error(await parseError(response));
+  if (!response.ok) throw new Error(await parseApiError(response));
   return response.json() as Promise<{ recorded: true; name: LiveEventName; targetId: string }>;
 }
 
