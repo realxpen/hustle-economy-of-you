@@ -12,6 +12,7 @@ import {
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
+import { LiveLifecycleService } from "./live-lifecycle.service";
 import {
   LiveMediaService,
   type LiveMediaPresenceInput,
@@ -31,26 +32,30 @@ import {
 export class LiveController {
   constructor(
     private readonly live: LiveService,
-    private readonly media: LiveMediaService
+    private readonly media: LiveMediaService,
+    private readonly lifecycle: LiveLifecycleService
   ) {}
 
   @Get()
-  listActive(@Query("limit") limit?: string) {
+  async listActive(@Query("limit") limit?: string) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.listActive(limit);
   }
 
   @Get("mine")
   @UseGuards(AuthGuard)
-  listMine(@CurrentIdentity() identity: AuthIdentity) {
+  async listMine(@CurrentIdentity() identity: AuthIdentity) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.listMine(identity);
   }
 
   @Get("mine/:liveId")
   @UseGuards(AuthGuard)
-  getMine(
+  async getMine(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("liveId") liveId: string
   ) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.getMine(identity, liveId);
   }
 
@@ -65,20 +70,22 @@ export class LiveController {
 
   @Patch(":liveId")
   @UseGuards(AuthGuard)
-  update(
+  async update(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("liveId") liveId: string,
     @Body() body: UpdateLiveSessionInput
   ) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.update(identity, liveId, body);
   }
 
   @Post(":liveId/start")
   @UseGuards(AuthGuard)
-  start(
+  async start(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("liveId") liveId: string
   ) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.start(identity, liveId);
   }
 
@@ -93,74 +100,83 @@ export class LiveController {
 
   @Post(":liveId/pin")
   @UseGuards(AuthGuard)
-  pin(
+  async pin(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("liveId") liveId: string,
     @Body() body: LivePinInput
   ) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.pin(identity, liveId, body);
   }
 
   @Post(":liveId/media/publish-token")
   @UseGuards(AuthGuard)
-  issuePublishCredential(
+  async issuePublishCredential(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("liveId") liveId: string
   ) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.media.issuePublishCredential(identity, liveId);
   }
 
   @Post(":liveId/media/view-token")
-  issueViewerCredential(
+  async issueViewerCredential(
     @Param("liveId") liveId: string,
     @Body() body: LiveMediaViewerInput
   ) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.media.issueViewerCredential(liveId, body);
   }
 
   @Post(":liveId/media/presence")
   @UseGuards(AuthGuard)
-  recordMediaPresence(
+  async recordMediaPresence(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("liveId") liveId: string,
     @Body() body: LiveMediaPresenceInput
   ) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.media.recordHostPresence(identity, liveId, body);
   }
 
   @Post(":liveId/view")
-  heartbeat(
+  async heartbeat(
     @Param("liveId") liveId: string,
     @Body() body: LiveViewerInput
   ) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.heartbeat(liveId, body);
   }
 
   @Get(":liveId/comments")
-  listComments(@Param("liveId") liveId: string) {
+  async listComments(@Param("liveId") liveId: string) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.listComments(liveId);
   }
 
   @Post(":liveId/comments")
   @UseGuards(AuthGuard)
-  comment(
+  async comment(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("liveId") liveId: string,
     @Body() body: LiveCommentInput
   ) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.comment(identity, liveId, body);
   }
 
   @Post(":liveId/events")
-  recordEvent(
+  async recordEvent(
     @Param("liveId") liveId: string,
     @Body() body: LiveEventInput
   ) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.recordEvent(liveId, body);
   }
 
   @Get(":liveId")
-  getPublic(@Param("liveId") liveId: string) {
+  async getPublic(@Param("liveId") liveId: string) {
+    await this.lifecycle.expireStaleLiveSessions();
     return this.live.getPublic(liveId);
   }
 }
