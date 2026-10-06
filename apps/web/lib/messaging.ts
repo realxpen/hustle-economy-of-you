@@ -113,6 +113,9 @@ const allowedAttachmentMimeTypes = new Set([
   "application/zip"
 ]);
 
+let cachedAuth: { accessToken: string; expiresAtMs: number } | null = null;
+let authListenerAttached = false;
+
 async function parseError(response: Response) {
   const body = await response.json().catch(() => null) as {
     error?: { message?: string };
@@ -121,13 +124,41 @@ async function parseError(response: Response) {
   return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
 }
 
-async function authenticatedFetch(path: string, init?: RequestInit) {
+function cacheSession(session: { access_token: string; expires_at?: number } | null) {
+  if (!session?.access_token) {
+    cachedAuth = null;
+    return;
+  }
+  cachedAuth = {
+    accessToken: session.access_token,
+    expiresAtMs: session.expires_at ? session.expires_at * 1000 : Date.now() + 60_000
+  };
+}
+
+function ensureAuthListener() {
+  if (authListenerAttached) return;
+  authListenerAttached = true;
+  const supabase = getSupabaseBrowserClient();
+  supabase.auth.onAuthStateChange((_event, session) => cacheSession(session));
+}
+
+async function getAccessToken() {
+  ensureAuthListener();
+  if (cachedAuth && cachedAuth.expiresAtMs - Date.now() > 30_000) {
+    return cachedAuth.accessToken;
+  }
+
   const supabase = getSupabaseBrowserClient();
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session?.access_token) throw new Error("You need to sign in again");
+  cacheSession(session);
+  return session.access_token;
+}
 
+async function authenticatedFetch(path: string, init?: RequestInit, retryOnUnauthorized = true): Promise<Response> {
+  const accessToken = await getAccessToken();
   const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
+  headers.set("authorization", `Bearer ${accessToken}`);
   if (init?.body) headers.set("content-type", "application/json");
 
   const response = await fetch(`${apiBase}${path}`, {
@@ -135,6 +166,11 @@ async function authenticatedFetch(path: string, init?: RequestInit) {
     headers,
     cache: "no-store"
   });
+
+  if (response.status === 401 && retryOnUnauthorized) {
+    cachedAuth = null;
+    return authenticatedFetch(path, init, false);
+  }
   if (!response.ok) throw new Error(await parseError(response));
   return response;
 }
@@ -162,11 +198,19 @@ export async function getConversation(conversationId: string) {
 
 export async function listMessages(
   conversationId: string,
-  options: { cursor?: string | null; limit?: number } = {}
+  options: {
+    cursor?: string | null;
+    limit?: number;
+    after?: { createdAt: string; id: string } | null;
+  } = {}
 ) {
   const params = new URLSearchParams();
   params.set("limit", String(options.limit ?? 50));
   if (options.cursor) params.set("cursor", options.cursor);
+  if (options.after) {
+    params.set("afterCreatedAt", options.after.createdAt);
+    params.set("afterId", options.after.id);
+  }
   const response = await authenticatedFetch(
     `/messaging/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`
   );

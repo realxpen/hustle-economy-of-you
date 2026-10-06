@@ -9,9 +9,12 @@ import {
   type SetTypingInput
 } from "./messaging-presence.service";
 import {
+  MessagingReadService,
+  type MessagingReadPaginationInput
+} from "./messaging-read.service";
+import {
   MessagingService,
   type MarkConversationReadInput,
-  type MessagingPaginationInput,
   type OpenDirectConversationInput,
   type SendMessageInput
 } from "./messaging.service";
@@ -21,6 +24,7 @@ import {
 export class MessagingController {
   constructor(
     private readonly messagingService: MessagingService,
+    private readonly messagingReadService: MessagingReadService,
     private readonly messagingPresenceService: MessagingPresenceService,
     private readonly blockPolicy: BlockPolicyService
   ) {}
@@ -37,9 +41,9 @@ export class MessagingController {
   @Get("conversations")
   listConversations(
     @CurrentIdentity() identity: AuthIdentity,
-    @Query() query: MessagingPaginationInput
+    @Query() query: MessagingReadPaginationInput
   ) {
-    return this.messagingService.listConversations(identity, query);
+    return this.messagingReadService.listConversations(identity, query);
   }
 
   @Get("conversations/:conversationId")
@@ -47,16 +51,16 @@ export class MessagingController {
     @CurrentIdentity() identity: AuthIdentity,
     @Param("conversationId") conversationId: string
   ) {
-    return this.messagingService.getConversation(identity, conversationId);
+    return this.messagingReadService.getConversation(identity, conversationId);
   }
 
   @Get("conversations/:conversationId/messages")
   listMessages(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("conversationId") conversationId: string,
-    @Query() query: MessagingPaginationInput
+    @Query() query: MessagingReadPaginationInput
   ) {
-    return this.messagingService.listMessages(identity, conversationId, query);
+    return this.messagingReadService.listMessages(identity, conversationId, query);
   }
 
   @Post("conversations/:conversationId/messages")
