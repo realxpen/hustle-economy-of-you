@@ -8,6 +8,10 @@ let cachedAuth: { accessToken: string; expiresAtMs: number } | null = null;
 let authListenerAttached = false;
 let sessionPromise: Promise<string> | null = null;
 
+export function apiUrl(path: string) {
+  return `${apiBase}${path}`;
+}
+
 export async function parseApiError(response: Response) {
   const body = await response.json().catch(() => null) as {
     error?: { message?: string };
@@ -73,7 +77,7 @@ export async function authenticatedApiFetch(
   headers.set("authorization", `Bearer ${accessToken}`);
   if (init?.body && !headers.has("content-type")) headers.set("content-type", "application/json");
 
-  const response = await fetch(`${apiBase}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     headers,
     cache: init?.cache ?? "no-store"
