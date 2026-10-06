@@ -1,6 +1,6 @@
 "use client";
 
-import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedApiFetch } from "./api-client";
 
 export type BookingStatus =
   | "REQUESTED"
@@ -104,34 +104,6 @@ export interface BookingAvailability {
   reason: string | null;
 }
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
-
-async function parseError(response: Response) {
-  const body = await response.json().catch(() => null) as {
-    error?: { message?: string };
-    message?: string;
-  } | null;
-  return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) throw new Error("You need to sign in again");
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
-}
-
 export async function checkBookingAvailability(input: {
   serviceId: string;
   startAt: string;
@@ -139,12 +111,12 @@ export async function checkBookingAvailability(input: {
 }) {
   const params = new URLSearchParams({ serviceId: input.serviceId, startAt: input.startAt });
   if (input.endAt) params.set("endAt", input.endAt);
-  const response = await authenticatedFetch(`/bookings/availability?${params.toString()}`);
+  const response = await authenticatedApiFetch(`/bookings/availability?${params.toString()}`);
   return response.json() as Promise<BookingAvailability>;
 }
 
 export async function createBooking(input: CreateBookingInput) {
-  const response = await authenticatedFetch("/bookings", {
+  const response = await authenticatedApiFetch("/bookings", {
     method: "POST",
     body: JSON.stringify(input)
   });
@@ -155,7 +127,7 @@ export async function listClientBookings(options: { cursor?: string | null; limi
   const params = new URLSearchParams();
   params.set("limit", String(options.limit ?? 20));
   if (options.cursor) params.set("cursor", options.cursor);
-  const response = await authenticatedFetch(`/bookings/client?${params.toString()}`);
+  const response = await authenticatedApiFetch(`/bookings/client?${params.toString()}`);
   return response.json() as Promise<BookingPage>;
 }
 
@@ -163,12 +135,12 @@ export async function listHustlerBookings(options: { cursor?: string | null; lim
   const params = new URLSearchParams();
   params.set("limit", String(options.limit ?? 20));
   if (options.cursor) params.set("cursor", options.cursor);
-  const response = await authenticatedFetch(`/bookings/hustler?${params.toString()}`);
+  const response = await authenticatedApiFetch(`/bookings/hustler?${params.toString()}`);
   return response.json() as Promise<BookingPage>;
 }
 
 export async function getBooking(bookingId: string) {
-  const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}`);
+  const response = await authenticatedApiFetch(`/bookings/${encodeURIComponent(bookingId)}`);
   return response.json() as Promise<BookingRecord>;
 }
 
@@ -176,7 +148,7 @@ export async function acceptBooking(
   bookingId: string,
   input: { confirmedStartAt?: string; confirmedEndAt?: string } = {}
 ) {
-  const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}/accept`, {
+  const response = await authenticatedApiFetch(`/bookings/${encodeURIComponent(bookingId)}/accept`, {
     method: "POST",
     body: JSON.stringify(input)
   });
@@ -184,7 +156,7 @@ export async function acceptBooking(
 }
 
 export async function declineBooking(bookingId: string, reason?: string) {
-  const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}/decline`, {
+  const response = await authenticatedApiFetch(`/bookings/${encodeURIComponent(bookingId)}/decline`, {
     method: "POST",
     body: JSON.stringify({ reason })
   });
@@ -192,7 +164,7 @@ export async function declineBooking(bookingId: string, reason?: string) {
 }
 
 export async function cancelBooking(bookingId: string, reason?: string) {
-  const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}/cancel`, {
+  const response = await authenticatedApiFetch(`/bookings/${encodeURIComponent(bookingId)}/cancel`, {
     method: "POST",
     body: JSON.stringify({ reason })
   });
@@ -200,7 +172,7 @@ export async function cancelBooking(bookingId: string, reason?: string) {
 }
 
 export async function startBooking(bookingId: string) {
-  const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}/start`, {
+  const response = await authenticatedApiFetch(`/bookings/${encodeURIComponent(bookingId)}/start`, {
     method: "POST",
     body: JSON.stringify({})
   });
@@ -208,7 +180,7 @@ export async function startBooking(bookingId: string) {
 }
 
 export async function completeBooking(bookingId: string) {
-  const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}/complete`, {
+  const response = await authenticatedApiFetch(`/bookings/${encodeURIComponent(bookingId)}/complete`, {
     method: "POST",
     body: JSON.stringify({})
   });
