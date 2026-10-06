@@ -131,6 +131,21 @@ export interface OrderRecord {
   nextAction: string | null;
 }
 
+export interface OrderTransitionState {
+  id: string;
+  status: OrderStatus;
+  viewerRole: "BUYER" | "SELLER";
+  fulfillmentType: "PHYSICAL" | "DIGITAL";
+  paidAt: string | null;
+  processingAt: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  refundedAt: string | null;
+  nextAction: string | null;
+}
+
 export interface OrderPage {
   items: OrderRecord[];
   nextCursor: string | null;
@@ -242,8 +257,8 @@ export async function getOrder(orderId: string) {
 }
 
 async function runOrderAction(orderId: string, action: "process" | "ship" | "deliver" | "complete" | "cancel") {
-  await authenticatedFetch(`/orders/${encodeURIComponent(orderId)}/${action}`, { method: "POST" });
-  return getOrder(orderId);
+  const response = await authenticatedFetch(`/orders/${encodeURIComponent(orderId)}/${action}`, { method: "POST" });
+  return response.json() as Promise<OrderTransitionState>;
 }
 
 export function processOrder(orderId: string) {
