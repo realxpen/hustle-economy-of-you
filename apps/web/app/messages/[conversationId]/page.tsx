@@ -77,6 +77,7 @@ export default function ConversationPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
   const [otherTyping, setOtherTyping] = useState(false);
+  const [otherLastReadAt, setOtherLastReadAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [sending, setSending] = useState(false);
@@ -236,7 +237,10 @@ export default function ConversationPage() {
       if (document.visibilityState !== "visible") return;
       try {
         const state = await getConversationTyping(conversationId);
-        if (active) setOtherTyping(state.typingUserIds.length > 0);
+        if (active) {
+          setOtherTyping(state.typingUserIds.length > 0);
+          setOtherLastReadAt(state.otherLastReadAt);
+        }
       } catch {
         if (active) setOtherTyping(false);
       }
@@ -468,6 +472,19 @@ export default function ConversationPage() {
           const mine = message.senderId === viewerUserId;
           const attachmentUrl = attachmentUrls[message.id];
           const optimistic = message.id.startsWith("optimistic-");
+          const read = Boolean(
+            mine &&
+            !optimistic &&
+            otherLastReadAt &&
+            new Date(otherLastReadAt).getTime() >= new Date(message.createdAt).getTime()
+          );
+          const receipt = mine
+            ? optimistic
+              ? "Sending…"
+              : read
+                ? "Read ✓✓"
+                : "Delivered ✓✓"
+            : null;
           return <div key={message.id} className={`${styles.bubbleRow} ${mine ? styles.mine : styles.theirs}`}>
             <article className={styles.bubble}>
               {!mine && <div className={styles.sender}>{message.sender.displayName ?? message.sender.username ?? "Hustle user"}</div>}
@@ -482,17 +499,20 @@ export default function ConversationPage() {
               {message.context && <a className={styles.context} href={message.context.url} onClick={(event) => { event.preventDefault(); openContext(message); }}>
                 <strong>{contextLabel(message.context.type)} context</strong><br />Open current canonical {contextLabel(message.context.type).toLowerCase()} →
               </a>}
-              <span className={styles.time}>{formatTime(message.createdAt)}{optimistic ? " · Sending…" : ""}</span>
+              <span className={styles.time}>
+                {formatTime(message.createdAt)}
+                {receipt && <span className={styles.receipt}> · {receipt}</span>}
+              </span>
             </article>
           </div>;
         })}
         <div ref={messagesEndRef} />
-        {otherTyping && <div className={styles.typingIndicator}>{other?.displayName ?? other?.username ?? "Hustle user"} is typing…</div>}
         {error && <p className={styles.threadError}>{error}</p>}
       </section>
 
       <div className={styles.composerWrap}>
         <form className={styles.composer} onSubmit={submit}>
+          {otherTyping && <div className={styles.typingIndicator}>{other?.displayName ?? other?.username ?? "Hustle user"} is typing…</div>}
           {pendingContext && <div className={styles.pendingContext}>
             <span><strong>{contextLabel(pendingContext.type)}</strong> will be attached to your next message.</span>
             <button type="button" onClick={() => { setPendingContext(null); window.history.replaceState(null, "", `/messages/${conversationId}`); }}>Remove</button>
