@@ -1,8 +1,6 @@
 "use client";
 
-import { getSupabaseBrowserClient } from "./supabase/client";
-
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+import { authenticatedApiFetch } from "./api-client";
 
 export type OrderStatus =
   | "PENDING"
@@ -162,39 +160,13 @@ export interface CheckoutInput {
   deliveryNote?: string;
 }
 
-async function parseError(response: Response) {
-  const body = await response.json().catch(() => null) as {
-    error?: { message?: string };
-    message?: string;
-  } | null;
-  return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) throw new Error("You need to sign in again");
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
-}
-
 export async function getCart() {
-  const response = await authenticatedFetch("/cart");
+  const response = await authenticatedApiFetch("/cart");
   return response.json() as Promise<Cart>;
 }
 
 export async function addCartItem(input: { productId: string; productVariantId?: string; quantity: number }) {
-  const response = await authenticatedFetch("/cart/items", {
+  const response = await authenticatedApiFetch("/cart/items", {
     method: "POST",
     body: JSON.stringify(input)
   });
@@ -202,7 +174,7 @@ export async function addCartItem(input: { productId: string; productVariantId?:
 }
 
 export async function updateCartItem(itemId: string, quantity: number) {
-  const response = await authenticatedFetch(`/cart/items/${encodeURIComponent(itemId)}`, {
+  const response = await authenticatedApiFetch(`/cart/items/${encodeURIComponent(itemId)}`, {
     method: "PUT",
     body: JSON.stringify({ quantity })
   });
@@ -210,22 +182,22 @@ export async function updateCartItem(itemId: string, quantity: number) {
 }
 
 export async function removeCartItem(itemId: string) {
-  const response = await authenticatedFetch(`/cart/items/${encodeURIComponent(itemId)}`, { method: "DELETE" });
+  const response = await authenticatedApiFetch(`/cart/items/${encodeURIComponent(itemId)}`, { method: "DELETE" });
   return response.json() as Promise<Cart>;
 }
 
 export async function clearCart() {
-  const response = await authenticatedFetch("/cart", { method: "DELETE" });
+  const response = await authenticatedApiFetch("/cart", { method: "DELETE" });
   return response.json() as Promise<{ cleared: true; removedItems: number; cart: Cart }>;
 }
 
 export async function getCheckoutPreview() {
-  const response = await authenticatedFetch("/cart/checkout/preview", { method: "POST" });
+  const response = await authenticatedApiFetch("/cart/checkout/preview", { method: "POST" });
   return response.json() as Promise<CheckoutPreview>;
 }
 
 export async function checkout(input: CheckoutInput) {
-  const response = await authenticatedFetch("/cart/checkout", {
+  const response = await authenticatedApiFetch("/cart/checkout", {
     method: "POST",
     body: JSON.stringify(input)
   });
@@ -242,22 +214,22 @@ function orderParams(options: { cursor?: string | null; limit?: number } = {}) {
 }
 
 export async function listBuyerOrders(options: { cursor?: string | null; limit?: number } = {}) {
-  const response = await authenticatedFetch(`/orders/buyer?${orderParams(options)}`);
+  const response = await authenticatedApiFetch(`/orders/buyer?${orderParams(options)}`);
   return response.json() as Promise<OrderPage>;
 }
 
 export async function listSellerOrders(options: { cursor?: string | null; limit?: number } = {}) {
-  const response = await authenticatedFetch(`/orders/seller?${orderParams(options)}`);
+  const response = await authenticatedApiFetch(`/orders/seller?${orderParams(options)}`);
   return response.json() as Promise<OrderPage>;
 }
 
 export async function getOrder(orderId: string) {
-  const response = await authenticatedFetch(`/orders/${encodeURIComponent(orderId)}`);
+  const response = await authenticatedApiFetch(`/orders/${encodeURIComponent(orderId)}`);
   return response.json() as Promise<OrderRecord>;
 }
 
 async function runOrderAction(orderId: string, action: "process" | "ship" | "deliver" | "complete" | "cancel") {
-  const response = await authenticatedFetch(`/orders/${encodeURIComponent(orderId)}/${action}`, { method: "POST" });
+  const response = await authenticatedApiFetch(`/orders/${encodeURIComponent(orderId)}/${action}`, { method: "POST" });
   return response.json() as Promise<OrderTransitionState>;
 }
 
