@@ -128,7 +128,12 @@ export default function MessagesPage() {
       {items.map((conversation) => {
         const other = conversation.otherParticipant;
         const initial = (other?.displayName ?? other?.username ?? "H").charAt(0).toUpperCase();
-        return <Link key={conversation.id} className={styles.conversation} href={`/messages/${conversation.id}`}>
+        const unread = conversation.viewer.unreadCount > 0;
+        return <Link
+          key={conversation.id}
+          className={`${styles.conversation} ${unread ? styles.conversationUnread : ""}`}
+          href={`/messages/${conversation.id}`}
+        >
           <div className={styles.avatar}>{other?.avatarUrl ? <img src={other.avatarUrl} alt="" /> : initial}</div>
           <div className={styles.conversationMain}>
             <div className={styles.nameLine}>
@@ -140,7 +145,10 @@ export default function MessagesPage() {
           </div>
           <div className={styles.conversationMeta}>
             <span>{formatTime(conversation.lastActivityAt)}</span>
-            {conversation.viewer.unreadCount > 0 && <span className={styles.unread}>{conversation.viewer.unreadCount}</span>}
+            {unread && <span className={styles.unreadWrap} aria-label={`${conversation.viewer.unreadCount} unread messages`}>
+              <span className={styles.unreadDot} aria-hidden="true" />
+              <span className={styles.unread}>{conversation.viewer.unreadCount}</span>
+            </span>}
           </div>
         </Link>;
       })}
