@@ -40,27 +40,50 @@ export default function MessagesPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function load(cursor: string | null = null, append = false) {
-    append ? setLoadingMore(true) : setLoading(true);
-    setError(null);
+  async function load(cursor: string | null = null, append = false, silent = false) {
+    if (!silent) append ? setLoadingMore(true) : setLoading(true);
+    if (!silent) setError(null);
     try {
       const page = await listConversations({ cursor, limit: 20 });
       setItems((current) => append ? [...current, ...page.items] : page.items);
       setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore });
+      if (!silent) setError(null);
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Could not load messages";
-      setError(message);
+      if (!silent) setError(message);
       if (message.toLowerCase().includes("sign in")) {
         setTimeout(() => router.replace("/auth"), 900);
       }
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (!silent) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }
 
   useEffect(() => {
     void load();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const sync = () => {
+      if (!active || document.visibilityState !== "visible") return;
+      void load(null, false, true);
+    };
+
+    const interval = window.setInterval(sync, 4_000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") sync();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   return <main className={styles.shell}>

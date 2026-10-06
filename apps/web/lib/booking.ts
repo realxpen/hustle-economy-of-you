@@ -1,6 +1,6 @@
 "use client";
 
-import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch } from "./api/authenticated-fetch";
 
 export type BookingStatus =
   | "REQUESTED"
@@ -102,34 +102,6 @@ export interface BookingAvailability {
   startAt: string;
   endAt: string | null;
   reason: string | null;
-}
-
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
-
-async function parseError(response: Response) {
-  const body = await response.json().catch(() => null) as {
-    error?: { message?: string };
-    message?: string;
-  } | null;
-  return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) throw new Error("You need to sign in again");
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
 }
 
 export async function checkBookingAvailability(input: {
