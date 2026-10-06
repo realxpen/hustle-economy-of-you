@@ -1,7 +1,7 @@
 "use client";
 
 import type { Product, Service } from "@hustle/types";
-import { getSupabaseBrowserClient } from "./supabase/client";
+import { apiUrl, authenticatedApiFetch, getApiAccessToken, parseApiError } from "./api-client";
 
 export type PostStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type PostMediaType = "IMAGE" | "VIDEO";
@@ -128,46 +128,18 @@ export interface PostInteractionState {
   viewerUserId: string;
 }
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
-
-async function parseError(response: Response) {
-  const body = await response.json().catch(() => null) as {
-    error?: { message?: string };
-    message?: string;
-  } | null;
-  return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) throw new Error("You need to sign in again");
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
-}
-
 export async function getMyPosts(): Promise<Post[]> {
-  const response = await authenticatedFetch("/posts/mine");
+  const response = await authenticatedApiFetch("/posts/mine");
   return response.json() as Promise<Post[]>;
 }
 
 export async function getMyPost(postId: string): Promise<Post> {
-  const response = await authenticatedFetch(`/posts/mine/${encodeURIComponent(postId)}`);
+  const response = await authenticatedApiFetch(`/posts/mine/${encodeURIComponent(postId)}`);
   return response.json() as Promise<Post>;
 }
 
 export async function createPost(input: SavePostInput): Promise<Post> {
-  const response = await authenticatedFetch("/posts", {
+  const response = await authenticatedApiFetch("/posts", {
     method: "POST",
     body: JSON.stringify(input)
   });
@@ -175,7 +147,7 @@ export async function createPost(input: SavePostInput): Promise<Post> {
 }
 
 export async function savePost(postId: string, input: SavePostInput): Promise<Post> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}`, {
+  const response = await authenticatedApiFetch(`/posts/${encodeURIComponent(postId)}`, {
     method: "PUT",
     body: JSON.stringify(input)
   });
@@ -183,7 +155,7 @@ export async function savePost(postId: string, input: SavePostInput): Promise<Po
 }
 
 export async function addPostMedia(postId: string, input: AddPostMediaInput): Promise<Post> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/media`, {
+  const response = await authenticatedApiFetch(`/posts/${encodeURIComponent(postId)}/media`, {
     method: "POST",
     body: JSON.stringify(input)
   });
@@ -191,7 +163,7 @@ export async function addPostMedia(postId: string, input: AddPostMediaInput): Pr
 }
 
 export async function removePostMedia(postId: string, mediaId: string): Promise<Post> {
-  const response = await authenticatedFetch(
+  const response = await authenticatedApiFetch(
     `/posts/${encodeURIComponent(postId)}/media/${encodeURIComponent(mediaId)}`,
     { method: "DELETE" }
   );
@@ -199,7 +171,7 @@ export async function removePostMedia(postId: string, mediaId: string): Promise<
 }
 
 export async function attachPostService(postId: string, serviceId: string): Promise<Post> {
-  const response = await authenticatedFetch(
+  const response = await authenticatedApiFetch(
     `/posts/${encodeURIComponent(postId)}/services/${encodeURIComponent(serviceId)}`,
     { method: "POST" }
   );
@@ -207,7 +179,7 @@ export async function attachPostService(postId: string, serviceId: string): Prom
 }
 
 export async function detachPostService(postId: string, serviceId: string): Promise<Post> {
-  const response = await authenticatedFetch(
+  const response = await authenticatedApiFetch(
     `/posts/${encodeURIComponent(postId)}/services/${encodeURIComponent(serviceId)}`,
     { method: "DELETE" }
   );
@@ -215,7 +187,7 @@ export async function detachPostService(postId: string, serviceId: string): Prom
 }
 
 export async function attachPostProduct(postId: string, productId: string): Promise<Post> {
-  const response = await authenticatedFetch(
+  const response = await authenticatedApiFetch(
     `/posts/${encodeURIComponent(postId)}/products/${encodeURIComponent(productId)}`,
     { method: "POST" }
   );
@@ -223,7 +195,7 @@ export async function attachPostProduct(postId: string, productId: string): Prom
 }
 
 export async function detachPostProduct(postId: string, productId: string): Promise<Post> {
-  const response = await authenticatedFetch(
+  const response = await authenticatedApiFetch(
     `/posts/${encodeURIComponent(postId)}/products/${encodeURIComponent(productId)}`,
     { method: "DELETE" }
   );
@@ -231,20 +203,20 @@ export async function detachPostProduct(postId: string, productId: string): Prom
 }
 
 export async function publishPost(postId: string): Promise<Post> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/publish`, { method: "POST" });
+  const response = await authenticatedApiFetch(`/posts/${encodeURIComponent(postId)}/publish`, { method: "POST" });
   return response.json() as Promise<Post>;
 }
 
 export async function archivePost(postId: string): Promise<Post> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/archive`, { method: "POST" });
+  const response = await authenticatedApiFetch(`/posts/${encodeURIComponent(postId)}/archive`, { method: "POST" });
   return response.json() as Promise<Post>;
 }
 
 export async function getPublicPost(postId: string): Promise<PublicPost> {
-  const response = await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}`, { cache: "no-store" });
+  const response = await fetch(apiUrl(`/posts/${encodeURIComponent(postId)}`), { cache: "no-store" });
   if (!response.ok) {
     if (response.status === 404) throw new Error("This post is not currently public.");
-    throw new Error(await parseError(response));
+    throw new Error(await parseApiError(response));
   }
 
   const raw = await response.json() as Omit<PublicPost, "owner"> & {
@@ -273,42 +245,45 @@ export async function getPublicPost(postId: string): Promise<PublicPost> {
 }
 
 export async function getPostInteractions(postId: string): Promise<PostInteractionSummary> {
-  const response = await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}/interactions`, { cache: "no-store" });
-  if (!response.ok) throw new Error(await parseError(response));
+  const response = await fetch(apiUrl(`/posts/${encodeURIComponent(postId)}/interactions`), { cache: "no-store" });
+  if (!response.ok) throw new Error(await parseApiError(response));
   return response.json() as Promise<PostInteractionSummary>;
 }
 
 export async function getMyPostInteractionState(postId: string): Promise<PostInteractionState | null> {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) return null;
+  let accessToken: string;
+  try {
+    accessToken = await getApiAccessToken();
+  } catch {
+    return null;
+  }
 
-  const response = await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}/interactions/me`, {
-    headers: { authorization: `Bearer ${session.access_token}` },
+  const response = await fetch(apiUrl(`/posts/${encodeURIComponent(postId)}/interactions/me`), {
+    headers: { authorization: `Bearer ${accessToken}` },
     cache: "no-store"
   });
   if (response.status === 401) return null;
-  if (!response.ok) throw new Error(await parseError(response));
+  if (!response.ok) throw new Error(await parseApiError(response));
   return response.json() as Promise<PostInteractionState>;
 }
 
 export async function likePost(postId: string): Promise<PostInteractionState> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/like`, { method: "POST" });
+  const response = await authenticatedApiFetch(`/posts/${encodeURIComponent(postId)}/like`, { method: "POST" });
   return response.json() as Promise<PostInteractionState>;
 }
 
 export async function unlikePost(postId: string): Promise<PostInteractionState> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/like`, { method: "DELETE" });
+  const response = await authenticatedApiFetch(`/posts/${encodeURIComponent(postId)}/like`, { method: "DELETE" });
   return response.json() as Promise<PostInteractionState>;
 }
 
 export async function savePublicPost(postId: string): Promise<PostInteractionState> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/save`, { method: "POST" });
+  const response = await authenticatedApiFetch(`/posts/${encodeURIComponent(postId)}/save`, { method: "POST" });
   return response.json() as Promise<PostInteractionState>;
 }
 
 export async function unsavePublicPost(postId: string): Promise<PostInteractionState> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/save`, { method: "DELETE" });
+  const response = await authenticatedApiFetch(`/posts/${encodeURIComponent(postId)}/save`, { method: "DELETE" });
   return response.json() as Promise<PostInteractionState>;
 }
 
@@ -317,7 +292,7 @@ export async function addPostComment(
   body: string,
   parentId?: string | null
 ): Promise<PostComment> {
-  const response = await authenticatedFetch(`/posts/${encodeURIComponent(postId)}/comments`, {
+  const response = await authenticatedApiFetch(`/posts/${encodeURIComponent(postId)}/comments`, {
     method: "POST",
     body: JSON.stringify({ body, parentId: parentId ?? null })
   });
@@ -328,7 +303,7 @@ export async function deletePostComment(
   postId: string,
   commentId: string
 ): Promise<{ deleted: true; id: string }> {
-  const response = await authenticatedFetch(
+  const response = await authenticatedApiFetch(
     `/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
     { method: "DELETE" }
   );
@@ -336,20 +311,20 @@ export async function deletePostComment(
 }
 
 export async function followUser(userId: string): Promise<{ following: true; userId: string }> {
-  const response = await authenticatedFetch(`/users/${encodeURIComponent(userId)}/follow`, { method: "POST" });
+  const response = await authenticatedApiFetch(`/users/${encodeURIComponent(userId)}/follow`, { method: "POST" });
   return response.json() as Promise<{ following: true; userId: string }>;
 }
 
 export async function unfollowUser(userId: string): Promise<{ following: false; userId: string }> {
-  const response = await authenticatedFetch(`/users/${encodeURIComponent(userId)}/follow`, { method: "DELETE" });
+  const response = await authenticatedApiFetch(`/users/${encodeURIComponent(userId)}/follow`, { method: "DELETE" });
   return response.json() as Promise<{ following: false; userId: string }>;
 }
 
 export async function recordPostShare(postId: string): Promise<{ recorded: true; postId: string }> {
-  const response = await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}/share`, {
+  const response = await fetch(apiUrl(`/posts/${encodeURIComponent(postId)}/share`), {
     method: "POST",
     cache: "no-store"
   });
-  if (!response.ok) throw new Error(await parseError(response));
+  if (!response.ok) throw new Error(await parseApiError(response));
   return response.json() as Promise<{ recorded: true; postId: string }>;
 }
