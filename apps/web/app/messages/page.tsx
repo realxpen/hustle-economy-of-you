@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   listConversations,
   type ConversationPage,
@@ -28,6 +30,7 @@ function preview(conversation: ConversationSummary) {
 }
 
 export default function MessagesPage() {
+  const router = useRouter();
   const [items, setItems] = useState<ConversationSummary[]>([]);
   const [meta, setMeta] = useState<Pick<ConversationPage, "nextCursor" | "hasMore">>({
     nextCursor: null,
@@ -48,7 +51,7 @@ export default function MessagesPage() {
       const message = reason instanceof Error ? reason.message : "Could not load messages";
       setError(message);
       if (message.toLowerCase().includes("sign in")) {
-        setTimeout(() => window.location.assign("/auth"), 900);
+        setTimeout(() => router.replace("/auth"), 900);
       }
     } finally {
       setLoading(false);
@@ -62,12 +65,12 @@ export default function MessagesPage() {
 
   return <main className={styles.shell}>
     <header className={styles.header}>
-      <a href="/" className={styles.brand}>HUSTLE↗</a>
+      <Link href="/" className={styles.brand}>HUSTLE↗</Link>
       <nav className={styles.nav}>
-        <a href="/home">Home</a>
-        <a href="/search">Search</a>
-        <a href="/marketplace">Marketplace</a>
-        <a href="/account">Your identity</a>
+        <Link href="/home">Home</Link>
+        <Link href="/search">Search</Link>
+        <Link href="/marketplace">Marketplace</Link>
+        <Link href="/account">Your identity</Link>
       </nav>
     </header>
 
@@ -82,14 +85,14 @@ export default function MessagesPage() {
     {!error && !loading && items.length === 0 && <section className={styles.empty}>
       <strong>No conversations yet.</strong>
       <p>Open a professional profile, Post, Service or Product and choose Message to start a direct thread.</p>
-      <a href="/home">Discover people on Hustle →</a>
+      <Link href="/home">Discover people on Hustle →</Link>
     </section>}
 
     {items.length > 0 && <section className={styles.inbox}>
       {items.map((conversation) => {
         const other = conversation.otherParticipant;
         const initial = (other?.displayName ?? other?.username ?? "H").charAt(0).toUpperCase();
-        return <a key={conversation.id} className={styles.conversation} href={`/messages/${conversation.id}`}>
+        return <Link key={conversation.id} className={styles.conversation} href={`/messages/${conversation.id}`}>
           <div className={styles.avatar}>{other?.avatarUrl ? <img src={other.avatarUrl} alt="" /> : initial}</div>
           <div className={styles.conversationMain}>
             <div className={styles.nameLine}>
@@ -103,7 +106,7 @@ export default function MessagesPage() {
             <span>{formatTime(conversation.lastActivityAt)}</span>
             {conversation.viewer.unreadCount > 0 && <span className={styles.unread}>{conversation.viewer.unreadCount}</span>}
           </div>
-        </a>;
+        </Link>;
       })}
     </section>}
 
