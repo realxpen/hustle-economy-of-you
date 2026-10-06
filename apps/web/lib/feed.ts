@@ -1,8 +1,8 @@
 "use client";
 
 import type { Product, Service } from "@hustle/types";
+import { authenticatedApiFetch } from "./api-client";
 import type { PostMedia } from "./post";
-import { getSupabaseBrowserClient } from "./supabase/client";
 
 export type FeedTab = "for-you" | "nearby" | "connections";
 export type FeedDiscoveryEventName =
@@ -81,34 +81,6 @@ export interface CaptureFeedEventInput {
   productId?: string;
 }
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
-
-async function parseError(response: Response) {
-  const body = await response.json().catch(() => null) as {
-    error?: { message?: string };
-    message?: string;
-  } | null;
-  return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) throw new Error("You need to sign in again");
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
-}
-
 function normalizeFeedPage(page: FeedPage): FeedPage {
   return {
     ...page,
@@ -139,13 +111,13 @@ export async function getFeedPage(
   params.set("limit", String(options.limit ?? 8));
   if (options.location?.trim()) params.set("location", options.location.trim());
 
-  const response = await authenticatedFetch(`/feed/${tab}?${params.toString()}`);
+  const response = await authenticatedApiFetch(`/feed/${tab}?${params.toString()}`);
   const page = await response.json() as FeedPage;
   return normalizeFeedPage(page);
 }
 
 export async function captureFeedEvent(input: CaptureFeedEventInput) {
-  const response = await authenticatedFetch("/feed/events", {
+  const response = await authenticatedApiFetch("/feed/events", {
     method: "POST",
     keepalive: true,
     body: JSON.stringify({
