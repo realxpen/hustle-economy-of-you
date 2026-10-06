@@ -53,7 +53,19 @@ export class MessagingPresenceService {
       if (candidateUserId && candidateUserId !== userId) typingUserIds.push(candidateUserId);
     }
 
-    return { conversationId: id, typingUserIds };
+    const otherParticipant = await this.prisma.conversationParticipant.findFirst({
+      where: {
+        conversationId: id,
+        userId: { not: userId }
+      },
+      select: { lastReadAt: true }
+    });
+
+    return {
+      conversationId: id,
+      typingUserIds,
+      otherLastReadAt: otherParticipant?.lastReadAt ?? null
+    };
   }
 
   private async requireParticipant(identity: AuthIdentity, conversationId: string) {
