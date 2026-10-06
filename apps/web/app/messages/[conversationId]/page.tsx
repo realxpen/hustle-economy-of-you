@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ConversationSafetyActions } from "../../../components/trust/conversation-safety-actions";
 import {
   createMessageAttachmentUrl,
@@ -57,8 +58,16 @@ function mergeMessages(current: MessagingMessage[], incoming: MessagingMessage[]
   );
 }
 
+function latestConfirmedMessage(messages: MessagingMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (!messages[index].id.startsWith("optimistic-")) return messages[index];
+  }
+  return null;
+}
+
 export default function ConversationPage() {
   const params = useParams<{ conversationId: string }>();
+  const router = useRouter();
   const conversationId = params?.conversationId;
   const [conversation, setConversation] = useState<ConversationSummary | null>(null);
   const [messages, setMessages] = useState<MessagingMessage[]>([]);
@@ -74,7 +83,7 @@ export default function ConversationPage() {
   const [error, setError] = useState<string | null>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingSentRef = useRef(0);
-  const newestMessageIdRef = useRef<string | null>(null);
+  const newestMessageRef = useRef<{ id: string; createdAt: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const other = conversation?.otherParticipant ?? null;
@@ -87,7 +96,8 @@ export default function ConversationPage() {
   );
 
   useEffect(() => {
-    newestMessageIdRef.current = messages.at(-1)?.id ?? null;
+    const latest = latestConfirmedMessage(messages);
+    newestMessageRef.current = latest ? { id: latest.id, createdAt: latest.createdAt } : null;
     messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [messages]);
 
@@ -127,10 +137,10 @@ export default function ConversationPage() {
         setError(reason.message);
         setLoading(false);
         if (reason.message.toLowerCase().includes("sign in")) {
-          setTimeout(() => window.location.assign("/auth"), 900);
+          setTimeout(() => router.replace("/auth"), 900);
         }
       });
-  }, [conversationId]);
+  }, [conversationId, router]);
 
   useEffect(() => {
     let active = true;
@@ -168,12 +178,19 @@ export default function ConversationPage() {
       if (!active || syncing) return;
       syncing = true;
       try {
-        const page = await listMessages(conversationId, { limit: 50 });
-        if (!active) return;
+        const after = newestMessageRef.current;
+        const page = await listMessages(conversationId, after
+          ? { after, limit: 50 }
+          : { limit: 50 });
+        if (!active || page.items.length === 0) return;
 
         const newest = page.items.at(-1) ?? null;
-        const previousNewestId = newestMessageIdRef.current;
+        const previousNewestId = newestMessageRef.current?.id ?? null;
         setMessages((current) => mergeMessages(current, page.items));
+
+        if (newest) {
+          newestMessageRef.current = { id: newest.id, createdAt: newest.createdAt };
+        }
 
         if (newest && newest.id !== previousNewestId && newest.senderId !== viewerUserId) {
           void markConversationRead(conversationId, newest.id)
@@ -248,6 +265,7 @@ export default function ConversationPage() {
       setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore });
       const last = page.items.at(-1);
       if (last) {
+        newestMessageRef.current = { id: last.id, createdAt: last.createdAt };
         void markConversationRead(conversationId, last.id)
           .then((read) => {
             setConversation((current) => current ? {
@@ -383,6 +401,7 @@ export default function ConversationPage() {
         ...(outgoingContext ? { contextType: outgoingContext.type, contextId: outgoingContext.id } : {})
       });
 
+      newestMessageRef.current = { id: sent.id, createdAt: sent.createdAt };
       setMessages((current) => {
         const withoutOptimisticOrDuplicate = current.filter(
           (message) => message.id !== optimisticId && message.id !== sent.id
@@ -411,22 +430,18 @@ export default function ConversationPage() {
     }
   }
 
-  async function openContext(message: MessagingMessage) {
+  function openContext(message: MessagingMessage) {
     if (!conversationId || !message.context) return;
-    try {
-      await recordMessageContextOpened(conversationId, message.id);
-    } catch {
-      // Observation must never block canonical navigation.
-    }
-    window.location.assign(message.context.url);
+    void recordMessageContextOpened(conversationId, message.id).catch(() => undefined);
+    router.push(message.context.url);
   }
 
   if (loading) return <main className={styles.start}><section className={styles.startCard}><p className={styles.eyebrow}>HUSTLE MESSAGING</p><h1>Loading conversation…</h1></section></main>;
-  if (!conversation) return <main className={styles.start}><section className={styles.startCard}><p className={styles.eyebrow}>HUSTLE MESSAGING</p><h1>Conversation unavailable.</h1><p>{error ?? "This thread could not be opened."}</p><a href="/messages">Back to messages →</a></section></main>;
+  if (!conversation) return <main className={styles.start}><section className={styles.startCard}><p className={styles.eyebrow}>HUSTLE MESSAGING</p><h1>Conversation unavailable.</h1><p>{error ?? "This thread could not be opened."}</p><Link href="/messages">Back to messages →</Link></section></main>;
 
   return <main className={styles.threadShell}>
     <header className={styles.threadHeader}>
-      <a className={styles.back} href="/messages">←</a>
+      <Link className={styles.back} href="/messages">←</Link>
       <div className={styles.threadIdentity}>
         <div className={styles.avatar}>{other?.avatarUrl ? <img src={other.avatarUrl} alt="" /> : initial}</div>
         <div className={styles.identityText}>
@@ -464,7 +479,7 @@ export default function ConversationPage() {
                     ? <a href={attachmentUrl} target="_blank" rel="noreferrer"><strong>{message.attachment.fileName ?? "Attachment"}</strong><span>{formatBytes(message.attachment.sizeBytes)} · Open private file ↗</span></a>
                     : <span>{message.attachment.fileName ?? "Private attachment"} · Loading secure access…</span>}
               </div>}
-              {message.context && <a className={styles.context} href={message.context.url} onClick={(event) => { event.preventDefault(); void openContext(message); }}>
+              {message.context && <a className={styles.context} href={message.context.url} onClick={(event) => { event.preventDefault(); openContext(message); }}>
                 <strong>{contextLabel(message.context.type)} context</strong><br />Open current canonical {contextLabel(message.context.type).toLowerCase()} →
               </a>}
               <span className={styles.time}>{formatTime(message.createdAt)}{optimistic ? " · Sending…" : ""}</span>
@@ -504,7 +519,7 @@ export default function ConversationPage() {
             />
             <button type="submit" disabled={!canSend || sending}>{sending ? "Sending…" : "Send"}</button>
           </div>
-          <p className={styles.notice}>Messages sync automatically while this thread is open. Private image/file attachments remain participant-only.</p>
+          <p className={styles.notice}>Messages sync automatically using lightweight deltas while this thread is open. Private image/file attachments remain participant-only.</p>
         </form>
       </div>
     </div>
