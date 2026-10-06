@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { formatStoryRemaining, getActiveStories, type StoryRecord } from "../../lib/story";
@@ -27,16 +28,16 @@ export function HomeStoriesRow() {
   }, [stories]);
 
   return <section className={styles.shell} aria-label="Active Hustle Stories">
-    <a className={styles.add} href="/stories/create"><span>+</span><strong>Your Story</strong><small>Share now</small></a>
+    <Link className={styles.add} href="/stories/create"><span>+</span><strong>Your Story</strong><small>Share now</small></Link>
     {latestByCreator.map((story) => {
       const name = story.creator.displayName ?? story.creator.username ?? "Hustle user";
       const initial = name.charAt(0).toUpperCase();
-      return <a key={story.creator.id} className={styles.story} href={`/stories/${story.id}`}>
+      return <Link key={story.creator.id} className={styles.story} href={`/stories/${story.id}`}>
         <div className={styles.ring}><div className={styles.avatar}>{story.creator.avatarUrl ? <img src={story.creator.avatarUrl} alt="" /> : initial}</div></div>
         <strong>{story.creator.username ? `@${story.creator.username}` : name}</strong>
         <small>{formatStoryRemaining(story.expiresAt)}</small>
-      </a>;
+      </Link>;
     })}
-    <a className={styles.all} href="/stories">All Stories →</a>
+    <Link className={styles.all} href="/stories">All Stories →</Link>
   </section>;
 }
