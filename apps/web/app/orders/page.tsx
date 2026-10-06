@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { formatMoney, listBuyerOrders, listSellerOrders, type OrderPage, type OrderRecord } from "../../lib/commerce";
 import styles from "../commerce.module.css";
@@ -10,14 +11,14 @@ function formatDate(value: string) {
 
 function OrderCard({ order }: { order: OrderRecord }) {
   const counterpart = order.viewerRole === "BUYER" ? order.seller : order.buyer;
-  return <a className={styles.card} href={`/orders/${order.id}`}>
+  return <Link className={styles.card} href={`/orders/${order.id}`}>
     <div className={styles.cardTop}>
       <div><small className={styles.eyebrow}>{order.viewerRole === "BUYER" ? "PURCHASE" : "SALE"}</small><h3>{order.items[0]?.productTitleSnapshot ?? "Order"}{order.items.length > 1 ? ` +${order.items.length - 1}` : ""}</h3></div>
       <span className={styles.status}>{order.status}</span>
     </div>
     <div className={styles.meta}><span>{formatMoney(order.totalMinor, order.currency)}</span><span>{formatDate(order.createdAt)}</span><span>{counterpart.displayName ?? counterpart.username ?? "Hustle user"}</span></div>
     <p>{order.nextAction}</p>
-  </a>;
+  </Link>;
 }
 
 function OrderSection({ title, eyebrow, page, error }: { title: string; eyebrow: string; page: OrderPage | null; error: string | null }) {
@@ -48,8 +49,8 @@ export default function OrdersPage() {
 
   return <main className={styles.shell}>
     <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE↗</a>
-      <nav className={styles.nav}><a href="/home">Home</a><a href="/marketplace">Marketplace</a><a href="/cart">Cart</a><a href="/messages">Messages</a><a href="/account">Account</a></nav>
+      <Link className={styles.brand} href="/">HUSTLE↗</Link>
+      <nav className={styles.nav}><Link href="/home">Home</Link><Link href="/marketplace">Marketplace</Link><Link href="/cart">Cart</Link><Link href="/messages">Messages</Link><Link href="/account">Account</Link></nav>
     </header>
 
     <section className={styles.hero}>
