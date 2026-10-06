@@ -83,6 +83,10 @@ const messageSelect = {
 } satisfies Prisma.MessageSelect;
 
 type MessageRecord = Prisma.MessageGetPayload<{ select: typeof messageSelect }>;
+type UnreadCountRow = {
+  conversationId: string;
+  unreadCount: number;
+};
 
 @Injectable()
 export class MessagingService {
@@ -196,22 +200,20 @@ export class MessagingService {
 
     const hasMore = conversations.length > limit;
     const page = hasMore ? conversations.slice(0, limit) : conversations;
-    const items = await Promise.all(
-      page.map(async (conversation) => {
-        const participant = conversation.participants.find((item) => item.userId === viewer.id);
-        if (!participant) throw new NotFoundException("Conversation participant not found");
-
-        const unreadCount = await this.prisma.message.count({
-          where: {
-            conversationId: conversation.id,
-            senderId: { not: viewer.id },
-            ...(participant.lastReadAt ? { createdAt: { gt: participant.lastReadAt } } : {})
-          }
-        });
-
-        return this.serializeConversation(conversation, viewer.id, unreadCount);
-      })
+    const unreadCounts = await this.getUnreadCountsForConversations(
+      viewer.id,
+      page.map((conversation) => conversation.id)
     );
+    const items = page.map((conversation) => {
+      const participant = conversation.participants.find((item) => item.userId === viewer.id);
+      if (!participant) throw new NotFoundException("Conversation participant not found");
+
+      return this.serializeConversation(
+        conversation,
+        viewer.id,
+        unreadCounts.get(conversation.id) ?? 0
+      );
+    });
 
     const last = page.at(-1);
     return {
@@ -426,6 +428,29 @@ export class MessagingService {
     });
 
     return { recorded: true };
+  }
+
+  private async getUnreadCountsForConversations(
+    viewerUserId: string,
+    conversationIds: string[]
+  ) {
+    if (conversationIds.length === 0) return new Map<string, number>();
+
+    const rows = await this.prisma.$queryRaw<UnreadCountRow[]>(Prisma.sql`
+      SELECT
+        cp."conversationId" AS "conversationId",
+        COUNT(m.id)::int AS "unreadCount"
+      FROM "ConversationParticipant" cp
+      JOIN "Message" m
+        ON m."conversationId" = cp."conversationId"
+       AND m."senderId" <> cp."userId"
+       AND (cp."lastReadAt" IS NULL OR m."createdAt" > cp."lastReadAt")
+      WHERE cp."userId" = ${viewerUserId}
+        AND cp."conversationId" IN (${Prisma.join(conversationIds)})
+      GROUP BY cp."conversationId"
+    `);
+
+    return new Map(rows.map((row) => [row.conversationId, row.unreadCount]));
   }
 
   private async getConversationForUser(conversationId: string, viewerUserId: string) {
