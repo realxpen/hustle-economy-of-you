@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   listConversations,
@@ -31,6 +31,7 @@ function preview(conversation: ConversationSummary) {
 
 export default function MessagesPage() {
   const router = useRouter();
+  const backgroundRefreshInFlight = useRef(false);
   const [items, setItems] = useState<ConversationSummary[]>([]);
   const [meta, setMeta] = useState<Pick<ConversationPage, "nextCursor" | "hasMore">>({
     nextCursor: null,
@@ -41,13 +42,24 @@ export default function MessagesPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function load(cursor: string | null = null, append = false, silent = false) {
+    if (silent && backgroundRefreshInFlight.current) return;
+    if (silent) backgroundRefreshInFlight.current = true;
     if (!silent) append ? setLoadingMore(true) : setLoading(true);
     if (!silent) setError(null);
     try {
       const page = await listConversations({ cursor, limit: 20 });
-      setItems((current) => append ? [...current, ...page.items] : page.items);
-      setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore });
-      if (!silent) setError(null);
+      setItems((current) => {
+        if (append) return [...current, ...page.items];
+        if (!silent) return page.items;
+
+        const refreshedIds = new Set(page.items.map((conversation) => conversation.id));
+        const olderItems = current.filter((conversation) => !refreshedIds.has(conversation.id));
+        return [...page.items, ...olderItems];
+      });
+      if (!silent) {
+        setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore });
+        setError(null);
+      }
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Could not load messages";
       if (!silent) setError(message);
@@ -55,6 +67,7 @@ export default function MessagesPage() {
         setTimeout(() => router.replace("/auth"), 900);
       }
     } finally {
+      if (silent) backgroundRefreshInFlight.current = false;
       if (!silent) {
         setLoading(false);
         setLoadingMore(false);

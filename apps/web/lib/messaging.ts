@@ -1,6 +1,6 @@
 "use client";
 
-import { authenticatedFetch } from "./api/authenticated-fetch";
+import { authenticatedFetch, getAuthenticatedUserId } from "./api/authenticated-fetch";
 import { getSupabaseBrowserClient } from "./supabase/client";
 
 export type MessageContextType = "POST" | "SERVICE" | "PRODUCT";
@@ -215,12 +215,10 @@ export async function uploadMessageAttachment(
     throw new Error("That file type is not supported in Hustle messages yet");
   }
 
+  const userId = await getAuthenticatedUserId();
   const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  if (sessionError || !session?.user?.id) throw new Error("You need to sign in again");
-
   const safeName = sanitizeFileName(file.name);
-  const objectPath = `${conversationId}/${session.user.id}/${crypto.randomUUID()}-${safeName}`;
+  const objectPath = `${conversationId}/${userId}/${crypto.randomUUID()}-${safeName}`;
   const { error } = await supabase.storage.from(attachmentBucket).upload(objectPath, file, {
     upsert: false,
     contentType: file.type,
