@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
@@ -14,7 +15,8 @@ import {
   getOrder,
   processOrder,
   shipOrder,
-  type OrderRecord
+  type OrderRecord,
+  type OrderTransitionState
 } from "../../../lib/commerce";
 import styles from "../../commerce.module.css";
 
@@ -42,15 +44,26 @@ export default function OrderDetailPage() {
 
   const hasPhysical = useMemo(() => order?.items.some((item) => item.productTypeSnapshot === "PHYSICAL") ?? false, [order]);
 
-  async function runAction(label: string, action: (orderId: string) => Promise<OrderRecord>, confirmation?: string) {
+  async function runAction(label: string, action: (orderId: string) => Promise<OrderTransitionState>, confirmation?: string) {
     if (!order || busy) return;
     if (confirmation && !window.confirm(confirmation)) return;
     setBusy(label);
     setError(null);
     setNotice(null);
     try {
-      const updated = await action(order.id);
-      setOrder(updated);
+      const transition = await action(order.id);
+      setOrder((current) => current ? {
+        ...current,
+        status: transition.status,
+        paidAt: transition.paidAt,
+        processingAt: transition.processingAt,
+        shippedAt: transition.shippedAt,
+        deliveredAt: transition.deliveredAt,
+        completedAt: transition.completedAt,
+        cancelledAt: transition.cancelledAt,
+        refundedAt: transition.refundedAt,
+        nextAction: transition.nextAction
+      } : current);
       setNotice(`${label} recorded successfully.`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not update Order");
@@ -59,7 +72,7 @@ export default function OrderDetailPage() {
     }
   }
 
-  if (error && !order) return <main className={styles.shell}><div className={styles.error}>{error}</div><p><a className={styles.link} href="/orders">← Orders</a></p></main>;
+  if (error && !order) return <main className={styles.shell}><div className={styles.error}>{error}</div><p><Link className={styles.link} href="/orders">← Orders</Link></p></main>;
   if (!order) return <main className={styles.shell}><div className={styles.loading}>Loading Order…</div></main>;
 
   const counterpart = order.viewerRole === "BUYER" ? order.seller : order.buyer;
@@ -84,8 +97,8 @@ export default function OrderDetailPage() {
 
   return <main className={styles.shell}>
     <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE↗</a>
-      <nav className={styles.nav}><a href="/orders">Orders</a><a href="/wallet">Wallet</a><a href="/cart">Cart</a><a href="/marketplace">Marketplace</a><a href="/messages">Messages</a></nav>
+      <Link className={styles.brand} href="/">HUSTLE↗</Link>
+      <nav className={styles.nav}><Link href="/orders">Orders</Link><Link href="/wallet">Wallet</Link><Link href="/cart">Cart</Link><Link href="/marketplace">Marketplace</Link><Link href="/messages">Messages</Link></nav>
     </header>
 
     <section className={styles.hero}><div><p className={styles.eyebrow}>ORDER · {order.viewerRole}</p><h1>{order.status.replaceAll("_", " ")}</h1></div><p>{derivedNextAction}</p></section>
@@ -141,7 +154,7 @@ export default function OrderDetailPage() {
       <section className={styles.panel}>
         <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>ITEM SNAPSHOT</small><h2>What was ordered</h2></div><span className={styles.status}>{order.status}</span></div>
         <div className={styles.list}>{order.items.map((item) => <article className={styles.card} key={item.id}>
-          <div className={styles.cardTop}><div><small className={styles.eyebrow}>{item.productTypeSnapshot}</small><h3><a href={`/products/${item.productId}`}>{item.productTitleSnapshot}</a></h3><div className={styles.meta}><span>{item.variantNameSnapshot ?? "Standard"}</span>{item.skuSnapshot && <span>{item.skuSnapshot}</span>}<span>Qty {item.quantity}</span></div></div><strong className={styles.price}>{formatMoney(item.lineTotalMinor, order.currency)}</strong></div>
+          <div className={styles.cardTop}><div><small className={styles.eyebrow}>{item.productTypeSnapshot}</small><h3><Link href={`/products/${item.productId}`}>{item.productTitleSnapshot}</Link></h3><div className={styles.meta}><span>{item.variantNameSnapshot ?? "Standard"}</span>{item.skuSnapshot && <span>{item.skuSnapshot}</span>}<span>Qty {item.quantity}</span></div></div><strong className={styles.price}>{formatMoney(item.lineTotalMinor, order.currency)}</strong></div>
           <div className={styles.meta}><span>{formatMoney(item.unitPriceMinor, order.currency)} each</span><span>Inventory source: {item.inventorySource}</span></div>
         </article>)}</div>
       </section>
