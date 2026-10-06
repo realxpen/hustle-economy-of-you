@@ -43,6 +43,20 @@ function contextLabel(type: MessageContextType) {
   return "Product";
 }
 
+function contextUrl(type: MessageContextType, id: string) {
+  if (type === "POST") return `/posts/${id}`;
+  if (type === "SERVICE") return `/services/${id}`;
+  return `/products/${id}`;
+}
+
+function mergeMessages(current: MessagingMessage[], incoming: MessagingMessage[]) {
+  const byId = new Map(current.map((message) => [message.id, message]));
+  for (const message of incoming) byId.set(message.id, message);
+  return Array.from(byId.values()).sort(
+    (left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
+  );
+}
+
 export default function ConversationPage() {
   const params = useParams<{ conversationId: string }>();
   const conversationId = params?.conversationId;
@@ -60,6 +74,8 @@ export default function ConversationPage() {
   const [error, setError] = useState<string | null>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingSentRef = useRef(0);
+  const newestMessageIdRef = useRef<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const other = conversation?.otherParticipant ?? null;
   const viewerUserId = conversation?.viewer.userId ?? null;
@@ -69,6 +85,11 @@ export default function ConversationPage() {
     () => Boolean(text.trim() || pendingContext || selectedFile),
     [text, pendingContext, selectedFile]
   );
+
+  useEffect(() => {
+    newestMessageIdRef.current = messages.at(-1)?.id ?? null;
+    messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [messages]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -84,26 +105,31 @@ export default function ConversationPage() {
       getConversation(conversationId),
       listMessages(conversationId, { limit: 50 })
     ])
-      .then(async ([nextConversation, page]) => {
+      .then(([nextConversation, page]) => {
         setConversation(nextConversation);
         setMessages(page.items);
         setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore });
+        setLoading(false);
+
         const last = page.items.at(-1);
         if (last) {
-          const read = await markConversationRead(conversationId, last.id);
-          setConversation((current) => current ? {
-            ...current,
-            viewer: { ...current.viewer, lastReadAt: read.lastReadAt, unreadCount: read.unreadCount }
-          } : current);
+          void markConversationRead(conversationId, last.id)
+            .then((read) => {
+              setConversation((current) => current ? {
+                ...current,
+                viewer: { ...current.viewer, lastReadAt: read.lastReadAt, unreadCount: read.unreadCount }
+              } : current);
+            })
+            .catch(() => undefined);
         }
       })
       .catch((reason: Error) => {
         setError(reason.message);
+        setLoading(false);
         if (reason.message.toLowerCase().includes("sign in")) {
           setTimeout(() => window.location.assign("/auth"), 900);
         }
-      })
-      .finally(() => setLoading(false));
+      });
   }, [conversationId]);
 
   useEffect(() => {
@@ -130,13 +156,67 @@ export default function ConversationPage() {
     });
 
     return () => { active = false; };
-  }, [messages]);
+  }, [messages, attachmentUrls]);
+
+  useEffect(() => {
+    if (!conversationId || !viewerUserId) return;
+    let active = true;
+    let syncing = false;
+    let interval: number | null = null;
+
+    const syncMessages = async () => {
+      if (!active || syncing) return;
+      syncing = true;
+      try {
+        const page = await listMessages(conversationId, { limit: 50 });
+        if (!active) return;
+
+        const newest = page.items.at(-1) ?? null;
+        const previousNewestId = newestMessageIdRef.current;
+        setMessages((current) => mergeMessages(current, page.items));
+
+        if (newest && newest.id !== previousNewestId && newest.senderId !== viewerUserId) {
+          void markConversationRead(conversationId, newest.id)
+            .then((read) => {
+              if (!active) return;
+              setConversation((current) => current ? {
+                ...current,
+                lastActivityAt: newest.createdAt,
+                lastMessage: newest,
+                viewer: { ...current.viewer, lastReadAt: read.lastReadAt, unreadCount: read.unreadCount }
+              } : current);
+            })
+            .catch(() => undefined);
+        }
+      } catch {
+        // Background sync must never make the thread feel broken.
+      } finally {
+        syncing = false;
+      }
+    };
+
+    const schedule = () => {
+      if (interval !== null) window.clearInterval(interval);
+      const delay = document.visibilityState === "visible" ? 1_250 : 5_000;
+      interval = window.setInterval(() => void syncMessages(), delay);
+    };
+
+    schedule();
+    document.addEventListener("visibilitychange", schedule);
+
+    return () => {
+      active = false;
+      if (interval !== null) window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", schedule);
+    };
+  }, [conversationId, viewerUserId]);
 
   useEffect(() => {
     if (!conversationId || !viewerUserId) return;
     let active = true;
 
     const poll = async () => {
+      if (document.visibilityState !== "visible") return;
       try {
         const state = await getConversationTyping(conversationId);
         if (active) setOtherTyping(state.typingUserIds.length > 0);
@@ -146,7 +226,7 @@ export default function ConversationPage() {
     };
 
     void poll();
-    const interval = window.setInterval(() => void poll(), 2_000);
+    const interval = window.setInterval(() => void poll(), 3_000);
     return () => {
       active = false;
       window.clearInterval(interval);
@@ -164,15 +244,18 @@ export default function ConversationPage() {
         listMessages(conversationId, { limit: 50 })
       ]);
       setConversation(nextConversation);
-      setMessages(page.items);
+      setMessages((current) => mergeMessages(current, page.items));
       setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore });
       const last = page.items.at(-1);
       if (last) {
-        const read = await markConversationRead(conversationId, last.id);
-        setConversation((current) => current ? {
-          ...current,
-          viewer: { ...current.viewer, lastReadAt: read.lastReadAt, unreadCount: read.unreadCount }
-        } : current);
+        void markConversationRead(conversationId, last.id)
+          .then((read) => {
+            setConversation((current) => current ? {
+              ...current,
+              viewer: { ...current.viewer, lastReadAt: read.lastReadAt, unreadCount: read.unreadCount }
+            } : current);
+          })
+          .catch(() => undefined);
       }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not refresh conversation");
@@ -184,7 +267,7 @@ export default function ConversationPage() {
     setLoadingOlder(true);
     try {
       const page = await listMessages(conversationId, { cursor: meta.nextCursor, limit: 50 });
-      setMessages((current) => [...page.items, ...current]);
+      setMessages((current) => mergeMessages(page.items, current));
       setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load older messages");
@@ -231,19 +314,65 @@ export default function ConversationPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!conversationId || !canSend || sending) return;
+    if (!conversationId || !viewerUserId || !canSend || sending) return;
+
+    const outgoingText = text.trim();
+    const outgoingContext = pendingContext;
+    const outgoingFile = selectedFile;
+    const optimisticId = `optimistic-${crypto.randomUUID()}`;
+    const now = new Date().toISOString();
+
     setSending(true);
     setError(null);
+    setText("");
+    setPendingContext(null);
+    setSelectedFile(null);
+    window.history.replaceState(null, "", `/messages/${conversationId}`);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    lastTypingSentRef.current = 0;
+    void setConversationTyping(conversationId, false).catch(() => undefined);
+
     let uploadedStorageKey: string | null = null;
+    let optimisticAdded = false;
 
     try {
-      const attachment = selectedFile
-        ? await uploadMessageAttachment(conversationId, selectedFile)
+      const attachment = outgoingFile
+        ? await uploadMessageAttachment(conversationId, outgoingFile)
         : null;
       uploadedStorageKey = attachment?.storageKey ?? null;
 
+      const optimistic: MessagingMessage = {
+        id: optimisticId,
+        conversationId,
+        senderId: viewerUserId,
+        text: outgoingText || null,
+        attachment: attachment ? {
+          type: attachment.type,
+          storageKey: attachment.storageKey,
+          fileName: attachment.fileName,
+          mimeType: attachment.mimeType,
+          sizeBytes: attachment.sizeBytes
+        } : null,
+        context: outgoingContext ? {
+          type: outgoingContext.type,
+          id: outgoingContext.id,
+          url: contextUrl(outgoingContext.type, outgoingContext.id)
+        } : null,
+        sender: {
+          id: viewerUserId,
+          displayName: null,
+          username: null,
+          avatarUrl: null
+        },
+        createdAt: now,
+        updatedAt: now
+      };
+
+      setMessages((current) => [...current, optimistic]);
+      optimisticAdded = true;
+
       const sent = await sendMessage(conversationId, {
-        ...(text.trim() ? { text: text.trim() } : {}),
+        ...(outgoingText ? { text: outgoingText } : {}),
         ...(attachment ? {
           attachmentType: attachment.type,
           attachmentStorageKey: attachment.storageKey,
@@ -251,24 +380,31 @@ export default function ConversationPage() {
           attachmentMimeType: attachment.mimeType,
           attachmentSizeBytes: attachment.sizeBytes
         } : {}),
-        ...(pendingContext ? { contextType: pendingContext.type, contextId: pendingContext.id } : {})
+        ...(outgoingContext ? { contextType: outgoingContext.type, contextId: outgoingContext.id } : {})
       });
 
-      setMessages((current) => [...current, sent]);
-      setText("");
-      setSelectedFile(null);
-      setPendingContext(null);
-      window.history.replaceState(null, "", `/messages/${conversationId}`);
-      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-      lastTypingSentRef.current = 0;
-      void setConversationTyping(conversationId, false).catch(() => undefined);
-      await markConversationRead(conversationId, sent.id);
-      const nextConversation = await getConversation(conversationId);
-      setConversation(nextConversation);
+      setMessages((current) => {
+        const withoutOptimisticOrDuplicate = current.filter(
+          (message) => message.id !== optimisticId && message.id !== sent.id
+        );
+        return mergeMessages(withoutOptimisticOrDuplicate, [sent]);
+      });
+      setConversation((current) => current ? {
+        ...current,
+        lastActivityAt: sent.createdAt,
+        lastMessage: sent,
+        viewer: { ...current.viewer, lastReadAt: sent.createdAt, unreadCount: 0 }
+      } : current);
     } catch (reason) {
+      if (optimisticAdded) {
+        setMessages((current) => current.filter((message) => message.id !== optimisticId));
+      }
       if (uploadedStorageKey) {
         await deleteMessageAttachment(uploadedStorageKey).catch(() => undefined);
       }
+      setText((current) => current || outgoingText);
+      setPendingContext((current) => current ?? outgoingContext);
+      setSelectedFile((current) => current ?? outgoingFile);
       setError(reason instanceof Error ? reason.message : "Could not send message");
     } finally {
       setSending(false);
@@ -316,6 +452,7 @@ export default function ConversationPage() {
         {messages.map((message) => {
           const mine = message.senderId === viewerUserId;
           const attachmentUrl = attachmentUrls[message.id];
+          const optimistic = message.id.startsWith("optimistic-");
           return <div key={message.id} className={`${styles.bubbleRow} ${mine ? styles.mine : styles.theirs}`}>
             <article className={styles.bubble}>
               {!mine && <div className={styles.sender}>{message.sender.displayName ?? message.sender.username ?? "Hustle user"}</div>}
@@ -330,10 +467,11 @@ export default function ConversationPage() {
               {message.context && <a className={styles.context} href={message.context.url} onClick={(event) => { event.preventDefault(); void openContext(message); }}>
                 <strong>{contextLabel(message.context.type)} context</strong><br />Open current canonical {contextLabel(message.context.type).toLowerCase()} →
               </a>}
-              <span className={styles.time}>{formatTime(message.createdAt)}</span>
+              <span className={styles.time}>{formatTime(message.createdAt)}{optimistic ? " · Sending…" : ""}</span>
             </article>
           </div>;
         })}
+        <div ref={messagesEndRef} />
         {otherTyping && <div className={styles.typingIndicator}>{other?.displayName ?? other?.username ?? "Hustle user"} is typing…</div>}
         {error && <p className={styles.threadError}>{error}</p>}
       </section>
@@ -366,7 +504,7 @@ export default function ConversationPage() {
             />
             <button type="submit" disabled={!canSend || sending}>{sending ? "Sending…" : "Send"}</button>
           </div>
-          <p className={styles.notice}>Private image/file attachments are participant-only. Typing presence is ephemeral and gracefully degrades if the current API instance cannot observe it.</p>
+          <p className={styles.notice}>Messages sync automatically while this thread is open. Private image/file attachments remain participant-only.</p>
         </form>
       </div>
     </div>
