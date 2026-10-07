@@ -1,0 +1,19 @@
+import { Module } from "@nestjs/common";
+
+import { AuthModule } from "../auth/auth.module";
+import {
+  AgentRelationshipController,
+  HustlerAgentRelationshipController
+} from "./agent-relationship.controller";
+import { AgentRelationshipService } from "./agent-relationship.service";
+
+@Module({
+  imports: [AuthModule],
+  controllers: [
+    HustlerAgentRelationshipController,
+    AgentRelationshipController
+  ],
+  providers: [AgentRelationshipService],
+  exports: [AgentRelationshipService]
+})
+export class AgentRelationshipModule {}
