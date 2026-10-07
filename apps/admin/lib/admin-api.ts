@@ -448,3 +448,235 @@ export const listAdminAuditEvents = (
     token,
     `/admin/operations/audit?limit=${limit}${name ? `&name=${encodeURIComponent(name)}` : ""}`
   );
+
+
+export type AdminApplicationProof = {
+  id: string;
+  applicationId: string;
+  type: string;
+  storageKey: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number | null;
+  createdAt: string;
+};
+
+export type AdminReviewUser = {
+  id: string;
+  displayName: string | null;
+  username: string | null;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  capabilities?: AdminCapability[];
+  assistedRegistration?: {
+    id: string;
+    status: string;
+    consentMethod: string;
+    consentNote?: string | null;
+    consentConfirmedAt: string;
+    claimedAt?: string | null;
+    agent: {
+      id: string;
+      displayName: string | null;
+      username: string | null;
+      email: string | null;
+    };
+  } | null;
+};
+
+export type AdminReviewRecord = {
+  id: string;
+  userId: string;
+  status: string;
+  identityVerificationStatus: string;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  reviewNotes: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: AdminReviewUser;
+  reviewer?: {
+    id: string;
+    displayName: string | null;
+    username: string | null;
+    email: string | null;
+  } | null;
+  proofs: AdminApplicationProof[];
+  primarySkill?: string | null;
+  category?: string | null;
+  experienceSummary?: string | null;
+  yearsExperience?: number | null;
+  businessName?: string | null;
+  businessInfo?: string | null;
+  motivation?: string | null;
+  experienceSummary?: string | null;
+  operatingArea?: string | null;
+  organizationName?: string | null;
+  organizationInfo?: string | null;
+};
+
+export type AdminProofReadUrl = {
+  url: string;
+  expiresInSeconds: number;
+  proof: {
+    id: string;
+    fileName: string;
+    type: string;
+    mimeType: string;
+    sizeBytes: number | null;
+  };
+};
+
+export const getHustlerAdminReview = (token: string, applicationId: string) =>
+  adminFetch<AdminReviewRecord>(
+    token,
+    `/hustler-reviews/${encodeURIComponent(applicationId)}`
+  );
+
+export const startHustlerAdminReview = (token: string, applicationId: string) =>
+  adminFetch<AdminReviewRecord>(
+    token,
+    `/hustler-reviews/${encodeURIComponent(applicationId)}/start`,
+    { method: "POST" }
+  );
+
+export const setHustlerAdminVerification = (
+  token: string,
+  applicationId: string,
+  status: "VERIFIED" | "REJECTED"
+) =>
+  adminFetch<AdminReviewRecord>(
+    token,
+    `/hustler-reviews/${encodeURIComponent(applicationId)}/verification`,
+    { method: "POST", body: JSON.stringify({ status }) }
+  );
+
+export const getHustlerAdminProofReadUrl = (
+  token: string,
+  applicationId: string,
+  proofId: string
+) =>
+  adminFetch<AdminProofReadUrl>(
+    token,
+    `/hustler-reviews/${encodeURIComponent(applicationId)}/proofs/${encodeURIComponent(proofId)}/read-url`,
+    { method: "POST" }
+  );
+
+export const approveHustlerAdminApplication = (
+  token: string,
+  applicationId: string,
+  notes?: string
+) =>
+  adminFetch<AdminReviewRecord>(
+    token,
+    `/hustler-reviews/${encodeURIComponent(applicationId)}/approve`,
+    { method: "POST", body: JSON.stringify({ notes: notes || null }) }
+  );
+
+export const rejectHustlerAdminApplication = (
+  token: string,
+  applicationId: string,
+  rejectionReason: string,
+  notes?: string
+) =>
+  adminFetch<AdminReviewRecord>(
+    token,
+    `/hustler-reviews/${encodeURIComponent(applicationId)}/reject`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        rejectionReason,
+        notes: notes || null
+      })
+    }
+  );
+
+export const getAgentAdminReview = (token: string, applicationId: string) =>
+  adminFetch<AdminReviewRecord>(
+    token,
+    `/admin/agent-applications/${encodeURIComponent(applicationId)}`
+  );
+
+export const startAgentAdminReview = (token: string, applicationId: string) =>
+  adminFetch<AdminReviewRecord>(
+    token,
+    `/admin/agent-applications/${encodeURIComponent(applicationId)}/start`,
+    { method: "POST" }
+  );
+
+export const setAgentAdminVerification = (
+  token: string,
+  applicationId: string,
+  status: "VERIFIED" | "REJECTED"
+) =>
+  adminFetch<AdminReviewRecord>(
+    token,
+    `/admin/agent-applications/${encodeURIComponent(applicationId)}/verification`,
+    { method: "POST", body: JSON.stringify({ status }) }
+  );
+
+export const getAgentAdminProofReadUrl = (
+  token: string,
+  applicationId: string,
+  proofId: string
+) =>
+  adminFetch<AdminProofReadUrl>(
+    token,
+    `/admin/agent-applications/${encodeURIComponent(applicationId)}/proofs/${encodeURIComponent(proofId)}/read-url`,
+    { method: "POST" }
+  );
+
+export const approveAgentAdminApplication = (
+  token: string,
+  applicationId: string,
+  notes?: string
+) =>
+  adminFetch<AdminReviewRecord>(
+    token,
+    `/admin/agent-applications/${encodeURIComponent(applicationId)}/approve`,
+    { method: "POST", body: JSON.stringify({ notes: notes || null }) }
+  );
+
+export const rejectAgentAdminApplication = (
+  token: string,
+  applicationId: string,
+  rejectionReason: string,
+  notes?: string
+) =>
+  adminFetch<AdminReviewRecord>(
+    token,
+    `/admin/agent-applications/${encodeURIComponent(applicationId)}/reject`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        rejectionReason,
+        notes: notes || null
+      })
+    }
+  );
+
+export const suspendAdminCapability = (
+  token: string,
+  userId: string,
+  capability: "HUSTLER" | "AGENT",
+  reason: string
+) =>
+  adminFetch<AdminUserDetail>(
+    token,
+    `/admin/operations/users/${encodeURIComponent(userId)}/capabilities/${capability}/suspend`,
+    { method: "POST", body: JSON.stringify({ reason }) }
+  );
+
+export const reactivateAdminCapability = (
+  token: string,
+  userId: string,
+  capability: "HUSTLER" | "AGENT",
+  reason: string
+) =>
+  adminFetch<AdminUserDetail>(
+    token,
+    `/admin/operations/users/${encodeURIComponent(userId)}/capabilities/${capability}/reactivate`,
+    { method: "POST", body: JSON.stringify({ reason }) }
+  );
