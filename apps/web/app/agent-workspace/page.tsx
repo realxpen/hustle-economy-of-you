@@ -90,8 +90,8 @@ export default function AgentWorkspacePage() {
         <h1>Represent with<br/><em>permission.</em></h1>
       </div>
       <p>
-        Every Hustler relationship is explicit. You only receive the named scopes the
-        Hustler grants, and those grants can be revoked at any time.
+        Every Client-principal relationship is explicit. You only receive the named scopes the
+        account owner grants, and those grants can be revoked at any time.
       </p>
     </section>
 
@@ -100,17 +100,17 @@ export default function AgentWorkspacePage() {
 
     {!isAgent ? <section className={styles.boundary}>
       <strong>ACTIVE AGENT required.</strong>
-      <p>Your Agent capability must be approved before you can receive Hustler invitations.</p>
+      <p>Your Agent capability must be approved before you can receive representation invitations.</p>
       <a href="/agent-application">Open Agent application →</a>
     </section> : <>
       <section className={styles.workspaceSection}>
-        <div className={styles.sectionHeading}><span>01</span><div><strong>Pending invitations</strong><p>Review the Hustler and exact permission scopes before accepting.</p></div></div>
+        <div className={styles.sectionHeading}><span>01</span><div><strong>Pending invitations</strong><p>Review the account owner and exact permission scopes before accepting.</p></div></div>
         {pending.length === 0 ? <div className={styles.empty}><strong>No pending invitations.</strong></div> : pending.map((relationship) =>
           <article className={styles.card} key={relationship.id}>
             <div className={styles.cardHead}>
               <div className={styles.party}>
-                <strong>{relationship.hustler.displayName ?? relationship.hustler.username ?? "Hustler"}</strong>
-                <span>@{relationship.hustler.username ?? "hustler"} · {relationship.hustler.location ?? "Location not set"}</span>
+                <strong>{relationship.principal.displayName ?? relationship.principal.username ?? "Account owner"}</strong>
+                <span>@{relationship.principal.username ?? "user"} · {relationship.principal.location ?? "Location not set"}</span>
               </div>
               <b className={styles.status}>PENDING</b>
             </div>
@@ -129,13 +129,13 @@ export default function AgentWorkspacePage() {
       </section>
 
       <section className={styles.workspaceSection}>
-        <div className={styles.sectionHeading}><span>02</span><div><strong>Active representations</strong><p>One Agent can represent multiple Hustlers, each with independent grants.</p></div></div>
-        {active.length === 0 ? <div className={styles.empty}><strong>No active Hustler relationships.</strong></div> : active.map((relationship) =>
+        <div className={styles.sectionHeading}><span>02</span><div><strong>Active representations</strong><p>One Agent can represent multiple Hustle users, each with independent grants.</p></div></div>
+        {active.length === 0 ? <div className={styles.empty}><strong>No active representation relationships.</strong></div> : active.map((relationship) =>
           <article className={styles.card} key={relationship.id}>
             <div className={styles.cardHead}>
               <div className={styles.party}>
-                <strong>{relationship.hustler.displayName ?? relationship.hustler.username ?? "Hustler"}</strong>
-                <span>@{relationship.hustler.username ?? "hustler"} · {relationship.hustler.location ?? "Location not set"}</span>
+                <strong>{relationship.principal.displayName ?? relationship.principal.username ?? "Account owner"}</strong>
+                <span>@{relationship.principal.username ?? "user"} · {relationship.principal.location ?? "Location not set"}</span>
               </div>
               <b className={styles.status}>ACTIVE</b>
             </div>
@@ -143,7 +143,7 @@ export default function AgentWorkspacePage() {
               {relationship.permissions.map((grant) => <span key={grant.id}>{permissionLabels[grant.scope] ?? grant.scope}</span>)}
             </div>
             <div className={styles.actions}>
-              <span>Phase 18B stores and audits these grants. It does not yet expose operational controls over this Hustler&apos;s business.</span>
+              <span>Phase 18B stores and audits these grants. It does not yet expose operational controls over this account owner&apos;s Hustler-only business.</span>
               <button className={styles.danger} disabled={busyId === relationship.id} onClick={() => run(relationship.id, () => leaveAgentRelationship(relationship.id), "You left the relationship. Delegated authority is revoked.")}>Leave relationship</button>
             </div>
           </article>
@@ -154,7 +154,7 @@ export default function AgentWorkspacePage() {
         <div className={styles.sectionHeading}><span>03</span><div><strong>Relationship history</strong><p>Closed invitations remain visible as lifecycle history.</p></div></div>
         <div className={styles.history}>
           {history.map((relationship) => <div key={relationship.id}>
-            <span>{relationship.hustler.displayName ?? relationship.hustler.username ?? "Hustler"}</span>
+            <span>{relationship.principal.displayName ?? relationship.principal.username ?? "Account owner"}</span>
             <b>{relationship.status}</b>
           </div>)}
         </div>
@@ -162,7 +162,7 @@ export default function AgentWorkspacePage() {
     </>}
 
     <section className={styles.boundary}>
-      <strong>Money and reputation stay with the Hustler.</strong>
+      <strong>Money and reputation stay with the account owner.</strong>
       <p>
         No relationship can transfer wallet balances, escrow, payouts, reviews, reputation,
         identity ownership or login access. Future delegated actions must check an ACTIVE
