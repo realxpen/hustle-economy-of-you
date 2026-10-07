@@ -65,7 +65,7 @@ export class AgentRelationshipService {
           }
         }
       },
-      select: { blockerUserId: true }
+      select: { id: true }
     });
 
     if (!agent) {
@@ -599,7 +599,7 @@ export class AgentRelationshipService {
           { blockerUserId: secondUserId, blockedUserId: firstUserId }
         ]
       },
-      select: { id: true }
+      select: { blockerUserId: true }
     });
 
     if (block) {
