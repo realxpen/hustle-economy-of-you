@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 18B — Hustler↔Agent Relationship + Scoped Permission Grants (implementation in progress; runtime acceptance pending)
+Phase 18B — Hustler↔Agent Relationship + Scoped Permission Grants (merged + database activated; manual production deployment/runtime acceptance pending)
 
 Phase 17 — Live Commerce Beta: COMPLETE — implementation, production media/runtime validation and final mobile fullscreen/Quick View acceptance validated 2026-10-07.
 
@@ -335,9 +335,32 @@ Production activation and runtime acceptance:
 - no interface or authority exists yet for managing another Hustler; this absence is intentional and validates the 18A delegation boundary
 
 ### 18B — Hustler↔Agent Relationship + Scoped Permission Grants
-IMPLEMENTATION IN PROGRESS — runtime acceptance pending.
+MERGED + DATABASE ACTIVATED — manual production deployment/runtime acceptance pending.
 
-Planned/implemented authority:
+Merges:
+- PR #56 feature merge `18e6042c172e93419672f12d9f1a884570b11bf4`
+- PR #57 advisor/index hardening merge `a6842fccb289b3dc6e46dce2e7b5873eb993a553`
+
+CI:
+- web typecheck ✅
+- admin typecheck ✅
+- mobile typecheck ✅
+- Prisma generation ✅
+- API typecheck ✅
+- web build ✅
+- admin build ✅
+- API build ✅
+
+Hosted database:
+- `phase18b_agent_relationship_permissions` applied successfully
+- `AgentRelationship`, `AgentPermissionGrant` and `AgentDelegationAudit` verified with RLS enabled
+- direct `anon` / `authenticated` table SELECT access revoked
+- `hustle_api` policies and CRUD authority verified
+- `phase18b_relationship_revoker_index` applied after the Supabase advisor flagged the new revoker foreign key
+- `AgentRelationship_revokedByUserId_idx` verified present and the Phase-18B-specific unindexed-FK advisor finding cleared
+- no new Phase-18B-specific security advisor finding
+
+Implemented authority:
 - Hustler-initiated invitation to an ACTIVE Agent
 - Agent acceptance/decline
 - ACTIVE relationship required before any permission can authorize a future delegated action
@@ -384,7 +407,9 @@ Use fresh auth sessions/tokens for runtime validation. Never commit or print pro
 
 ## Next gate
 
-Complete **Phase 18B** implementation, CI, hosted migration and manual production runtime validation.
+Phase 18B implementation, CI and hosted database activation are complete.
+
+The remaining gate is **manual production deployment by the project owner + runtime acceptance**.
 
 18B acceptance must prove:
 - Hustler can invite an ACTIVE Agent with explicit scopes
