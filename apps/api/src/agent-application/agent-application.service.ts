@@ -85,6 +85,7 @@ export class AgentApplicationService {
     await this.prisma.agentApplication.upsert({
       where: { userId: user.id },
       create: {
+        userId: user.id,
         ...(motivation !== undefined ? { motivation } : {}),
         ...(experienceSummary !== undefined ? { experienceSummary } : {}),
         ...(operatingArea !== undefined ? { operatingArea } : {}),
