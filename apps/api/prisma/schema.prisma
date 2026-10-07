@@ -335,6 +335,7 @@ model User {
   followers                   UserFollow[]              @relation("UserFollowers")
   conversationParticipants    ConversationParticipant[]
   sentMessages                Message[]                 @relation("MessageSender")
+  delegatedMessagesSent       Message[]                 @relation("MessageDelegatedAgent")
   clientBookings              Booking[]                 @relation("BookingClient")
   hustlerBookings             Booking[]                 @relation("BookingHustler")
   cancelledBookings           Booking[]                 @relation("BookingCancelledBy")
@@ -799,10 +800,11 @@ model ConversationParticipant {
 }
 
 model Message {
-  id                   String                 @id @default(cuid())
-  conversationId       String
-  senderId             String
-  text                 String?
+  id                     String                 @id @default(cuid())
+  conversationId         String
+  senderId               String
+  delegatedByAgentUserId String?
+  text                   String?
   attachmentType       MessageAttachmentType?
   attachmentStorageKey String?
   attachmentFileName   String?
@@ -813,11 +815,13 @@ model Message {
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender           User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  delegatedByAgent User?        @relation("MessageDelegatedAgent", fields: [delegatedByAgentUserId], references: [id], onDelete: SetNull)
 
   @@index([conversationId, createdAt])
   @@index([senderId, createdAt])
+  @@index([delegatedByAgentUserId, createdAt])
   @@index([contextType, contextId])
 }
 
