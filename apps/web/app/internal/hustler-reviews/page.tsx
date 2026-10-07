@@ -125,6 +125,20 @@ export default function HustlerReviewsPage() {
             <strong>{selected.status.replaceAll("_", " ")}</strong>
           </div>
 
+          {selected.user.assistedRegistration && <article className={styles.story}>
+            <small>AGENT-ASSISTED REGISTRATION</small>
+            <h3>{selected.user.assistedRegistration.agent.displayName ?? selected.user.assistedRegistration.agent.username ?? "Hustle Agent"}</h3>
+            <p>
+              @{selected.user.assistedRegistration.agent.username ?? "agent"} ·
+              {" "}{selected.user.assistedRegistration.consentMethod.replaceAll("_", " ")} consent ·
+              {" "}{selected.user.assistedRegistration.status}
+            </p>
+            <p>
+              The applicant remains the identity owner. The Agent is the recorded onboarding actor.
+              {selected.user.assistedRegistration.consentNote ? ` Consent note: ${selected.user.assistedRegistration.consentNote}` : ""}
+            </p>
+          </article>}
+
           <div className={styles.grid}>
             <article><small>PRIMARY SKILL</small><h3>{selected.primarySkill}</h3><p>{selected.category}</p></article>
             <article><small>EXPERIENCE</small><h3>{selected.yearsExperience ?? 0} yrs</h3><p>{selected.experienceSummary}</p></article>
