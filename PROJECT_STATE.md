@@ -1,19 +1,23 @@
 # Hustle Project State
 
-Updated: 2026-09-18
+Updated: 2026-10-07
 
 ## Current AED capability
 Build
 
 ## Current MVP phase
-Phase 17 — Live Commerce Beta
+Phase 17 — Live Commerce Beta (final runtime validation pending)
+
+Phase 18A — Verified Agent Capability Foundation is being implemented in parallel and must not be treated as Phase 17 closure.
 
 Phase 13 — Payments + Escrow is COMPLETE.
 Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 17B — Native Live Media Transport — IMPLEMENTED + CI GREEN; runtime migration/media validation pending.**
+Current active slice: **Phase 17D runtime closeout + Phase 18A Agent Capability Foundation implementation.**
+
+Phase 17 remains OPEN until the four final production runtime checks are confirmed by the project owner.
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -263,6 +267,58 @@ Runtime still required:
 - verify provider secret never appears in browser/public responses
 - re-check unchanged xpen verified reputation invariant.
 
+## Phase 17C/17D — Production Live Viewer + Commerce Polish
+IMPLEMENTED + MERGED — final runtime acceptance pending.
+
+Latest merge:
+- PR #54 merge `7033cbb11331f6e9943583f94f2ee6c672505e39`
+
+Validated in CI / implemented:
+- production Live viewer lifecycle, delta chat and viewer presence
+- pinned canonical Service/Product commerce actions
+- mobile WebKit/native-video fullscreen fallback
+- reusable Product/Service Quick View
+- desktop modal + mobile bottom sheet
+- Quick View from Live pinned offers, Home feed references and individual Post pages
+- canonical Service/Product pages remain authoritative for transaction actions
+
+Final production runtime checks still required before Phase 17 may be marked COMPLETE:
+1. Mobile native Live → Fullscreen enters native phone fullscreen.
+2. Live pinned Product/Service → Quick View opens without leaving Live → full-details CTA works.
+3. Home feed attached Product/Service → Quick View opens without leaving the feed.
+4. Post page attached offer → Quick View opens and shows canonical provider/offer information.
+
+## Phase 18 — Agent MVP
+ACTIVE BUILD — Phase 18A foundation on branch `phase18a-agent-capability`.
+
+### 18A — Verified Agent Capability Foundation
+
+Architecture:
+`CLIENT → optional HUSTLER → optional AGENT`
+
+There is one User identity and no role switcher.
+
+Implemented in the current Phase 18A branch:
+- Agent application lifecycle
+- private Agent application proof
+- admin-only review authority
+- separate identity verification state
+- atomic approval → `UserCapability(AGENT, ACTIVE)`
+- approval preserves CLIENT and any existing HUSTLER capability
+- review/verification/approval/rejection SystemEvents
+- web Agent application surface
+- internal Agent review surface
+
+Critical boundary:
+- AGENT approval does not create a Hustler↔Agent relationship
+- no delegated access to another Hustler exists in 18A
+- no Agent authority over another Hustler's identity, profile, Service/Product ownership, messages, bookings, wallet, ledger, escrow, payouts, Reviews or reputation
+- Phase 18B must introduce explicit Hustler-granted relationships, scoped permissions and actor-vs-owner auditability
+
+Canonical Phase 18 knowledge:
+- `Knowledge/Product/AGENT_MVP.md`
+- `Knowledge/Decisions/ADR-0032-agent-capability-foundation.md`
+
 ## Supabase
 Dedicated project:
 - Ref: `pfgarmyygybmhiiuopym`
@@ -294,4 +350,10 @@ Before pulling:
 Use fresh auth sessions/tokens for runtime validation. Never commit or print provider/webhook/admin secrets.
 
 ## Next gate
-**Phase 17B runtime: deploy `20260918110000_phase17b_native_live_media`, run secret-safe local LiveKit setup, connect xpen camera/microphone, prove a real native publisher drives `nativeBroadcasting`, verify signed-out subscribe-only playback and reconnect behavior, end the session cleanly, and confirm no provider secret/reusable stream key reaches the browser or changes verified reputation.**
+
+Two independent gates are active:
+
+1. **Phase 17 runtime closeout:** complete the four final production Live/Quick View checks above. Only then mark Phase 17 COMPLETE.
+2. **Phase 18A build gate:** CI green → PR → merge → production migration/deployment → runtime test Agent application, admin review, atomic AGENT activation and unchanged existing capabilities.
+
+After 18A is runtime validated, proceed to **Phase 18B — explicit Hustler↔Agent relationship + scoped delegated permissions + audit trail**.
