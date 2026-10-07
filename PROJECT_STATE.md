@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 19A — Admin Marketplace Operations Foundation (implementation in progress)
+Phase 19A — Admin Marketplace Operations Foundation (merged; runtime acceptance deferred for combined validation)
 
 Phase 18E — Delegated Bookings + Client Messages (merged + database activated; runtime acceptance intentionally deferred for combined validation)
 
@@ -675,7 +675,23 @@ Phase 18D/18E runtime validation remains pending by explicit project-owner choic
 
 
 ### 19A — Admin Marketplace Operations Foundation
-IMPLEMENTATION IN PROGRESS.
+MERGED — runtime acceptance deferred for combined validation.
+
+Merge:
+- PR #64 `c24aaa7ebf0a46ca4679cc844b1275b92c493b07`
+
+CI:
+- web typecheck ✅
+- admin typecheck ✅
+- mobile typecheck ✅
+- Prisma generation ✅
+- API typecheck ✅
+- web build ✅
+- admin build ✅
+- API build ✅
+
+Database:
+- no schema migration required.
 
 Goal:
 - give the Hustle team one authoritative control plane for operating the marketplace without direct database access.
@@ -704,3 +720,6 @@ Admin app:
 - Review/reputation mutation.
 
 These higher-risk controls require explicit Phase 19 follow-on policy and audit decisions.
+
+
+Phase 19A runtime testing is intentionally deferred into the same consolidated validation session as Phase 18D/18E.
