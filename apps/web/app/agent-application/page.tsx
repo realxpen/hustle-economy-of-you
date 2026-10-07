@@ -201,7 +201,10 @@ export default function AgentApplicationPage() {
         <p>
           Agent is active on this same Hustle identity. This approval does not give you ownership of another Hustler&apos;s identity, business, funds, reviews or reputation. Delegated access will require an explicit Hustler relationship and permission grant.
         </p>
-        <a href="/account">Back to your Hustle identity →</a>
+        <div className={styles.actions}>
+          <a href="/agent-workspace">Open Agent workspace →</a>
+          <a href="/account">Back to your Hustle identity →</a>
+        </div>
       </section>
     </main>;
   }
