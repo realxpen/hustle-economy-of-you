@@ -91,14 +91,19 @@ An Agent may eventually represent multiple Hustlers, but every represented Hustl
 
 ## Gate
 
-Phase 18A is complete when a real existing Hustle user can:
+**CLOSED — runtime validated 2026-10-07.**
 
-1. apply for Agent;
-2. upload private proof;
-3. submit the application;
-4. be reviewed by an authorized admin;
-5. pass identity verification;
-6. be approved;
-7. refresh their unified account and see `AGENT · ACTIVE` while their previous capabilities remain unchanged.
+A real existing Hustle user successfully:
 
-No delegation should be possible yet.
+1. applied for Agent;
+2. saved the draft and uploaded private proof;
+3. submitted the application;
+4. appeared in the internal Agent review queue for a different authorized admin identity;
+5. had the private proof opened through the signed preview flow;
+6. passed identity verification;
+7. was approved;
+8. refreshed the unified account and saw `AGENT · ACTIVE` while the previous capabilities remained unchanged.
+
+The approved application state rendered correctly, and no delegated access to another Hustler was available.
+
+That absence is intentional. Phase 18A establishes verified Agent capability only; Phase 18B owns Hustler↔Agent relationships and permission grants.

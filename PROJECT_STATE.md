@@ -8,14 +8,14 @@ Build
 ## Current MVP phase
 Phase 17 — Live Commerce Beta (final runtime validation pending)
 
-Phase 18A — Verified Agent Capability Foundation is being implemented in parallel and must not be treated as Phase 17 closure.
+Phase 18A — Verified Agent Capability Foundation: COMPLETE — implementation, database activation, manual production deployment and end-to-end runtime acceptance validated 2026-10-07.
 
 Phase 13 — Payments + Escrow is COMPLETE.
 Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 17D runtime closeout + Phase 18A Agent Capability Foundation implementation.**
+Current active slice: **Phase 17D runtime closeout + Phase 18B Hustler↔Agent Relationship & Scoped Permission Grants next.**
 
 Phase 17 remains OPEN until the four final production runtime checks are confirmed by the project owner.
 
@@ -65,6 +65,7 @@ Phase 17 remains OPEN until the four final production runtime checks are confirm
 - Phase 14 — Trust + Reputation: COMPLETE
 - Phase 15 — Public Hustle Storefront Website: COMPLETE
 - Phase 16 — Stories + Universal User Content: COMPLETE
+- Phase 18A — Verified Agent Capability Foundation: COMPLETE
 
 ## Current transaction and trust boundaries
 
@@ -289,9 +290,10 @@ Final production runtime checks still required before Phase 17 may be marked COM
 4. Post page attached offer → Quick View opens and shows canonical provider/offer information.
 
 ## Phase 18 — Agent MVP
-MERGED + DATABASE ACTIVATED — production Vercel deployment blocked by the Hobby-plan daily deployment limit.
+ACTIVE.
 
 ### 18A — Verified Agent Capability Foundation
+COMPLETE — implementation, CI, database activation, manual production deployment and end-to-end runtime validated 2026-10-07.
 
 Architecture:
 `CLIENT → optional HUSTLER → optional AGENT`
@@ -319,13 +321,18 @@ Canonical Phase 18 knowledge:
 - `Knowledge/Product/AGENT_MVP.md`
 - `Knowledge/Decisions/ADR-0032-agent-capability-foundation.md`
 
-Production activation state:
+Production activation and runtime acceptance:
 - Supabase migration `phase18a_agent_capability_foundation` applied successfully on 2026-10-07
 - `AgentApplication` and `AgentApplicationProof` verified present
 - private `agent-proofs` bucket verified present
-- Vercel Git deployment for merge commit #55 was not created because the team exceeded the free daily deployment limit
-- explicit manual production deployment attempt returned `402 api-deployments-free-per-day` with a 24-hour retry window
-- therefore Phase 18A runtime acceptance is BLOCKED on deployment, not code or database readiness
+- current API/web were manually deployed by the project owner
+- existing account capabilities remained intact
+- Agent draft save, private proof upload and submission succeeded
+- a different authorized admin identity could see the Agent queue, start review and open the signed private proof preview
+- identity verification was marked VERIFIED before approval
+- approval activated `AGENT · ACTIVE` on the same unified account while preserving existing capabilities
+- approved Agent application state rendered correctly
+- no interface or authority exists yet for managing another Hustler; this absence is intentional and validates the 18A delegation boundary
 
 ## Supabase
 Dedicated project:
@@ -346,7 +353,9 @@ Canonical local storefront origin: `NEXT_PUBLIC_WEB_URL=http://localhost:3001`.
 Production CORS remains configuration-driven.
 
 ## Repository workflow
-ChatGPT commits directly to `realxpen/hustle-economy-of-you`. The project owner pulls and performs development-machine runtime validation.
+ChatGPT commits directly to `realxpen/hustle-economy-of-you`. The project owner pulls and performs development-machine/runtime validation.
+
+Vercel automatic Git deployments are disabled. ChatGPT must not trigger, retry, promote or create Vercel deployments. Production deployment is performed manually by the project owner.
 
 Before pulling:
 1. `git status`
@@ -359,9 +368,9 @@ Use fresh auth sessions/tokens for runtime validation. Never commit or print pro
 
 ## Next gate
 
-Two independent gates are active:
+Two independent tracks remain:
 
 1. **Phase 17 runtime closeout:** complete the four final production Live/Quick View checks above. Only then mark Phase 17 COMPLETE.
-2. **Phase 18A release gate:** CI GREEN, PR #55 MERGED and production migration APPLIED. Remaining blocker: Vercel production deploy after the daily deployment limit resets, then runtime test Agent application, admin review, atomic AGENT activation and unchanged existing capabilities.
+2. **Phase 18B next build gate:** implement explicit Hustler↔Agent relationship + scoped delegated permissions + revocation + actor-vs-owner audit trail.
 
-After 18A is runtime validated, proceed to **Phase 18B — explicit Hustler↔Agent relationship + scoped delegated permissions + audit trail**.
+Phase 18A is CLOSED and must not be reopened unless a regression is found.
