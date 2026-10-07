@@ -20,6 +20,7 @@ import { StorefrontModule } from "./storefront/storefront.module";
 import { StoryModule } from "./story/story.module";
 import { LiveModule } from "./live/live.module";
 import { AgentApplicationModule } from "./agent-application/agent-application.module";
+import { AgentRelationshipModule } from "./agent-relationship/agent-relationship.module";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
 
 @Module({
@@ -44,7 +45,8 @@ import { RequestContextMiddleware } from "./common/middleware/request-context.mi
     StorefrontModule,
     StoryModule,
     LiveModule,
-    AgentApplicationModule
+    AgentApplicationModule,
+    AgentRelationshipModule
   ]
 })
 export class AppModule implements NestModule {
