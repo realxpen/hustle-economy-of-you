@@ -83,12 +83,25 @@ export default function AgentReviewsPage() {
 
   async function previewProof(proofId: string) {
     if (!selected) return;
+
+    const proofWindow = window.open("", "_blank");
+    if (proofWindow) {
+      proofWindow.opener = null;
+      proofWindow.document.title = "Opening secure proof…";
+      proofWindow.document.body.innerHTML = "<p style='font-family:system-ui;padding:24px'>Opening secure proof…</p>";
+    }
+
     setBusy(true);
     setError(null);
     try {
       const result = await getAgentProofReadUrl(selected.id, proofId);
-      window.open(result.url, "_blank", "noopener,noreferrer");
+      if (proofWindow) {
+        proofWindow.location.replace(result.url);
+      } else {
+        window.location.assign(result.url);
+      }
     } catch (reason) {
+      proofWindow?.close();
       setError(reason instanceof Error ? reason.message : "Could not open Agent proof");
     } finally {
       setBusy(false);
