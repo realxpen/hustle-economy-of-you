@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 19B — Admin Capability + Application Operations (implementation in progress)
+Phase 19B — Admin Capability + Application Operations (merged; runtime acceptance deferred for combined validation)
 
 Phase 19A — Admin Marketplace Operations Foundation (merged; runtime acceptance deferred for combined validation)
 
@@ -729,7 +729,23 @@ Phase 19A runtime testing is intentionally deferred into the same consolidated v
 
 
 ### 19B — Admin Capability + Application Operations
-IMPLEMENTATION IN PROGRESS.
+MERGED — runtime acceptance deferred for combined validation.
+
+Merge:
+- PR #65 `318d3b07df8c4cccd1c46216ecd2994b90bed0d8`
+
+CI:
+- web typecheck ✅
+- admin typecheck ✅
+- mobile typecheck ✅
+- Prisma generation ✅
+- API typecheck ✅
+- web build ✅
+- admin build ✅
+- API build ✅
+
+Database:
+- no schema migration required.
 
 Application operations:
 - standalone Admin Console route `/applications`;
@@ -755,3 +771,13 @@ Explicitly excluded:
 - permanent capability revocation;
 - financial operations;
 - Review/reputation mutation.
+
+
+### Consolidated runtime batch — planned for 2026-10-08
+Runtime validation is intentionally pending for:
+- Phase 18D — delegated Profile/Service/Product/Content operations;
+- Phase 18E — delegated Bookings + Client Messages;
+- Phase 19A — Admin Marketplace Operations read cockpit;
+- Phase 19B — unified capability reviews + reversible HUSTLER/AGENT suspension/reactivation.
+
+Do not mark any of these slices runtime-complete until the consolidated production acceptance session passes.
