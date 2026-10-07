@@ -511,7 +511,6 @@ export type AdminReviewRecord = {
   businessName?: string | null;
   businessInfo?: string | null;
   motivation?: string | null;
-  experienceSummary?: string | null;
   operatingArea?: string | null;
   organizationName?: string | null;
   organizationInfo?: string | null;
