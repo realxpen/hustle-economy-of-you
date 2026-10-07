@@ -186,6 +186,7 @@ export interface AgentRelationshipParty {
   username: string | null;
   avatarUrl: string | null;
   location: string | null;
+  capabilities?: HustleCapability[];
 }
 
 export interface AgentPermissionGrant {

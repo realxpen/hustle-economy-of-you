@@ -154,8 +154,12 @@ export default function AgentWorkspacePage() {
               {relationship.permissions.map((grant) => <span key={grant.id}>{permissionLabels[grant.scope] ?? grant.scope}</span>)}
             </div>
             <div className={styles.actions}>
-              <span>Phase 18B stores and audits these grants. It does not yet expose operational controls over this account owner&apos;s Hustler-only business.</span>
-              <button className={styles.danger} disabled={busyId === relationship.id} onClick={() => run(relationship.id, () => leaveAgentRelationship(relationship.id), "You left the relationship. Delegated authority is revoked.")}>Leave relationship</button>
+              <span>Granted scopes now unlock the matching delegated business tools. Ownership stays with the represented account.</span>
+              <div>
+                {relationship.permissions.some((grant) => ["PROFILE_MANAGE","SERVICE_MANAGE","PRODUCT_MANAGE","CONTENT_MANAGE"].includes(grant.scope)) &&
+                  <a className={styles.primary} href={`/agent-workspace/representations/${relationship.principalUserId}`}>Open business workspace</a>}
+                <button className={styles.danger} disabled={busyId === relationship.id} onClick={() => run(relationship.id, () => leaveAgentRelationship(relationship.id), "You left the relationship. Delegated authority is revoked.")}>Leave relationship</button>
+              </div>
             </div>
           </article>
         )}
