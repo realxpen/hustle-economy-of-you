@@ -38,13 +38,29 @@ import {
   saveAgentService,
   unpublishAgentBusinessProfile
 } from "../../../../lib/agent-business";
+import {
+  acceptAgentBooking,
+  cancelAgentBooking,
+  declineAgentBooking,
+  listAgentBookings,
+  listAgentConversationMessages,
+  listAgentConversations,
+  sendAgentMessage,
+  startAgentBooking,
+  type AgentBookingRecord,
+  type AgentConversationSummary
+} from "../../../../lib/agent-client-operations";
+import { formatBookingPrice } from "../../../../lib/booking";
+import type { MessagingMessage } from "../../../../lib/messaging";
 import styles from "../../../agents/page.module.css";
 
 const businessScopes: AgentPermissionScope[] = [
   "PROFILE_MANAGE",
   "SERVICE_MANAGE",
   "PRODUCT_MANAGE",
-  "CONTENT_MANAGE"
+  "CONTENT_MANAGE",
+  "BOOKING_MANAGE",
+  "CLIENT_MESSAGE_MANAGE"
 ];
 
 function lines(value: string) {
@@ -66,6 +82,14 @@ function minorToNaira(value: number | null) {
   return value === null ? "" : String(value / 100);
 }
 
+function formatDate(value: string | null) {
+  if (!value) return "Not set";
+  return new Intl.DateTimeFormat("en-NG", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
+}
+
 export default function AgentRepresentationBusinessPage() {
   const params = useParams<{ principalUserId: string }>();
   const principalUserId = params.principalUserId;
@@ -75,6 +99,11 @@ export default function AgentRepresentationBusinessPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [bookings, setBookings] = useState<AgentBookingRecord[]>([]);
+  const [conversations, setConversations] = useState<AgentConversationSummary[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [conversationMessages, setConversationMessages] = useState<MessagingMessage[]>([]);
+  const [messageText, setMessageText] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -120,17 +149,37 @@ export default function AgentRepresentationBusinessPage() {
       setOverview(nextOverview);
       const nextScopes = nextOverview.permissions.filter((item) => item.active).map((item) => item.scope);
 
-      const [nextProfile, nextServices, nextProducts, nextPosts] = await Promise.all([
-        nextScopes.includes("PROFILE_MANAGE") ? getAgentBusinessProfile(principalUserId) : Promise.resolve(null),
-        nextScopes.includes("SERVICE_MANAGE") ? listAgentServices(principalUserId).catch(() => []) : Promise.resolve([]),
-        nextScopes.includes("PRODUCT_MANAGE") ? listAgentProducts(principalUserId).catch(() => []) : Promise.resolve([]),
-        nextScopes.includes("CONTENT_MANAGE") ? listAgentPosts(principalUserId) : Promise.resolve([])
+      const nextIsHustler = nextOverview.principal.capabilities?.some(
+        (item) => item.capability === "HUSTLER" && item.status === "ACTIVE"
+      ) ?? false;
+
+      const [nextProfile, nextServices, nextProducts, nextPosts, nextBookings, nextConversations] = await Promise.all([
+        nextScopes.includes("PROFILE_MANAGE") && nextIsHustler
+          ? getAgentBusinessProfile(principalUserId)
+          : Promise.resolve(null),
+        nextScopes.includes("SERVICE_MANAGE") && nextIsHustler
+          ? listAgentServices(principalUserId)
+          : Promise.resolve([]),
+        nextScopes.includes("PRODUCT_MANAGE") && nextIsHustler
+          ? listAgentProducts(principalUserId)
+          : Promise.resolve([]),
+        nextScopes.includes("CONTENT_MANAGE")
+          ? listAgentPosts(principalUserId)
+          : Promise.resolve([]),
+        nextScopes.includes("BOOKING_MANAGE") && nextIsHustler
+          ? listAgentBookings(principalUserId).then((page) => page.items)
+          : Promise.resolve([]),
+        nextScopes.includes("CLIENT_MESSAGE_MANAGE")
+          ? listAgentConversations(principalUserId).then((page) => page.items)
+          : Promise.resolve([])
       ]);
 
       setProfile(nextProfile);
       setServices(nextServices);
       setProducts(nextProducts);
       setPosts(nextPosts);
+      setBookings(nextBookings);
+      setConversations(nextConversations);
       if (nextProfile) {
         setProfileForm({
           headline: nextProfile.headline ?? "",
@@ -259,6 +308,48 @@ export default function AgentRepresentationBusinessPage() {
       postId ? "Content draft updated for the principal." : "Content draft created for the principal.");
   }
 
+  async function openConversation(conversationId: string) {
+    setBusy(`conversation-${conversationId}`);
+    setError(null);
+    try {
+      const page = await listAgentConversationMessages(
+        principalUserId,
+        conversationId,
+        { limit: 50 }
+      );
+      setSelectedConversationId(conversationId);
+      setConversationMessages(page.items);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not load represented conversation");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function submitAgentMessage(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedConversationId || !messageText.trim()) return;
+    setBusy("message-send");
+    setError(null);
+    setNotice(null);
+    try {
+      const sent = await sendAgentMessage(
+        principalUserId,
+        selectedConversationId,
+        messageText
+      );
+      setConversationMessages((current) => [...current, sent]);
+      setMessageText("");
+      setNotice("Message sent on behalf of the represented account with Agent attribution.");
+      const next = await listAgentConversations(principalUserId);
+      setConversations(next.items);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not send delegated message");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (!overview) {
     return <main className={styles.shell}>
       <p className={error ? styles.error : styles.loading}>{error ?? "Loading delegated business workspace…"}</p>
@@ -270,7 +361,7 @@ export default function AgentRepresentationBusinessPage() {
   return <main className={styles.shell}>
     <header className={styles.topbar}>
       <a href="/agent-workspace">← Agent workspace</a>
-      <span>PHASE 18D · DELEGATED BUSINESS</span>
+      <span>PHASE 18E · DELEGATED OPERATIONS</span>
     </header>
 
     <section className={styles.hero}>
@@ -294,8 +385,8 @@ export default function AgentRepresentationBusinessPage() {
       </div>
       <p>
         {professionalBlocked
-          ? "This principal is CLIENT-only. Content delegation can work, but Profile/Services/Products remain unavailable until HUSTLER is ACTIVE."
-          : "This principal has ACTIVE HUSTLER capability. Professional delegated surfaces can operate within the granted scopes."}
+          ? "This principal is CLIENT-only. Content and explicitly granted message assistance can operate, but Profile/Services/Products/Bookings remain unavailable until HUSTLER is ACTIVE."
+          : "This principal has ACTIVE HUSTLER capability. Professional and customer-operation scopes can operate within their exact grants."}
       </p>
     </section>
 
@@ -406,11 +497,79 @@ export default function AgentRepresentationBusinessPage() {
       </article>)}
     </section>}
 
+    {has("BOOKING_MANAGE") && <section className={styles.workspaceSection}>
+      <div className={styles.sectionHeading}><span>05</span><div><strong>Client bookings</strong><p>Operational booking help only. Payment, refund, completion and settlement authority are excluded.</p></div></div>
+      {professionalBlocked ? <div className={styles.empty}><strong>HUSTLER required for booking management.</strong></div> : bookings.length === 0
+        ? <div className={styles.empty}><strong>No bookings for this represented Hustler yet.</strong></div>
+        : bookings.map((booking) => <article className={styles.card} key={booking.id}>
+          <div className={styles.cardHead}>
+            <div className={styles.party}>
+              <strong>{booking.serviceTitleSnapshot}</strong>
+              <span>{booking.status} · Client: {booking.client.displayName ?? booking.client.username ?? "Hustle user"}</span>
+            </div>
+            <b className={styles.status}>{booking.status}</b>
+          </div>
+          <div className={styles.history}>
+            <div><span>Requested</span><b>{formatDate(booking.requestedStartAt)}</b></div>
+            <div><span>Confirmed</span><b>{formatDate(booking.confirmedStartAt)}</b></div>
+            <div><span>Price</span><b>{formatBookingPrice(booking)}</b></div>
+            <div><span>Requirements</span><b>{booking.requirements}</b></div>
+          </div>
+          {booking.paymentBoundary.message && <p className={styles.notice}>{booking.paymentBoundary.message}</p>}
+          <div className={styles.actions}>
+            <span>{booking.nextAction ?? "No delegated booking action available."}</span>
+            <div>
+              {booking.agentAllowedActions.includes("ACCEPT") && <button className={styles.primary} disabled={busy!==null} onClick={()=>run(`booking-${booking.id}`,()=>acceptAgentBooking(principalUserId,booking.id),"Booking accepted on the Hustler's behalf.")}>Accept requested time</button>}
+              {booking.agentAllowedActions.includes("DECLINE") && <button className={styles.secondary} disabled={busy!==null} onClick={()=>run(`booking-${booking.id}`,()=>declineAgentBooking(principalUserId,booking.id),"Booking declined on the Hustler's behalf.")}>Decline</button>}
+              {booking.agentAllowedActions.includes("CANCEL") && <button className={styles.danger} disabled={busy!==null} onClick={()=>run(`booking-${booking.id}`,()=>cancelAgentBooking(principalUserId,booking.id),"Booking cancelled before funded work.")}>Cancel</button>}
+              {booking.agentAllowedActions.includes("START") && <button className={styles.primary} disabled={busy!==null} onClick={()=>run(`booking-${booking.id}`,()=>startAgentBooking(principalUserId,booking.id),"Work marked started by delegated Agent action.")}>Start work</button>}
+            </div>
+          </div>
+          {booking.status === "IN_PROGRESS" && <div className={styles.boundary}><strong>Completion stays with the Hustler.</strong><p>The Agent can see active work but cannot mark it complete or trigger settlement/review eligibility.</p></div>}
+        </article>)}
+    </section>}
+
+    {has("CLIENT_MESSAGE_MANAGE") && <section className={styles.workspaceSection}>
+      <div className={styles.sectionHeading}><span>06</span><div><strong>Client messages</strong><p>Read existing direct threads and send text replies with visible Agent attribution.</p></div></div>
+      {conversations.length === 0 ? <div className={styles.empty}><strong>No represented conversations yet.</strong></div> : <div className={styles.panelGrid}>
+        <div className={styles.relationshipPanel}>
+          {conversations.map((conversation) => <button
+            key={conversation.id}
+            type="button"
+            className={selectedConversationId===conversation.id ? styles.scopeActive : styles.scopeButton}
+            onClick={()=>void openConversation(conversation.id)}
+          >
+            <strong>{conversation.otherParticipant?.displayName ?? conversation.otherParticipant?.username ?? "Hustle user"}</strong>
+            <span>{conversation.lastMessage?.text ?? (conversation.lastMessage ? "Attachment or shared context" : "No messages yet")}</span>
+          </button>)}
+        </div>
+
+        <div className={styles.invitePanel}>
+          {!selectedConversationId ? <div className={styles.empty}><strong>Select a conversation.</strong><p>Agent reads do not silently clear the account owner's unread state.</p></div> : <>
+            <p className={styles.panelLabel}>REPRESENTED THREAD</p>
+            <div className={styles.history}>
+              {conversationMessages.map((message) => <div key={message.id} style={{display:"grid",gap:4}}>
+                <strong>{message.senderId===principalUserId ? (message.delegatedByAgent ? "Principal · via Agent" : "Principal") : (message.sender.displayName ?? message.sender.username ?? "Client")}</strong>
+                <span>{message.text ?? "Attachment or shared context"}</span>
+                {message.delegatedByAgent && <small>Sent by {message.delegatedByAgent.displayName ?? `@${message.delegatedByAgent.username ?? "agent"}`} on behalf of the principal.</small>}
+              </div>)}
+            </div>
+            <form onSubmit={submitAgentMessage} className={styles.card}>
+              <label className={styles.field}><span>Reply as represented account · Agent attribution will be visible</span><textarea rows={4} maxLength={4000} value={messageText} onChange={(e)=>setMessageText(e.target.value)} placeholder="Type a client reply…"/></label>
+              <button className={styles.primary} disabled={!messageText.trim() || busy!==null}>{busy==="message-send"?"Sending…":"Send with Agent attribution"}</button>
+            </form>
+            <p style={{fontSize:12,lineHeight:1.6,opacity:.72}}>This first delegated messaging slice sends text only. It does not expose typing impersonation, private attachment upload, read-receipt control or conversation deletion.</p>
+          </>}
+        </div>
+      </div>}
+    </section>}
+
     <section className={styles.boundary}>
-      <strong>Still prohibited.</strong>
+      <strong>Financial and identity authority remains prohibited.</strong>
       <p>
-        This workspace does not expose Bookings, Client Messages, wallet, ledger, escrow,
-        payouts, Reviews, reputation, login ownership or identity ownership.
+        Agents still cannot complete a Booking, fund or refund transactions, release or redirect
+        escrow, access wallet/ledger/payout controls, create Reviews, alter reputation, own login
+        credentials or take ownership of the represented identity.
       </p>
     </section>
   </main>;
