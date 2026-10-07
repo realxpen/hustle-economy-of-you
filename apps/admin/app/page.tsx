@@ -1,40 +1,71 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
-  getSafetyOverview,
-  getUserSafetySummary,
-  listSafetyReports,
-  updateSafetyReport,
-  type AdminSafetyOverview,
-  type SafetyReport,
-  type SafetyStatus,
-  type UserSafetySummary
+  getAdminApplicationQueues,
+  getAdminFinancialSnapshot,
+  getAdminUserDetail,
+  getOperationsOverview,
+  listAdminAuditEvents,
+  listAdminBookings,
+  listAdminOrders,
+  searchAdminUsers,
+  type AdminApplicationQueues,
+  type AdminAuditEvent,
+  type AdminBookingItem,
+  type AdminFinancialSnapshot,
+  type AdminOrderItem,
+  type AdminUserDetail,
+  type AdminUserListItem,
+  type OperationsOverview
 } from "../lib/admin-api";
 
 const TOKEN_KEY = "hustle-admin-access-token";
 
-function formatDate(value: string) {
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
 }
 
-function displayName(user: { displayName: string | null; username: string | null }) {
+function money(value: number, currency = "NGN") {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2
+  }).format(value / 100);
+}
+
+function name(user: {
+  displayName: string | null;
+  username: string | null;
+}) {
   return user.displayName ?? (user.username ? `@${user.username}` : "Hustle user");
 }
 
-export default function AdminHome() {
+function count(record: Record<string, number>, key: string) {
+  return record[key] ?? 0;
+}
+
+export default function AdminOperationsHome() {
   const [token, setToken] = useState("");
   const [tokenDraft, setTokenDraft] = useState("");
-  const [overview, setOverview] = useState<AdminSafetyOverview | null>(null);
-  const [reports, setReports] = useState<SafetyReport[]>([]);
-  const [statusFilter, setStatusFilter] = useState<SafetyStatus | "ALL">("ALL");
-  const [selectedUser, setSelectedUser] = useState<UserSafetySummary | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [overview, setOverview] = useState<OperationsOverview | null>(null);
+  const [applications, setApplications] = useState<AdminApplicationQueues | null>(null);
+  const [users, setUsers] = useState<AdminUserListItem[]>([]);
+  const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(null);
+  const [bookings, setBookings] = useState<AdminBookingItem[]>([]);
+  const [orders, setOrders] = useState<AdminOrderItem[]>([]);
+  const [finance, setFinance] = useState<AdminFinancialSnapshot | null>(null);
+  const [audit, setAudit] = useState<AdminAuditEvent[]>([]);
+  const [userQuery, setUserQuery] = useState("");
+  const [auditQuery, setAuditQuery] = useState("");
+  const [bookingStatus, setBookingStatus] = useState("");
+  const [orderStatus, setOrderStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -44,30 +75,45 @@ export default function AdminHome() {
     setTokenDraft(existing);
   }, []);
 
-  async function load(nextToken = token, nextFilter = statusFilter) {
+  useEffect(() => {
+    if (token) void loadOperations(token);
+  }, [token]);
+
+  async function loadOperations(nextToken = token) {
     if (!nextToken) return;
     setLoading(true);
     setError(null);
     try {
-      const [nextOverview, nextReports] = await Promise.all([
-        getSafetyOverview(nextToken),
-        listSafetyReports(nextToken, nextFilter === "ALL" ? undefined : nextFilter)
+      const [
+        nextOverview,
+        nextApplications,
+        nextUsers,
+        nextBookings,
+        nextOrders,
+        nextFinance,
+        nextAudit
+      ] = await Promise.all([
+        getOperationsOverview(nextToken),
+        getAdminApplicationQueues(nextToken, 30),
+        searchAdminUsers(nextToken, "", 30),
+        listAdminBookings(nextToken, undefined, 30),
+        listAdminOrders(nextToken, undefined, 30),
+        getAdminFinancialSnapshot(nextToken, 25),
+        listAdminAuditEvents(nextToken, "", 80)
       ]);
       setOverview(nextOverview);
-      setReports(nextReports);
-      if (selectedUserId) {
-        setSelectedUser(await getUserSafetySummary(nextToken, selectedUserId));
-      }
+      setApplications(nextApplications);
+      setUsers(nextUsers);
+      setBookings(nextBookings);
+      setOrders(nextOrders);
+      setFinance(nextFinance);
+      setAudit(nextAudit);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not load Trust & Safety intelligence");
+      setError(reason instanceof Error ? reason.message : "Could not load Hustle operations");
     } finally {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    if (token) void load(token, statusFilter);
-  }, [token, statusFilter]);
 
   function saveToken() {
     const next = tokenDraft.trim();
@@ -82,58 +128,102 @@ export default function AdminHome() {
     setToken("");
     setTokenDraft("");
     setOverview(null);
-    setReports([]);
+    setApplications(null);
+    setUsers([]);
     setSelectedUser(null);
-    setSelectedUserId(null);
+    setBookings([]);
+    setOrders([]);
+    setFinance(null);
+    setAudit([]);
+  }
+
+  async function searchUsers(event?: FormEvent) {
+    event?.preventDefault();
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      setUsers(await searchAdminUsers(token, userQuery, 60));
+      setSelectedUser(null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "User search failed");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function inspectUser(userId: string) {
     if (!token) return;
-    setLoading(true);
+    setDetailLoading(true);
     setError(null);
     try {
-      setSelectedUserId(userId);
-      setSelectedUser(await getUserSafetySummary(token, userId));
+      setSelectedUser(await getAdminUserDetail(token, userId));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not load user safety summary");
+      setError(reason instanceof Error ? reason.message : "Could not load user operations detail");
     } finally {
-      setLoading(false);
+      setDetailLoading(false);
     }
   }
 
-  async function changeReport(report: SafetyReport, status: SafetyStatus) {
+  async function filterBookings(value: string) {
+    setBookingStatus(value);
     if (!token) return;
-    const note = (notes[report.id] ?? report.moderationNote ?? "").trim();
-    if ((status === "ACTIONED" || status === "DISMISSED") && !note) {
-      setError("Add a moderation note before actioning or dismissing a report.");
-      return;
-    }
     setLoading(true);
-    setError(null);
-    setNotice(null);
     try {
-      await updateSafetyReport(token, report.id, { status, ...(note ? { moderationNote: note } : {}) });
-      setNotice(`Report ${report.id} moved to ${status.replace("_", " ")}.`);
-      await load(token, statusFilter);
+      setBookings(await listAdminBookings(token, value || undefined, 50));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not update report");
+      setError(reason instanceof Error ? reason.message : "Could not filter bookings");
     } finally {
       setLoading(false);
     }
   }
 
-  const reviewCount = useMemo(
-    () => reports.filter((report) => report.status === "OPEN" || report.status === "UNDER_REVIEW").length,
-    [reports]
-  );
+  async function filterOrders(value: string) {
+    setOrderStatus(value);
+    if (!token) return;
+    setLoading(true);
+    try {
+      setOrders(await listAdminOrders(token, value || undefined, 50));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not filter orders");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function searchAudit(event: FormEvent) {
+    event.preventDefault();
+    if (!token) return;
+    setLoading(true);
+    try {
+      setAudit(await listAdminAuditEvents(token, auditQuery, 150));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not filter audit events");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const financeNeedsAttention = useMemo(() => {
+    if (!overview) return 0;
+    return (
+      count(overview.finance.paymentAttempts, "PENDING") +
+      count(overview.finance.paymentAttempts, "FAILED") +
+      count(overview.finance.payouts, "REQUESTED") +
+      count(overview.finance.payouts, "FAILED") +
+      count(overview.finance.refunds, "REQUESTED") +
+      count(overview.finance.refunds, "FAILED")
+    );
+  }, [overview]);
 
   if (!token) {
     return <main className="admin-shell auth-shell">
       <section className="auth-card">
-        <p className="eyebrow">HUSTLE / INTERNAL</p>
-        <h1>Trust & Safety Console</h1>
+        <p className="eyebrow">HUSTLE / OPERATIONS</p>
+        <h1>Run the marketplace.</h1>
         <p>
-          This internal MVP console never stores the bearer token in the repository or sends it anywhere except the Hustle API. The token remains in this tab&apos;s session storage.
+          Phase 19A is a read-oriented operating console. It exposes authoritative marketplace
+          state without granting money-moving or suspension actions.
         </p>
         <label className="field">
           <span>ADMIN ACCESS TOKEN</span>
@@ -145,7 +235,7 @@ export default function AdminHome() {
           />
         </label>
         <button className="primary" type="button" onClick={saveToken} disabled={!tokenDraft.trim()}>
-          Open internal console
+          Open operations
         </button>
       </section>
     </main>;
@@ -154,12 +244,16 @@ export default function AdminHome() {
   return <main className="admin-shell">
     <header className="topbar">
       <div>
-        <p className="eyebrow">HUSTLE / INTERNAL</p>
-        <h1>Trust & Safety Intelligence</h1>
-        <p className="subtitle">Explainable evidence for human moderation. No automatic punishment from one subjective complaint.</p>
+        <p className="eyebrow">HUSTLE / MARKETPLACE OPERATIONS</p>
+        <h1>One control plane.<br/>No database archaeology.</h1>
+        <p className="subtitle">
+          Users, applications, bookings, orders, financial state, moderation signals and durable audit events.
+          Phase 19A is visibility-first: no direct payment, escrow or suspension mutation is exposed here.
+        </p>
       </div>
       <div className="top-actions">
-        <button className="secondary" type="button" onClick={() => void load()} disabled={loading}>Refresh</button>
+        <a className="secondary" href="/trust-safety">Trust & Safety</a>
+        <button className="secondary" type="button" onClick={() => void loadOperations()} disabled={loading}>Refresh</button>
         <button className="danger" type="button" onClick={clearToken}>End session</button>
       </div>
     </header>
@@ -167,121 +261,179 @@ export default function AdminHome() {
     {error && <div className="banner error">{error}</div>}
     {notice && <div className="banner success">{notice}</div>}
 
-    {overview && <section className="metrics">
-      <article><span>Open</span><strong>{overview.reports.open}</strong></article>
-      <article><span>Under review</span><strong>{overview.reports.underReview}</strong></article>
-      <article><span>Actioned</span><strong>{overview.reports.actioned}</strong></article>
-      <article><span>Dismissed</span><strong>{overview.reports.dismissed}</strong></article>
-      <article><span>Private feedback</span><strong>{overview.privateFeedbackCount}</strong></article>
-      <article><span>Active blocks</span><strong>{overview.activeBlockRelationships}</strong></article>
+    {overview && <section className="ops-metrics">
+      <article><span>Total users</span><strong>{overview.users.total}</strong><small>{count(overview.users.activeCapabilities, "HUSTLER")} Hustlers · {count(overview.users.activeCapabilities, "AGENT")} Agents</small></article>
+      <article><span>Needs review</span><strong>{overview.applications.needsReview}</strong><small>Hustler + Agent applications</small></article>
+      <article><span>Open bookings</span><strong>{count(overview.marketplace.bookings, "REQUESTED") + count(overview.marketplace.bookings, "PAYMENT_PENDING") + count(overview.marketplace.bookings, "FUNDED") + count(overview.marketplace.bookings, "IN_PROGRESS")}</strong><small>Request through active work</small></article>
+      <article><span>Open orders</span><strong>{count(overview.marketplace.orders, "PENDING") + count(overview.marketplace.orders, "PAID") + count(overview.marketplace.orders, "PROCESSING") + count(overview.marketplace.orders, "SHIPPED")}</strong><small>Pending through fulfillment</small></article>
+      <article><span>Finance attention</span><strong>{financeNeedsAttention}</strong><small>Pending/failed operations</small></article>
+      <article><span>Safety unresolved</span><strong>{overview.safety.unresolved}</strong><small><a href="/trust-safety">Open moderation →</a></small></article>
+      <article><span>Published surfaces</span><strong>{overview.content.posts + overview.content.stories + overview.content.liveSessions}</strong><small>{overview.content.posts} posts · {overview.content.stories} stories · {overview.content.liveSessions} Live</small></article>
+      <article><span>Audit events</span><strong>{overview.audit.systemEvents}</strong><small>Durable system history</small></article>
     </section>}
 
-    <section className="workspace">
-      <div className="queue-column">
-        <div className="section-head">
-          <div>
-            <p className="eyebrow">MODERATION QUEUE</p>
-            <h2>{reviewCount} unresolved in this view</h2>
-          </div>
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as SafetyStatus | "ALL")}>
-            <option value="ALL">All reports</option>
-            <option value="OPEN">Open</option>
-            <option value="UNDER_REVIEW">Under review</option>
-            <option value="ACTIONED">Actioned</option>
-            <option value="DISMISSED">Dismissed</option>
-          </select>
-        </div>
-
-        <div className="report-list">
-          {reports.map((report) => <article className="report-card" key={report.id}>
-            <div className="report-top">
-              <span className={`status status-${report.status.toLowerCase()}`}>{report.status.replace("_", " ")}</span>
-              <span>{report.subjectType} · {report.category.replaceAll("_", " ")}</span>
-            </div>
-            <h3>{displayName(report.target)}</h3>
-            <p>{report.details}</p>
-            <div className="report-meta">
-              <span>Reporter: {displayName(report.reporter)}</span>
-              <span>{formatDate(report.createdAt)}</span>
-            </div>
-            <button className="link-button" type="button" onClick={() => void inspectUser(report.targetUserId)}>
-              Inspect target evidence →
-            </button>
-            <label className="field compact">
-              <span>MODERATION NOTE</span>
-              <textarea
-                rows={2}
-                value={notes[report.id] ?? report.moderationNote ?? ""}
-                onChange={(event) => setNotes((current) => ({ ...current, [report.id]: event.target.value }))}
-                placeholder="Evidence reviewed, reasoning, or action taken"
-              />
-            </label>
-            <div className="moderation-actions">
-              <button className="secondary" type="button" disabled={loading} onClick={() => void changeReport(report, "UNDER_REVIEW")}>Review</button>
-              <button className="primary" type="button" disabled={loading} onClick={() => void changeReport(report, "ACTIONED")}>Action</button>
-              <button className="secondary" type="button" disabled={loading} onClick={() => void changeReport(report, "DISMISSED")}>Dismiss</button>
-            </div>
-          </article>)}
-          {!reports.length && <div className="empty">No reports match this filter.</div>}
-        </div>
+    <section className="ops-section">
+      <div className="section-head">
+        <div><p className="eyebrow">APPLICATIONS</p><h2>Capability queues</h2></div>
+        <span className="read-only-tag">READ VIEW · REVIEW ACTIONS REMAIN IN HUSTLE WEB</span>
       </div>
+      <div className="ops-grid two">
+        <article className="ops-card">
+          <div className="card-title"><strong>Hustler applications</strong><span>{applications?.hustler.length ?? 0}</span></div>
+          <div className="table-list">
+            {applications?.hustler.map((item) => <div className="table-row" key={item.id}>
+              <div><strong>{name(item.user)}</strong><small>@{item.user.username ?? "user"} · {item.primarySkill ?? "Skill not set"}</small></div>
+              <div><span className="pill">{item.status}</span><small>{item.identityVerificationStatus}</small></div>
+              <time>{formatDate(item.submittedAt)}</time>
+            </div>)}
+            {!applications?.hustler.length && <div className="empty">No Hustler applications waiting.</div>}
+          </div>
+        </article>
+        <article className="ops-card">
+          <div className="card-title"><strong>Agent applications</strong><span>{applications?.agent.length ?? 0}</span></div>
+          <div className="table-list">
+            {applications?.agent.map((item) => <div className="table-row" key={item.id}>
+              <div><strong>{name(item.user)}</strong><small>@{item.user.username ?? "user"} · {item.operatingArea ?? "Area not set"}</small></div>
+              <div><span className="pill">{item.status}</span><small>{item.identityVerificationStatus}</small></div>
+              <time>{formatDate(item.submittedAt)}</time>
+            </div>)}
+            {!applications?.agent.length && <div className="empty">No Agent applications waiting.</div>}
+          </div>
+        </article>
+      </div>
+    </section>
 
-      <aside className="intelligence-column">
-        <p className="eyebrow">USER SAFETY SUMMARY</p>
-        {!selectedUser && <div className="empty">Choose “Inspect target evidence” to review corroborating signals.</div>}
-        {selectedUser && <UserSummary summary={selectedUser} />}
-      </aside>
+    <section className="ops-section">
+      <div className="section-head">
+        <div><p className="eyebrow">USERS + CAPABILITIES</p><h2>Find any Hustle identity</h2></div>
+      </div>
+      <form className="ops-search" onSubmit={searchUsers}>
+        <input value={userQuery} onChange={(event) => setUserQuery(event.target.value)} placeholder="Search username, name, email, phone or exact user ID" />
+        <button className="primary" disabled={loading}>Search</button>
+        {userQuery && <button className="secondary" type="button" onClick={() => { setUserQuery(""); void searchAdminUsers(token, "", 30).then(setUsers); }}>Clear</button>}
+      </form>
+      <div className="ops-grid user-grid">
+        <article className="ops-card user-list-card">
+          <div className="table-list">
+            {users.map((user) => <button className="user-row" type="button" key={user.id} onClick={() => void inspectUser(user.id)}>
+              <div><strong>{name(user)}</strong><small>@{user.username ?? "user"} · {user.location ?? "No location"}</small></div>
+              <div className="capability-inline">{user.capabilities.map((capability) => <span key={capability.capability} className="pill">{capability.capability} · {capability.status}</span>)}</div>
+            </button>)}
+          </div>
+        </article>
+        <aside className="ops-card detail-card">
+          {!selectedUser && <div className="empty">Choose a user to inspect capability and marketplace context.</div>}
+          {detailLoading && <div className="empty">Loading user detail…</div>}
+          {selectedUser && !detailLoading && <div className="detail-stack">
+            <div>
+              <p className="eyebrow">IDENTITY</p>
+              <h3>{name(selectedUser.user)}</h3>
+              <p>@{selectedUser.user.username ?? "user"} · {selectedUser.user.email ?? selectedUser.user.phone ?? "No contact"}</p>
+            </div>
+            <div className="capability-inline">{selectedUser.user.capabilities.map((capability) => <span className="pill" key={capability.capability}>{capability.capability} · {capability.status}</span>)}</div>
+            <dl className="ops-dl">
+              <div><dt>Bookings</dt><dd>{selectedUser.activity.bookings.asClient} client / {selectedUser.activity.bookings.asHustler} Hustler</dd></div>
+              <div><dt>Orders</dt><dd>{selectedUser.activity.orders.asBuyer} buyer / {selectedUser.activity.orders.asSeller} seller</dd></div>
+              <div><dt>Content</dt><dd>{selectedUser.activity.content.posts} posts · {selectedUser.activity.content.services} services · {selectedUser.activity.content.products} products</dd></div>
+              <div><dt>Conversations</dt><dd>{selectedUser.activity.conversations}</dd></div>
+              <div><dt>Reports received</dt><dd>{selectedUser.trustSafety.reportsReceived}</dd></div>
+              <div><dt>Blocks</dt><dd>{selectedUser.trustSafety.blocksCreated} created / {selectedUser.trustSafety.blocksReceived} received</dd></div>
+              <div><dt>Agent work</dt><dd>{selectedUser.agent.activeRepresentationsAsAgent} represented / {selectedUser.agent.activeAgentsRepresentingUser} Agents helping</dd></div>
+              <div><dt>Verified reviews</dt><dd>{selectedUser.user.reputation?.verifiedReviewCount ?? 0}</dd></div>
+            </dl>
+          </div>}
+        </aside>
+      </div>
+    </section>
+
+    <section className="ops-section">
+      <div className="section-head">
+        <div><p className="eyebrow">MARKETPLACE</p><h2>Bookings + orders</h2></div>
+      </div>
+      <div className="ops-grid two">
+        <article className="ops-card">
+          <div className="card-title">
+            <strong>Bookings</strong>
+            <select value={bookingStatus} onChange={(event) => void filterBookings(event.target.value)}>
+              <option value="">All statuses</option>
+              {["REQUESTED","ACCEPTED","PAYMENT_PENDING","FUNDED","IN_PROGRESS","COMPLETED","CANCELLED","DECLINED","DISPUTED","REFUNDED","CLOSED"].map((status) => <option key={status}>{status}</option>)}
+            </select>
+          </div>
+          <div className="table-list">
+            {bookings.map((booking) => <div className="transaction-row" key={booking.id}>
+              <div><strong>{booking.serviceTitleSnapshot}</strong><small>{name(booking.client)} → {name(booking.hustler)}</small></div>
+              <div><span className="pill">{booking.status}</span><small>{money(booking.agreedPriceMinor, booking.currency)}</small></div>
+              <time>{formatDate(booking.createdAt)}</time>
+            </div>)}
+          </div>
+        </article>
+        <article className="ops-card">
+          <div className="card-title">
+            <strong>Orders</strong>
+            <select value={orderStatus} onChange={(event) => void filterOrders(event.target.value)}>
+              <option value="">All statuses</option>
+              {["PENDING","PAID","PROCESSING","SHIPPED","DELIVERED","COMPLETED","CANCELLED","REFUNDED"].map((status) => <option key={status}>{status}</option>)}
+            </select>
+          </div>
+          <div className="table-list">
+            {orders.map((order) => <div className="transaction-row" key={order.id}>
+              <div><strong>{name(order.buyer)} → {name(order.seller)}</strong><small>{order._count.items} item{order._count.items === 1 ? "" : "s"}</small></div>
+              <div><span className="pill">{order.status}</span><small>{money(order.totalMinor, order.currency)}</small></div>
+              <time>{formatDate(order.createdAt)}</time>
+            </div>)}
+          </div>
+        </article>
+      </div>
+    </section>
+
+    {finance && <section className="ops-section">
+      <div className="section-head">
+        <div><p className="eyebrow">FINANCE</p><h2>Authoritative financial state</h2></div>
+        <span className="read-only-tag">NO MONEY-MOVING CONTROLS IN 19A</span>
+      </div>
+      <div className="ops-grid four">
+        <FinanceCard title="Payments" items={finance.payments.map((item) => ({ id:item.id, label:`${item.subjectType} · ${item.subjectId}`, status:item.status, value:money(item.amountMinor,item.currency), detail:item.provider }))}/>
+        <FinanceCard title="Escrow" items={finance.escrows.map((item) => ({ id:item.id, label:`${item.subjectType} · ${item.subjectId}`, status:item.status, value:money(item.amountMinor,item.currency), detail:item.beneficiaryUserId }))}/>
+        <FinanceCard title="Payouts" items={finance.payouts.map((item) => ({ id:item.id, label:item.userId, status:item.status, value:money(item.amountMinor,item.currency), detail:item.provider }))}/>
+        <FinanceCard title="Refunds" items={finance.refunds.map((item) => ({ id:item.id, label:`${item.subjectType} · ${item.subjectId}`, status:item.status, value:money(item.amountMinor,item.currency), detail:item.requestedByUserId ?? "System" }))}/>
+      </div>
+    </section>}
+
+    <section className="ops-section">
+      <div className="section-head">
+        <div><p className="eyebrow">AUDIT</p><h2>System event history</h2></div>
+      </div>
+      <form className="ops-search" onSubmit={searchAudit}>
+        <input value={auditQuery} onChange={(event) => setAuditQuery(event.target.value)} placeholder="Filter event names, e.g. agent., booking., payment." />
+        <button className="primary" disabled={loading}>Filter</button>
+      </form>
+      <article className="ops-card audit-card">
+        <div className="table-list">
+          {audit.map((event) => <details className="audit-row" key={event.id}>
+            <summary><div><strong>{event.name}</strong><small>{event.source}</small></div><time>{formatDate(event.occurredAt)}</time></summary>
+            <pre>{JSON.stringify(event.payload, null, 2)}</pre>
+          </details>)}
+        </div>
+      </article>
     </section>
   </main>;
 }
 
-function UserSummary({ summary }: { summary: UserSafetySummary }) {
-  const user = summary.user;
-  return <div className="summary-stack">
-    <section className="summary-card strong-card">
-      <h2>{displayName(user)}</h2>
-      <p>@{user.username ?? "unknown"}</p>
-      <span className={`assessment ${summary.assessment === "REVIEW_RECOMMENDED" ? "review" : "neutral"}`}>
-        {summary.assessment.replaceAll("_", " ")}
-      </span>
-      <p className="policy-copy">{summary.policy.statement}</p>
-    </section>
-
-    <section className="summary-card grid-summary">
-      <div><span>Reports</span><strong>{summary.reports.total}</strong></div>
-      <div><span>Independent reporters</span><strong>{summary.reports.uniqueReporters}</strong></div>
-      <div><span>Private feedback</span><strong>{summary.privateFeedback.total}</strong></div>
-      <div><span>Would not work again</span><strong>{summary.privateFeedback.wouldNotWorkAgain}</strong></div>
-      <div><span>Blocks received</span><strong>{summary.platformEvidence.blocksReceived}</strong></div>
-      <div><span>Private experience avg.</span><strong>{summary.privateFeedback.averageExperienceRating ?? "—"}</strong></div>
-    </section>
-
-    <section className="summary-card">
-      <h3>Explainable indicators</h3>
-      {!summary.indicators.length && <p>No established multi-signal pattern.</p>}
-      {summary.indicators.map((indicator) => <div className="indicator" key={indicator.code}>
-        <span>{indicator.level}</span>
-        <strong>{indicator.label}</strong>
-        <p>{indicator.explanation}</p>
-        <code>{JSON.stringify(indicator.evidence)}</code>
+function FinanceCard({
+  title,
+  items
+}: {
+  title: string;
+  items: Array<{ id:string; label:string; status:string; value:string; detail:string }>;
+}) {
+  return <article className="ops-card finance-card">
+    <div className="card-title"><strong>{title}</strong><span>{items.length}</span></div>
+    <div className="table-list">
+      {items.slice(0, 12).map((item) => <div className="finance-row" key={item.id}>
+        <div><strong>{item.value}</strong><small>{item.label}</small></div>
+        <div><span className="pill">{item.status}</span><small>{item.detail}</small></div>
       </div>)}
-    </section>
-
-    <section className="summary-card">
-      <h3>Authoritative transaction evidence</h3>
-      <dl>
-        <div><dt>Bookings</dt><dd>{summary.platformEvidence.bookings.total}</dd></div>
-        <div><dt>Cancelled by user</dt><dd>{summary.platformEvidence.bookings.cancelledByUser}</dd></div>
-        <div><dt>Booking disputes</dt><dd>{summary.platformEvidence.bookings.disputed}</dd></div>
-        <div><dt>Booking refunds</dt><dd>{summary.platformEvidence.bookings.refunded}</dd></div>
-        <div><dt>Orders as buyer</dt><dd>{summary.platformEvidence.orders.asBuyer}</dd></div>
-        <div><dt>Buyer refunds</dt><dd>{summary.platformEvidence.orders.buyerRefunded}</dd></div>
-      </dl>
-    </section>
-
-    <section className="summary-card">
-      <h3>Private feedback issues</h3>
-      <pre>{JSON.stringify(summary.privateFeedback.issueCounts, null, 2)}</pre>
-    </section>
-  </div>;
+      {!items.length && <div className="empty">No recent records.</div>}
+    </div>
+  </article>;
 }
