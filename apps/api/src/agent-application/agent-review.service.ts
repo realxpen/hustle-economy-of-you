@@ -225,11 +225,13 @@ export class AgentReviewService {
     }
 
     const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
+    const supabaseSecretKey =
+      process.env.SUPABASE_SECRET_KEY ??
+      process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseSecretKey) {
       throw new ServiceUnavailableException(
-        "Admin proof preview is not configured on the API"
+        "Secure proof preview is not configured on the API. Add SUPABASE_SECRET_KEY to the API environment."
       );
     }
 
