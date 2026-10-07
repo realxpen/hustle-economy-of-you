@@ -149,7 +149,6 @@ export class AgentReviewService {
         data: {
           name: "agent_application.review_started",
           source: "admin",
-          userId: reviewer.id,
           payload: {
             applicationId: application.id,
             applicantUserId: application.userId,
@@ -188,7 +187,6 @@ export class AgentReviewService {
         data: {
           name: "agent_application.verification_changed",
           source: "admin",
-          userId: reviewer.id,
           payload: {
             applicationId: application.id,
             applicantUserId: application.userId,
@@ -343,7 +341,6 @@ export class AgentReviewService {
         data: {
           name: "agent_application.approved",
           source: "admin",
-          userId: reviewer.id,
           payload: {
             applicationId: application.id,
             applicantUserId: application.userId,
@@ -392,7 +389,6 @@ export class AgentReviewService {
         data: {
           name: "agent_application.rejected",
           source: "admin",
-          userId: reviewer.id,
           payload: {
             applicationId: application.id,
             applicantUserId: application.userId,
