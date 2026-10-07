@@ -7,15 +7,15 @@ import type {
 } from "@hustle/types";
 import { authenticatedFetch } from "./api/authenticated-fetch";
 
-export async function getHustlerAgentRelationships(): Promise<AgentRelationship[]> {
-  const response = await authenticatedFetch("/agent-relationships/hustler");
+export async function getPrincipalAgentRelationships(): Promise<AgentRelationship[]> {
+  const response = await authenticatedFetch("/agent-relationships/principal");
   return response.json() as Promise<AgentRelationship[]>;
 }
 
 export async function inviteAgent(
   input: CreateAgentInvitationInput
 ): Promise<AgentRelationship> {
-  const response = await authenticatedFetch("/agent-relationships/hustler/invitations", {
+  const response = await authenticatedFetch("/agent-relationships/principal/invitations", {
     method: "POST",
     body: JSON.stringify(input)
   });
@@ -27,7 +27,7 @@ export async function updateAgentPermissions(
   input: UpdateAgentRelationshipPermissionsInput
 ): Promise<AgentRelationship> {
   const response = await authenticatedFetch(
-    `/agent-relationships/hustler/${relationshipId}/permissions`,
+    `/agent-relationships/principal/${relationshipId}/permissions`,
     { method: "PUT", body: JSON.stringify(input) }
   );
   return response.json() as Promise<AgentRelationship>;
@@ -37,7 +37,7 @@ export async function revokeAgentRelationship(
   relationshipId: string
 ): Promise<AgentRelationship> {
   const response = await authenticatedFetch(
-    `/agent-relationships/hustler/${relationshipId}/revoke`,
+    `/agent-relationships/principal/${relationshipId}/revoke`,
     { method: "POST" }
   );
   return response.json() as Promise<AgentRelationship>;
