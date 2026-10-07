@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { OfferQuickView } from "../../components/commerce/offer-quick-view";
 import { captureFeedEvent, getFeedPage, type FeedItem, type FeedPage, type FeedTab } from "../../lib/feed";
 import {
   followUser,
@@ -306,34 +307,46 @@ function FeedCard({
       {(item.services.length > 0 || item.products.length > 0) && <div className={styles.opportunityBlock}>
         <div className={styles.opportunityHeading}><span>REFERENCED OPPORTUNITIES</span><b>Content → action</b></div>
         <div className={styles.opportunityGrid}>
-          {item.services.map((service) => <Link
-            key={service.id}
-            href={`/services/${service.id}`}
-            onClick={() => void captureFeedEvent({
-              name: "feed.service_clicked",
-              postId: item.post.id,
-              feedTab: tab,
-              position,
-              sessionId,
-              serviceId: service.id
-            }).catch(() => undefined)}
-          >
-            <small>SERVICE</small><strong>{service.title ?? "Service"}</strong><span>{formatServicePrice(service)}</span>
-          </Link>)}
-          {item.products.map((product) => <Link
-            key={product.id}
-            href={`/products/${product.id}`}
-            onClick={() => void captureFeedEvent({
-              name: "feed.product_clicked",
-              postId: item.post.id,
-              feedTab: tab,
-              position,
-              sessionId,
-              productId: product.id
-            }).catch(() => undefined)}
-          >
-            <small>PRODUCT</small><strong>{product.title ?? "Product"}</strong><span>{formatProductPrice(product)}</span>
-          </Link>)}
+          {item.services.map((service) => <div className={styles.opportunityCard} key={service.id}>
+            <small>SERVICE</small>
+            <strong>{service.title ?? "Service"}</strong>
+            <span>{formatServicePrice(service)}</span>
+            <OfferQuickView
+              type="SERVICE"
+              id={service.id}
+              label="Quick view →"
+              sourceLabel="POST"
+              className={styles.opportunityQuickView}
+              onOpen={() => void captureFeedEvent({
+                name: "feed.service_clicked",
+                postId: item.post.id,
+                feedTab: tab,
+                position,
+                sessionId,
+                serviceId: service.id
+              }).catch(() => undefined)}
+            />
+          </div>)}
+          {item.products.map((product) => <div className={styles.opportunityCard} key={product.id}>
+            <small>PRODUCT</small>
+            <strong>{product.title ?? "Product"}</strong>
+            <span>{formatProductPrice(product)}</span>
+            <OfferQuickView
+              type="PRODUCT"
+              id={product.id}
+              label="Quick view →"
+              sourceLabel="POST"
+              className={styles.opportunityQuickView}
+              onOpen={() => void captureFeedEvent({
+                name: "feed.product_clicked",
+                postId: item.post.id,
+                feedTab: tab,
+                position,
+                sessionId,
+                productId: product.id
+              }).catch(() => undefined)}
+            />
+          </div>)}
         </div>
       </div>}
 
