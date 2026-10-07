@@ -6,9 +6,11 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants (manual deployment/runtime acceptance pending)
+Phase 18D — Delegated Operational Actions & Agent Business Workspace (implementation in progress)
 
-Phase 18C — Agent-Assisted Onboarding & Hustler Registration (merged + database activated; manual deployment/runtime acceptance pending)
+Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants: COMPLETE — production runtime validated 2026-10-07.
+
+Phase 18C — Agent-Assisted Onboarding & Hustler Registration: COMPLETE — production runtime validated 2026-10-07, including secure proof preview.
 
 Phase 17 — Live Commerce Beta: COMPLETE — implementation, production media/runtime validation and final mobile fullscreen/Quick View acceptance validated 2026-10-07.
 
@@ -19,7 +21,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 18B Client Principal↔Agent Relationship & Scoped Permission Grants — relationship authority, named scopes, revocation and actor-vs-owner auditability.**
+Current active slice: **Phase 18D Delegated Operational Actions & Agent Business Workspace — real permission-enforced Agent actions with actor-vs-owner auditability.**
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -71,6 +73,8 @@ Phase 17 is CLOSED. All four final production runtime checks were confirmed by t
 - Phase 16 — Stories + Universal User Content: COMPLETE
 - Phase 17 — Live Commerce Beta: COMPLETE
 - Phase 18A — Verified Agent Capability Foundation: COMPLETE
+- Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants: COMPLETE
+- Phase 18C — Agent-Assisted Onboarding & Hustler Registration: COMPLETE
 
 ## Current transaction and trust boundaries
 
@@ -324,6 +328,7 @@ Canonical Phase 18 knowledge:
 - `Knowledge/Decisions/ADR-0033-agent-relationships-and-scoped-authority.md`
 - `Knowledge/Decisions/ADR-0034-client-principal-agent-authority.md`
 - `Knowledge/Decisions/ADR-0035-agent-assisted-onboarding.md`
+- `Knowledge/Decisions/ADR-0036-delegated-operational-actions.md`
 
 Production activation and runtime acceptance:
 - Supabase migration `phase18a_agent_capability_foundation` applied successfully on 2026-10-07
@@ -339,7 +344,7 @@ Production activation and runtime acceptance:
 - no interface or authority exists yet for managing another Hustler; this absence is intentional and validates the 18A delegation boundary
 
 ### 18B — Client Principal↔Agent Relationship + Scoped Permission Grants
-MERGED + DATABASE ACTIVATED — manual production deployment/runtime acceptance pending.
+COMPLETE — implementation, database activation, manual production deployment and runtime acceptance validated 2026-10-07.
 
 Merges:
 - PR #56 feature merge `18e6042c172e93419672f12d9f1a884570b11bf4`
@@ -457,7 +462,7 @@ Web internal review hub:
 
 
 ### 18C — Agent-Assisted Onboarding & Hustler Registration
-MERGED + DATABASE ACTIVATED — manual deployment/runtime acceptance pending.
+COMPLETE — implementation, database activation, manual production deployment and runtime acceptance validated 2026-10-07.
 
 Merge:
 - PR #60 `572a3022491a44973c635c7290b3421a5f5a6b59`
@@ -530,12 +535,14 @@ Merged fix:
 - API accepts `SUPABASE_SECRET_KEY` or legacy `SUPABASE_SERVICE_ROLE_KEY`;
 - missing server key produces an explicit configuration error.
 
-Remaining runtime/config gate:
-- add a server-only `SUPABASE_SECRET_KEY` to the API Production environment;
-- manually redeploy API + web;
-- verify Open securely for one Hustler proof and one Agent proof.
+Runtime closeout:
+- server-only `SUPABASE_SECRET_KEY` configured on the API;
+- latest API + web manually deployed by the project owner;
+- secure Hustler proof preview passed;
+- secure Agent proof preview passed;
+- all other Phase 18B/18C runtime flows had already passed.
 
-User reported all other Phase 18B/18C runtime flows passed. Do not close Phase 18C until both secure-proof previews pass.
+Phase 18B and Phase 18C are CLOSED unless a regression is found.
 
 ### Recommended next build after proof-preview acceptance
 Phase 18D — Delegated Operational Actions & Agent Business Workspace.
@@ -547,3 +554,38 @@ Goal:
 - start with lower-risk operational surfaces: professional profile, Services, Products and Content;
 - Bookings and Client Messages follow only after those owner/actor boundaries are proven;
 - wallet, ledger, escrow, payouts, Reviews and reputation remain non-delegable.
+
+
+### 18D — Delegated Operational Actions & Agent Business Workspace
+IMPLEMENTATION IN PROGRESS.
+
+First operational slice:
+- dedicated `/agent-business/:principalUserId/*` API; owner routes remain unchanged
+- Agent Business Workspace launched from an ACTIVE representation
+- `PROFILE_MANAGE` → read/save/publish/unpublish Professional Profile
+- `SERVICE_MANAGE` → list/create/save/publish/pause/delete Services
+- `PRODUCT_MANAGE` → list/create/save/publish/pause/delete Products
+- `CONTENT_MANAGE` → list/create/save/add/remove media/publish/archive Posts
+- Profile/Services/Products require principal `HUSTLER · ACTIVE`
+- Content remains User-level and works for CLIENT principals
+- every delegated mutation re-checks relationship/scope/block state server-side
+- every delegated mutation writes `AgentDelegationAudit` + `SystemEvent` with Agent actor vs principal owner
+- revocation must immediately stop further actions
+
+Explicitly excluded from this first slice:
+- Bookings
+- Client Messages
+- wallet / ledger / escrow / payouts
+- Reviews / reputation
+- login or identity ownership
+
+Runtime acceptance after merge must prove:
+1. Agent with PROFILE_MANAGE can update/publish a represented Hustler profile.
+2. Removing PROFILE_MANAGE immediately blocks another profile write.
+3. Agent with SERVICE_MANAGE can create/edit/publish/pause a Service owned by the principal.
+4. Agent with PRODUCT_MANAGE can create/edit/publish/pause a Product owned by the principal.
+5. Agent with CONTENT_MANAGE can create/edit/media/publish a Post owned by the principal.
+6. A CLIENT-only principal may receive delegated Content management but cannot use Profile/Service/Product delegated operations.
+7. Agent cannot mutate a principal outside their ACTIVE relationship or without the exact scope.
+8. AgentDelegationAudit records actor=Agent and owner=principal for each tested mutation.
+9. Existing wallet, payment, Review and reputation state remains unchanged.
