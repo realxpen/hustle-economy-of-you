@@ -4,7 +4,6 @@ import { AuthModule } from "../auth/auth.module";
 
 import { HustlerApplicationController } from "./hustler-application.controller";
 import { HustlerApplicationService } from "./hustler-application.service";
-import { HustleReviewerGuard } from "./hustle-reviewer.guard";
 import { HustlerReviewController } from "./hustler-review.controller";
 import { HustlerReviewService } from "./hustler-review.service";
 
@@ -13,8 +12,7 @@ import { HustlerReviewService } from "./hustler-review.service";
   controllers: [HustlerApplicationController, HustlerReviewController],
   providers: [
     HustlerApplicationService,
-    HustlerReviewService,
-    HustleReviewerGuard
+    HustlerReviewService
   ],
   exports: [HustlerApplicationService, HustlerReviewService]
 })
