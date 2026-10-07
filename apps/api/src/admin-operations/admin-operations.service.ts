@@ -663,9 +663,7 @@ export class AdminOperationsService {
           await tx.hustlerApplication.update({
             where: { id: application.id },
             data: {
-              status: HustlerApplicationStatus.SUSPENDED,
-              reviewNotes: reason,
-              reviewedAt: now
+              status: HustlerApplicationStatus.SUSPENDED
             }
           });
         }
@@ -680,9 +678,7 @@ export class AdminOperationsService {
           await tx.agentApplication.update({
             where: { id: application.id },
             data: {
-              status: AgentApplicationStatus.SUSPENDED,
-              reviewNotes: reason,
-              reviewedAt: now
+              status: AgentApplicationStatus.SUSPENDED
             }
           });
         }
@@ -761,9 +757,7 @@ export class AdminOperationsService {
         await tx.hustlerApplication.update({
           where: { id: application.id },
           data: {
-            status: HustlerApplicationStatus.APPROVED,
-            reviewNotes: reason,
-            reviewedAt: now
+            status: HustlerApplicationStatus.APPROVED
           }
         });
       }
@@ -781,9 +775,7 @@ export class AdminOperationsService {
         await tx.agentApplication.update({
           where: { id: application.id },
           data: {
-            status: AgentApplicationStatus.APPROVED,
-            reviewNotes: reason,
-            reviewedAt: now
+            status: AgentApplicationStatus.APPROVED
           }
         });
       }
