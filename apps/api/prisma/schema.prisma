@@ -304,7 +304,7 @@ model User {
   reviewedHustlerApplications HustlerApplication[]      @relation("HustlerReviewer")
   agentApplication             AgentApplication?       @relation("AgentApplicant")
   reviewedAgentApplications    AgentApplication[]      @relation("AgentReviewer")
-  hustlerAgentRelationships    AgentRelationship[]     @relation("AgentRelationshipHustler")
+  principalAgentRelationships  AgentRelationship[]     @relation("AgentRelationshipPrincipal")
   agentRepresentations         AgentRelationship[]     @relation("AgentRelationshipAgent")
   revokedAgentRelationships    AgentRelationship[]     @relation("AgentRelationshipRevokedBy")
   agentPermissionGrantsGiven   AgentPermissionGrant[]  @relation("AgentPermissionGrantedBy")
@@ -443,7 +443,7 @@ model AgentApplicationProof {
 
 model AgentRelationship {
   id              String                  @id @default(cuid())
-  hustlerUserId   String
+  principalUserId String                  @map("hustlerUserId")
   agentUserId     String
   status          AgentRelationshipStatus @default(PENDING)
   invitedAt       DateTime                @default(now())
@@ -454,14 +454,14 @@ model AgentRelationship {
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
 
-  hustler     User                   @relation("AgentRelationshipHustler", fields: [hustlerUserId], references: [id], onDelete: Cascade)
+  principal   User                   @relation("AgentRelationshipPrincipal", fields: [principalUserId], references: [id], onDelete: Cascade, map: "AgentRelationship_hustlerUserId_fkey")
   agent       User                   @relation("AgentRelationshipAgent", fields: [agentUserId], references: [id], onDelete: Cascade)
   revokedBy   User?                  @relation("AgentRelationshipRevokedBy", fields: [revokedByUserId], references: [id], onDelete: SetNull)
   permissions AgentPermissionGrant[]
   audits      AgentDelegationAudit[]
 
-  @@unique([hustlerUserId, agentUserId])
-  @@index([hustlerUserId, status])
+  @@unique([principalUserId, agentUserId], map: "AgentRelationship_hustlerUserId_agentUserId_key")
+  @@index([principalUserId, status], map: "AgentRelationship_hustlerUserId_status_idx")
   @@index([agentUserId, status])
   @@index([status, invitedAt])
   @@index([revokedByUserId])
