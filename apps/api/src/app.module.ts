@@ -19,6 +19,7 @@ import { TrustSafetyModule } from "./trust-safety/trust-safety.module";
 import { StorefrontModule } from "./storefront/storefront.module";
 import { StoryModule } from "./story/story.module";
 import { LiveModule } from "./live/live.module";
+import { AgentApplicationModule } from "./agent-application/agent-application.module";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
 
 @Module({
@@ -42,7 +43,8 @@ import { RequestContextMiddleware } from "./common/middleware/request-context.mi
     TrustSafetyModule,
     StorefrontModule,
     StoryModule,
-    LiveModule
+    LiveModule,
+    AgentApplicationModule
   ]
 })
 export class AppModule implements NestModule {
