@@ -3,7 +3,7 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import {
   AgentRelationshipController,
-  HustlerAgentRelationshipController
+  PrincipalAgentRelationshipController
 } from "./agent-relationship.controller";
 import { AgentRelationshipService } from "./agent-relationship.service";
 
