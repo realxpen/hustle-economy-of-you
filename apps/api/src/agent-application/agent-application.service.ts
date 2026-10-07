@@ -85,7 +85,6 @@ export class AgentApplicationService {
     await this.prisma.agentApplication.upsert({
       where: { userId: user.id },
       create: {
-        userId: user.id,
         ...(motivation !== undefined ? { motivation } : {}),
         ...(experienceSummary !== undefined ? { experienceSummary } : {}),
         ...(operatingArea !== undefined ? { operatingArea } : {}),
@@ -231,7 +230,6 @@ export class AgentApplicationService {
         data: {
           name: "agent_application.submitted",
           source: "api",
-          userId: user.id,
           payload: {
             applicationId: application.id,
             applicantUserId: user.id
