@@ -72,7 +72,14 @@ export class BookingScheduleService {
       select: { id: true }
     });
     if (!viewer) return;
+    return this.validateAcceptForHustler(viewer.id, bookingId, input);
+  }
 
+  async validateAcceptForHustler(
+    hustlerUserId: string,
+    bookingId: string,
+    input: AcceptBookingInput
+  ) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       select: {
@@ -83,17 +90,38 @@ export class BookingScheduleService {
         requestedEndAt: true
       }
     });
-    if (!booking || booking.hustlerUserId !== viewer.id || booking.status !== BookingStatus.REQUESTED) return;
+    if (
+      !booking ||
+      booking.hustlerUserId !== hustlerUserId ||
+      booking.status !== BookingStatus.REQUESTED
+    ) {
+      return;
+    }
 
     const suppliedStart = this.parseOptionalDate(input.confirmedStartAt);
     const suppliedEnd = this.parseOptionalDate(input.confirmedEndAt);
-    if (input.confirmedStartAt !== undefined && input.confirmedStartAt !== null && input.confirmedStartAt !== "" && !suppliedStart) return;
-    if (input.confirmedEndAt !== undefined && input.confirmedEndAt !== null && input.confirmedEndAt !== "" && !suppliedEnd) return;
+    if (
+      input.confirmedStartAt !== undefined &&
+      input.confirmedStartAt !== null &&
+      input.confirmedStartAt !== "" &&
+      !suppliedStart
+    ) {
+      return;
+    }
+    if (
+      input.confirmedEndAt !== undefined &&
+      input.confirmedEndAt !== null &&
+      input.confirmedEndAt !== "" &&
+      !suppliedEnd
+    ) {
+      return;
+    }
 
     const startAt = suppliedStart ?? booking.requestedStartAt;
-    const endAt = input.confirmedEndAt === undefined
-      ? booking.requestedEndAt
-      : suppliedEnd;
+    const endAt =
+      input.confirmedEndAt === undefined
+        ? booking.requestedEndAt
+        : suppliedEnd;
 
     await this.assertAvailable({
       hustlerUserId: booking.hustlerUserId,

@@ -62,6 +62,7 @@ const messageSelect = {
   id: true,
   conversationId: true,
   senderId: true,
+  delegatedByAgentUserId: true,
   text: true,
   attachmentType: true,
   attachmentStorageKey: true,
@@ -73,6 +74,14 @@ const messageSelect = {
   createdAt: true,
   updatedAt: true,
   sender: {
+    select: {
+      id: true,
+      displayName: true,
+      username: true,
+      avatarUrl: true
+    }
+  },
+  delegatedByAgent: {
     select: {
       id: true,
       displayName: true,
@@ -567,6 +576,7 @@ export class MessagingService {
           }
         : null,
       sender: message.sender,
+      delegatedByAgent: message.delegatedByAgent,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt
     };
