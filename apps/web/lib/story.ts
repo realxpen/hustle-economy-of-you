@@ -1,5 +1,6 @@
 "use client";
 
+import { authenticatedFetch } from "./api/authenticated-fetch";
 import { getSupabaseBrowserClient } from "./supabase/client";
 
 export type StoryType = "TEXT" | "IMAGE" | "VIDEO";
@@ -129,20 +130,6 @@ async function getSession() {
   return { supabase, session };
 }
 
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const { session } = await getSession();
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
-}
 
 function emptyInteractions(): StoryInteractions {
   return { views: 0, replies: 0, reactions: {} };
