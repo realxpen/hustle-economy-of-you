@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 18B — Hustler↔Agent Relationship + Scoped Permission Grants (merged + database activated; manual production deployment/runtime acceptance pending)
+Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants (authority correction in progress; runtime acceptance pending)
 
 Phase 17 — Live Commerce Beta: COMPLETE — implementation, production media/runtime validation and final mobile fullscreen/Quick View acceptance validated 2026-10-07.
 
@@ -17,7 +17,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 18B Hustler↔Agent Relationship & Scoped Permission Grants — relationship authority, named scopes, revocation and actor-vs-owner auditability.**
+Current active slice: **Phase 18B Client Principal↔Agent Relationship & Scoped Permission Grants — relationship authority, named scopes, revocation and actor-vs-owner auditability.**
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -320,6 +320,7 @@ Canonical Phase 18 knowledge:
 - `Knowledge/Product/AGENT_MVP.md`
 - `Knowledge/Decisions/ADR-0032-agent-capability-foundation.md`
 - `Knowledge/Decisions/ADR-0033-agent-relationships-and-scoped-authority.md`
+- `Knowledge/Decisions/ADR-0034-client-principal-agent-authority.md`
 
 Production activation and runtime acceptance:
 - Supabase migration `phase18a_agent_capability_foundation` applied successfully on 2026-10-07
@@ -334,7 +335,7 @@ Production activation and runtime acceptance:
 - approved Agent application state rendered correctly
 - no interface or authority exists yet for managing another Hustler; this absence is intentional and validates the 18A delegation boundary
 
-### 18B — Hustler↔Agent Relationship + Scoped Permission Grants
+### 18B — Client Principal↔Agent Relationship + Scoped Permission Grants
 MERGED + DATABASE ACTIVATED — manual production deployment/runtime acceptance pending.
 
 Merges:
@@ -361,15 +362,15 @@ Hosted database:
 - no new Phase-18B-specific security advisor finding
 
 Implemented authority:
-- Hustler-initiated invitation to an ACTIVE Agent
+- ACTIVE CLIENT principal can initiate an invitation to an ACTIVE Agent
 - Agent acceptance/decline
 - ACTIVE relationship required before any permission can authorize a future delegated action
 - independent named scopes for profile, services, products, content, bookings and client messages
-- Hustler permission updates and revocation
+- Client-principal permission updates and revocation
 - Agent voluntary leave
-- multiple Hustlers per Agent through separate relationships
+- multiple Client principals per Agent through separate relationships
 - blocked-user relationship prevention
-- dedicated actor-vs-owner `AgentDelegationAudit`
+- dedicated actor-vs-principal-owner `AgentDelegationAudit`
 - existing owner-only business write routes remain unchanged in 18B
 - no wallet, escrow, payout, Review or reputation delegation
 
@@ -412,14 +413,26 @@ Phase 18B implementation, CI and hosted database activation are complete.
 The remaining gate is **manual production deployment by the project owner + runtime acceptance**.
 
 18B acceptance must prove:
-- Hustler can invite an ACTIVE Agent with explicit scopes
+- a newly created CLIENT account can see Manage Agents and invite an ACTIVE Agent with explicit scopes
 - Agent must accept before relationship becomes ACTIVE
-- Agent can represent multiple Hustlers independently
-- Hustler can change scopes and revoke authority
+- Agent can represent multiple Client principals independently
+- Client principal can change scopes and revoke authority
 - Agent can leave
-- audit records distinguish actor from Hustler owner
+- audit records distinguish Agent actor from Client principal owner
 - blocked users cannot create/activate representation
 - no delegated business controls exist yet despite the stored grants
 - no wallet, escrow, payout, Review or reputation authority is transferred
 
 Phase 17 and Phase 18A are CLOSED and must not be reopened unless a regression is found.
+
+
+### Phase 18B product correction — 2026-10-07
+The initial 18B implementation incorrectly gated **Manage Agents** and relationship creation behind ACTIVE HUSTLER.
+
+Correct product rule:
+- every normal Hustle identity begins with ACTIVE CLIENT;
+- CLIENT is sufficient to appoint/manage an Agent;
+- an Agent relationship may exist before Hustler activation;
+- the relationship does not create HUSTLER capability;
+- future Hustler-only delegated operations must separately enforce the principal's ACTIVE HUSTLER capability;
+- Prisma now exposes the owner logically as `principalUserId` / `principal` while mapping to the existing hosted column for data compatibility.

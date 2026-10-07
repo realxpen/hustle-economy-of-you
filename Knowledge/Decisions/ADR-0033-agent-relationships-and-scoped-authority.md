@@ -1,6 +1,6 @@
 # ADR-0033 — Agent Relationships and Scoped Delegated Authority
 
-Status: Accepted
+Status: Amended by ADR-0034
 Date: 2026-10-07
 
 ## Context
@@ -49,3 +49,10 @@ No Agent relationship transfers or grants authority over login/identity ownershi
 ## Consequences
 
 Hustle gains a trustworthy delegation primitive before any Agent can act on another Hustler's business.
+
+
+## Amendment
+
+ADR-0034 corrects the relationship owner from an ACTIVE HUSTLER to any ACTIVE CLIENT principal.
+
+The relationship itself is identity-level delegation. Hustler capability is required only when a delegated operation touches a Hustler-only surface such as ProfessionalProfile, Services, Products or Bookings.

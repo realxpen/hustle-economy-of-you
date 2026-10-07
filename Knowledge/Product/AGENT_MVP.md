@@ -140,3 +140,18 @@ Rules:
 Phase 18B deliberately does **not** wire the grants into owner-only Service/Product/Post/Booking/Messaging mutations yet. It establishes the authorization root those later delegated actions must enforce.
 
 Financial and reputation authority remains non-delegable in this phase.
+
+
+## Phase 18B authority correction — Client principal first
+
+A user does **not** need to become a Hustler before appointing or managing an Agent.
+
+Correct relationship root:
+
+`ACTIVE CLIENT principal → invite ACTIVE AGENT → Agent accepts → ACTIVE relationship`
+
+The relationship is identity-level delegation. It may exist before the principal activates HUSTLER.
+
+Hustler capability is checked later by the specific delegated action when the underlying operation is Hustler-only. The relationship alone never creates or implies HUSTLER capability.
+
+The web **Manage Agents** entry is therefore available to every signed-in Hustle Client identity.

@@ -34,12 +34,12 @@ const partySelect = {
 export class AgentRelationshipService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listForHustler(identity: AuthIdentity) {
-    const hustler = await this.requireActiveUser(identity, Capability.HUSTLER);
+  async listForPrincipal(identity: AuthIdentity) {
+    const principal = await this.requireActiveUser(identity, Capability.CLIENT);
     return this.prisma.agentRelationship.findMany({
-      where: { hustlerUserId: hustler.id },
+      where: { principalUserId: principal.id },
       include: {
-        hustler: { select: partySelect },
+        principal: { select: partySelect },
         agent: { select: partySelect },
         permissions: {
           where: { active: true },
@@ -51,7 +51,7 @@ export class AgentRelationshipService {
   }
 
   async invite(identity: AuthIdentity, input: CreateAgentInvitationInput) {
-    const hustler = await this.requireActiveUser(identity, Capability.HUSTLER);
+    const principal = await this.requireActiveUser(identity, Capability.CLIENT);
     const username = this.requiredUsername(input.agentUsername);
     const permissions = this.requiredPermissions(input.permissions);
 
@@ -71,16 +71,16 @@ export class AgentRelationshipService {
     if (!agent) {
       throw new NotFoundException("No ACTIVE Hustle Agent was found with that username");
     }
-    if (agent.id === hustler.id) {
+    if (agent.id === principal.id) {
       throw new BadRequestException("You cannot create an Agent relationship with yourself");
     }
 
-    await this.assertUsersNotBlocked(hustler.id, agent.id);
+    await this.assertUsersNotBlocked(principal.id, agent.id);
 
     const existing = await this.prisma.agentRelationship.findUnique({
       where: {
-        hustlerUserId_agentUserId: {
-          hustlerUserId: hustler.id,
+        principalUserId_agentUserId: {
+          principalUserId: principal.id,
           agentUserId: agent.id
         }
       }
@@ -113,7 +113,7 @@ export class AgentRelationshipService {
           })
         : await tx.agentRelationship.create({
             data: {
-              hustlerUserId: hustler.id,
+              principalUserId: principal.id,
               agentUserId: agent.id,
               status: AgentRelationshipStatus.PENDING,
               invitedAt: now
@@ -137,12 +137,12 @@ export class AgentRelationshipService {
             relationshipId: relationship.id,
             scope,
             active: true,
-            grantedByUserId: hustler.id,
+            grantedByUserId: principal.id,
             grantedAt: now
           },
           update: {
             active: true,
-            grantedByUserId: hustler.id,
+            grantedByUserId: principal.id,
             grantedAt: now,
             revokedAt: null
           }
@@ -152,8 +152,8 @@ export class AgentRelationshipService {
       await tx.agentDelegationAudit.create({
         data: {
           relationshipId: relationship.id,
-          actorUserId: hustler.id,
-          ownerUserId: hustler.id,
+          actorUserId: principal.id,
+          ownerUserId: principal.id,
           action: "agent_relationship.invited",
           metadata: { agentUserId: agent.id, permissions }
         }
@@ -165,7 +165,7 @@ export class AgentRelationshipService {
           source: "api",
           payload: {
             relationshipId: relationship.id,
-            hustlerUserId: hustler.id,
+            principalUserId: principal.id,
             agentUserId: agent.id,
             permissions
           }
@@ -183,8 +183,8 @@ export class AgentRelationshipService {
     relationshipId: string,
     input: UpdateAgentPermissionsInput
   ) {
-    const hustler = await this.requireActiveUser(identity, Capability.HUSTLER);
-    const relationship = await this.requireHustlerRelationship(relationshipId, hustler.id);
+    const principal = await this.requireActiveUser(identity, Capability.CLIENT);
+    const relationship = await this.requirePrincipalRelationship(relationshipId, principal.id);
 
     if (
       relationship.status !== AgentRelationshipStatus.PENDING &&
@@ -241,12 +241,12 @@ export class AgentRelationshipService {
             relationshipId: relationship.id,
             scope,
             active: true,
-            grantedByUserId: hustler.id,
+            grantedByUserId: principal.id,
             grantedAt: now
           },
           update: {
             active: true,
-            grantedByUserId: hustler.id,
+            grantedByUserId: principal.id,
             grantedAt: now,
             revokedAt: null
           }
@@ -256,8 +256,8 @@ export class AgentRelationshipService {
       await tx.agentDelegationAudit.create({
         data: {
           relationshipId: relationship.id,
-          actorUserId: hustler.id,
-          ownerUserId: hustler.id,
+          actorUserId: principal.id,
+          ownerUserId: principal.id,
           action: "agent_relationship.permissions_updated",
           metadata: { previous, next, added, removed }
         }
@@ -269,7 +269,7 @@ export class AgentRelationshipService {
           source: "api",
           payload: {
             relationshipId: relationship.id,
-            hustlerUserId: hustler.id,
+            principalUserId: principal.id,
             agentUserId: relationship.agentUserId,
             previous,
             next,
@@ -283,9 +283,9 @@ export class AgentRelationshipService {
     return this.relationshipView(relationship.id);
   }
 
-  async revokeAsHustler(identity: AuthIdentity, relationshipId: string) {
-    const hustler = await this.requireActiveUser(identity, Capability.HUSTLER);
-    const relationship = await this.requireHustlerRelationship(relationshipId, hustler.id);
+  async revokeAsPrincipal(identity: AuthIdentity, relationshipId: string) {
+    const principal = await this.requireActiveUser(identity, Capability.CLIENT);
+    const relationship = await this.requirePrincipalRelationship(relationshipId, principal.id);
 
     if (relationship.status === AgentRelationshipStatus.REVOKED) {
       return this.relationshipView(relationship.id);
@@ -299,10 +299,10 @@ export class AgentRelationshipService {
 
     await this.endRelationship(
       relationship.id,
-      hustler.id,
-      hustler.id,
+      principal.id,
+      principal.id,
       relationship.agentUserId,
-      "agent_relationship.revoked_by_hustler"
+      "agent_relationship.revoked_by_principal"
     );
 
     return this.relationshipView(relationship.id);
@@ -313,7 +313,7 @@ export class AgentRelationshipService {
     return this.prisma.agentRelationship.findMany({
       where: { agentUserId: agent.id },
       include: {
-        hustler: { select: partySelect },
+        principal: { select: partySelect },
         agent: { select: partySelect },
         permissions: {
           where: { active: true },
@@ -332,8 +332,8 @@ export class AgentRelationshipService {
       throw new BadRequestException("Only pending Agent invitations can be accepted");
     }
 
-    await this.requireCapabilityByUserId(relationship.hustlerUserId, Capability.HUSTLER);
-    await this.assertUsersNotBlocked(relationship.hustlerUserId, agent.id);
+    await this.requireCapabilityByUserId(relationship.principalUserId, Capability.CLIENT);
+    await this.assertUsersNotBlocked(relationship.principalUserId, agent.id);
 
     const now = new Date();
     await this.prisma.$transaction([
@@ -351,7 +351,7 @@ export class AgentRelationshipService {
         data: {
           relationshipId: relationship.id,
           actorUserId: agent.id,
-          ownerUserId: relationship.hustlerUserId,
+          ownerUserId: relationship.principalUserId,
           action: "agent_relationship.accepted",
           metadata: { agentUserId: agent.id }
         }
@@ -362,7 +362,7 @@ export class AgentRelationshipService {
           source: "api",
           payload: {
             relationshipId: relationship.id,
-            hustlerUserId: relationship.hustlerUserId,
+            principalUserId: relationship.principalUserId,
             agentUserId: agent.id
           }
         }
@@ -398,7 +398,7 @@ export class AgentRelationshipService {
         data: {
           relationshipId: relationship.id,
           actorUserId: agent.id,
-          ownerUserId: relationship.hustlerUserId,
+          ownerUserId: relationship.principalUserId,
           action: "agent_relationship.declined",
           metadata: { agentUserId: agent.id, permissions: scopes }
         }
@@ -409,7 +409,7 @@ export class AgentRelationshipService {
           source: "api",
           payload: {
             relationshipId: relationship.id,
-            hustlerUserId: relationship.hustlerUserId,
+            principalUserId: relationship.principalUserId,
             agentUserId: agent.id
           }
         }
@@ -433,7 +433,7 @@ export class AgentRelationshipService {
     await this.endRelationship(
       relationship.id,
       agent.id,
-      relationship.hustlerUserId,
+      relationship.principalUserId,
       agent.id,
       "agent_relationship.left_by_agent"
     );
@@ -452,14 +452,14 @@ export class AgentRelationshipService {
 
     await Promise.all([
       this.requireCapabilityByUserId(actorUserId, Capability.AGENT),
-      this.requireCapabilityByUserId(ownerUserId, Capability.HUSTLER)
+      this.requireCapabilityByUserId(ownerUserId, Capability.CLIENT)
     ]);
     await this.assertUsersNotBlocked(ownerUserId, actorUserId);
 
     const relationship = await this.prisma.agentRelationship.findFirst({
       where: {
         agentUserId: actorUserId,
-        hustlerUserId: ownerUserId,
+        principalUserId: ownerUserId,
         status: AgentRelationshipStatus.ACTIVE,
         permissions: {
           some: { scope, active: true }
@@ -470,7 +470,7 @@ export class AgentRelationshipService {
 
     if (!relationship) {
       throw new ForbiddenException(
-        `Active Agent permission ${scope} is required for this Hustler`
+        `Active Agent permission ${scope} is required for this account`
       );
     }
 
@@ -516,7 +516,7 @@ export class AgentRelationshipService {
           payload: {
             relationshipId,
             actorUserId,
-            hustlerUserId: ownerUserId,
+            principalUserId: ownerUserId,
             agentUserId,
             permissions: scopes
           }
@@ -529,7 +529,7 @@ export class AgentRelationshipService {
     return this.prisma.agentRelationship.findUniqueOrThrow({
       where: { id: relationshipId },
       include: {
-        hustler: { select: partySelect },
+        principal: { select: partySelect },
         agent: { select: partySelect },
         permissions: {
           where: { active: true },
@@ -539,11 +539,11 @@ export class AgentRelationshipService {
     });
   }
 
-  private async requireHustlerRelationship(relationshipId: string, hustlerUserId: string) {
+  private async requirePrincipalRelationship(relationshipId: string, principalUserId: string) {
     const relationship = await this.prisma.agentRelationship.findFirst({
       where: {
         id: this.requiredId(relationshipId, "relationshipId"),
-        hustlerUserId
+        principalUserId
       }
     });
     if (!relationship) throw new NotFoundException("Agent relationship not found");
