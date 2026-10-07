@@ -1,6 +1,6 @@
 "use client";
 
-import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch } from "./api/authenticated-fetch";
 
 export type LiveSessionStatus = "DRAFT" | "LIVE" | "ENDED" | "CANCELLED";
 export type LivePinnedOfferType = "SERVICE" | "PRODUCT";
@@ -102,19 +102,6 @@ async function parseError(response: Response) {
     message?: string;
   } | null;
   return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) throw new Error("You need to sign in again");
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-  const response = await fetch(`${apiBase}${path}`, { ...init, headers, cache: "no-store" });
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
 }
 
 export function getLiveViewerKey() {
@@ -228,8 +215,32 @@ export async function heartbeatLiveViewer(liveId: string) {
   return response.json() as Promise<{ recorded: true; viewers: number }>;
 }
 
-export async function getLiveComments(liveId: string): Promise<LiveCommentRecord[]> {
-  const response = await fetch(`${apiBase}/live/${encodeURIComponent(liveId)}/comments`, { cache: "no-store" });
+export async function leaveLiveViewer(liveId: string) {
+  const response = await fetch(`${apiBase}/live/${encodeURIComponent(liveId)}/view/leave`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ viewerKey: getLiveViewerKey() }),
+    cache: "no-store",
+    keepalive: true
+  });
+  if (!response.ok) throw new Error(await parseError(response));
+  return response.json() as Promise<{ recorded: true; viewers: number }>;
+}
+
+export async function getLiveComments(
+  liveId: string,
+  options: { after?: { createdAt: string; id: string } | null; limit?: number } = {}
+): Promise<LiveCommentRecord[]> {
+  const params = new URLSearchParams();
+  params.set("limit", String(options.limit ?? 100));
+  if (options.after) {
+    params.set("afterCreatedAt", options.after.createdAt);
+    params.set("afterId", options.after.id);
+  }
+  const response = await fetch(
+    `${apiBase}/live/${encodeURIComponent(liveId)}/comments?${params.toString()}`,
+    { cache: "no-store" }
+  );
   if (!response.ok) throw new Error(await parseError(response));
   return response.json() as Promise<LiveCommentRecord[]>;
 }
