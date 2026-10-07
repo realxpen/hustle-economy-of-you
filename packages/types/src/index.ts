@@ -199,7 +199,7 @@ export interface AgentPermissionGrant {
 
 export interface AgentRelationship {
   id: string;
-  hustlerUserId: string;
+  principalUserId: string;
   agentUserId: string;
   status: AgentRelationshipStatus;
   invitedAt: string;
@@ -209,7 +209,7 @@ export interface AgentRelationship {
   revokedByUserId: string | null;
   createdAt: string;
   updatedAt: string;
-  hustler: AgentRelationshipParty;
+  principal: AgentRelationshipParty;
   agent: AgentRelationshipParty;
   permissions: AgentPermissionGrant[];
 }
