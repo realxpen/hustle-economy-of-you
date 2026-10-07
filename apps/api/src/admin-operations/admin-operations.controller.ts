@@ -1,13 +1,17 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
+  Post,
   Query,
   UseGuards
 } from "@nestjs/common";
 
 import { AdminGuard } from "../auth/admin.guard";
 import { AuthGuard } from "../auth/auth.guard";
+import { CurrentIdentity } from "../auth/current-identity.decorator";
+import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { AdminOperationsService } from "./admin-operations.service";
 
 @Controller("admin/operations")
@@ -65,5 +69,35 @@ export class AdminOperationsController {
     @Query("limit") limit?: string
   ) {
     return this.operations.auditEvents(name, limit);
+  }
+
+  @Post("users/:userId/capabilities/:capability/suspend")
+  suspendCapability(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("userId") userId: string,
+    @Param("capability") capability: string,
+    @Body() body: { reason?: unknown }
+  ) {
+    return this.operations.suspendCapability(
+      identity,
+      userId,
+      capability,
+      body.reason
+    );
+  }
+
+  @Post("users/:userId/capabilities/:capability/reactivate")
+  reactivateCapability(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("userId") userId: string,
+    @Param("capability") capability: string,
+    @Body() body: { reason?: unknown }
+  ) {
+    return this.operations.reactivateCapability(
+      identity,
+      userId,
+      capability,
+      body.reason
+    );
   }
 }
