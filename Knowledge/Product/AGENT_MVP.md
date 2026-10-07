@@ -181,3 +181,28 @@ Rules:
 - wallet, escrow, payouts, Reviews and reputation remain non-delegable.
 
 Canonical decision: `Knowledge/Decisions/ADR-0035-agent-assisted-onboarding.md`.
+
+
+## Phase 18D — Delegated Operational Actions & Agent Business Workspace
+
+Phase 18D turns stored permission grants into real, server-enforced delegated actions.
+
+First operational surfaces:
+
+- `PROFILE_MANAGE` → Professional Profile
+- `SERVICE_MANAGE` → Services
+- `PRODUCT_MANAGE` → Products
+- `CONTENT_MANAGE` → Posts/content
+
+Rules:
+
+- every action re-checks ACTIVE AGENT, ACTIVE relationship, exact permission and block state;
+- Profile/Services/Products additionally require the principal to be ACTIVE HUSTLER;
+- Content remains User-level and requires only the principal's ACTIVE CLIENT identity;
+- Agent never uses the principal's owner-only endpoints;
+- every mutation records Agent actor vs principal owner in `AgentDelegationAudit`;
+- revocation immediately blocks future delegated writes;
+- Bookings and Client Messages remain outside this first 18D slice;
+- wallet, ledger, escrow, payouts, Reviews and reputation remain non-delegable.
+
+Canonical decision: `Knowledge/Decisions/ADR-0036-delegated-operational-actions.md`.
