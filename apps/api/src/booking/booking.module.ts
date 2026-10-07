@@ -10,6 +10,6 @@ import { BookingService } from "./booking.service";
   imports: [AuthModule],
   controllers: [BookingController],
   providers: [BookingService, BookingScheduleService, BookingFinancialService],
-  exports: [BookingService, BookingFinancialService]
+  exports: [BookingService, BookingScheduleService, BookingFinancialService]
 })
 export class BookingModule {}
