@@ -6,7 +6,9 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 17 — Live Commerce Beta (final runtime validation pending)
+Phase 18B — Hustler↔Agent Relationship + Scoped Permission Grants (next build slice)
+
+Phase 17 — Live Commerce Beta: COMPLETE — implementation, production media/runtime validation and final mobile fullscreen/Quick View acceptance validated 2026-10-07.
 
 Phase 18A — Verified Agent Capability Foundation: COMPLETE — implementation, database activation, manual production deployment and end-to-end runtime acceptance validated 2026-10-07.
 
@@ -15,9 +17,9 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 17D runtime closeout + Phase 18B Hustler↔Agent Relationship & Scoped Permission Grants next.**
+Current active slice: **Phase 18B Hustler↔Agent Relationship & Scoped Permission Grants.**
 
-Phase 17 remains OPEN until the four final production runtime checks are confirmed by the project owner.
+Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
 ## Binding product rules
 - Hustle is a mobile-first, Nigeria-first capability-to-opportunity ecosystem.
@@ -65,6 +67,7 @@ Phase 17 remains OPEN until the four final production runtime checks are confirm
 - Phase 14 — Trust + Reputation: COMPLETE
 - Phase 15 — Public Hustle Storefront Website: COMPLETE
 - Phase 16 — Stories + Universal User Content: COMPLETE
+- Phase 17 — Live Commerce Beta: COMPLETE
 - Phase 18A — Verified Agent Capability Foundation: COMPLETE
 
 ## Current transaction and trust boundaries
@@ -188,7 +191,7 @@ Canonical Phase 16 knowledge:
 - `Knowledge/Decisions/ADR-0029-story-table-data-api-hardening.md`
 
 ## Phase 17 — Live Commerce Beta
-ACTIVE.
+COMPLETE — final production runtime acceptance validated 2026-10-07.
 
 ### 17A — Live Commerce Foundation
 COMPLETE — implementation, CI, migration recovery and end-to-end runtime validated 2026-09-18.
@@ -229,7 +232,7 @@ Runtime validated:
 - xpen verified public reputation remained unchanged
 
 ### 17B — Native Live Media Transport
-IMPLEMENTED + CI GREEN — runtime migration/media validation pending.
+COMPLETE — implementation, CI and production runtime/media validation passed.
 
 Migration:
 - `20260918110000_phase17b_native_live_media`
@@ -255,21 +258,15 @@ Canonical Phase 17 knowledge:
 - `Knowledge/Decisions/ADR-0030-live-commerce-foundation.md`
 - `Knowledge/Decisions/ADR-0031-native-live-media-transport.md`
 
-Runtime still required:
-- deploy the 17B migration
-- generate local LiveKit credentials
-- start local LiveKit transport without requiring Docker
-- connect xpen camera/microphone from a DRAFT control room
-- verify `nativeBroadcasting` becomes true only while publisher heartbeat is fresh
-- start Live and confirm signed-out browser receives real video/audio
-- verify camera/mic toggles, host reconnect, viewer reconnect and sound unlock
-- verify publish credential is host-only and viewer token cannot publish
-- end Live and verify media presence clears
-- verify provider secret never appears in browser/public responses
-- re-check unchanged xpen verified reputation invariant.
+Runtime validated:
+- production native Live media transport functions with real camera/microphone broadcasting
+- publisher/viewer media lifecycle and native broadcasting state behaved correctly in production
+- camera/microphone controls, viewer playback and reconnection paths were validated during Phase 17 runtime testing
+- Live media remained separate from canonical Booking/Order/payment/reputation authority
+- final Phase 17 acceptance included native mobile fullscreen behavior
 
 ## Phase 17C/17D — Production Live Viewer + Commerce Polish
-IMPLEMENTED + MERGED — final runtime acceptance pending.
+COMPLETE — implementation, merge and final production runtime acceptance validated 2026-10-07.
 
 Latest merge:
 - PR #54 merge `7033cbb11331f6e9943583f94f2ee6c672505e39`
@@ -283,11 +280,13 @@ Validated in CI / implemented:
 - Quick View from Live pinned offers, Home feed references and individual Post pages
 - canonical Service/Product pages remain authoritative for transaction actions
 
-Final production runtime checks still required before Phase 17 may be marked COMPLETE:
-1. Mobile native Live → Fullscreen enters native phone fullscreen.
-2. Live pinned Product/Service → Quick View opens without leaving Live → full-details CTA works.
-3. Home feed attached Product/Service → Quick View opens without leaving the feed.
-4. Post page attached offer → Quick View opens and shows canonical provider/offer information.
+Final production runtime checks PASSED:
+1. Mobile native Live → Fullscreen entered native phone fullscreen.
+2. Live pinned Product/Service → Quick View opened without leaving Live and the full-details CTA worked.
+3. Home feed attached Product/Service → Quick View opened without leaving the feed.
+4. Post page attached offer → Quick View opened and showed canonical provider/offer information.
+
+Phase 17 is therefore CLOSED.
 
 ## Phase 18 — Agent MVP
 ACTIVE.
@@ -368,9 +367,12 @@ Use fresh auth sessions/tokens for runtime validation. Never commit or print pro
 
 ## Next gate
 
-Two independent tracks remain:
+Proceed to **Phase 18B — Hustler↔Agent Relationship + Scoped Permission Grants**:
+- explicit Hustler authorization/invitation and Agent acceptance
+- one Agent may represent multiple Hustlers
+- named permission scopes
+- revocation
+- actor-vs-owner/subject audit records
+- no transfer of wallet, escrow, payout, Review or reputation ownership
 
-1. **Phase 17 runtime closeout:** complete the four final production Live/Quick View checks above. Only then mark Phase 17 COMPLETE.
-2. **Phase 18B next build gate:** implement explicit Hustler↔Agent relationship + scoped delegated permissions + revocation + actor-vs-owner audit trail.
-
-Phase 18A is CLOSED and must not be reopened unless a regression is found.
+Phase 17 and Phase 18A are CLOSED and must not be reopened unless a regression is found.
