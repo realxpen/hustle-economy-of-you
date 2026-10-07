@@ -16,6 +16,7 @@ import {
   type LiveCommentRecord,
   type LiveSessionRecord
 } from "../../../lib/live";
+import { OfferQuickView } from "../../../components/commerce/offer-quick-view";
 import { NativeLiveViewer } from "../../../components/live/native-live-viewer";
 import styles from "../live.module.css";
 
@@ -176,11 +177,6 @@ export default function LiveViewerPage() {
     [session?.playbackUrl]
   );
   const offer = session?.pinnedService ?? session?.pinnedProduct ?? null;
-  const offerHref = session?.pinnedService
-    ? `/services/${session.pinnedService.id}`
-    : session?.pinnedProduct
-      ? `/products/${session.pinnedProduct.id}`
-      : null;
   const offerEvent = session?.pinnedService
     ? "SERVICE_CLICKED" as const
     : "PRODUCT_CLICKED" as const;
@@ -306,19 +302,20 @@ export default function LiveViewerPage() {
                       </div>}
             </div>
 
-            {offer && offerHref && <div className={styles.commerceCard}>
+            {offer && session.pinnedOfferType && <div className={styles.commerceCard}>
               <div>
                 <div className={styles.eyebrow}>PINNED {session.pinnedOfferType}</div>
                 <h3>{offer.title ?? "Hustle offer"}</h3>
                 <span className={styles.muted}>{formatLiveMoney(offer.priceMinor, offer.currency)}</span>
               </div>
-              <Link
+              <OfferQuickView
+                type={session.pinnedOfferType}
+                id={offer.id}
+                label="Quick view →"
+                sourceLabel="LIVE"
                 className={`${styles.button} ${styles.primary}`}
-                href={offerHref}
-                onClick={() => liveId && void recordLiveEvent(liveId, offerEvent)}
-              >
-                {session.pinnedService ? "View & book →" : "View & buy →"}
-              </Link>
+                onOpen={() => liveId && void recordLiveEvent(liveId, offerEvent)}
+              />
             </div>}
 
             <div className={styles.actions} style={{ marginTop: 16 }}>
