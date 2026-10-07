@@ -22,6 +22,7 @@ import {
   LiveService,
   type CreateLiveSessionInput,
   type LiveCommentInput,
+  type LiveCommentListInput,
   type LiveEventInput,
   type LivePinInput,
   type LiveViewerInput,
@@ -148,10 +149,24 @@ export class LiveController {
     return this.live.heartbeat(liveId, body);
   }
 
+  @Post(":liveId/view/leave")
+  async leaveViewer(
+    @Param("liveId") liveId: string,
+    @Body() body: LiveViewerInput
+  ) {
+    return this.live.leaveViewer(liveId, body);
+  }
+
   @Get(":liveId/comments")
-  async listComments(@Param("liveId") liveId: string) {
+  async listComments(
+    @Param("liveId") liveId: string,
+    @Query("afterCreatedAt") afterCreatedAt?: string,
+    @Query("afterId") afterId?: string,
+    @Query("limit") limit?: string
+  ) {
     await this.lifecycle.expireStaleLiveSessions();
-    return this.live.listComments(liveId);
+    const input: LiveCommentListInput = { afterCreatedAt, afterId, limit };
+    return this.live.listComments(liveId, input);
   }
 
   @Post(":liveId/comments")

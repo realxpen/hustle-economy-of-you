@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import type { Product, Service } from "@hustle/types";
 
@@ -20,6 +20,15 @@ import { getMyServices } from "../../../../lib/service";
 import { NativeLiveBroadcaster } from "../../../../components/live/native-live-broadcaster";
 import styles from "../../live.module.css";
 
+function mergeComments(current: LiveCommentRecord[], incoming: LiveCommentRecord[]) {
+  const byId = new Map(current.map((comment) => [comment.id, comment]));
+  for (const comment of incoming) byId.set(comment.id, comment);
+  return Array.from(byId.values()).sort((left, right) => {
+    const time = new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+    return time === 0 ? left.id.localeCompare(right.id) : time;
+  }).slice(-100);
+}
+
 export default function LiveControlRoomPage() {
   const params = useParams<{ liveId: string }>();
   const liveId = params?.liveId;
@@ -35,6 +44,8 @@ export default function LiveControlRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [mediaConnected, setMediaConnected] = useState(false);
+  const latestCommentRef = useRef<{ id: string; createdAt: string } | null>(null);
+  const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!liveId) return;
@@ -54,20 +65,83 @@ export default function LiveControlRoomPage() {
   }, [liveId]);
 
   useEffect(() => {
+    commentsEndRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [comments.length]);
+
+  useEffect(() => {
     if (!liveId || session?.status !== "LIVE") return;
     let active = true;
-    const refresh = async () => {
+    let syncing = false;
+    let timer: number | null = null;
+
+    const refreshSession = async () => {
+      if (!active || syncing || document.visibilityState !== "visible") return;
+      syncing = true;
       try {
-        const [nextSession, nextComments] = await Promise.all([getMyLiveSession(liveId), getLiveComments(liveId)]);
-        if (active) {
-          setSession(nextSession);
-          setComments(nextComments);
-        }
-      } catch { /* polling is best effort */ }
+        const nextSession = await getMyLiveSession(liveId);
+        if (active) setSession(nextSession);
+      } catch {
+        // Control-room sync is best effort.
+      } finally {
+        syncing = false;
+      }
     };
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 3500);
-    return () => { active = false; window.clearInterval(timer); };
+
+    const schedule = () => {
+      if (timer !== null) window.clearInterval(timer);
+      const delay = document.visibilityState === "visible" ? 2_000 : 6_000;
+      timer = window.setInterval(() => void refreshSession(), delay);
+      if (document.visibilityState === "visible") void refreshSession();
+    };
+
+    schedule();
+    document.addEventListener("visibilitychange", schedule);
+    return () => {
+      active = false;
+      if (timer !== null) window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", schedule);
+    };
+  }, [liveId, session?.status]);
+
+  useEffect(() => {
+    if (!liveId || session?.status !== "LIVE") return;
+    let active = true;
+    let syncing = false;
+    let timer: number | null = null;
+
+    const refreshComments = async () => {
+      if (!active || syncing || document.visibilityState !== "visible") return;
+      syncing = true;
+      try {
+        const incoming = await getLiveComments(liveId, {
+          after: latestCommentRef.current,
+          limit: 100
+        });
+        if (!active || incoming.length === 0) return;
+        const latest = incoming.at(-1);
+        if (latest) latestCommentRef.current = { id: latest.id, createdAt: latest.createdAt };
+        setComments((current) => mergeComments(current, incoming));
+      } catch {
+        // The next delta poll can recover.
+      } finally {
+        syncing = false;
+      }
+    };
+
+    const schedule = () => {
+      if (timer !== null) window.clearInterval(timer);
+      const delay = document.visibilityState === "visible" ? 1_250 : 5_000;
+      timer = window.setInterval(() => void refreshComments(), delay);
+      if (document.visibilityState === "visible") void refreshComments();
+    };
+
+    schedule();
+    document.addEventListener("visibilitychange", schedule);
+    return () => {
+      active = false;
+      if (timer !== null) window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", schedule);
+    };
   }, [liveId, session?.status]);
 
   const selectedPin = useMemo(() => {
@@ -136,7 +210,8 @@ export default function LiveControlRoomPage() {
     setBusy("comment");
     try {
       const created = await createLiveComment(liveId, commentBody);
-      setComments((items) => [...items, created]);
+      latestCommentRef.current = { id: created.id, createdAt: created.createdAt };
+      setComments((items) => mergeComments(items, [created]));
       setCommentBody("");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not comment"); }
     finally { setBusy(null); }
@@ -217,6 +292,7 @@ export default function LiveControlRoomPage() {
             <div className={styles.commentList}>
               {comments.length === 0 && <p className={styles.muted}>{session.status === "LIVE" ? "Comments will appear here while you are live." : "Start the session to open live comments."}</p>}
               {comments.map((comment) => <div className={styles.comment} key={comment.id}><strong>{comment.user.displayName ?? comment.user.username ?? "Hustle user"}</strong><span>@{comment.user.username ?? "user"}</span><p>{comment.body}</p></div>)}
+              <div ref={commentsEndRef} />
             </div>
             {session.status === "LIVE" && <form className={styles.commentForm} onSubmit={sendComment}><input maxLength={500} value={commentBody} onChange={(event) => setCommentBody(event.target.value)} placeholder="Reply to the room…" /><button className={styles.button} disabled={busy === "comment"}>Send</button></form>}
           </section>
