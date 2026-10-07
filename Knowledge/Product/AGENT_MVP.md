@@ -107,3 +107,36 @@ A real existing Hustle user successfully:
 The approved application state rendered correctly, and no delegated access to another Hustler was available.
 
 That absence is intentional. Phase 18A establishes verified Agent capability only; Phase 18B owns Hustler↔Agent relationships and permission grants.
+
+
+## Phase 18B — Hustler↔Agent Relationship + Scoped Permission Grants
+
+Phase 18B introduces explicit representation authority after Agent verification.
+
+Flow:
+
+`ACTIVE HUSTLER → invite ACTIVE AGENT + choose scopes → Agent accepts → ACTIVE relationship`
+
+Named scopes:
+
+- Professional profile
+- Services
+- Products
+- Content
+- Bookings
+- Client messages
+
+Rules:
+
+- the Hustler initiates the invitation;
+- the Agent must explicitly accept;
+- blocked users cannot create or activate a relationship;
+- one Agent may represent multiple Hustlers through separate relationships;
+- permissions are relationship-specific and can be changed by the Hustler;
+- the Hustler may revoke a pending or active relationship;
+- the Agent may leave an active relationship;
+- lifecycle and permission changes preserve actor vs Hustler-owner in `AgentDelegationAudit`.
+
+Phase 18B deliberately does **not** wire the grants into owner-only Service/Product/Post/Booking/Messaging mutations yet. It establishes the authorization root those later delegated actions must enforce.
+
+Financial and reputation authority remains non-delegable in this phase.
