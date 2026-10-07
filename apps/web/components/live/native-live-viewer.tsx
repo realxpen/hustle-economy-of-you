@@ -124,16 +124,27 @@ export function NativeLiveViewer({ liveId }: { liveId: string }) {
     }
   }
 
+  async function enterFullscreen() {
+    const root = mediaRootRef.current?.parentElement;
+    if (!root?.requestFullscreen) return;
+    try {
+      await root.requestFullscreen();
+    } catch {
+      setError("Fullscreen is not available in this browser.");
+    }
+  }
+
   return <div className={styles.nativeStage}>
     <div ref={mediaRootRef} className={styles.remoteMediaRoot} />
     {!hasMedia && <div className={styles.stagePlaceholder}>
       <div className={styles.eyebrow}>NATIVE LIVE · {state}</div>
-      <h2>{state === "ERROR" ? "Reconnecting to the broadcast…" : "Waiting for the host media…"}</h2>
+      <h2>{state === "ERROR" ? "Reconnecting to the broadcast…" : state === "RECONNECTING" ? "Reconnecting…" : "Waiting for the host media…"}</h2>
       <p>{error ?? "The room is live. Video and audio will appear here as soon as the host publisher is available."}</p>
     </div>}
-    {state === "CONNECTED" && !soundEnabled &&
-      <button className={styles.soundButton} type="button" onClick={() => void enableSound()}>
-        Enable sound
-      </button>}
+    <div className={styles.viewerMediaControls}>
+      {state === "CONNECTED" && !soundEnabled &&
+        <button type="button" onClick={() => void enableSound()}>Enable sound</button>}
+      {hasMedia && <button type="button" onClick={() => void enterFullscreen()}>Fullscreen</button>}
+    </div>
   </div>;
 }
