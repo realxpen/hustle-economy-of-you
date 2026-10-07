@@ -20,15 +20,15 @@ import {
   type UpdateAgentPermissionsInput
 } from "./agent-relationship.service";
 
-@Controller("agent-relationships/hustler")
+@Controller("agent-relationships/principal")
 @UseGuards(AuthGuard, CapabilityGuard)
-@RequireCapability(Capability.HUSTLER)
-export class HustlerAgentRelationshipController {
+@RequireCapability(Capability.CLIENT)
+export class PrincipalAgentRelationshipController {
   constructor(private readonly relationships: AgentRelationshipService) {}
 
   @Get()
   list(@CurrentIdentity() identity: AuthIdentity) {
-    return this.relationships.listForHustler(identity);
+    return this.relationships.listForPrincipal(identity);
   }
 
   @Post("invitations")
@@ -53,7 +53,7 @@ export class HustlerAgentRelationshipController {
     @CurrentIdentity() identity: AuthIdentity,
     @Param("relationshipId") relationshipId: string
   ) {
-    return this.relationships.revokeAsHustler(identity, relationshipId);
+    return this.relationships.revokeAsPrincipal(identity, relationshipId);
   }
 }
 
