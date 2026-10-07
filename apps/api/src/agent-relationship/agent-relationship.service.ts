@@ -454,6 +454,7 @@ export class AgentRelationshipService {
       this.requireCapabilityByUserId(actorUserId, Capability.AGENT),
       this.requireCapabilityByUserId(ownerUserId, Capability.HUSTLER)
     ]);
+    await this.assertUsersNotBlocked(ownerUserId, actorUserId);
 
     const relationship = await this.prisma.agentRelationship.findFirst({
       where: {
