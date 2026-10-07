@@ -107,9 +107,9 @@ export default function AgentRepresentationBusinessPage() {
     [overview]
   );
   const has = (scope: AgentPermissionScope) => scopes.includes(scope);
-  const isHustler = overview?.principal &&
-    (overview as AgentRelationship & { principal: AgentRelationship["principal"] & { capabilities?: { capability: string; status: string }[] } })
-      .principal.capabilities?.some((item) => item.capability === "HUSTLER" && item.status === "ACTIVE");
+  const isHustler = overview?.principal.capabilities?.some(
+    (item) => item.capability === "HUSTLER" && item.status === "ACTIVE"
+  ) ?? false;
 
   useEffect(() => { void refresh(); }, [principalUserId]);
 
