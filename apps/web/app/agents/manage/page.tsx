@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import type { AgentPermissionScope, AgentRelationship, HustleAccount } from "@hustle/types";
 
 import {
-  getHustlerAgentRelationships,
+  getPrincipalAgentRelationships,
   inviteAgent,
   revokeAgentRelationship,
   updateAgentPermissions
@@ -43,7 +43,7 @@ export default function ManageAgentsPage() {
     try {
       const [nextAccount, nextRelationships] = await Promise.all([
         getMyAccount(),
-        getHustlerAgentRelationships()
+        getPrincipalAgentRelationships()
       ]);
       setAccount(nextAccount);
       setRelationships(nextRelationships);
@@ -75,7 +75,7 @@ export default function ManageAgentsPage() {
       setAgentUsername("");
       setPermissions([]);
       setNotice("Agent invitation sent. Authority stays inactive until the Agent accepts.");
-      setRelationships(await getHustlerAgentRelationships());
+      setRelationships(await getPrincipalAgentRelationships());
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not invite Agent");
     } finally {
@@ -100,7 +100,7 @@ export default function ManageAgentsPage() {
     try {
       await updateAgentPermissions(relationship.id, { permissions: next });
       setNotice("Permission grant updated and audited.");
-      setRelationships(await getHustlerAgentRelationships());
+      setRelationships(await getPrincipalAgentRelationships());
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not update permissions");
     } finally {
@@ -115,7 +115,7 @@ export default function ManageAgentsPage() {
     try {
       await revokeAgentRelationship(relationship.id);
       setNotice("Agent authority revoked. Existing Hustle ownership remains unchanged.");
-      setRelationships(await getHustlerAgentRelationships());
+      setRelationships(await getPrincipalAgentRelationships());
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not revoke Agent relationship");
     } finally {
@@ -134,28 +134,24 @@ export default function ManageAgentsPage() {
   return <main className={styles.shell}>
     <header className={styles.topbar}>
       <a href="/account">← Your identity</a>
-      <span>PHASE 18B · HUSTLER AUTHORITY</span>
+      <span>PHASE 18B · PRINCIPAL AUTHORITY</span>
     </header>
 
     <section className={styles.hero}>
       <div>
         <p className={styles.eyebrow}>REPRESENTATION</p>
-        <h1>Your business.<br/><em>Your permission.</em></h1>
+        <h1>Your account.<br/><em>Your permission.</em></h1>
       </div>
       <p>
-        Invite an approved Hustle Agent and choose exactly what they may help with.
-        No grant transfers ownership, wallet authority, reviews, reputation, escrow or payouts.
+        Every Hustle Client can appoint an approved Agent. Becoming a Hustler is not required
+        to create the relationship; Hustler-only scopes simply remain unusable until that capability exists.
       </p>
     </section>
 
     {error && <p className={styles.error}>{error}</p>}
     {notice && <p className={styles.notice}>{notice}</p>}
 
-    {!isHustler ? <section className={styles.boundary}>
-      <strong>ACTIVE HUSTLER required.</strong>
-      <p>Only a Hustler can grant representation authority over a professional business.</p>
-      <a href="/hustler-application">Apply to become a Hustler →</a>
-    </section> : <section className={styles.panelGrid}>
+    <section className={styles.panelGrid}>
       <form className={styles.invitePanel} onSubmit={submitInvitation}>
         <p className={styles.panelLabel}>01 · INVITE AN APPROVED AGENT</p>
         <h2>Choose the person, then the authority.</h2>
@@ -245,14 +241,15 @@ export default function ManageAgentsPage() {
           </article>;
         })}
       </div>
-    </section>}
+    </section>
 
     <section className={styles.boundary}>
       <strong>Protected by design.</strong>
       <p>
-        Agent grants never transfer the Hustler&apos;s identity, ProfessionalProfile ownership,
-        Services, Products, wallet, ledger, escrow, payouts, reviews or reputation. Existing
-        owner-only business write routes remain owner-only in Phase 18B.
+        Agent grants never transfer your Hustle identity, wallet, ledger, escrow, payouts,
+        reviews or reputation. Professional-profile, Service, Product and Booking authority
+        still requires your account to hold the relevant Hustler capability when those
+        delegated actions are enabled. ${isHustler ? "This account is already an ACTIVE HUSTLER." : "This account is currently CLIENT-only, and that does not block Agent management."}
       </p>
     </section>
   </main>;
