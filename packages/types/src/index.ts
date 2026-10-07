@@ -163,6 +163,66 @@ export interface SaveAgentApplicationInput {
   organizationInfo?: string | null;
 }
 
+
+export type AgentRelationshipStatus =
+  | "PENDING"
+  | "ACTIVE"
+  | "DECLINED"
+  | "REVOKED";
+
+export type AgentPermissionScope =
+  | "PROFILE_MANAGE"
+  | "SERVICE_MANAGE"
+  | "PRODUCT_MANAGE"
+  | "CONTENT_MANAGE"
+  | "BOOKING_MANAGE"
+  | "CLIENT_MESSAGE_MANAGE";
+
+export interface AgentRelationshipParty {
+  id: string;
+  displayName: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  location: string | null;
+}
+
+export interface AgentPermissionGrant {
+  id: string;
+  relationshipId: string;
+  scope: AgentPermissionScope;
+  active: boolean;
+  grantedByUserId: string;
+  grantedAt: string;
+  revokedAt: string | null;
+  updatedAt: string;
+}
+
+export interface AgentRelationship {
+  id: string;
+  hustlerUserId: string;
+  agentUserId: string;
+  status: AgentRelationshipStatus;
+  invitedAt: string;
+  respondedAt: string | null;
+  activatedAt: string | null;
+  revokedAt: string | null;
+  revokedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  hustler: AgentRelationshipParty;
+  agent: AgentRelationshipParty;
+  permissions: AgentPermissionGrant[];
+}
+
+export interface CreateAgentInvitationInput {
+  agentUsername: string;
+  permissions: AgentPermissionScope[];
+}
+
+export interface UpdateAgentRelationshipPermissionsInput {
+  permissions: AgentPermissionScope[];
+}
+
 export type ProfessionalProfileStatus = "DRAFT" | "PUBLISHED";
 
 export interface ProfessionalProfile {

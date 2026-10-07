@@ -59,6 +59,22 @@ enum AgentProofType {
   OTHER
 }
 
+enum AgentRelationshipStatus {
+  PENDING
+  ACTIVE
+  DECLINED
+  REVOKED
+}
+
+enum AgentPermissionScope {
+  PROFILE_MANAGE
+  SERVICE_MANAGE
+  PRODUCT_MANAGE
+  CONTENT_MANAGE
+  BOOKING_MANAGE
+  CLIENT_MESSAGE_MANAGE
+}
+
 enum ProfessionalProfileStatus {
   DRAFT
   PUBLISHED
@@ -286,9 +302,15 @@ model User {
   updatedAt                   DateTime                  @updatedAt
   hustlerApplication          HustlerApplication?       @relation("HustlerApplicant")
   reviewedHustlerApplications HustlerApplication[]      @relation("HustlerReviewer")
-  agentApplication            AgentApplication?         @relation("AgentApplicant")
-  reviewedAgentApplications   AgentApplication[]        @relation("AgentReviewer")
-  professionalProfile         ProfessionalProfile?
+  agentApplication             AgentApplication?       @relation("AgentApplicant")
+  reviewedAgentApplications    AgentApplication[]      @relation("AgentReviewer")
+  hustlerAgentRelationships    AgentRelationship[]     @relation("AgentRelationshipHustler")
+  agentRepresentations         AgentRelationship[]     @relation("AgentRelationshipAgent")
+  revokedAgentRelationships    AgentRelationship[]     @relation("AgentRelationshipRevokedBy")
+  agentPermissionGrantsGiven   AgentPermissionGrant[]  @relation("AgentPermissionGrantedBy")
+  agentDelegationAuditsAsActor AgentDelegationAudit[]  @relation("AgentDelegationAuditActor")
+  agentDelegationAuditsAsOwner AgentDelegationAudit[]  @relation("AgentDelegationAuditOwner")
+  professionalProfile          ProfessionalProfile?
   postLikes                   PostLike[]
   postSaves                   PostSave[]
   postComments                PostComment[]
@@ -416,6 +438,72 @@ model AgentApplicationProof {
   application AgentApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@index([applicationId, type])
+}
+
+
+model AgentRelationship {
+  id              String                  @id @default(cuid())
+  hustlerUserId   String
+  agentUserId     String
+  status          AgentRelationshipStatus @default(PENDING)
+  invitedAt       DateTime                @default(now())
+  respondedAt     DateTime?
+  activatedAt     DateTime?
+  revokedAt       DateTime?
+  revokedByUserId String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  hustler     User                   @relation("AgentRelationshipHustler", fields: [hustlerUserId], references: [id], onDelete: Cascade)
+  agent       User                   @relation("AgentRelationshipAgent", fields: [agentUserId], references: [id], onDelete: Cascade)
+  revokedBy   User?                  @relation("AgentRelationshipRevokedBy", fields: [revokedByUserId], references: [id], onDelete: SetNull)
+  permissions AgentPermissionGrant[]
+  audits      AgentDelegationAudit[]
+
+  @@unique([hustlerUserId, agentUserId])
+  @@index([hustlerUserId, status])
+  @@index([agentUserId, status])
+  @@index([status, invitedAt])
+}
+
+model AgentPermissionGrant {
+  id              String               @id @default(cuid())
+  relationshipId  String
+  scope           AgentPermissionScope
+  active          Boolean              @default(true)
+  grantedByUserId String
+  grantedAt       DateTime             @default(now())
+  revokedAt       DateTime?
+  updatedAt       DateTime             @updatedAt
+
+  relationship AgentRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  grantedBy    User              @relation("AgentPermissionGrantedBy", fields: [grantedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([relationshipId, scope])
+  @@index([relationshipId, active])
+  @@index([grantedByUserId, grantedAt])
+}
+
+model AgentDelegationAudit {
+  id              String                @id @default(cuid())
+  relationshipId  String
+  actorUserId     String
+  ownerUserId     String
+  permissionScope AgentPermissionScope?
+  action          String
+  entityType      String?
+  entityId        String?
+  metadata        Json?
+  occurredAt      DateTime              @default(now())
+  createdAt       DateTime              @default(now())
+
+  relationship AgentRelationship @relation(fields: [relationshipId], references: [id], onDelete: Restrict)
+  actor        User              @relation("AgentDelegationAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  owner        User              @relation("AgentDelegationAuditOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+
+  @@index([relationshipId, occurredAt])
+  @@index([actorUserId, occurredAt])
+  @@index([ownerUserId, occurredAt])
 }
 
 model ProfessionalProfile {

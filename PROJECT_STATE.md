@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 18B — Hustler↔Agent Relationship + Scoped Permission Grants (next build slice)
+Phase 18B — Hustler↔Agent Relationship + Scoped Permission Grants (implementation in progress; runtime acceptance pending)
 
 Phase 17 — Live Commerce Beta: COMPLETE — implementation, production media/runtime validation and final mobile fullscreen/Quick View acceptance validated 2026-10-07.
 
@@ -17,7 +17,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 18B Hustler↔Agent Relationship & Scoped Permission Grants.**
+Current active slice: **Phase 18B Hustler↔Agent Relationship & Scoped Permission Grants — relationship authority, named scopes, revocation and actor-vs-owner auditability.**
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -319,6 +319,7 @@ Critical boundary:
 Canonical Phase 18 knowledge:
 - `Knowledge/Product/AGENT_MVP.md`
 - `Knowledge/Decisions/ADR-0032-agent-capability-foundation.md`
+- `Knowledge/Decisions/ADR-0033-agent-relationships-and-scoped-authority.md`
 
 Production activation and runtime acceptance:
 - Supabase migration `phase18a_agent_capability_foundation` applied successfully on 2026-10-07
@@ -332,6 +333,22 @@ Production activation and runtime acceptance:
 - approval activated `AGENT · ACTIVE` on the same unified account while preserving existing capabilities
 - approved Agent application state rendered correctly
 - no interface or authority exists yet for managing another Hustler; this absence is intentional and validates the 18A delegation boundary
+
+### 18B — Hustler↔Agent Relationship + Scoped Permission Grants
+IMPLEMENTATION IN PROGRESS — runtime acceptance pending.
+
+Planned/implemented authority:
+- Hustler-initiated invitation to an ACTIVE Agent
+- Agent acceptance/decline
+- ACTIVE relationship required before any permission can authorize a future delegated action
+- independent named scopes for profile, services, products, content, bookings and client messages
+- Hustler permission updates and revocation
+- Agent voluntary leave
+- multiple Hustlers per Agent through separate relationships
+- blocked-user relationship prevention
+- dedicated actor-vs-owner `AgentDelegationAudit`
+- existing owner-only business write routes remain unchanged in 18B
+- no wallet, escrow, payout, Review or reputation delegation
 
 ## Supabase
 Dedicated project:
@@ -367,12 +384,17 @@ Use fresh auth sessions/tokens for runtime validation. Never commit or print pro
 
 ## Next gate
 
-Proceed to **Phase 18B — Hustler↔Agent Relationship + Scoped Permission Grants**:
-- explicit Hustler authorization/invitation and Agent acceptance
-- one Agent may represent multiple Hustlers
-- named permission scopes
-- revocation
-- actor-vs-owner/subject audit records
-- no transfer of wallet, escrow, payout, Review or reputation ownership
+Complete **Phase 18B** implementation, CI, hosted migration and manual production runtime validation.
+
+18B acceptance must prove:
+- Hustler can invite an ACTIVE Agent with explicit scopes
+- Agent must accept before relationship becomes ACTIVE
+- Agent can represent multiple Hustlers independently
+- Hustler can change scopes and revoke authority
+- Agent can leave
+- audit records distinguish actor from Hustler owner
+- blocked users cannot create/activate representation
+- no delegated business controls exist yet despite the stored grants
+- no wallet, escrow, payout, Review or reputation authority is transferred
 
 Phase 17 and Phase 18A are CLOSED and must not be reopened unless a regression is found.
