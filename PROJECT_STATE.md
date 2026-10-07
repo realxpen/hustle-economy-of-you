@@ -6,6 +6,8 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
+Phase 19B — Admin Capability + Application Operations (implementation in progress)
+
 Phase 19A — Admin Marketplace Operations Foundation (merged; runtime acceptance deferred for combined validation)
 
 Phase 18E — Delegated Bookings + Client Messages (merged + database activated; runtime acceptance intentionally deferred for combined validation)
@@ -25,7 +27,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 19A Admin Marketplace Operations Foundation — unified read-oriented operating visibility without high-risk marketplace mutations.**
+Current active slice: **Phase 19B Admin Capability + Application Operations — unified capability review plus reversible, audited Hustler/Agent suspension.**
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -335,6 +337,7 @@ Canonical Phase 18 knowledge:
 - `Knowledge/Decisions/ADR-0036-delegated-operational-actions.md`
 - `Knowledge/Decisions/ADR-0037-delegated-bookings-and-messages.md`
 - `Knowledge/Decisions/ADR-0038-admin-marketplace-operations-read-model.md`
+- `Knowledge/Decisions/ADR-0039-admin-capability-application-operations.md`
 
 Production activation and runtime acceptance:
 - Supabase migration `phase18a_agent_capability_foundation` applied successfully on 2026-10-07
@@ -723,3 +726,32 @@ These higher-risk controls require explicit Phase 19 follow-on policy and audit 
 
 
 Phase 19A runtime testing is intentionally deferred into the same consolidated validation session as Phase 18D/18E.
+
+
+### 19B — Admin Capability + Application Operations
+IMPLEMENTATION IN PROGRESS.
+
+Application operations:
+- standalone Admin Console route `/applications`;
+- Hustler + Agent queues in one workspace;
+- start review;
+- secure private proof preview;
+- VERIFIED / REJECTED identity decision;
+- approve + activate capability;
+- reject with required reason;
+- existing API self-review and reviewer-assignment rules remain authoritative.
+
+Capability operations:
+- user detail exposes reversible HUSTLER/AGENT suspension/reactivation;
+- reason required for every operation;
+- only ACTIVE → SUSPENDED and SUSPENDED → ACTIVE are supported;
+- corresponding approved application mirrors SUSPENDED/APPROVED;
+- original review notes are preserved;
+- SystemEvent records admin actor, target user, capability and reason;
+- temporary suspension does not destroy Agent relationship history.
+
+Explicitly excluded:
+- CLIENT suspension/ban;
+- permanent capability revocation;
+- financial operations;
+- Review/reputation mutation.
