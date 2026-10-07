@@ -23,7 +23,7 @@ function formatTime(value: string) {
 function preview(conversation: ConversationSummary) {
   const message = conversation.lastMessage;
   if (!message) return "Start the conversation.";
-  if (message.text) return message.text;
+  if (message.text) return message.delegatedByAgent ? `Agent-assisted: ${message.text}` : message.text;
   if (message.context) return `${message.context.type.toLowerCase()} shared`;
   if (message.attachment) return `${message.attachment.type.toLowerCase()} attachment`;
   return "New message";
