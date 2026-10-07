@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 18E — Delegated Bookings + Client Messages (implementation in progress)
+Phase 18E — Delegated Bookings + Client Messages (merged + database activated; runtime acceptance intentionally deferred for combined validation)
 
 Phase 18D — Delegated Operational Actions & Agent Business Workspace (merged; runtime acceptance intentionally deferred for combined validation)
 
@@ -616,7 +616,27 @@ The project owner explicitly deferred Phase 18D runtime testing so the remaining
 Do not mark Phase 18D complete before that combined runtime acceptance.
 
 ### 18E — Delegated Bookings + Client Messages
-IMPLEMENTATION IN PROGRESS.
+MERGED + DATABASE ACTIVATED — runtime acceptance intentionally deferred for combined validation.
+
+Merge:
+- PR #63 `287aa857ea14d871eae7b0bdf0226e262ba6ab28`
+
+CI:
+- web typecheck ✅
+- admin typecheck ✅
+- mobile typecheck ✅
+- Prisma generation ✅
+- API typecheck ✅
+- web build ✅
+- admin build ✅
+- API build ✅
+
+Hosted database:
+- `Message.delegatedByAgentUserId` verified present
+- `Message_delegatedByAgentUserId_createdAt_idx` verified present
+- `Message_delegatedByAgentUserId_fkey` verified present
+- Message RLS remains enabled
+- no new Phase-18E-specific security or unindexed-foreign-key advisor finding
 
 Booking authority:
 - `BOOKING_MANAGE` requires ACTIVE Agent relationship + exact scope + principal ACTIVE HUSTLER.
@@ -639,3 +659,13 @@ Messaging authority:
 - no delegated attachment upload, typing impersonation, conversation deletion or participant mutation in this first slice.
 
 Combined runtime acceptance for Phase 18D + 18E will be compiled after implementation/merge.
+
+
+### Next major phase
+Per the canonical MVP build plan, the next phase after Agent MVP is:
+
+**Phase 19 — Admin + Marketplace Operations**
+
+Goal: the Hustle team can operate users, capabilities, applications, content, reports, suspensions, bookings, orders, payments, escrow, disputes, moderation and audit logs without manual database access.
+
+Phase 18D/18E runtime validation remains pending by explicit project-owner choice and will be executed as one combined acceptance session on 2026-10-08.
