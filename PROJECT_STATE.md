@@ -8,7 +8,7 @@ Build
 ## Current MVP phase
 Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants (manual deployment/runtime acceptance pending)
 
-Phase 18C — Agent-Assisted Onboarding & Hustler Registration (implementation in progress)
+Phase 18C — Agent-Assisted Onboarding & Hustler Registration (merged + database activated; manual deployment/runtime acceptance pending)
 
 Phase 17 — Live Commerce Beta: COMPLETE — implementation, production media/runtime validation and final mobile fullscreen/Quick View acceptance validated 2026-10-07.
 
@@ -457,7 +457,29 @@ Web internal review hub:
 
 
 ### 18C — Agent-Assisted Onboarding & Hustler Registration
-IMPLEMENTATION IN PROGRESS.
+MERGED + DATABASE ACTIVATED — manual deployment/runtime acceptance pending.
+
+Merge:
+- PR #60 `572a3022491a44973c635c7290b3421a5f5a6b59`
+
+CI:
+- web typecheck ✅
+- admin typecheck ✅
+- mobile typecheck ✅
+- Prisma generation ✅
+- API typecheck ✅
+- web build ✅
+- admin build ✅
+- API build ✅
+
+Hosted database:
+- new Agent permission scopes `ACCOUNT_ONBOARDING_MANAGE` and `HUSTLER_APPLICATION_MANAGE` verified present
+- `AgentAssistedRegistration` verified present
+- RLS enabled
+- direct `anon` / `authenticated` table access revoked
+- `hustle_api` policy and CRUD authority verified
+- no new Phase-18C-specific security or unindexed-foreign-key advisor finding
+- hosted SQL was applied in controlled direct steps because the migration connector blocked the combined call before execution; repository migration remains retry-safe for later migration-history reconciliation.
 
 Product rule:
 - an Agent may help a CLIENT or a person who has not yet operated Hustle themselves;
@@ -479,3 +501,16 @@ Runtime gate after merge/database activation:
 4. Admin sees the application plus assisting Agent/consent context.
 5. Admin can review/approve normally; HUSTLER is added to the person's identity, not Agent.
 6. If the person later signs up with the recorded verified email/phone, Hustle claims the existing identity rather than creating a duplicate.
+
+
+### Internal review access closeout — 2026-10-07
+PR #59 merged as `4227080ea9470426547098a3f8af11582656e22a`.
+
+Hustler review now uses the same `HUSTLE_ADMIN_USER_IDS` / `AdminGuard` authority as Agent review.
+
+Internal web entry point after manual deployment:
+- `/internal`
+- Hustler queue: `/internal/hustler-reviews`
+- Agent queue: `/internal/agent-reviews`
+
+At database verification time, the Hustler review queue contained one SUBMITTED application.
