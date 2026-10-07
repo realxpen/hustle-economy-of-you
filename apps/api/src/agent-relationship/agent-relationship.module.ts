@@ -10,7 +10,7 @@ import { AgentRelationshipService } from "./agent-relationship.service";
 @Module({
   imports: [AuthModule],
   controllers: [
-    HustlerAgentRelationshipController,
+    PrincipalAgentRelationshipController,
     AgentRelationshipController
   ],
   providers: [AgentRelationshipService],
