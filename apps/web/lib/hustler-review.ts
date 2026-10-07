@@ -17,6 +17,20 @@ export interface HustlerReviewApplicant {
   phone: string | null;
   location: string | null;
   capabilities?: HustleCapability[];
+  assistedRegistration?: {
+    id: string;
+    status: "ACTIVE" | "CLAIMED" | "CANCELLED";
+    consentMethod: "IN_PERSON" | "PHONE" | "WRITTEN" | "OTHER";
+    consentNote?: string | null;
+    consentConfirmedAt: string;
+    claimedAt?: string | null;
+    agent: {
+      id: string;
+      displayName: string | null;
+      username: string | null;
+      email: string | null;
+    };
+  } | null;
 }
 
 export interface HustlerReviewerSummary {
