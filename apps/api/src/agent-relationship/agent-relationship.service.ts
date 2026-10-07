@@ -65,7 +65,7 @@ export class AgentRelationshipService {
           }
         }
       },
-      select: { id: true }
+      select: { blockerUserId: true }
     });
 
     if (!agent) {
