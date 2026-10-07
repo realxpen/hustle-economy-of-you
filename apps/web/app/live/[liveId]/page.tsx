@@ -102,7 +102,7 @@ export default function LiveViewerPage() {
       if (timer !== null) window.clearInterval(timer);
       document.removeEventListener("visibilitychange", schedule);
     };
-  }, [liveId, Boolean(session)]);
+  }, [liveId, session?.status]);
 
   useEffect(() => {
     if (!liveId || session?.status !== "LIVE") return;
@@ -122,13 +122,6 @@ export default function LiveViewerPage() {
         const latest = incoming.at(-1);
         if (latest) latestCommentRef.current = { id: latest.id, createdAt: latest.createdAt };
         setComments((current) => mergeComments(current, incoming));
-        setSession((current) => current ? {
-          ...current,
-          interactions: {
-            ...current.interactions,
-            comments: Math.max(current.interactions.comments, current.interactions.comments + incoming.length)
-          }
-        } : current);
       } catch {
         // Live chat sync is best effort; the next poll can recover.
       } finally {
