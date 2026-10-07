@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { OfferQuickView } from "../../../components/commerce/offer-quick-view";
 import { formatProductPrice } from "../../../lib/product";
 import { formatServicePrice } from "../../../lib/service";
 import {
@@ -222,12 +223,32 @@ export default function PublicPostPage() {
     {(post.serviceAttachments.length > 0 || post.productAttachments.length > 0) && <section className={styles.offers}>
       <div className={styles.sectionHeading}><small>REFERENCED ON HUSTLE</small><h2>See the Services and Products mentioned in this post.</h2></div>
       <div className={styles.offerGrid}>
-        {post.serviceAttachments.map(({ service }) => <a className={styles.offerCard} key={service.id} href={`/services/${service.id}`}>
-          <span>REFERENCED SERVICE</span><h3>{service.title ?? "Service"}</h3><p>{service.description?.slice(0, 150)}</p><strong>{formatServicePrice(service)}</strong><b>View service →</b>
-        </a>)}
-        {post.productAttachments.map(({ product }) => <a className={styles.offerCard} key={product.id} href={`/products/${product.id}`}>
-          <span>REFERENCED PRODUCT</span><h3>{product.title ?? "Product"}</h3><p>{product.description?.slice(0, 150)}</p><strong>{formatProductPrice(product)}</strong><b>View product →</b>
-        </a>)}
+        {post.serviceAttachments.map(({ service }) => <article className={styles.offerCard} key={service.id}>
+          <span>REFERENCED SERVICE</span>
+          <h3>{service.title ?? "Service"}</h3>
+          <p>{service.description?.slice(0, 150)}</p>
+          <strong>{formatServicePrice(service)}</strong>
+          <OfferQuickView
+            type="SERVICE"
+            id={service.id}
+            label="Quick view →"
+            sourceLabel="POST"
+            className={styles.offerQuickView}
+          />
+        </article>)}
+        {post.productAttachments.map(({ product }) => <article className={styles.offerCard} key={product.id}>
+          <span>REFERENCED PRODUCT</span>
+          <h3>{product.title ?? "Product"}</h3>
+          <p>{product.description?.slice(0, 150)}</p>
+          <strong>{formatProductPrice(product)}</strong>
+          <OfferQuickView
+            type="PRODUCT"
+            id={product.id}
+            label="Quick view →"
+            sourceLabel="POST"
+            className={styles.offerQuickView}
+          />
+        </article>)}
       </div>
       <p className={styles.muted}>References, recommendations and opinions in posts are community content. Only eligible transaction-backed Reviews affect Hustle public reputation.</p>
     </section>}
