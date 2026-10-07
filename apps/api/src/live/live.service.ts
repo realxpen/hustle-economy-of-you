@@ -45,6 +45,12 @@ export interface LiveCommentInput {
   body?: unknown;
 }
 
+export interface LiveCommentListInput {
+  afterCreatedAt?: unknown;
+  afterId?: unknown;
+  limit?: unknown;
+}
+
 export interface LiveEventInput {
   name?: unknown;
   viewerKey?: unknown;
@@ -292,25 +298,59 @@ export class LiveService {
     };
   }
 
-  async listComments(liveIdInput: string) {
+  async leaveViewer(liveIdInput: string, input: LiveViewerInput) {
+    const liveId = this.requiredId(liveIdInput, "liveId");
+    const viewerKey = this.requiredViewerKey(input.viewerKey);
+    const session = await this.prisma.liveSession.findUnique({
+      where: { id: liveId },
+      select: { id: true }
+    });
+    if (!session) throw new NotFoundException("Live session not found");
+
+    await this.prisma.liveViewerPresence.deleteMany({
+      where: { sessionId: session.id, viewerKey }
+    });
+
+    return {
+      recorded: true,
+      viewers: await this.activeViewerCount(session.id)
+    };
+  }
+
+  async listComments(liveIdInput: string, input: LiveCommentListInput = {}) {
     const liveId = this.requiredId(liveIdInput, "liveId");
     const session = await this.prisma.liveSession.findUnique({ where: { id: liveId } });
     if (!session || (session.status !== LiveSessionStatus.LIVE && session.status !== LiveSessionStatus.ENDED)) {
       throw new NotFoundException("Live session not found");
     }
 
+    const limit = this.commentLimit(input.limit);
+    const after = this.commentAfter(input.afterCreatedAt, input.afterId);
     const comments = await this.prisma.liveComment.findMany({
-      where: { sessionId: session.id },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: 100
+      where: {
+        sessionId: session.id,
+        ...(after
+          ? {
+              OR: [
+                { createdAt: { gt: after.createdAt } },
+                { createdAt: after.createdAt, id: { gt: after.id } }
+              ]
+            }
+          : {})
+      },
+      orderBy: after
+        ? [{ createdAt: "asc" }, { id: "asc" }]
+        : [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit
     });
-    const users = comments.length === 0 ? [] : await this.prisma.user.findMany({
-      where: { id: { in: [...new Set(comments.map((comment) => comment.userId))] } },
+    const orderedComments = after ? comments : comments.reverse();
+    const users = orderedComments.length === 0 ? [] : await this.prisma.user.findMany({
+      where: { id: { in: [...new Set(orderedComments.map((comment) => comment.userId))] } },
       select: { id: true, displayName: true, username: true, avatarUrl: true }
     });
     const usersById = new Map(users.map((user) => [user.id, user]));
 
-    return comments.reverse().flatMap((comment) => {
+    return orderedComments.flatMap((comment) => {
       const user = usersById.get(comment.userId);
       return user ? [{ ...comment, user }] : [];
     });
@@ -585,6 +625,26 @@ export class LiveService {
   private optionalViewerKey(value: unknown) {
     if (value === undefined || value === null || value === "") return null;
     return this.requiredViewerKey(value);
+  }
+
+  private commentLimit(value: unknown) {
+    const parsed = typeof value === "string" ? Number.parseInt(value, 10) : 100;
+    if (!Number.isFinite(parsed)) return 100;
+    return Math.min(100, Math.max(1, parsed));
+  }
+
+  private commentAfter(createdAtValue: unknown, idValue: unknown) {
+    const hasCreatedAt = createdAtValue !== undefined && createdAtValue !== null && createdAtValue !== "";
+    const hasId = idValue !== undefined && idValue !== null && idValue !== "";
+    if (!hasCreatedAt && !hasId) return null;
+    if (!hasCreatedAt || !hasId || typeof createdAtValue !== "string" || typeof idValue !== "string") {
+      throw new BadRequestException("afterCreatedAt and afterId must be provided together");
+    }
+    const createdAt = new Date(createdAtValue);
+    if (Number.isNaN(createdAt.getTime())) {
+      throw new BadRequestException("afterCreatedAt must be a valid timestamp");
+    }
+    return { createdAt, id: this.requiredId(idValue, "afterId") };
   }
 
   private limit(value: unknown) {
