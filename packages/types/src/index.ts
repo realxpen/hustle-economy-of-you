@@ -171,6 +171,8 @@ export type AgentRelationshipStatus =
   | "REVOKED";
 
 export type AgentPermissionScope =
+  | "ACCOUNT_ONBOARDING_MANAGE"
+  | "HUSTLER_APPLICATION_MANAGE"
   | "PROFILE_MANAGE"
   | "SERVICE_MANAGE"
   | "PRODUCT_MANAGE"
@@ -221,6 +223,61 @@ export interface CreateAgentInvitationInput {
 
 export interface UpdateAgentRelationshipPermissionsInput {
   permissions: AgentPermissionScope[];
+}
+
+
+export type AssistedRegistrationStatus =
+  | "ACTIVE"
+  | "CLAIMED"
+  | "CANCELLED";
+
+export type AssistedConsentMethod =
+  | "IN_PERSON"
+  | "PHONE"
+  | "WRITTEN"
+  | "OTHER";
+
+export interface AgentAssistedRegistrationPrincipal extends HustleAccount {
+  hustlerApplication: HustlerApplication | null;
+  principalAgentRelationships: AgentRelationship[];
+}
+
+export interface AgentAssistedRegistration {
+  id: string;
+  agentUserId: string;
+  principalUserId: string;
+  status: AssistedRegistrationStatus;
+  consentMethod: AssistedConsentMethod;
+  consentNote: string | null;
+  consentConfirmedAt: string;
+  claimedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  principal: AgentAssistedRegistrationPrincipal;
+  relationship: AgentRelationship;
+}
+
+export interface CreateAgentAssistedRegistrationInput {
+  displayName: string;
+  username: string;
+  location?: string | null;
+  bio?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  consentConfirmed: true;
+  consentMethod: AssistedConsentMethod;
+  consentNote?: string | null;
+  permissions?: AgentPermissionScope[];
+}
+
+export interface UpdateAgentAssistedIdentityInput {
+  displayName?: string | null;
+  username?: string;
+  location?: string | null;
+  bio?: string | null;
+  email?: string | null;
+  phone?: string | null;
 }
 
 export type ProfessionalProfileStatus = "DRAFT" | "PUBLISHED";
