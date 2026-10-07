@@ -386,6 +386,7 @@ export default function ConversationPage() {
           username: null,
           avatarUrl: null
         },
+        delegatedByAgent: null,
         createdAt: now,
         updatedAt: now
       };
