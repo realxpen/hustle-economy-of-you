@@ -514,3 +514,36 @@ Internal web entry point after manual deployment:
 - Agent queue: `/internal/agent-reviews`
 
 At database verification time, the Hustler review queue contained one SUBMITTED application.
+
+
+### Secure proof preview fix — 2026-10-07
+PR #61 merged as `515616cf7ee6e47b42f167e17b77123b6094dc58`.
+
+Root cause:
+- Hustler and Agent review services require a server-only Supabase secret key to mint 5-minute signed Storage URLs.
+- production API currently has `SUPABASE_PUBLISHABLE_KEY` but not `SUPABASE_SECRET_KEY` / `SUPABASE_SERVICE_ROLE_KEY`.
+- review UI also opened the new tab only after an async request, which can be blocked by mobile Safari.
+
+Merged fix:
+- proof tab is opened synchronously from the reviewer click, then navigated to the signed URL;
+- same-tab fallback is used if a popup cannot be opened;
+- API accepts `SUPABASE_SECRET_KEY` or legacy `SUPABASE_SERVICE_ROLE_KEY`;
+- missing server key produces an explicit configuration error.
+
+Remaining runtime/config gate:
+- add a server-only `SUPABASE_SECRET_KEY` to the API Production environment;
+- manually redeploy API + web;
+- verify Open securely for one Hustler proof and one Agent proof.
+
+User reported all other Phase 18B/18C runtime flows passed. Do not close Phase 18C until both secure-proof previews pass.
+
+### Recommended next build after proof-preview acceptance
+Phase 18D — Delegated Operational Actions & Agent Business Workspace.
+
+Goal:
+- begin enforcing the stored relationship scopes on real delegated actions;
+- Agent selects a represented principal from Agent Workspace;
+- each action preserves Agent actor vs principal owner and writes audit records;
+- start with lower-risk operational surfaces: professional profile, Services, Products and Content;
+- Bookings and Client Messages follow only after those owner/actor boundaries are proven;
+- wallet, ledger, escrow, payouts, Reviews and reputation remain non-delegable.
