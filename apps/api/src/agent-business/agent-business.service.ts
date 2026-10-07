@@ -79,26 +79,21 @@ export class AgentBusinessService {
       throw new ForbiddenException("An ACTIVE Agent relationship is required");
     }
 
-    await this.relationships.assertAgentPermission(
-      actor.id,
-      principalId,
-      relationship.permissions[0]?.scope ?? AgentPermissionScope.CONTENT_MANAGE
-    ).catch(async () => {
-      const block = await this.prisma.userBlock.findFirst({
-        where: {
-          OR: [
-            { blockerUserId: actor.id, blockedUserId: principalId },
-            { blockerUserId: principalId, blockedUserId: actor.id }
-          ]
-        },
-        select: { blockerUserId: true }
-      });
-      if (block) {
-        throw new ForbiddenException(
-          "This representation is unavailable because one user has blocked the other"
-        );
-      }
+    const block = await this.prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          { blockerUserId: actor.id, blockedUserId: principalId },
+          { blockerUserId: principalId, blockedUserId: actor.id }
+        ]
+      },
+      select: { blockerUserId: true }
     });
+
+    if (block) {
+      throw new ForbiddenException(
+        "This representation is unavailable because one user has blocked the other"
+      );
+    }
 
     return relationship;
   }
