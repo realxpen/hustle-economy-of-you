@@ -249,7 +249,10 @@ export default function ManageAgentsPage() {
         Agent grants never transfer your Hustle identity, wallet, ledger, escrow, payouts,
         reviews or reputation. Professional-profile, Service, Product and Booking authority
         still requires your account to hold the relevant Hustler capability when those
-        delegated actions are enabled. ${isHustler ? "This account is already an ACTIVE HUSTLER." : "This account is currently CLIENT-only, and that does not block Agent management."}
+        delegated actions are enabled.{" "}
+        {isHustler
+          ? "This account is already an ACTIVE HUSTLER."
+          : "This account is currently CLIENT-only, and that does not block Agent management."}
       </p>
     </section>
   </main>;
