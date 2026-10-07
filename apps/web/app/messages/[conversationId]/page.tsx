@@ -488,6 +488,9 @@ export default function ConversationPage() {
           return <div key={message.id} className={`${styles.bubbleRow} ${mine ? styles.mine : styles.theirs}`}>
             <article className={styles.bubble}>
               {!mine && <div className={styles.sender}>{message.sender.displayName ?? message.sender.username ?? "Hustle user"}</div>}
+              {message.delegatedByAgent && <div className={styles.sender}>
+                Agent-assisted · {message.delegatedByAgent.displayName ?? `@${message.delegatedByAgent.username ?? "agent"}`} sent this on behalf of {message.sender.displayName ?? message.sender.username ?? "the account owner"}
+              </div>}
               {message.text && <p className={styles.text}>{message.text}</p>}
               {message.attachment && <div className={styles.attachment}>
                 {message.attachment.type === "IMAGE" && attachmentUrl
