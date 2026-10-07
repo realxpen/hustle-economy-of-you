@@ -10,7 +10,7 @@ import {
   type SafetyReport,
   type SafetyStatus,
   type UserSafetySummary
-} from "../lib/admin-api";
+} from "../../lib/admin-api";
 
 const TOKEN_KEY = "hustle-admin-access-token";
 
