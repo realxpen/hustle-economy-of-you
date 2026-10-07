@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 18D — Delegated Operational Actions & Agent Business Workspace (implementation in progress)
+Phase 18D — Delegated Operational Actions & Agent Business Workspace (merged; manual production deployment/runtime acceptance pending)
 
 Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants: COMPLETE — production runtime validated 2026-10-07.
 
@@ -557,7 +557,23 @@ Goal:
 
 
 ### 18D — Delegated Operational Actions & Agent Business Workspace
-IMPLEMENTATION IN PROGRESS.
+MERGED — manual production deployment/runtime acceptance pending.
+
+Merge:
+- PR #62 `3713d027d3b238a4fcb5c8869d0eb9f689da8441`
+
+CI:
+- web typecheck ✅
+- admin typecheck ✅
+- mobile typecheck ✅
+- Prisma generation ✅
+- API typecheck ✅
+- web build ✅
+- admin build ✅
+- API build ✅
+
+Database:
+- no new schema migration required; 18D activates the existing Phase 18B relationship/permission/audit model.
 
 First operational slice:
 - dedicated `/agent-business/:principalUserId/*` API; owner routes remain unchanged
