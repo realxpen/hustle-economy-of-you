@@ -44,6 +44,12 @@ export interface MessagingMessage {
     username: string | null;
     avatarUrl: string | null;
   };
+  delegatedByAgent: {
+    id: string;
+    displayName: string | null;
+    username: string | null;
+    avatarUrl: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
