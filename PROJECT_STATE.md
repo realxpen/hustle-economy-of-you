@@ -6,7 +6,9 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants (authority correction merged; manual deployment/runtime acceptance pending)
+Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants (manual deployment/runtime acceptance pending)
+
+Phase 18C — Agent-Assisted Onboarding & Hustler Registration (implementation in progress)
 
 Phase 17 — Live Commerce Beta: COMPLETE — implementation, production media/runtime validation and final mobile fullscreen/Quick View acceptance validated 2026-10-07.
 
@@ -321,6 +323,7 @@ Canonical Phase 18 knowledge:
 - `Knowledge/Decisions/ADR-0032-agent-capability-foundation.md`
 - `Knowledge/Decisions/ADR-0033-agent-relationships-and-scoped-authority.md`
 - `Knowledge/Decisions/ADR-0034-client-principal-agent-authority.md`
+- `Knowledge/Decisions/ADR-0035-agent-assisted-onboarding.md`
 
 Production activation and runtime acceptance:
 - Supabase migration `phase18a_agent_capability_foundation` applied successfully on 2026-10-07
@@ -451,3 +454,28 @@ Web internal review hub:
 - `/internal`
 - `/internal/hustler-reviews`
 - `/internal/agent-reviews`
+
+
+### 18C — Agent-Assisted Onboarding & Hustler Registration
+IMPLEMENTATION IN PROGRESS.
+
+Product rule:
+- an Agent may help a CLIENT or a person who has not yet operated Hustle themselves;
+- the person does not need to become a Hustler before Agent assistance begins;
+- an ACTIVE Agent may create an assisted CLIENT identity from the Agent workspace after explicit consent;
+- the person remains owner/principal and the Agent is recorded as actor;
+- no password sharing or Agent-owned login is allowed;
+- Agent may prepare private proof and submit the person's Hustler application;
+- admin approval remains independent;
+- assisted registration provenance is visible in the Hustler review screen;
+- the person may later claim the same identity using a uniquely matching verified email/phone;
+- account/application history survives claim;
+- financial and reputation authority remain non-delegable.
+
+Runtime gate after merge/database activation:
+1. Agent creates a CLIENT-only assisted identity from one device.
+2. New assisted identity appears in Agent workspace without requiring a second login/device.
+3. Agent saves Hustler application, uploads proof and submits it.
+4. Admin sees the application plus assisting Agent/consent context.
+5. Admin can review/approve normally; HUSTLER is added to the person's identity, not Agent.
+6. If the person later signs up with the recorded verified email/phone, Hustle claims the existing identity rather than creating a duplicate.

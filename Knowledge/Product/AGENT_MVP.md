@@ -155,3 +155,29 @@ The relationship is identity-level delegation. It may exist before the principal
 Hustler capability is checked later by the specific delegated action when the underlying operation is Hustler-only. The relationship alone never creates or implies HUSTLER capability.
 
 The web **Manage Agents** entry is therefore available to every signed-in Hustle Client identity.
+
+
+## Phase 18C — Agent-Assisted Onboarding & Hustler Registration
+
+Agents are not limited to managing already-active Hustlers.
+
+An ACTIVE Agent may help a person who is not comfortable with technology join Hustle from the Agent's own device.
+
+Flow:
+
+`person consents → Agent creates assisted CLIENT identity → Agent helps with onboarding → Agent prepares/submits Hustler application → admin review → person may later claim the same identity`
+
+Rules:
+
+- no separate phone/device is required for the person during assisted registration;
+- the person starts as CLIENT, not automatically as HUSTLER;
+- the Agent must record explicit consent;
+- the Agent never creates or knows the person's password;
+- the assisted person remains the principal/owner;
+- the Agent is always recorded as actor;
+- the Agent receives onboarding-specific scopes for account setup and Hustler-application management;
+- admin review remains independent and sees assisted-registration provenance;
+- when the person later authenticates with a uniquely matching verified email/phone, the same identity is claimed rather than duplicated;
+- wallet, escrow, payouts, Reviews and reputation remain non-delegable.
+
+Canonical decision: `Knowledge/Decisions/ADR-0035-agent-assisted-onboarding.md`.

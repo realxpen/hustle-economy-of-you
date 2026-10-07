@@ -67,12 +67,27 @@ enum AgentRelationshipStatus {
 }
 
 enum AgentPermissionScope {
+  ACCOUNT_ONBOARDING_MANAGE
+  HUSTLER_APPLICATION_MANAGE
   PROFILE_MANAGE
   SERVICE_MANAGE
   PRODUCT_MANAGE
   CONTENT_MANAGE
   BOOKING_MANAGE
   CLIENT_MESSAGE_MANAGE
+}
+
+enum AssistedRegistrationStatus {
+  ACTIVE
+  CLAIMED
+  CANCELLED
+}
+
+enum AssistedConsentMethod {
+  IN_PERSON
+  PHONE
+  WRITTEN
+  OTHER
 }
 
 enum ProfessionalProfileStatus {
@@ -304,8 +319,10 @@ model User {
   reviewedHustlerApplications HustlerApplication[]      @relation("HustlerReviewer")
   agentApplication             AgentApplication?       @relation("AgentApplicant")
   reviewedAgentApplications    AgentApplication[]      @relation("AgentReviewer")
-  principalAgentRelationships  AgentRelationship[]     @relation("AgentRelationshipPrincipal")
-  agentRepresentations         AgentRelationship[]     @relation("AgentRelationshipAgent")
+  principalAgentRelationships  AgentRelationship[]          @relation("AgentRelationshipPrincipal")
+  agentRepresentations         AgentRelationship[]          @relation("AgentRelationshipAgent")
+  assistedRegistrationsCreated AgentAssistedRegistration[]  @relation("AssistedRegistrationAgent")
+  assistedRegistration         AgentAssistedRegistration?   @relation("AssistedRegistrationPrincipal")
   revokedAgentRelationships    AgentRelationship[]     @relation("AgentRelationshipRevokedBy")
   agentPermissionGrantsGiven   AgentPermissionGrant[]  @relation("AgentPermissionGrantedBy")
   agentDelegationAuditsAsActor AgentDelegationAudit[]  @relation("AgentDelegationAuditActor")
@@ -440,6 +457,27 @@ model AgentApplicationProof {
   @@index([applicationId, type])
 }
 
+
+
+model AgentAssistedRegistration {
+  id                 String                     @id @default(cuid())
+  agentUserId        String
+  principalUserId    String                     @unique
+  status             AssistedRegistrationStatus @default(ACTIVE)
+  consentMethod      AssistedConsentMethod
+  consentNote        String?
+  consentConfirmedAt DateTime
+  claimedAt          DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  agent     User @relation("AssistedRegistrationAgent", fields: [agentUserId], references: [id], onDelete: Restrict)
+  principal User @relation("AssistedRegistrationPrincipal", fields: [principalUserId], references: [id], onDelete: Cascade)
+
+  @@index([agentUserId, status, createdAt])
+  @@index([status, createdAt])
+}
 
 model AgentRelationship {
   id              String                  @id @default(cuid())

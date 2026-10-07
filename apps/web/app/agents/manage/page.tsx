@@ -13,6 +13,8 @@ import { getMyAccount } from "../../../lib/auth/hustle-account";
 import styles from "../page.module.css";
 
 const permissionOptions: { value: AgentPermissionScope; label: string; detail: string }[] = [
+  { value: "ACCOUNT_ONBOARDING_MANAGE", label: "Account onboarding", detail: "Help set up and maintain basic Hustle identity details." },
+  { value: "HUSTLER_APPLICATION_MANAGE", label: "Hustler application", detail: "Prepare proof and submit a Hustler application with consent." },
   { value: "PROFILE_MANAGE", label: "Professional profile", detail: "Prepare and maintain professional identity details." },
   { value: "SERVICE_MANAGE", label: "Services", detail: "Prepare and maintain service listings." },
   { value: "PRODUCT_MANAGE", label: "Products", detail: "Prepare and maintain product listings." },

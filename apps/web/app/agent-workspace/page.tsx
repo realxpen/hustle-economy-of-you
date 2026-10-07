@@ -13,6 +13,8 @@ import { getMyAccount } from "../../lib/auth/hustle-account";
 import styles from "../agents/page.module.css";
 
 const permissionLabels: Record<string, string> = {
+  ACCOUNT_ONBOARDING_MANAGE: "Account onboarding",
+  HUSTLER_APPLICATION_MANAGE: "Hustler application",
   PROFILE_MANAGE: "Professional profile",
   SERVICE_MANAGE: "Services",
   PRODUCT_MANAGE: "Products",
@@ -97,6 +99,15 @@ export default function AgentWorkspacePage() {
 
     {error && <p className={styles.error}>{error}</p>}
     {notice && <p className={styles.notice}>{notice}</p>}
+
+    {isAgent && <section className={styles.boundary}>
+      <strong>Helping someone who is not comfortable with tech?</strong>
+      <p>
+        Create their Hustle Client identity, record their consent, and prepare their Hustler
+        application from your own Agent dashboard. You never need their password.
+      </p>
+      <a href="/agent-workspace/onboarding">Register or assist someone →</a>
+    </section>}
 
     {!isAgent ? <section className={styles.boundary}>
       <strong>ACTIVE AGENT required.</strong>

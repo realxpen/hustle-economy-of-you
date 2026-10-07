@@ -55,7 +55,23 @@ export class HustlerReviewService {
             username: true,
             email: true,
             phone: true,
-            location: true
+            location: true,
+            assistedRegistration: {
+              select: {
+                id: true,
+                status: true,
+                consentMethod: true,
+                consentConfirmedAt: true,
+                agent: {
+                  select: {
+                    id: true,
+                    displayName: true,
+                    username: true,
+                    email: true
+                  }
+                }
+              }
+            }
           }
         },
         proofs: {
@@ -85,6 +101,24 @@ export class HustlerReviewService {
             location: true,
             capabilities: {
               orderBy: { enabledAt: "asc" }
+            },
+            assistedRegistration: {
+              select: {
+                id: true,
+                status: true,
+                consentMethod: true,
+                consentNote: true,
+                consentConfirmedAt: true,
+                claimedAt: true,
+                agent: {
+                  select: {
+                    id: true,
+                    displayName: true,
+                    username: true,
+                    email: true
+                  }
+                }
+              }
             }
           }
         },

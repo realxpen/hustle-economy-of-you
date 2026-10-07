@@ -16,29 +16,79 @@ export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
 
   async sync(identity: AuthIdentity) {
-    const account = await this.prisma.user.upsert({
-      where: { authSubject: identity.subject },
-      update: {
-        email: identity.email ?? null,
-        phone: identity.phone ?? null,
-        emailVerified: identity.emailVerified,
-        phoneVerified: identity.phoneVerified
-      },
-      create: {
-        authSubject: identity.subject,
-        email: identity.email ?? null,
-        phone: identity.phone ?? null,
-        emailVerified: identity.emailVerified,
-        phoneVerified: identity.phoneVerified,
-        capabilities: { create: { capability: "CLIENT", status: "ACTIVE" } }
-      }
+    let account = await this.prisma.user.findUnique({
+      where: { authSubject: identity.subject }
     });
+
+    if (account) {
+      account = await this.prisma.user.update({
+        where: { id: account.id },
+        data: {
+          email: identity.email ?? account.email,
+          phone: identity.phone ?? account.phone,
+          emailVerified: identity.emailVerified,
+          phoneVerified: identity.phoneVerified
+        }
+      });
+    } else {
+      const assisted = await this.findClaimableAssistedRegistration(identity);
+
+      if (assisted) {
+        const now = new Date();
+        account = await this.prisma.$transaction(async (tx) => {
+          const claimed = await tx.user.update({
+            where: { id: assisted.principalUserId },
+            data: {
+              authSubject: identity.subject,
+              email: identity.email ?? assisted.principal.email,
+              phone: identity.phone ?? assisted.principal.phone,
+              emailVerified: identity.emailVerified,
+              phoneVerified: identity.phoneVerified
+            }
+          });
+
+          await tx.agentAssistedRegistration.update({
+            where: { id: assisted.id },
+            data: {
+              status: "CLAIMED",
+              claimedAt: now
+            }
+          });
+
+          await tx.systemEvent.create({
+            data: {
+              name: "agent_assisted_registration.claimed",
+              source: "api",
+              payload: {
+                registrationId: assisted.id,
+                principalUserId: assisted.principalUserId,
+                agentUserId: assisted.agentUserId
+              }
+            }
+          });
+
+          return claimed;
+        });
+      } else {
+        account = await this.prisma.user.create({
+          data: {
+            authSubject: identity.subject,
+            email: identity.email ?? null,
+            phone: identity.phone ?? null,
+            emailVerified: identity.emailVerified,
+            phoneVerified: identity.phoneVerified,
+            capabilities: { create: { capability: "CLIENT", status: "ACTIVE" } }
+          }
+        });
+      }
+    }
 
     await this.prisma.userCapability.upsert({
       where: { userId_capability: { userId: account.id, capability: "CLIENT" } },
       update: { status: "ACTIVE" },
       create: { userId: account.id, capability: "CLIENT", status: "ACTIVE" }
     });
+
     return this.getBySubject(identity.subject);
   }
 
@@ -80,6 +130,59 @@ export class AuthService {
       throw error;
     }
     return this.getBySubject(identity.subject);
+  }
+
+  private async findClaimableAssistedRegistration(identity: AuthIdentity) {
+    const contactPredicates: Prisma.AgentAssistedRegistrationWhereInput[] = [];
+
+    if (identity.email && identity.emailVerified) {
+      contactPredicates.push({
+        principal: {
+          email: {
+            equals: identity.email,
+            mode: "insensitive"
+          }
+        }
+      });
+    }
+
+    if (identity.phone && identity.phoneVerified) {
+      contactPredicates.push({
+        principal: {
+          phone: identity.phone
+        }
+      });
+    }
+
+    if (contactPredicates.length === 0) return null;
+
+    const matches = await this.prisma.agentAssistedRegistration.findMany({
+      where: {
+        status: "ACTIVE",
+        principal: {
+          authSubject: { startsWith: "assisted:" }
+        },
+        OR: contactPredicates
+      },
+      include: {
+        principal: {
+          select: {
+            id: true,
+            email: true,
+            phone: true
+          }
+        }
+      },
+      take: 2
+    });
+
+    if (matches.length > 1) {
+      throw new BadRequestException(
+        "More than one assisted Hustle identity matches this verified contact. Contact Hustle support before continuing."
+      );
+    }
+
+    return matches[0] ?? null;
   }
 
   private async getBySubject(subject: string) {
