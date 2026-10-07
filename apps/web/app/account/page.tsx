@@ -30,7 +30,9 @@ export default function AccountPage() {
 
   const initial = (account.displayName ?? account.email ?? account.phone ?? "H").charAt(0).toUpperCase();
   const hustler = account.capabilities.find((item) => item.capability === "HUSTLER");
+  const agent = account.capabilities.find((item) => item.capability === "AGENT");
   const isHustler = hustler?.status === "ACTIVE";
+  const isAgent = agent?.status === "ACTIVE";
 
   return <main className="accountShell">
     <header className="topLine"><a className="brandMark" href="/">HUSTLE<span>↗</span></a><button className="textButton" onClick={signOut}>Sign out</button></header>
@@ -56,6 +58,7 @@ export default function AccountPage() {
         <a className="futureTag" href="/search">SEARCH HUSTLE →</a>
         <a className="futureTag" href="/marketplace">BROWSE MARKETPLACE →</a>
         <a className="futureTag" href={isHustler ? "/professional-profile" : "/hustler-application"}>{isHustler ? "EDIT PROFESSIONAL PROFILE →" : "APPLY TO BECOME A HUSTLER →"}</a>
+        <a className="futureTag" href="/agent-application">{isAgent ? "AGENT CAPABILITY ACTIVE →" : "APPLY TO BECOME AN AGENT →"}</a>
         {isHustler && <a className="futureTag" href="/posts/manage">MANAGE CONTENT →</a>}
         {isHustler && <a className="futureTag" href="/services/manage">MANAGE SERVICES →</a>}
         {isHustler && <a className="futureTag" href="/products/manage">MANAGE PRODUCTS →</a>}
