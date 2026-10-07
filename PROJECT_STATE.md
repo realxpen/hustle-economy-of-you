@@ -6,7 +6,9 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 18D — Delegated Operational Actions & Agent Business Workspace (merged; manual production deployment/runtime acceptance pending)
+Phase 18E — Delegated Bookings + Client Messages (implementation in progress)
+
+Phase 18D — Delegated Operational Actions & Agent Business Workspace (merged; runtime acceptance intentionally deferred for combined validation)
 
 Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants: COMPLETE — production runtime validated 2026-10-07.
 
@@ -21,7 +23,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 18D Delegated Operational Actions & Agent Business Workspace — real permission-enforced Agent actions with actor-vs-owner auditability.**
+Current active slice: **Phase 18E Delegated Bookings + Client Messages — customer operations with strict financial/reputation boundaries.**
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -329,6 +331,7 @@ Canonical Phase 18 knowledge:
 - `Knowledge/Decisions/ADR-0034-client-principal-agent-authority.md`
 - `Knowledge/Decisions/ADR-0035-agent-assisted-onboarding.md`
 - `Knowledge/Decisions/ADR-0036-delegated-operational-actions.md`
+- `Knowledge/Decisions/ADR-0037-delegated-bookings-and-messages.md`
 
 Production activation and runtime acceptance:
 - Supabase migration `phase18a_agent_capability_foundation` applied successfully on 2026-10-07
@@ -605,3 +608,34 @@ Runtime acceptance after merge must prove:
 7. Agent cannot mutate a principal outside their ACTIVE relationship or without the exact scope.
 8. AgentDelegationAudit records actor=Agent and owner=principal for each tested mutation.
 9. Existing wallet, payment, Review and reputation state remains unchanged.
+
+
+### Phase 18 runtime validation scheduling — 2026-10-07
+The project owner explicitly deferred Phase 18D runtime testing so the remaining Agent slices can be built first and tested together in one consolidated session on 2026-10-08.
+
+Do not mark Phase 18D complete before that combined runtime acceptance.
+
+### 18E — Delegated Bookings + Client Messages
+IMPLEMENTATION IN PROGRESS.
+
+Booking authority:
+- `BOOKING_MANAGE` requires ACTIVE Agent relationship + exact scope + principal ACTIVE HUSTLER.
+- Agent may list/read represented Hustler Bookings.
+- Agent may accept REQUESTED Bookings using canonical schedule-conflict validation.
+- Agent may decline REQUESTED Bookings.
+- Agent may cancel only ACCEPTED/PAYMENT_PENDING Bookings before funding.
+- Agent may start free ACCEPTED work or paid FUNDED work.
+- no delegated Booking completion endpoint exists.
+- no Agent funding/refund/escrow/payout/wallet/reputation authority.
+
+Messaging authority:
+- `CLIENT_MESSAGE_MANAGE` requires ACTIVE relationship + exact scope.
+- Agent may read represented principal direct conversations and history.
+- Agent reads do not update the principal's read state.
+- Agent may send text replies on behalf of the principal.
+- `Message.senderId` remains the principal to preserve canonical conversation semantics.
+- `Message.delegatedByAgentUserId` records the real Agent actor.
+- normal Hustle messaging surfaces render Agent-assisted provenance.
+- no delegated attachment upload, typing impersonation, conversation deletion or participant mutation in this first slice.
+
+Combined runtime acceptance for Phase 18D + 18E will be compiled after implementation/merge.
