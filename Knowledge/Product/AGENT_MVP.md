@@ -206,3 +206,30 @@ Rules:
 - wallet, ledger, escrow, payouts, Reviews and reputation remain non-delegable.
 
 Canonical decision: `Knowledge/Decisions/ADR-0036-delegated-operational-actions.md`.
+
+
+## Phase 18E — Delegated Bookings + Client Messages
+
+Phase 18E extends delegated operations into customer handling without crossing into financial or reputation authority.
+
+`BOOKING_MANAGE` may:
+- read represented Hustler Bookings;
+- accept/confirm a requested schedule;
+- decline a request;
+- cancel only before funding;
+- start work after the canonical funding/status prerequisites are satisfied.
+
+It may **not**:
+- complete a Booking;
+- fund/refund/release escrow;
+- access wallet/ledger/payout authority;
+- create or change Reviews/reputation.
+
+`CLIENT_MESSAGE_MANAGE` may:
+- read the represented principal's existing direct threads;
+- read message history;
+- send text replies on behalf of the principal.
+
+Delegated messages preserve the principal as canonical sender while storing `delegatedByAgentUserId` and rendering visible Agent provenance. Agent reads do not silently clear the principal's unread state.
+
+Canonical decision: `Knowledge/Decisions/ADR-0037-delegated-bookings-and-messages.md`.
