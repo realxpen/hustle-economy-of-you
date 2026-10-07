@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants (authority correction in progress; runtime acceptance pending)
+Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants (authority correction merged; manual deployment/runtime acceptance pending)
 
 Phase 17 — Live Commerce Beta: COMPLETE — implementation, production media/runtime validation and final mobile fullscreen/Quick View acceptance validated 2026-10-07.
 
@@ -427,6 +427,8 @@ Phase 17 and Phase 18A are CLOSED and must not be reopened unless a regression i
 
 
 ### Phase 18B product correction — 2026-10-07
+MERGED in PR #58 (`4e09ba09b1a3ffff10f666924f4d4adac91d6602`).
+
 The initial 18B implementation incorrectly gated **Manage Agents** and relationship creation behind ACTIVE HUSTLER.
 
 Correct product rule:
@@ -435,4 +437,6 @@ Correct product rule:
 - an Agent relationship may exist before Hustler activation;
 - the relationship does not create HUSTLER capability;
 - future Hustler-only delegated operations must separately enforce the principal's ACTIVE HUSTLER capability;
-- Prisma now exposes the owner logically as `principalUserId` / `principal` while mapping to the existing hosted column for data compatibility.
+- Prisma now exposes the owner logically as `principalUserId` / `principal` while mapping to the existing hosted `hustlerUserId` column for data compatibility.
+- full CI passed after the correction; no database migration was required.
+- no Vercel deployment was created by the merge.
