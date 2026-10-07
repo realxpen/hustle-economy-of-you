@@ -126,9 +126,38 @@ export function NativeLiveViewer({ liveId }: { liveId: string }) {
 
   async function enterFullscreen() {
     const root = mediaRootRef.current?.parentElement;
-    if (!root?.requestFullscreen) return;
+    const video = mediaRootRef.current?.querySelector("video") as (HTMLVideoElement & {
+      webkitEnterFullscreen?: () => void;
+      webkitEnterFullScreen?: () => void;
+    }) | null;
+
     try {
-      await root.requestFullscreen();
+      if (document.fullscreenEnabled && root?.requestFullscreen) {
+        await root.requestFullscreen();
+        return;
+      }
+
+      if (video?.webkitEnterFullscreen) {
+        video.webkitEnterFullscreen();
+        return;
+      }
+
+      if (video?.webkitEnterFullScreen) {
+        video.webkitEnterFullScreen();
+        return;
+      }
+
+      if (video?.requestFullscreen) {
+        await video.requestFullscreen();
+        return;
+      }
+
+      if (root?.requestFullscreen) {
+        await root.requestFullscreen();
+        return;
+      }
+
+      setError("Fullscreen is not available in this browser.");
     } catch {
       setError("Fullscreen is not available in this browser.");
     }
