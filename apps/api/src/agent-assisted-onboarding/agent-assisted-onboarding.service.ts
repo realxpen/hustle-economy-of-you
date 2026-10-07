@@ -641,7 +641,7 @@ export class AgentAssistedOnboardingService {
   }
 
   private registrationPermissions(value: unknown): AgentPermissionScope[] {
-    const required = [
+    const required: AgentPermissionScope[] = [
       AgentPermissionScope.ACCOUNT_ONBOARDING_MANAGE,
       AgentPermissionScope.HUSTLER_APPLICATION_MANAGE
     ];
