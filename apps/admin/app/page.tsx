@@ -10,6 +10,8 @@ import {
   listAdminBookings,
   listAdminOrders,
   searchAdminUsers,
+  suspendAdminCapability,
+  reactivateAdminCapability,
   type AdminApplicationQueues,
   type AdminAuditEvent,
   type AdminBookingItem,
@@ -64,6 +66,7 @@ export default function AdminOperationsHome() {
   const [auditQuery, setAuditQuery] = useState("");
   const [bookingStatus, setBookingStatus] = useState("");
   const [orderStatus, setOrderStatus] = useState("");
+  const [capabilityReason, setCapabilityReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -165,6 +168,33 @@ export default function AdminOperationsHome() {
     }
   }
 
+  async function changeCapability(
+    capability: "HUSTLER" | "AGENT",
+    mode: "SUSPEND" | "REACTIVATE"
+  ) {
+    if (!token || !selectedUser || !capabilityReason.trim()) {
+      setError("Add an operational reason before changing capability status.");
+      return;
+    }
+    setDetailLoading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const next = mode === "SUSPEND"
+        ? await suspendAdminCapability(token, selectedUser.user.id, capability, capabilityReason.trim())
+        : await reactivateAdminCapability(token, selectedUser.user.id, capability, capabilityReason.trim());
+      setSelectedUser(next);
+      setCapabilityReason("");
+      setNotice(`${capability} ${mode === "SUSPEND" ? "suspended" : "reactivated"} with an audit event.`);
+      setUsers(await searchAdminUsers(token, userQuery, 60));
+      setOverview(await getOperationsOverview(token));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Capability operation failed");
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
   async function filterBookings(value: string) {
     setBookingStatus(value);
     if (!token) return;
@@ -252,6 +282,7 @@ export default function AdminOperationsHome() {
         </p>
       </div>
       <div className="top-actions">
+        <a className="secondary" href="/applications">Applications</a>
         <a className="secondary" href="/trust-safety">Trust & Safety</a>
         <button className="secondary" type="button" onClick={() => void loadOperations()} disabled={loading}>Refresh</button>
         <button className="danger" type="button" onClick={clearToken}>End session</button>
@@ -275,7 +306,7 @@ export default function AdminOperationsHome() {
     <section className="ops-section">
       <div className="section-head">
         <div><p className="eyebrow">APPLICATIONS</p><h2>Capability queues</h2></div>
-        <span className="read-only-tag">READ VIEW · REVIEW ACTIONS REMAIN IN HUSTLE WEB</span>
+        <a className="secondary" href="/applications">Open review workspace →</a>
       </div>
       <div className="ops-grid two">
         <article className="ops-card">
@@ -341,6 +372,29 @@ export default function AdminOperationsHome() {
               <div><dt>Agent work</dt><dd>{selectedUser.agent.activeRepresentationsAsAgent} represented / {selectedUser.agent.activeAgentsRepresentingUser} Agents helping</dd></div>
               <div><dt>Verified reviews</dt><dd>{selectedUser.user.reputation?.verifiedReviewCount ?? 0}</dd></div>
             </dl>
+
+            <section className="capability-ops">
+              <p className="eyebrow">CAPABILITY OPERATIONS</p>
+              <p className="policy-copy">
+                Phase 19B only permits reversible HUSTLER/AGENT suspension. CLIENT bans and permanent revocation remain outside this slice.
+              </p>
+              <label className="field">
+                <span>REQUIRED OPERATIONAL REASON</span>
+                <textarea rows={3} value={capabilityReason} onChange={(event) => setCapabilityReason(event.target.value)} placeholder="Policy/evidence reason for suspension or reactivation" />
+              </label>
+              {(["HUSTLER","AGENT"] as const).map((capability) => {
+                const record = selectedUser.user.capabilities.find((item) => item.capability === capability);
+                if (!record) return null;
+                return <div className="capability-op-row" key={capability}>
+                  <div><strong>{capability}</strong><span className="pill">{record.status}</span></div>
+                  {record.status === "ACTIVE"
+                    ? <button className="danger" disabled={detailLoading || !capabilityReason.trim()} onClick={() => void changeCapability(capability, "SUSPEND")}>Suspend</button>
+                    : record.status === "SUSPENDED"
+                      ? <button className="primary" disabled={detailLoading || !capabilityReason.trim()} onClick={() => void changeCapability(capability, "REACTIVATE")}>Reactivate</button>
+                      : <small>REVOKED is not reversible in Phase 19B.</small>}
+                </div>;
+              })}
+            </section>
           </div>}
         </aside>
       </div>

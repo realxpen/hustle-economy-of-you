@@ -6,6 +6,7 @@ import {
 import {
   AgentApplicationStatus,
   BookingStatus,
+  Capability,
   CapabilityStatus,
   HustlerApplicationStatus,
   OrderStatus,
@@ -602,6 +603,229 @@ export class AdminOperationsService {
     ]);
 
     return { hustler, agent };
+  }
+
+  async suspendCapability(
+    adminIdentity: import("../infrastructure/auth/auth.port").AuthIdentity,
+    userIdInput: string,
+    capabilityInput: string,
+    reasonInput: unknown
+  ) {
+    const admin = await this.requireAdminUser(adminIdentity);
+    const userId = this.requiredId(userIdInput, "userId");
+    const capability = this.requiredSuspendableCapability(capabilityInput);
+    const reason = this.requiredText(reasonInput, "reason", 1000);
+
+    const target = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        displayName: true,
+        username: true,
+        capabilities: {
+          where: { capability },
+          select: { id: true, status: true, enabledAt: true }
+        }
+      }
+    });
+    if (!target) throw new NotFoundException("User not found");
+
+    const current = target.capabilities[0];
+    if (!current) {
+      throw new BadRequestException(
+        `User does not have ${capability} capability`
+      );
+    }
+    if (current.status === CapabilityStatus.SUSPENDED) {
+      return this.userDetail(userId);
+    }
+    if (current.status !== CapabilityStatus.ACTIVE) {
+      throw new BadRequestException(
+        `${capability} cannot be suspended from ${current.status}`
+      );
+    }
+
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userCapability.update({
+        where: {
+          userId_capability: { userId, capability }
+        },
+        data: { status: CapabilityStatus.SUSPENDED }
+      });
+
+      if (capability === Capability.HUSTLER) {
+        const application = await tx.hustlerApplication.findUnique({
+          where: { userId },
+          select: { id: true, status: true }
+        });
+        if (application?.status === HustlerApplicationStatus.APPROVED) {
+          await tx.hustlerApplication.update({
+            where: { id: application.id },
+            data: {
+              status: HustlerApplicationStatus.SUSPENDED
+            }
+          });
+        }
+      }
+
+      if (capability === Capability.AGENT) {
+        const application = await tx.agentApplication.findUnique({
+          where: { userId },
+          select: { id: true, status: true }
+        });
+        if (application?.status === AgentApplicationStatus.APPROVED) {
+          await tx.agentApplication.update({
+            where: { id: application.id },
+            data: {
+              status: AgentApplicationStatus.SUSPENDED
+            }
+          });
+        }
+      }
+
+      await tx.systemEvent.create({
+        data: {
+          name: "admin.capability.suspended",
+          source: "admin",
+          payload: {
+            adminUserId: admin.id,
+            targetUserId: userId,
+            capability,
+            reason
+          }
+        }
+      });
+    });
+
+    return this.userDetail(userId);
+  }
+
+  async reactivateCapability(
+    adminIdentity: import("../infrastructure/auth/auth.port").AuthIdentity,
+    userIdInput: string,
+    capabilityInput: string,
+    reasonInput: unknown
+  ) {
+    const admin = await this.requireAdminUser(adminIdentity);
+    const userId = this.requiredId(userIdInput, "userId");
+    const capability = this.requiredSuspendableCapability(capabilityInput);
+    const reason = this.requiredText(reasonInput, "reason", 1000);
+
+    const record = await this.prisma.userCapability.findUnique({
+      where: {
+        userId_capability: { userId, capability }
+      },
+      select: { status: true }
+    });
+    if (!record) {
+      throw new BadRequestException(
+        `User does not have ${capability} capability`
+      );
+    }
+    if (record.status === CapabilityStatus.ACTIVE) {
+      return this.userDetail(userId);
+    }
+    if (record.status !== CapabilityStatus.SUSPENDED) {
+      throw new BadRequestException(
+        `${capability} cannot be reactivated from ${record.status}`
+      );
+    }
+
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userCapability.update({
+        where: {
+          userId_capability: { userId, capability }
+        },
+        data: {
+          status: CapabilityStatus.ACTIVE,
+          enabledAt: now
+        }
+      });
+
+      if (capability === Capability.HUSTLER) {
+        const application = await tx.hustlerApplication.findUnique({
+          where: { userId },
+          select: { id: true, status: true }
+        });
+        if (!application || application.status !== HustlerApplicationStatus.SUSPENDED) {
+          throw new BadRequestException(
+            "Hustler reactivation requires a SUSPENDED approved Hustler application"
+          );
+        }
+        await tx.hustlerApplication.update({
+          where: { id: application.id },
+          data: {
+            status: HustlerApplicationStatus.APPROVED
+          }
+        });
+      }
+
+      if (capability === Capability.AGENT) {
+        const application = await tx.agentApplication.findUnique({
+          where: { userId },
+          select: { id: true, status: true }
+        });
+        if (!application || application.status !== AgentApplicationStatus.SUSPENDED) {
+          throw new BadRequestException(
+            "Agent reactivation requires a SUSPENDED approved Agent application"
+          );
+        }
+        await tx.agentApplication.update({
+          where: { id: application.id },
+          data: {
+            status: AgentApplicationStatus.APPROVED
+          }
+        });
+      }
+
+      await tx.systemEvent.create({
+        data: {
+          name: "admin.capability.reactivated",
+          source: "admin",
+          payload: {
+            adminUserId: admin.id,
+            targetUserId: userId,
+            capability,
+            reason
+          }
+        }
+      });
+    });
+
+    return this.userDetail(userId);
+  }
+
+  private async requireAdminUser(
+    identity: import("../infrastructure/auth/auth.port").AuthIdentity
+  ) {
+    const admin = await this.prisma.user.findUnique({
+      where: { authSubject: identity.subject },
+      select: { id: true }
+    });
+    if (!admin) throw new NotFoundException("Admin Hustle account not synchronized");
+    return admin;
+  }
+
+  private requiredSuspendableCapability(value: unknown): Capability {
+    if (
+      value !== Capability.HUSTLER &&
+      value !== Capability.AGENT
+    ) {
+      throw new BadRequestException(
+        "Only HUSTLER or AGENT capability can be suspended/reactivated in Phase 19B"
+      );
+    }
+    return value;
+  }
+
+  private requiredText(value: unknown, field: string, max: number) {
+    const normalized = this.optionalText(value, field, max);
+    if (!normalized) {
+      throw new BadRequestException(`${field} is required`);
+    }
+    return normalized;
   }
 
   private groupCounts<
