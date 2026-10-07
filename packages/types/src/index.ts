@@ -110,6 +110,59 @@ export interface SaveHustlerApplicationInput {
   businessInfo?: string | null;
 }
 
+export type AgentApplicationStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "UNDER_REVIEW"
+  | "APPROVED"
+  | "REJECTED"
+  | "SUSPENDED";
+
+export type AgentProofType =
+  | "IDENTITY_DOCUMENT"
+  | "BUSINESS_DOCUMENT"
+  | "COMMUNITY_REFERENCE"
+  | "OTHER";
+
+export interface AgentApplicationProof {
+  id: string;
+  applicationId: string;
+  type: AgentProofType;
+  storageKey: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number | null;
+  createdAt: string;
+}
+
+export interface AgentApplication {
+  id: string;
+  userId: string;
+  status: AgentApplicationStatus;
+  motivation: string | null;
+  experienceSummary: string | null;
+  operatingArea: string | null;
+  organizationName: string | null;
+  organizationInfo: string | null;
+  identityVerificationStatus: VerificationStatus;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  reviewerId: string | null;
+  reviewNotes: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  proofs: AgentApplicationProof[];
+}
+
+export interface SaveAgentApplicationInput {
+  motivation?: string | null;
+  experienceSummary?: string | null;
+  operatingArea?: string | null;
+  organizationName?: string | null;
+  organizationInfo?: string | null;
+}
+
 export type ProfessionalProfileStatus = "DRAFT" | "PUBLISHED";
 
 export interface ProfessionalProfile {
