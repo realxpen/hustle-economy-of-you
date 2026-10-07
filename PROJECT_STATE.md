@@ -440,3 +440,14 @@ Correct product rule:
 - Prisma now exposes the owner logically as `principalUserId` / `principal` while mapping to the existing hosted `hustlerUserId` column for data compatibility.
 - full CI passed after the correction; no database migration was required.
 - no Vercel deployment was created by the merge.
+
+
+### Internal review authorization correction — 2026-10-07
+Hustler capability review now uses the same `HUSTLE_ADMIN_USER_IDS` / `AdminGuard` authority as Agent review.
+
+The legacy `HUSTLE_REVIEWER_EMAILS` requirement is no longer authoritative for Hustler approvals.
+
+Web internal review hub:
+- `/internal`
+- `/internal/hustler-reviews`
+- `/internal/agent-reviews`

@@ -8,17 +8,17 @@ import {
   UseGuards
 } from "@nestjs/common";
 
+import { AdminGuard } from "../auth/admin.guard";
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
-import { HustleReviewerGuard } from "./hustle-reviewer.guard";
 import {
   HustlerReviewService,
   type HustlerReviewDecisionInput
 } from "./hustler-review.service";
 
 @Controller("hustler-reviews")
-@UseGuards(AuthGuard, HustleReviewerGuard)
+@UseGuards(AuthGuard, AdminGuard)
 export class HustlerReviewController {
   constructor(private readonly reviews: HustlerReviewService) {}
 
