@@ -6,6 +6,8 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
+Phase 19A — Admin Marketplace Operations Foundation (implementation in progress)
+
 Phase 18E — Delegated Bookings + Client Messages (merged + database activated; runtime acceptance intentionally deferred for combined validation)
 
 Phase 18D — Delegated Operational Actions & Agent Business Workspace (merged; runtime acceptance intentionally deferred for combined validation)
@@ -23,7 +25,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 18E Delegated Bookings + Client Messages — customer operations with strict financial/reputation boundaries.**
+Current active slice: **Phase 19A Admin Marketplace Operations Foundation — unified read-oriented operating visibility without high-risk marketplace mutations.**
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -332,6 +334,7 @@ Canonical Phase 18 knowledge:
 - `Knowledge/Decisions/ADR-0035-agent-assisted-onboarding.md`
 - `Knowledge/Decisions/ADR-0036-delegated-operational-actions.md`
 - `Knowledge/Decisions/ADR-0037-delegated-bookings-and-messages.md`
+- `Knowledge/Decisions/ADR-0038-admin-marketplace-operations-read-model.md`
 
 Production activation and runtime acceptance:
 - Supabase migration `phase18a_agent_capability_foundation` applied successfully on 2026-10-07
@@ -669,3 +672,35 @@ Per the canonical MVP build plan, the next phase after Agent MVP is:
 Goal: the Hustle team can operate users, capabilities, applications, content, reports, suspensions, bookings, orders, payments, escrow, disputes, moderation and audit logs without manual database access.
 
 Phase 18D/18E runtime validation remains pending by explicit project-owner choice and will be executed as one combined acceptance session on 2026-10-08.
+
+
+### 19A — Admin Marketplace Operations Foundation
+IMPLEMENTATION IN PROGRESS.
+
+Goal:
+- give the Hustle team one authoritative control plane for operating the marketplace without direct database access.
+
+Read model:
+- overview across users, active capabilities, applications, Bookings, Orders, financial state, safety, content and audit events;
+- user/capability search by ID, username, name, email or phone;
+- per-user marketplace activity summary;
+- pending Hustler/Agent application queues;
+- recent/filterable Bookings and Orders;
+- PaymentAttempt / escrow / payout / refund state without provider secret metadata;
+- filterable SystemEvent audit history.
+
+Admin app:
+- root becomes Marketplace Operations;
+- existing Trust & Safety console preserved at `/trust-safety`;
+- same tab-session admin bearer token flow;
+- all operations API routes require `AuthGuard + AdminGuard`.
+
+19A deliberately does NOT add:
+- user/capability suspension controls;
+- Booking/Order mutation;
+- payment confirmation;
+- escrow release/refund;
+- payout execution;
+- Review/reputation mutation.
+
+These higher-risk controls require explicit Phase 19 follow-on policy and audit decisions.
