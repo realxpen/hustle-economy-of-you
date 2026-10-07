@@ -289,7 +289,7 @@ Final production runtime checks still required before Phase 17 may be marked COM
 4. Post page attached offer → Quick View opens and shows canonical provider/offer information.
 
 ## Phase 18 — Agent MVP
-ACTIVE BUILD — Phase 18A foundation on branch `phase18a-agent-capability`.
+MERGED + DATABASE ACTIVATED — production Vercel deployment blocked by the Hobby-plan daily deployment limit.
 
 ### 18A — Verified Agent Capability Foundation
 
@@ -298,7 +298,7 @@ Architecture:
 
 There is one User identity and no role switcher.
 
-Implemented in the current Phase 18A branch:
+Implemented and merged in PR #55 (`c91efb952d90080bf6fc97bc9ff3347a4932a30b`):
 - Agent application lifecycle
 - private Agent application proof
 - admin-only review authority
@@ -318,6 +318,14 @@ Critical boundary:
 Canonical Phase 18 knowledge:
 - `Knowledge/Product/AGENT_MVP.md`
 - `Knowledge/Decisions/ADR-0032-agent-capability-foundation.md`
+
+Production activation state:
+- Supabase migration `phase18a_agent_capability_foundation` applied successfully on 2026-10-07
+- `AgentApplication` and `AgentApplicationProof` verified present
+- private `agent-proofs` bucket verified present
+- Vercel Git deployment for merge commit #55 was not created because the team exceeded the free daily deployment limit
+- explicit manual production deployment attempt returned `402 api-deployments-free-per-day` with a 24-hour retry window
+- therefore Phase 18A runtime acceptance is BLOCKED on deployment, not code or database readiness
 
 ## Supabase
 Dedicated project:
@@ -354,6 +362,6 @@ Use fresh auth sessions/tokens for runtime validation. Never commit or print pro
 Two independent gates are active:
 
 1. **Phase 17 runtime closeout:** complete the four final production Live/Quick View checks above. Only then mark Phase 17 COMPLETE.
-2. **Phase 18A build gate:** CI green → PR → merge → production migration/deployment → runtime test Agent application, admin review, atomic AGENT activation and unchanged existing capabilities.
+2. **Phase 18A release gate:** CI GREEN, PR #55 MERGED and production migration APPLIED. Remaining blocker: Vercel production deploy after the daily deployment limit resets, then runtime test Agent application, admin review, atomic AGENT activation and unchanged existing capabilities.
 
 After 18A is runtime validated, proceed to **Phase 18B — explicit Hustler↔Agent relationship + scoped delegated permissions + audit trail**.
