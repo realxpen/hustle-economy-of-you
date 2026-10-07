@@ -6,11 +6,9 @@ import {
 import {
   AgentApplicationStatus,
   BookingStatus,
-  Capability,
   CapabilityStatus,
   HustlerApplicationStatus,
   OrderStatus,
-  PaymentAttemptStatus,
   Prisma
 } from "@prisma/client";
 
