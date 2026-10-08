@@ -6,6 +6,8 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
+Phase 19D — Marketplace Content Moderation & Enforcement (implementation in progress)
+
 Phase 19C — Marketplace Casework & Dispute Triage (merged + database active; runtime pending combined acceptance)
 
 Phase 19B — Admin Capability + Application Operations (merged; runtime acceptance deferred for combined validation)
@@ -29,7 +31,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 19C Marketplace Casework & Dispute Triage — admin-owned transaction investigations, append-only notes and durable audit without money/reputation authority.**
+Current active slice: **Phase 19D Marketplace Content Moderation & Enforcement — reversible, server-enforced item holds independent from money/reputation and account bans.**
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -815,3 +817,18 @@ Runtime acceptance joins the consolidated manual deployment/testing batch.
 The production acceptance batch now covers **18D, 18E, 19A, 19B, 19C**. Each must be checked against `Knowledge/QA/PHASE18D_19C_COMBINED_RUNTIME_ACCEPTANCE.md` after the project owner manually deploys latest API/Web/Admin.
 
 **Do not mark Phase 19C or the other deferred slices runtime-complete on the basis of CI alone.** No production acceptance was performed in this build session.
+
+
+### Phase 19D — Marketplace Content Moderation & Enforcement
+IMPLEMENTATION IN PROGRESS — runtime acceptance pending consolidated test.
+
+- Admin-only `/admin/operations/moderation` API and `/moderation` admin console.
+- POST/SERVICE/PRODUCT item-level CLEAR/HELD moderation status.
+- HOLD forces Post ARCHIVED, Service/Product PAUSED.
+- Owner and delegated Agent publish paths require CLEAR at database write time.
+- Owner/Agent listing delete requires CLEAR so active investigations preserve the record.
+- RELEASE clears restriction without automatically republishing.
+- Every HOLD/RELEASE requires reason, append-only MarketplaceModerationAction and SystemEvent.
+- Audit role hustle_api only, private RLS; browser database roles have no direct table privileges.
+- Does not affect Booking, Order, payments, escrow, payout, Review, reputation, account capability or SafetyReport state.
+- ADR: `Knowledge/Decisions/ADR-0041-reversible-marketplace-content-holds.md`.

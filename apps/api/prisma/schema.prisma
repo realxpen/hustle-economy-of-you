@@ -130,6 +130,22 @@ enum PostStatus {
   ARCHIVED
 }
 
+enum MarketplaceModerationState {
+  CLEAR
+  HELD
+}
+
+enum MarketplaceModerationSubjectType {
+  POST
+  SERVICE
+  PRODUCT
+}
+
+enum MarketplaceModerationActionType {
+  HOLD
+  RELEASE
+}
+
 enum PostMediaType {
   IMAGE
   VIDEO
@@ -372,6 +388,7 @@ model User {
   openedMarketplaceCases      MarketplaceCase[] @relation("MarketplaceCaseOpenedBy")
   assignedMarketplaceCases    MarketplaceCase[] @relation("MarketplaceCaseAssignedTo")
   marketplaceCaseNotes         MarketplaceCaseNote[] @relation("MarketplaceCaseNoteAuthor")
+  moderationActions            MarketplaceModerationAction[] @relation("MarketplaceModerationActionActor")
   reputation                  UserReputation?
 }
 
@@ -608,6 +625,7 @@ model Service {
   deliveryTime          String?
   requirements          String?
   status                ServiceStatus       @default(DRAFT)
+  moderationState       MarketplaceModerationState @default(CLEAR)
   publishedAt           DateTime?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -635,6 +653,7 @@ model Product {
   inventoryQuantity     Int?
   deliveryInformation   String?
   status                ProductStatus @default(DRAFT)
+  moderationState       MarketplaceModerationState @default(CLEAR)
   publishedAt           DateTime?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -678,6 +697,7 @@ model Post {
   location              String?
   tags                  String[]   @default([])
   status                PostStatus @default(DRAFT)
+  moderationState       MarketplaceModerationState @default(CLEAR)
   publishedAt           DateTime?
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
@@ -1309,4 +1329,24 @@ model MarketplaceCaseNote {
 
   @@index([caseId, createdAt])
   @@index([authorUserId, createdAt])
+}
+
+
+model MarketplaceModerationAction {
+  id                String                         @id @default(cuid())
+  subjectType       MarketplaceModerationSubjectType
+  subjectId         String
+  ownerUserId       String
+  actorUserId       String
+  action            MarketplaceModerationActionType
+  reason            String
+  previousStatus    String
+  resultingStatus   String
+  createdAt         DateTime                       @default(now())
+
+  actor User @relation("MarketplaceModerationActionActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([subjectType, subjectId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([ownerUserId, createdAt])
 }

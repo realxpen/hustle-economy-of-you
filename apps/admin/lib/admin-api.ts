@@ -816,3 +816,77 @@ export const addMarketplaceCaseNote = (
 
 export const getMarketplaceCaseViewer = (token: string) =>
   adminFetch<{ userId: string }>(token, "/admin/operations/cases/viewer");
+
+
+export type ModerationSubjectType = "POST" | "SERVICE" | "PRODUCT";
+export type ModerationState = "CLEAR" | "HELD";
+export type ModerationPerson = {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+};
+export type ModerationContent = {
+  id: string;
+  subjectType: ModerationSubjectType;
+  title: string;
+  status: string;
+  moderationState: ModerationState;
+  updatedAt?: string;
+  owner: ModerationPerson;
+};
+export type ModerationAction = {
+  id: string;
+  subjectType: ModerationSubjectType;
+  subjectId: string;
+  ownerUserId: string;
+  actorUserId: string;
+  action: "HOLD" | "RELEASE";
+  reason: string;
+  previousStatus: string;
+  resultingStatus: string;
+  createdAt: string;
+  actor: ModerationPerson;
+};
+export type ModerationDetail = {
+  subjectType: ModerationSubjectType;
+  subject: Omit<ModerationContent, "subjectType"> & { ownerUserId: string };
+  history: ModerationAction[];
+};
+export type ModerationOverview = {
+  holds: Record<ModerationSubjectType, number>;
+  recent: ModerationAction[];
+};
+
+export const getModerationOverview = (token: string) =>
+  adminFetch<ModerationOverview>(token, "/admin/operations/moderation/overview");
+
+export const listModerationContent = (
+  token: string,
+  type: ModerationSubjectType,
+  state?: ModerationState | "",
+  limit = 40
+) =>
+  adminFetch<ModerationContent[]>(
+    token,
+    `/admin/operations/moderation/content?type=${type}&limit=${limit}${state ? `&state=${state}` : ""}`
+  );
+
+export const getModerationDetail = (token: string, type: ModerationSubjectType, id: string) =>
+  adminFetch<ModerationDetail>(
+    token,
+    `/admin/operations/moderation/${type}/${encodeURIComponent(id)}`
+  );
+
+export const applyModerationHold = (
+  token: string, type: ModerationSubjectType, id: string, reason: string
+) => adminFetch<ModerationDetail>(
+  token, `/admin/operations/moderation/${type}/${encodeURIComponent(id)}/hold`,
+  { method: "POST", body: JSON.stringify({ reason }) }
+);
+
+export const releaseModerationHold = (
+  token: string, type: ModerationSubjectType, id: string, reason: string
+) => adminFetch<ModerationDetail>(
+  token, `/admin/operations/moderation/${type}/${encodeURIComponent(id)}/release`,
+  { method: "POST", body: JSON.stringify({ reason }) }
+);

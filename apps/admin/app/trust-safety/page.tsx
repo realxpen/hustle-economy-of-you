@@ -159,7 +159,7 @@ export default function AdminHome() {
         <p className="subtitle">Explainable evidence for human moderation. No automatic punishment from one subjective complaint.</p>
       </div>
       <div className="top-actions">
-        <a className="secondary" href="/">Operations</a>
+        <a className="secondary" href="/">Operations</a><a className="secondary" href="/moderation">Content moderation</a>
         <button className="secondary" type="button" onClick={() => void load()} disabled={loading}>Refresh</button>
         <button className="danger" type="button" onClick={clearToken}>End session</button>
       </div>
