@@ -82,16 +82,44 @@ export class AgentAssistedOnboardingService {
 
   async list(identity: AuthIdentity) {
     const agent = await this.requireAgent(identity);
-    return this.prisma.agentAssistedRegistration.findMany({
+    const registrations = await this.prisma.agentAssistedRegistration.findMany({
       where: { agentUserId: agent.id },
       include: this.registrationInclude(agent.id),
       orderBy: { createdAt: "desc" }
     });
+    // Retain a non-sensitive history row after claim without granting access
+    // to the owner's account, contacts, private proof or relationship grants.
+    return registrations.map((registration) =>
+      registration.status === AssistedRegistrationStatus.ACTIVE
+        ? registration
+        : {
+            id: registration.id,
+            principalUserId: registration.principalUserId,
+            agentUserId: registration.agentUserId,
+            status: registration.status,
+            createdAt: registration.createdAt,
+            claimedAt: registration.claimedAt,
+            cancelledAt: registration.cancelledAt,
+            principal: {
+              id: registration.principal.id,
+              displayName: registration.principal.displayName,
+              username: registration.principal.username,
+              location: registration.principal.location,
+              hustlerApplication: null
+            }
+          }
+    );
   }
 
   async get(identity: AuthIdentity, registrationId: string) {
     const agent = await this.requireAgent(identity);
-    return this.requireRegistration(registrationId, agent.id);
+    const registration = await this.requireRegistration(registrationId, agent.id);
+    if (registration.status !== AssistedRegistrationStatus.ACTIVE) {
+      throw new ForbiddenException(
+        "The owner claimed this account; use a newly authorized representation instead"
+      );
+    }
+    return registration;
   }
 
   async create(identity: AuthIdentity, input: CreateAssistedRegistrationInput) {
