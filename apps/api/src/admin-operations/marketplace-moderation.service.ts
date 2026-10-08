@@ -183,23 +183,22 @@ export class MarketplaceModerationService {
 
       const where = {
         id,
-        moderationState: expected,
-        status: previous.status
+        moderationState: expected
       };
       let changed: { count: number };
       if (type === MarketplaceModerationSubjectType.POST) {
         changed = await tx.post.updateMany({
-          where,
+          where: { ...where, status: previous.status as PostStatus },
           data: { moderationState: desired, status: resultingStatus as PostStatus }
         });
       } else if (type === MarketplaceModerationSubjectType.SERVICE) {
         changed = await tx.service.updateMany({
-          where,
+          where: { ...where, status: previous.status as ServiceStatus },
           data: { moderationState: desired, status: resultingStatus as ServiceStatus }
         });
       } else {
         changed = await tx.product.updateMany({
-          where,
+          where: { ...where, status: previous.status as ProductStatus },
           data: { moderationState: desired, status: resultingStatus as ProductStatus }
         });
       }
