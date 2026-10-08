@@ -135,6 +135,7 @@ export default function ModerationPage() {
       </div>
       <div className="top-actions">
         <a className="secondary" href="/">Operations</a>
+        <a className="secondary" href="/appeals">Appeals</a>
         <a className="secondary" href="/trust-safety">Trust & Safety</a>
         <button className="secondary" disabled={busy} onClick={() => void load()}>Refresh</button>
       </div>
