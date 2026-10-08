@@ -179,9 +179,18 @@ export class ServiceService {
       throw new BadRequestException("Pause a published service before deleting it");
     }
 
-    await this.prisma.$transaction([
-      this.prisma.service.delete({ where: { id: service.id } }),
-      this.prisma.systemEvent.create({
+    await this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.service.deleteMany({
+        where: {
+          id: service.id,
+          professionalProfileId: profile.id,
+          moderationState: "CLEAR"
+        }
+      });
+      if (deleted.count !== 1) {
+        throw new ConflictException("Moderation-held listings cannot be deleted");
+      }
+      await tx.systemEvent.create({
         data: {
           name: "service.deleted",
           source: "api",
@@ -192,7 +201,8 @@ export class ServiceService {
           }
         }
       })
-    ]);
+
+    });
 
     return { deleted: true, id: service.id };
   }
