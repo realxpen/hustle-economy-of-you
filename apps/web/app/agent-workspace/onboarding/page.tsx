@@ -215,7 +215,9 @@ export default function AssistedOnboardingHomePage() {
                 ? `Hustler application: ${registration.principal.hustlerApplication.status}`
                 : "Hustler application not started"}
             </span>
-            <a href={`/agent-workspace/onboarding/${registration.id}`}>Continue →</a>
+            {registration.status === "ACTIVE"
+              ? <a href={`/agent-workspace/onboarding/${registration.id}`}>Continue →</a>
+              : <span>Claimed or closed · temporary Agent access ended</span>}
           </div>
         </article>)}
       </div>
