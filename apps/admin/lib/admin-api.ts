@@ -849,7 +849,7 @@ export type ModerationAction = {
 };
 export type ModerationDetail = {
   subjectType: ModerationSubjectType;
-  subject: Omit<ModerationContent, "subjectType">;
+  subject: Omit<ModerationContent, "subjectType"> & { ownerUserId: string };
   history: ModerationAction[];
 };
 export type ModerationOverview = {
