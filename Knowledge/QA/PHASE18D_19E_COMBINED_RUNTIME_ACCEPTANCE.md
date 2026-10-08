@@ -1,7 +1,7 @@
 # Hustle — Consolidated Production Runtime Acceptance (18D–19E)
 **Target session:** 2026-10-08 (or next manual validation session)
 **Slices:** 18D, 18E, 19A, 19B, 19C, 19D, 19E
-**Status:** PENDING — no user runtime checks performed yet
+**Status:** Phase 18D COMPLETE — all section A checks confirmed passing in production by the project owner on 2026-10-08; Phases 18E and 19A–19E PENDING. Evidence is owner-reported runtime testing; no automated test output or screenshots attached to this checklist.
 
 ## Before testing
 1. Manually deploy the latest `main` to **API + Web + Admin**. Vercel auto-deploy remains disabled. ChatGPT must not deploy.
@@ -11,13 +11,16 @@
 5. Record actual errors/screenshots and the date/commit of deployment.
 
 ## A — 18D Delegated Profile / Service / Product / Content
-- [ ] With a valid ACTIVE Agent relationship and PROFILE_MANAGE, Agent edits/publishes a represented Hustler profile. Owner remains Hustler; Agent appears only as audited actor.
-- [ ] With SERVICE_MANAGE, Agent creates/edits/publishes/pauses a Service owned by that Hustler.
-- [ ] With PRODUCT_MANAGE, Agent creates/edits/publishes/pauses a Product owned by that Hustler.
-- [ ] With CONTENT_MANAGE, Agent creates/edits/media-attaches/publishes a Post owned by the principal.
-- [ ] CLIENT-only principal can delegate Content, but not professional Profile/Service/Product operations.
-- [ ] Removing one grant immediately blocks the corresponding mutation. No Agent can act for an unrelated principal.
-- [ ] Delegated mutations create AgentDelegationAudit + SystemEvent and do not alter wallet/reputation.
+- [x] With a valid ACTIVE Agent relationship and PROFILE_MANAGE, Agent edits/publishes a represented Hustler profile. Owner remains Hustler; Agent appears only as audited actor.
+- [x] With SERVICE_MANAGE, Agent creates/edits/publishes/pauses a Service owned by that Hustler.
+- [x] With PRODUCT_MANAGE, Agent creates/edits/publishes/pauses a Product owned by that Hustler.
+- [x] With CONTENT_MANAGE, Agent creates/edits/media-attaches/publishes a Post owned by the principal.
+- [x] CLIENT-only principal can delegate Content, but not professional Profile/Service/Product operations.
+- [x] Removing one grant immediately blocks the corresponding mutation. No Agent can act for an unrelated principal.
+- [x] Delegated mutations create AgentDelegationAudit + SystemEvent and do not alter wallet/reputation.
+
+
+**18D sign-off (2026-10-08):** Project owner confirmed the previously pending Product Management, Content/Posts, capability boundaries and audit checks all passed, following previously accepted Profile and Service flows. Mark 18D runtime COMPLETE. All non-18D sections remain pending independent testing.
 
 ## B — 18E Delegated Bookings / Client Messages
 - [ ] Agent with BOOKING_MANAGE can list/read only represented Hustler Bookings.
