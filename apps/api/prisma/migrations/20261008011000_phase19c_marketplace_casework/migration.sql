@@ -62,3 +62,6 @@ ALTER TABLE "MarketplaceCaseNote"
 -- These are strictly server-side internal case records, never Supabase client data.
 ALTER TABLE "MarketplaceCase" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "MarketplaceCaseNote" ENABLE ROW LEVEL SECURITY;
+
+-- Deny browser-facing database roles all direct table operations as defense in depth.
+REVOKE ALL ON TABLE "MarketplaceCase", "MarketplaceCaseNote" FROM anon, authenticated;
