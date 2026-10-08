@@ -204,8 +204,7 @@ export class MarketplaceCaseService {
       const changed = await tx.marketplaceCase.updateMany({
         where: {
           id: caseId,
-          assignedToUserId: null,
-          status: { not: MarketplaceCaseStatus.CLOSED }
+          assignedToUserId: null
         },
         data: { assignedToUserId: actorId }
       });
@@ -214,7 +213,7 @@ export class MarketplaceCaseService {
           where: { id: caseId }, select: { id: true }
         });
         if (!found) throw new NotFoundException("Marketplace case not found");
-        throw new ConflictException("Case is already assigned or closed");
+        throw new ConflictException("Case is already assigned");
       }
       await tx.systemEvent.create({
         data: {
