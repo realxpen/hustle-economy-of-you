@@ -55,6 +55,45 @@ export class AuthService {
             }
           });
 
+          // Claim ends every permission inherited from the assisted-registration consent.
+          // The new owner may explicitly invite this Agent again after claiming.
+          const relationship = await tx.agentRelationship.findFirst({
+            where: {
+              principalUserId: assisted.principalUserId,
+              agentUserId: assisted.agentUserId
+            },
+            include: { permissions: { where: { active: true }, select: { scope: true } } }
+          });
+          if (relationship?.status === "ACTIVE") {
+            await tx.agentRelationship.update({
+              where: { id: relationship.id },
+              data: {
+                status: "REVOKED",
+                revokedAt: now,
+                revokedByUserId: assisted.principalUserId
+              }
+            });
+            await tx.agentPermissionGrant.updateMany({
+              where: { relationshipId: relationship.id, active: true },
+              data: { active: false, revokedAt: now }
+            });
+            await tx.agentDelegationAudit.create({
+              data: {
+                relationshipId: relationship.id,
+                actorUserId: assisted.principalUserId,
+                ownerUserId: assisted.principalUserId,
+                action: "agent_assisted_registration.permissions_revoked_on_claim",
+                entityType: "AgentRelationship",
+                entityId: relationship.id,
+                metadata: {
+                  registrationId: assisted.id,
+                  agentUserId: assisted.agentUserId,
+                  revokedScopes: relationship.permissions.map((permission) => permission.scope)
+                }
+              }
+            });
+          }
+
           await tx.systemEvent.create({
             data: {
               name: "agent_assisted_registration.claimed",
@@ -62,7 +101,8 @@ export class AuthService {
               payload: {
                 registrationId: assisted.id,
                 principalUserId: assisted.principalUserId,
-                agentUserId: assisted.agentUserId
+                agentUserId: assisted.agentUserId,
+                assistedPermissionRelationshipRevoked: relationship?.status === "ACTIVE"
               }
             }
           });
