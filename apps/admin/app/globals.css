@@ -30,3 +30,10 @@ a.secondary,a.primary,a.danger{text-decoration:none;display:inline-flex;align-it
 .case-note p{color:#d5cfc4;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
 .casework-right .ops-dl dd{max-width:62%;overflow-wrap:anywhere}
 @media(max-width:1000px){.casework-layout{grid-template-columns:1fr}}
+
+
+.appeals-layout{grid-template-columns:minmax(320px,.82fr) minmax(0,1.18fr);align-items:start;margin-top:24px}
+.appeals-layout>.ops-card:last-child{position:sticky;top:16px}
+.appeals-layout .banner strong{display:block;margin-bottom:5px}
+.appeals-layout .banner p{margin:0;line-height:1.5}
+@media(max-width:980px){.appeals-layout{grid-template-columns:1fr}.appeals-layout>.ops-card:last-child{position:static}}
