@@ -230,6 +230,28 @@ export default function AssistedRegistrationDetailPage() {
     {error && <p className={styles.error}>{error}</p>}
     {notice && <p className={styles.notice}>{notice}</p>}
 
+    <section className={styles.boundary}>
+      <strong>How this person gets their own login</strong>
+      {registration.status === "CLAIMED" ? <p>
+        This identity has already been claimed by the person. They now use their own Hustle
+        authentication. Continue helping them only through the permissions they grant you.
+      </p> : <p>
+        You do not create a password for them. If an email is saved here, the person opens
+        Hustle sign-in, chooses <b>Create account</b>, uses that exact email, chooses their own
+        password and verifies the email. If a phone number is saved, they use the <b>Phone</b>
+        option with that exact number and verify the SMS code; no password is required. Once the
+        contact is verified, Hustle claims this same assisted identity instead of creating a new one.
+      </p>}
+      <small>
+        {registration.principal.email
+          ? `Claim email: ${registration.principal.email}. `
+          : "No claim email saved. "}
+        {registration.principal.phone
+          ? `Claim phone: ${registration.principal.phone}.`
+          : "No claim phone saved."}
+      </small>
+    </section>
+
     <section className={styles.panelGrid}>
       <form className={styles.invitePanel} onSubmit={saveIdentity}>
         <p className={styles.panelLabel}>01 · ASSISTED CLIENT IDENTITY</p>
