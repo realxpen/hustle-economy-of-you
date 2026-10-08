@@ -135,8 +135,7 @@ export class ServiceService {
             userId: profile.userId
           }
         }
-      })
-    ]);
+      });
     });
 
     return this.requireOwnedService(profile.id, service.id);
