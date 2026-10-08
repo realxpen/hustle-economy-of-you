@@ -480,7 +480,10 @@ export class EnforcementAppealService {
     }
 
     const capability = appeal.targetKind as Capability;
-    if (![Capability.HUSTLER, Capability.AGENT].includes(capability)) {
+    if (
+      capability !== Capability.HUSTLER &&
+      capability !== Capability.AGENT
+    ) {
       throw new ConflictException("Appeal capability is invalid");
     }
     const latest = await this.latestCapabilitySuspension(
