@@ -1,7 +1,7 @@
 # Hustle — Consolidated Production Runtime Acceptance (18D–19E)
 **Target session:** 2026-10-08 (or next manual validation session)
 **Slices:** 18D, 18E, 19A, 19B, 19C, 19D, 19E
-**Status:** Phase 18D COMPLETE — all section A checks confirmed passing in production by the project owner on 2026-10-08; Phase 18E PARTIAL (represented Booking visibility, acceptance and conflict denial passed); Phases 19A–19E PENDING. Evidence is owner-reported runtime testing; no automated test output or screenshots attached to this checklist.
+**Status:** Phase 18D COMPLETE — all section A checks confirmed passing in production by the project owner on 2026-10-08; Phase 18E PARTIAL (Booking visibility, acceptance/conflicts, decline, pre-funding cancellation, free-work start and forbidden-action denial passed; other checks pending); Phases 19A–19E PENDING. Evidence is owner-reported runtime testing; no automated test output or screenshots attached to this checklist.
 
 ## Before testing
 1. Manually deploy the latest `main` to **API + Web + Admin**. Vercel auto-deploy remains disabled. ChatGPT must not deploy.
@@ -25,16 +25,17 @@
 ## B — 18E Delegated Bookings / Client Messages
 - [ ] Agent with BOOKING_MANAGE can list/read only represented Hustler Bookings.
 - [x] Agent accepts a REQUESTED Booking; schedule conflicts remain blocked.
-- [ ] Agent declines a separate disposable REQUESTED Booking; can cancel an ACCEPTED / PAYMENT_PENDING Booking before funding.
-- [ ] Free ACCEPTED work or paid FUNDED work can be started. **Never use real funds for test fixtures.**
-- [ ] Agent **cannot** complete a Booking, refund, release escrow, change wallet/payout state or manipulate Reviews.
+- [x] Agent declines a separate disposable REQUESTED Booking; can cancel an ACCEPTED / PAYMENT_PENDING Booking before funding.
+- [x] Free ACCEPTED work can be started on a disposable test booking.
+- [ ] Paid FUNDED work can be started in a safe sandbox/test-mode fixture. **Never use real funds for test fixtures.**
+- [x] Agent **cannot** complete a Booking, refund, release escrow, change wallet/payout state or manipulate Reviews.
 - [ ] With CLIENT_MESSAGE_MANAGE, Agent reads the represented principal's existing direct conversations and sends a text reply.
 - [ ] Recipient **and principal** see Agent-assisted attribution; the actual Agent is stored in delegatedByAgentUserId.
 - [ ] Agent reading alone does not clear the principal's unread indicator; message blocks are honored.
 - [ ] Revoking CLIENT_MESSAGE_MANAGE/BOOKING_MANAGE or suspending Agent immediately blocks delegated actions.
 - [ ] Ordinary nondelegated messaging still sends and displays normally.
 
-**18E partial acceptance (2026-10-08):** Project owner reports that the Agent could view a represented Hustler's booking, accept a REQUESTED Booking, retain principal ownership, and was blocked from accepting a conflicting Booking. The full first criterion (isolation from unrelated principals' Bookings) was not separately confirmed, so it remains unchecked. Booking decline/cancel/start, forbidden-financial/completion boundaries, messages, provenance, unread behavior and revocation remain pending.
+**18E partial acceptance (2026-10-08):** Project owner reports that the Agent could view a represented Hustler's booking, accept a REQUESTED Booking, retain principal ownership, and was blocked from accepting a conflicting Booking. The full first criterion (isolation from unrelated principals' Bookings) was not separately confirmed, so it remains unchecked. Booking decline, pre-funding cancellation, free-work start, and forbidden financial/completion/reputation actions were subsequently confirmed passing by the owner on 2026-10-08. Unrelated-principal isolation, sandbox-only paid funded start, messages, provenance, unread behavior and revocation/suspension denial remain pending.
 
 ## C — 19A Admin Marketplace Operations
 - [ ] Admin console root loads overview metrics using AdminGuard; unauthorized account is denied.
