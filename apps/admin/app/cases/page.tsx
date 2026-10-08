@@ -190,7 +190,7 @@ export default function CasesPage() {
   </main>;
 
   const owns = Boolean(selected && viewerId === selected.assignedToUserId);
-  const canClaim = Boolean(selected && !selected.assignedToUserId && selected.status !== "CLOSED");
+  const canClaim = Boolean(selected && !selected.assignedToUserId);
   const statusOptions = selected ? nextStatuses[selected.status] : [];
 
   return <main className="admin-shell">
