@@ -30,6 +30,7 @@ export class AuthService {
           phoneVerified: identity.phoneVerified
         }
       });
+      await this.closeLegacyAssistedGrants(account.id);
     } else {
       const assisted = await this.findClaimableAssistedRegistration(identity);
 
@@ -170,6 +171,75 @@ export class AuthService {
       throw error;
     }
     return this.getBySubject(identity.subject);
+  }
+
+  private async closeLegacyAssistedGrants(principalUserId: string) {
+    // An account claimed before ADR-0044 might still show its original Agent as ACTIVE.
+    // Correct only pre-claim grants, never a relationship reinvited by the owner afterward.
+    const registration = await this.prisma.agentAssistedRegistration.findUnique({
+      where: { principalUserId },
+      select: { id: true, agentUserId: true, status: true, claimedAt: true }
+    });
+    if (registration?.status !== "CLAIMED" || !registration.claimedAt) return;
+
+    const relationship = await this.prisma.agentRelationship.findFirst({
+      where: {
+        principalUserId,
+        agentUserId: registration.agentUserId,
+        status: "ACTIVE",
+        invitedAt: { lte: registration.claimedAt }
+      },
+      include: { permissions: { where: { active: true }, select: { scope: true } } }
+    });
+    if (!relationship) return;
+
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.agentRelationship.updateMany({
+        where: {
+          id: relationship.id,
+          status: "ACTIVE",
+          invitedAt: { lte: registration.claimedAt! }
+        },
+        data: {
+          status: "REVOKED",
+          revokedAt: now,
+          revokedByUserId: principalUserId
+        }
+      });
+      if (changed.count !== 1) return;
+      await tx.agentPermissionGrant.updateMany({
+        where: { relationshipId: relationship.id, active: true },
+        data: { active: false, revokedAt: now }
+      });
+      await tx.agentDelegationAudit.create({
+        data: {
+          relationshipId: relationship.id,
+          actorUserId: principalUserId,
+          ownerUserId: principalUserId,
+          action: "agent_assisted_registration.legacy_permissions_revoked",
+          entityType: "AgentRelationship",
+          entityId: relationship.id,
+          metadata: {
+            registrationId: registration.id,
+            previouslyClaimedAt: registration.claimedAt!.toISOString(),
+            revokedScopes: relationship.permissions.map((permission) => permission.scope)
+          }
+        }
+      });
+      await tx.systemEvent.create({
+        data: {
+          name: "agent_assisted_registration.legacy_permissions_revoked",
+          source: "api",
+          payload: {
+            principalUserId,
+            agentUserId: registration.agentUserId,
+            registrationId: registration.id,
+            relationshipId: relationship.id
+          }
+        }
+      });
+    });
   }
 
   private async findClaimableAssistedRegistration(identity: AuthIdentity) {
