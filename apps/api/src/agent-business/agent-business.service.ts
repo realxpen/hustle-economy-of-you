@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException
@@ -334,14 +335,25 @@ export class AgentBusinessService {
       "agent.service.published",
       "Service",
       service.id,
-      (tx) =>
-        tx.service.update({
-          where: { id: service.id },
+      async (tx) => {
+        const changed = await tx.service.updateMany({
+          where: {
+            id: service.id,
+            professionalProfileId: profile.id,
+            moderationState: "CLEAR"
+          },
           data: {
             status: ServiceStatus.PUBLISHED,
             publishedAt: service.publishedAt ?? new Date()
           }
-        })
+        });
+        if (changed.count !== 1) {
+          throw new ConflictException("Content is held by platform moderation");
+        }
+        return tx.service.findUniqueOrThrow({
+          where: { id: service.id }
+        });
+      }
     );
   }
 
@@ -401,7 +413,16 @@ export class AgentBusinessService {
       "Service",
       service.id,
       async (tx) => {
-        await tx.service.delete({ where: { id: service.id } });
+        const deleted = await tx.service.deleteMany({
+          where: {
+            id: service.id,
+            professionalProfileId: profile.id,
+            moderationState: "CLEAR"
+          }
+        });
+        if (deleted.count !== 1) {
+          throw new ConflictException("Moderation-held listings cannot be deleted");
+        }
         return { deleted: true, id: service.id };
       }
     );
@@ -527,15 +548,26 @@ export class AgentBusinessService {
       "agent.product.published",
       "Product",
       product.id,
-      (tx) =>
-        tx.product.update({
-          where: { id: product.id },
+      async (tx) => {
+        const changed = await tx.product.updateMany({
+          where: {
+            id: product.id,
+            professionalProfileId: profile.id,
+            moderationState: "CLEAR"
+          },
           data: {
             status: ProductStatus.PUBLISHED,
             publishedAt: product.publishedAt ?? new Date()
-          },
+          }
+        });
+        if (changed.count !== 1) {
+          throw new ConflictException("Content is held by platform moderation");
+        }
+        return tx.product.findUniqueOrThrow({
+          where: { id: product.id },
           include: { variants: { orderBy: { createdAt: "asc" } } }
-        })
+        });
+      }
     );
   }
 
@@ -596,7 +628,16 @@ export class AgentBusinessService {
       "Product",
       product.id,
       async (tx) => {
-        await tx.product.delete({ where: { id: product.id } });
+        const deleted = await tx.product.deleteMany({
+          where: {
+            id: product.id,
+            professionalProfileId: profile.id,
+            moderationState: "CLEAR"
+          }
+        });
+        if (deleted.count !== 1) {
+          throw new ConflictException("Moderation-held listings cannot be deleted");
+        }
         return { deleted: true, id: product.id };
       }
     );
@@ -839,13 +880,20 @@ export class AgentBusinessService {
       "Post",
       post.id,
       async (tx) => {
-        await tx.post.update({
-          where: { id: post.id },
+        const changed = await tx.post.updateMany({
+          where: {
+            id: post.id,
+            professionalProfileId: profile.id,
+            moderationState: "CLEAR"
+          },
           data: {
             status: PostStatus.PUBLISHED,
             publishedAt: post.publishedAt ?? new Date()
           }
         });
+        if (changed.count !== 1) {
+          throw new ConflictException("Content is held by platform moderation");
+        }
         return tx.post.findUniqueOrThrow({
           where: { id: post.id },
           include: this.postInclude()
