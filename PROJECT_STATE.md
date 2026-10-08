@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 19C — Marketplace Casework & Dispute Triage (implementation in progress)
+Phase 19C — Marketplace Casework & Dispute Triage (merged + database active; runtime pending combined acceptance)
 
 Phase 19B — Admin Capability + Application Operations (merged; runtime acceptance deferred for combined validation)
 
@@ -786,7 +786,17 @@ Do not mark any of these slices runtime-complete until the consolidated producti
 
 
 ### Phase 19C — Marketplace Casework & Dispute Triage
-IMPLEMENTATION IN PROGRESS — runtime acceptance joins the consolidated manual deployment/testing batch.
+MERGED + DATABASE ACTIVE — production runtime acceptance PENDING.
+
+- PR #66 merged commit: `219a6ca1a784b1b7c2fafe77132b0ecf9731fbc5`
+- Full CI green: web/admin/mobile typechecks, Prisma generation, API typecheck, web/admin/API production builds.
+- Supabase migration `phase19c_marketplace_casework` applied successfully.
+- Both `MarketplaceCase` and `MarketplaceCaseNote` verified with RLS enabled, no policies, anon SELECT=false, authenticated SELECT=false.
+- Supabase's "RLS enabled, no policy" advisory is **intentional** for these inaccessible server-only tables. Existing unrelated security advisories remain open.
+- No Vercel deployment was requested or performed by ChatGPT.
+- Combined acceptance checklist: `Knowledge/QA/PHASE18D_19C_COMBINED_RUNTIME_ACCEPTANCE.md`.
+
+Runtime acceptance joins the consolidated manual deployment/testing batch.
 
 - Admin-only `/admin/operations/cases` API with AuthGuard + AdminGuard.
 - Case subjects are verified existing Bookings or Orders; one case record per transaction.
@@ -799,3 +809,9 @@ IMPLEMENTATION IN PROGRESS — runtime acceptance joins the consolidated manual 
 - `/cases` admin console route, with create-case links from the marketplace booking/order lists.
 - **No** transaction state changes, refunds, escrow releases, payouts, Reviews/reputation edits, SafetyReport punishments or automatic enforcement.
 - Decision: `Knowledge/Decisions/ADR-0040-marketplace-casework-and-dispute-triage.md`.
+
+
+### Consolidated runtime sign-off supersedes the previous 18D–19B batch
+The production acceptance batch now covers **18D, 18E, 19A, 19B, 19C**. Each must be checked against `Knowledge/QA/PHASE18D_19C_COMBINED_RUNTIME_ACCEPTANCE.md` after the project owner manually deploys latest API/Web/Admin.
+
+**Do not mark Phase 19C or the other deferred slices runtime-complete on the basis of CI alone.** No production acceptance was performed in this build session.
