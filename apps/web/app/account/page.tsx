@@ -60,6 +60,7 @@ export default function AccountPage() {
         <a className="futureTag" href={isHustler ? "/professional-profile" : "/hustler-application"}>{isHustler ? "EDIT PROFESSIONAL PROFILE →" : "APPLY TO BECOME A HUSTLER →"}</a>
         <a className="futureTag" href="/agent-application">{isAgent ? "AGENT CAPABILITY ACTIVE →" : "APPLY TO BECOME AN AGENT →"}</a>
         <a className="futureTag" href="/agents/manage">MANAGE AGENTS →</a>
+        <a className="futureTag" href="/appeals">APPEALS & ENFORCEMENT →</a>
         {isAgent && <a className="futureTag" href="/agent-workspace">AGENT WORKSPACE →</a>}
         {isHustler && <a className="futureTag" href="/posts/manage">MANAGE CONTENT →</a>}
         {isHustler && <a className="futureTag" href="/services/manage">MANAGE SERVICES →</a>}
