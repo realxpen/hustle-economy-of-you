@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import {
   PostMediaType,
   PostStatus,
@@ -202,12 +202,19 @@ export class PostService {
     }
 
     const publishedAt = post.publishedAt ?? new Date();
-    await this.prisma.$transaction([
-      this.prisma.post.update({
-        where: { id: post.id },
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.post.updateMany({
+        where: {
+          id: post.id,
+          professionalProfileId: profile.id,
+          moderationState: "CLEAR"
+        },
         data: { status: PostStatus.PUBLISHED, publishedAt }
-      }),
-      this.prisma.systemEvent.create({
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException("This post is under moderation hold or no longer belongs to your profile");
+      }
+      await tx.systemEvent.create({
         data: {
           name: "post.published",
           source: "api",
@@ -219,6 +226,8 @@ export class PostService {
         }
       })
     ]);
+    });
+
     return this.requireOwnedPost(profile.id, post.id);
   }
 
