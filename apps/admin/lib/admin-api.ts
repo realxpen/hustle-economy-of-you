@@ -813,3 +813,6 @@ export const addMarketplaceCaseNote = (
   token, `/admin/operations/cases/${encodeURIComponent(caseId)}/notes`,
   { method: "POST", body: JSON.stringify({ body }) }
 );
+
+export const getMarketplaceCaseViewer = (token: string) =>
+  adminFetch<{ userId: string }>(token, "/admin/operations/cases/viewer");
