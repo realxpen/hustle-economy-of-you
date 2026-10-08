@@ -1,6 +1,6 @@
 # Hustle Project State
 
-Updated: 2026-10-07
+Updated: 2026-10-08
 
 ## Current AED capability
 Build
@@ -24,6 +24,8 @@ Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants: 
 
 Phase 18C — Agent-Assisted Onboarding & Hustler Registration: COMPLETE — production runtime validated 2026-10-07, including secure proof preview.
 
+Agent authority + review-integrity correction — MERGED in PR #69 (`7b1d7d6b3ce7c23e042fb4a4b2a6c121856a43d7`); no database migration; manual production/runtime acceptance pending. The correction makes ACCOUNT_ONBOARDING_MANAGE and HUSTLER_APPLICATION_MANAGE actionable for ordinary existing Client principals, clarifies assisted identity claim/login, exposes delegated Hustler-application provenance to Admin, and blocks public Agent↔principal reputation reviews without blocking legitimate commerce.
+
 Phase 17 — Live Commerce Beta: COMPLETE — implementation, production media/runtime validation and final mobile fullscreen/Quick View acceptance validated 2026-10-07.
 
 Phase 18A — Verified Agent Capability Foundation: COMPLETE — implementation, database activation, manual production deployment and end-to-end runtime acceptance validated 2026-10-07.
@@ -34,6 +36,8 @@ Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
 Current active slice: **Phase 19E Appeals, Enforcement Review & Restoration — independent review of exact enforcement events with controlled, non-financial restoration.**
+
+Immediate runtime gate: manually deploy latest main API + web, then validate the PR #69 Agent authority/review-integrity correction before treating the correction as production-accepted.
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -49,6 +53,11 @@ Phase 17 is CLOSED. All four final production runtime checks were confirmed by t
 - Referencing another Hustler's Service/Product never transfers merchant ownership and never implies the content author owns the offer.
 - Social recommendations, opinions and review-style Posts/Stories are community content and never manufacture verified reputation.
 - Verified public reputation remains downstream of eligible transaction evidence and a canonical Review record.
+- Any ACTIVE CLIENT may grant an ACTIVE AGENT scoped onboarding/application authority; the Client does not need HUSTLER first.
+- ACCOUNT_ONBOARDING_MANAGE covers basic identity/profile details only and never delegates email, phone, password, auth subject, verification, wallet or reputation authority.
+- HUSTLER_APPLICATION_MANAGE lets an Agent prepare and submit a Client's application but never approve or activate HUSTLER.
+- Agent-assisted identities have no Agent-created password: the person claims via the same verified email with a self-chosen password, or via the same verified phone using OTP.
+- Agent↔principal commerce may be legitimate, but current or former represented pairs cannot create public verified reputation Reviews for each other.
 - Story views, reactions and private replies are social/observation signals only and never affect verified `UserReputation`.
 - Private Story replies must respect the existing UserBlock policy and never become a public comment surface.
 - Live viewing is public; Live commenting is authenticated; commerce Live hosting requires ACTIVE HUSTLER + PUBLISHED ProfessionalProfile.
