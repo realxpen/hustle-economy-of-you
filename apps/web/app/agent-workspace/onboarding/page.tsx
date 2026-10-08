@@ -217,7 +217,7 @@ export default function AssistedOnboardingHomePage() {
             </span>
             {registration.status === "ACTIVE"
               ? <a href={`/agent-workspace/onboarding/${registration.id}`}>Continue →</a>
-              : <span>Claimed or closed · temporary Agent access ended</span>}
+              : <span>Claimed or closed · permission setup ended; ongoing representation is owner-controlled</span>}
           </div>
         </article>)}
       </div>
