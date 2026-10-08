@@ -156,6 +156,8 @@ export default function AgentWorkspacePage() {
             <div className={styles.actions}>
               <span>Granted scopes now unlock the matching delegated business tools. Ownership stays with the represented account.</span>
               <div>
+                {relationship.permissions.some((grant) => ["ACCOUNT_ONBOARDING_MANAGE","HUSTLER_APPLICATION_MANAGE"].includes(grant.scope)) &&
+                  <a className={styles.secondary} href={`/agent-workspace/representations/${relationship.principalUserId}/onboarding`}>Open onboarding & Hustler tools</a>}
                 {relationship.permissions.some((grant) => ["PROFILE_MANAGE","SERVICE_MANAGE","PRODUCT_MANAGE","CONTENT_MANAGE","BOOKING_MANAGE","CLIENT_MESSAGE_MANAGE"].includes(grant.scope)) &&
                   <a className={styles.primary} href={`/agent-workspace/representations/${relationship.principalUserId}`}>Open business workspace</a>}
                 <button className={styles.danger} disabled={busyId === relationship.id} onClick={() => run(relationship.id, () => leaveAgentRelationship(relationship.id), "You left the relationship. Delegated authority is revoked.")}>Leave relationship</button>
