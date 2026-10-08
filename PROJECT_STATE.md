@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 19D — Marketplace Content Moderation & Enforcement (implementation in progress)
+Phase 19D — Marketplace Content Moderation & Enforcement (merged + database active; manual production/runtime acceptance pending)
 
 Phase 19C — Marketplace Casework & Dispute Triage (merged + database active; runtime pending combined acceptance)
 
@@ -820,7 +820,15 @@ The production acceptance batch now covers **18D, 18E, 19A, 19B, 19C**. Each mus
 
 
 ### Phase 19D — Marketplace Content Moderation & Enforcement
-IMPLEMENTATION IN PROGRESS — runtime acceptance pending consolidated test.
+MERGED + DATABASE ACTIVE — runtime acceptance PENDING.
+
+- PR #67 merged SHA: `96565f3ada6fcc734cb7d43129b399e6e4746cd2`.
+- Full CI green: web/admin/mobile typechecks, Prisma generation, API typecheck, web/admin/API builds.
+- Hosted Supabase migration `phase19d_marketplace_content_enforcement` applied successfully.
+- Post, Service, Product `moderationState` columns verified present.
+- MarketplaceModerationAction RLS enabled; anon/authenticated direct SELECT false; hustle_api SELECT/INSERT true and UPDATE false; two API-only policies.
+- Performance advisor may flag new indexes as unused before production traffic; historical security advisories remain.
+- Runtime pending combined manual acceptance. No Vercel deployment requested or performed by ChatGPT.
 
 - Admin-only `/admin/operations/moderation` API and `/moderation` admin console.
 - POST/SERVICE/PRODUCT item-level CLEAR/HELD moderation status.
@@ -832,3 +840,12 @@ IMPLEMENTATION IN PROGRESS — runtime acceptance pending consolidated test.
 - Audit role hustle_api only, private RLS; browser database roles have no direct table privileges.
 - Does not affect Booking, Order, payments, escrow, payout, Review, reputation, account capability or SafetyReport state.
 - ADR: `Knowledge/Decisions/ADR-0041-reversible-marketplace-content-holds.md`.
+
+
+### Consolidated manual runtime acceptance — current
+Canonical checklist: `Knowledge/QA/PHASE18D_19D_COMBINED_RUNTIME_ACCEPTANCE.md`.
+
+Pending slices: **18D, 18E, 19A, 19B, 19C, 19D**.
+After the project owner manually deploys latest main to API/Web/Admin, validate each slice and record actual failures/retests before marking complete.
+
+Phase 19D adds human-controlled Post/Service/Product HOLD/RELEASE without auto-republishing, account suspension, transaction/financial changes or reputation edits.
