@@ -338,7 +338,7 @@ export class AgentAssistedOnboardingService {
         consentMethod,
         consentNote: consentNote ?? null,
         consentConfirmedAt: now.toISOString(),
-        temporaryUntilClaim: true
+        permissionEditingEndsAtClaim: true
       };
       await tx.agentDelegationAudit.create({
         data: {
