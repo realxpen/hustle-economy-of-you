@@ -6,6 +6,8 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
+Phase 19C — Marketplace Casework & Dispute Triage (implementation in progress)
+
 Phase 19B — Admin Capability + Application Operations (merged; runtime acceptance deferred for combined validation)
 
 Phase 19A — Admin Marketplace Operations Foundation (merged; runtime acceptance deferred for combined validation)
@@ -27,7 +29,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 19B Admin Capability + Application Operations — unified capability review plus reversible, audited Hustler/Agent suspension.**
+Current active slice: **Phase 19C Marketplace Casework & Dispute Triage — admin-owned transaction investigations, append-only notes and durable audit without money/reputation authority.**
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -781,3 +783,19 @@ Runtime validation is intentionally pending for:
 - Phase 19B — unified capability reviews + reversible HUSTLER/AGENT suspension/reactivation.
 
 Do not mark any of these slices runtime-complete until the consolidated production acceptance session passes.
+
+
+### Phase 19C — Marketplace Casework & Dispute Triage
+IMPLEMENTATION IN PROGRESS — runtime acceptance joins the consolidated manual deployment/testing batch.
+
+- Admin-only `/admin/operations/cases` API with AuthGuard + AdminGuard.
+- Case subjects are verified existing Bookings or Orders; one case record per transaction.
+- Human-owned priorities LOW/NORMAL/HIGH, independent of public reputation.
+- Explicit OPEN → IN_REVIEW → WAITING_INFORMATION → RESOLVED → CLOSED state graph with controlled reopening.
+- Admin can claim/release case; assigned admin can change state/priority and record private notes.
+- Required notes/evidence for every state transition. Changes emit SystemEvents with actor identity.
+- Database models: MarketplaceCase, MarketplaceCaseNote. RLS enabled with no client policies.
+- Read-only linked Booking/Order, PaymentAttempt and escrow status in admin UI.
+- `/cases` admin console route, with create-case links from the marketplace booking/order lists.
+- **No** transaction state changes, refunds, escrow releases, payouts, Reviews/reputation edits, SafetyReport punishments or automatic enforcement.
+- Decision: `Knowledge/Decisions/ADR-0040-marketplace-casework-and-dispute-triage.md`.
