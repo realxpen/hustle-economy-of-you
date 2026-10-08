@@ -43,6 +43,16 @@ export interface HustlerReviewerSummary {
 export interface HustlerReviewRecord extends HustlerApplication {
   user: HustlerReviewApplicant;
   reviewer?: HustlerReviewerSummary | null;
+  agentDelegation?: {
+    relationshipId: string;
+    occurredAt: string;
+    agent: {
+      id: string;
+      displayName: string | null;
+      username: string | null;
+      email: string | null;
+    };
+  } | null;
 }
 
 export interface ProofReadUrl {
