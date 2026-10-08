@@ -1,7 +1,7 @@
 # Hustle — Consolidated Production Runtime Acceptance (18D–19E)
 **Target session:** 2026-10-08 (or next manual validation session)
 **Slices:** 18D, 18E, 19A, 19B, 19C, 19D, 19E
-**Status:** Phase 18D COMPLETE — all section A checks confirmed passing in production by the project owner on 2026-10-08; Phase 18E PARTIAL (Booking visibility, acceptance/conflicts, decline, pre-funding cancellation, free-work start and forbidden-action denial passed; other checks pending); Phases 19A–19E PENDING. Evidence is owner-reported runtime testing; no automated test output or screenshots attached to this checklist.
+**Status:** Phase 18D COMPLETE — all section A checks confirmed passing in production by the project owner on 2026-10-08; Phase 18E PARTIAL (previous Booking checks plus delegated Message read/reply, visible attribution, unread preservation, message grant revocation denial and ordinary messaging passed; isolation, safe funded start, stored attribution, block handling, Booking revocation/Agent suspension pending); Phases 19A–19E PENDING. Evidence is owner-reported runtime testing; no automated test output or screenshots attached to this checklist.
 
 ## Before testing
 1. Manually deploy the latest `main` to **API + Web + Admin**. Vercel auto-deploy remains disabled. ChatGPT must not deploy.
@@ -29,13 +29,17 @@
 - [x] Free ACCEPTED work can be started on a disposable test booking.
 - [ ] Paid FUNDED work can be started in a safe sandbox/test-mode fixture. **Never use real funds for test fixtures.**
 - [x] Agent **cannot** complete a Booking, refund, release escrow, change wallet/payout state or manipulate Reviews.
-- [ ] With CLIENT_MESSAGE_MANAGE, Agent reads the represented principal's existing direct conversations and sends a text reply.
-- [ ] Recipient **and principal** see Agent-assisted attribution; the actual Agent is stored in delegatedByAgentUserId.
-- [ ] Agent reading alone does not clear the principal's unread indicator; message blocks are honored.
-- [ ] Revoking CLIENT_MESSAGE_MANAGE/BOOKING_MANAGE or suspending Agent immediately blocks delegated actions.
-- [ ] Ordinary nondelegated messaging still sends and displays normally.
+- [x] With CLIENT_MESSAGE_MANAGE, Agent reads the represented principal's existing direct conversations and sends a text reply.
+- [x] Recipient **and principal** see Agent-assisted attribution.
+- [ ] Verify the Agent is recorded server-side in Message.delegatedByAgentUserId (separate from UI attribution).
+- [x] Agent reading alone does not clear the principal's unread indicator.
+- [ ] Blocked conversations continue to deny delegated read/reply as required by UserBlock policy.
+- [x] Revoking CLIENT_MESSAGE_MANAGE immediately blocks delegated conversation access and replies.
+- [ ] Revoking BOOKING_MANAGE immediately blocks delegated Booking access and mutation.
+- [ ] Suspending the Agent capability immediately blocks all delegated actions.
+- [x] Ordinary nondelegated messaging still sends and displays normally.
 
-**18E partial acceptance (2026-10-08):** Project owner reports that the Agent could view a represented Hustler's booking, accept a REQUESTED Booking, retain principal ownership, and was blocked from accepting a conflicting Booking. The full first criterion (isolation from unrelated principals' Bookings) was not separately confirmed, so it remains unchecked. Booking decline, pre-funding cancellation, free-work start, and forbidden financial/completion/reputation actions were subsequently confirmed passing by the owner on 2026-10-08. Unrelated-principal isolation, sandbox-only paid funded start, messages, provenance, unread behavior and revocation/suspension denial remain pending.
+**18E partial acceptance (2026-10-08):** Project owner reports that the Agent could view a represented Hustler's booking, accept a REQUESTED Booking, retain principal ownership, and was blocked from accepting a conflicting Booking. The full first criterion (isolation from unrelated principals' Bookings) was not separately confirmed, so it remains unchecked. Booking decline, pre-funding cancellation, free-work start, and forbidden financial/completion/reputation actions were subsequently confirmed passing by the owner on 2026-10-08. Owner subsequently confirmed (2026-10-08) that delegated Message read/reply, recipient/principal Agent attribution, preserved owner unread state, immediate CLIENT_MESSAGE_MANAGE revocation denial and ordinary messaging passed. Still pending: unrelated-principal Booking isolation, sandbox-only paid funded start, server-side delegatedByAgentUserId verification, message-block handling, BOOKING_MANAGE revocation and Agent suspension denial.
 
 ## C — 19A Admin Marketplace Operations
 - [ ] Admin console root loads overview metrics using AdminGuard; unauthorized account is denied.
