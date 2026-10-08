@@ -224,8 +224,7 @@ export class PostService {
             professionalProfileId: profile.id
           }
         }
-      })
-    ]);
+      });
     });
 
     return this.requireOwnedPost(profile.id, post.id);
