@@ -299,6 +299,25 @@ enum SafetyReportStatus {
   DISMISSED
 }
 
+enum MarketplaceCaseSubjectType {
+  BOOKING
+  ORDER
+}
+
+enum MarketplaceCaseStatus {
+  OPEN
+  IN_REVIEW
+  WAITING_INFORMATION
+  RESOLVED
+  CLOSED
+}
+
+enum MarketplaceCasePriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
 model User {
   id                          String                    @id @default(cuid())
   authSubject                 String                    @unique
@@ -350,6 +369,9 @@ model User {
   safetyReportsReceived       SafetyReport[]            @relation("SafetyReportTarget")
   blocksCreated               UserBlock[]               @relation("UserBlockBlocker")
   blocksReceived              UserBlock[]               @relation("UserBlockBlocked")
+  openedMarketplaceCases      MarketplaceCase[] @relation("MarketplaceCaseOpenedBy")
+  assignedMarketplaceCases    MarketplaceCase[] @relation("MarketplaceCaseAssignedTo")
+  marketplaceCaseNotes         MarketplaceCaseNote[] @relation("MarketplaceCaseNoteAuthor")
   reputation                  UserReputation?
 }
 
@@ -1248,4 +1270,43 @@ model SystemEvent {
   createdAt  DateTime @default(now())
 
   @@index([name, occurredAt])
+}
+model MarketplaceCase {
+  id               String                     @id @default(cuid())
+  subjectType      MarketplaceCaseSubjectType
+  subjectId        String
+  title            String
+  summary          String
+  status           MarketplaceCaseStatus      @default(OPEN)
+  priority         MarketplaceCasePriority    @default(NORMAL)
+  openedByUserId   String
+  assignedToUserId String?
+  resolution       String?
+  resolvedAt       DateTime?
+  closedAt         DateTime?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  openedBy User  @relation("MarketplaceCaseOpenedBy", fields: [openedByUserId], references: [id], onDelete: Restrict)
+  assignedTo User? @relation("MarketplaceCaseAssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  notes MarketplaceCaseNote[]
+
+  @@unique([subjectType, subjectId])
+  @@index([status, priority, updatedAt])
+  @@index([assignedToUserId, status, updatedAt])
+  @@index([openedByUserId, createdAt])
+}
+
+model MarketplaceCaseNote {
+  id           String   @id @default(cuid())
+  caseId       String
+  authorUserId String
+  body         String
+  createdAt    DateTime @default(now())
+
+  case   MarketplaceCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author User @relation("MarketplaceCaseNoteAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt])
+  @@index([authorUserId, createdAt])
 }

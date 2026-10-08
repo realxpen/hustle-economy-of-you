@@ -679,3 +679,140 @@ export const reactivateAdminCapability = (
     `/admin/operations/users/${encodeURIComponent(userId)}/capabilities/${capability}/reactivate`,
     { method: "POST", body: JSON.stringify({ reason }) }
   );
+
+
+export type MarketplaceCaseSubjectType = "BOOKING" | "ORDER";
+export type MarketplaceCaseStatus = "OPEN" | "IN_REVIEW" | "WAITING_INFORMATION" | "RESOLVED" | "CLOSED";
+export type MarketplaceCasePriority = "LOW" | "NORMAL" | "HIGH";
+export type MarketplaceCasePerson = {
+  id: string;
+  displayName: string | null;
+  username: string | null;
+};
+export type MarketplaceCaseListItem = {
+  id: string;
+  subjectType: MarketplaceCaseSubjectType;
+  subjectId: string;
+  title: string;
+  summary: string;
+  status: MarketplaceCaseStatus;
+  priority: MarketplaceCasePriority;
+  openedByUserId: string;
+  assignedToUserId: string | null;
+  resolution: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  openedBy: MarketplaceCasePerson;
+  assignedTo: MarketplaceCasePerson | null;
+  _count: { notes: number };
+};
+export type MarketplaceCaseDetail = Omit<MarketplaceCaseListItem, "_count"> & {
+  notes: Array<{
+    id: string;
+    caseId: string;
+    authorUserId: string;
+    body: string;
+    createdAt: string;
+    author: MarketplaceCasePerson;
+  }>;
+  subject: {
+    id: string;
+    status: string;
+    currency: string;
+    createdAt: string;
+    agreedPriceMinor?: number;
+    totalMinor?: number;
+    serviceTitleSnapshot?: string;
+    clientUserId?: string;
+    hustlerUserId?: string;
+    buyerUserId?: string;
+    sellerUserId?: string;
+    payment: {
+      id: string;
+      status: string;
+      amountMinor: number;
+      currency: string;
+      escrow: {
+        status: string;
+        amountMinor: number;
+        currency: string;
+      } | null;
+    } | null;
+  };
+};
+export type MarketplaceCasePage = {
+  items: MarketplaceCaseListItem[];
+  hasMore: boolean;
+  nextCursor: string | null;
+};
+export type MarketplaceCaseOverview = {
+  byStatus: Record<string, number>;
+  openByPriority: Record<string, number>;
+};
+
+export const getMarketplaceCaseOverview = (token: string) =>
+  adminFetch<MarketplaceCaseOverview>(token, "/admin/operations/cases/overview");
+
+export const listMarketplaceCases = (
+  token: string,
+  options: { status?: string; subjectType?: string; cursor?: string | null; limit?: number } = {}
+) => {
+  const params = new URLSearchParams();
+  params.set("limit", String(options.limit ?? 30));
+  if (options.status) params.set("status", options.status);
+  if (options.subjectType) params.set("subjectType", options.subjectType);
+  if (options.cursor) params.set("cursor", options.cursor);
+  return adminFetch<MarketplaceCasePage>(token, `/admin/operations/cases?${params.toString()}`);
+};
+
+export const getMarketplaceCase = (token: string, caseId: string) =>
+  adminFetch<MarketplaceCaseDetail>(token, `/admin/operations/cases/${encodeURIComponent(caseId)}`);
+
+export const createMarketplaceCase = (
+  token: string,
+  input: {
+    subjectType: MarketplaceCaseSubjectType;
+    subjectId: string;
+    title: string;
+    summary: string;
+    priority: MarketplaceCasePriority;
+  }
+) => adminFetch<MarketplaceCaseDetail>(token, "/admin/operations/cases", {
+  method: "POST",
+  body: JSON.stringify(input)
+});
+
+export const claimMarketplaceCase = (token: string, caseId: string) =>
+  adminFetch<MarketplaceCaseDetail>(
+    token, `/admin/operations/cases/${encodeURIComponent(caseId)}/claim`,
+    { method: "POST" }
+  );
+
+export const releaseMarketplaceCase = (token: string, caseId: string) =>
+  adminFetch<MarketplaceCaseDetail>(
+    token, `/admin/operations/cases/${encodeURIComponent(caseId)}/release`,
+    { method: "POST" }
+  );
+
+export const updateMarketplaceCase = (
+  token: string,
+  caseId: string,
+  input: { status?: MarketplaceCaseStatus; priority?: MarketplaceCasePriority; reason: string }
+) => adminFetch<MarketplaceCaseDetail>(
+  token, `/admin/operations/cases/${encodeURIComponent(caseId)}`,
+  { method: "PATCH", body: JSON.stringify(input) }
+);
+
+export const addMarketplaceCaseNote = (
+  token: string,
+  caseId: string,
+  body: string
+) => adminFetch<MarketplaceCaseDetail>(
+  token, `/admin/operations/cases/${encodeURIComponent(caseId)}/notes`,
+  { method: "POST", body: JSON.stringify({ body }) }
+);
+
+export const getMarketplaceCaseViewer = (token: string) =>
+  adminFetch<{ userId: string }>(token, "/admin/operations/cases/viewer");
