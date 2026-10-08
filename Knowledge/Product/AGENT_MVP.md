@@ -233,3 +233,27 @@ It may **not**:
 Delegated messages preserve the principal as canonical sender while storing `delegatedByAgentUserId` and rendering visible Agent provenance. Agent reads do not silently clear the principal's unread state.
 
 Canonical decision: `Knowledge/Decisions/ADR-0037-delegated-bookings-and-messages.md`.
+
+
+## Authority correction — represented Client onboarding + review integrity
+
+The Phase 18C onboarding permissions apply to **every represented ACTIVE CLIENT**, not only identities originally created through Agent-assisted registration.
+
+For an ordinary existing Client:
+
+`CLIENT grants onboarding/application scope → AGENT accepts → Agent may maintain basic identity details and prepare/submit Hustler application → Admin independently reviews → HUSTLER may be activated`
+
+`ACCOUNT_ONBOARDING_MANAGE` may change basic identity/profile details such as display name, username, location, bio and avatar. It does not grant authentication ownership and must never allow the Agent to change the Client's email, phone, password, auth subject or verification state.
+
+`HUSTLER_APPLICATION_MANAGE` may create/update the Client's DRAFT Hustler application, attach Agent-uploaded private proof and submit it. It never grants approval or HUSTLER activation. Admin review shows delegated submission provenance.
+
+For Agent-assisted registrations, the provisional Hustle identity has no Agent-created password. The person claims it later using the same recorded contact:
+
+- email: normal Hustle account creation with that exact email, a password chosen by the person, then email verification;
+- phone: normal phone OTP using that exact number, with no password.
+
+The verified contact claim preserves the existing Hustle User ID and history.
+
+An Agent may legitimately buy from or book a represented Hustler. That transaction remains valid. However, public verified reputation must be independent: once the pair has had ACTIVE Client↔Agent representation, neither side may create a public provider reputation Review for the other from a Booking or Order, including after revocation. This prevents related-party and revoke-then-review reputation gaming.
+
+Canonical decision: `Knowledge/Decisions/ADR-0043-agent-principal-onboarding-and-related-party-review-integrity.md`.
