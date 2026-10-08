@@ -5,7 +5,8 @@ import type {
   CreateAgentAssistedRegistrationInput,
   HustlerProofType,
   SaveHustlerApplicationInput,
-  UpdateAgentAssistedIdentityInput
+  UpdateAgentAssistedIdentityInput,
+  UpdateAgentAssistedPermissionsInput
 } from "@hustle/types";
 import { authenticatedFetch } from "./api/authenticated-fetch";
 import { getSupabaseBrowserClient } from "./supabase/client";
@@ -40,6 +41,17 @@ export async function createAssistedRegistration(
     method: "POST",
     body: JSON.stringify(input)
   });
+  return response.json() as Promise<AgentAssistedRegistration>;
+}
+
+export async function updateAssistedPermissions(
+  registrationId: string,
+  input: UpdateAgentAssistedPermissionsInput
+): Promise<AgentAssistedRegistration> {
+  const response = await authenticatedFetch(
+    `/agent-assisted-onboarding/${encodeURIComponent(registrationId)}/permissions`,
+    { method: "PATCH", body: JSON.stringify(input) }
+  );
   return response.json() as Promise<AgentAssistedRegistration>;
 }
 

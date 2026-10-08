@@ -21,7 +21,8 @@ import {
   type AddAssistedHustlerProofInput,
   type CreateAssistedRegistrationInput,
   type SaveAssistedHustlerApplicationInput,
-  type UpdateAssistedIdentityInput
+  type UpdateAssistedIdentityInput,
+  type UpdateAssistedPermissionsInput
 } from "./agent-assisted-onboarding.service";
 
 @Controller("agent-assisted-onboarding")
@@ -49,6 +50,15 @@ export class AgentAssistedOnboardingController {
     @Param("registrationId") registrationId: string
   ) {
     return this.onboarding.get(identity, registrationId);
+  }
+
+  @Patch(":registrationId/permissions")
+  updatePermissions(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("registrationId") registrationId: string,
+    @Body() body: UpdateAssistedPermissionsInput
+  ) {
+    return this.onboarding.updatePermissions(identity, registrationId, body);
   }
 
   @Patch(":registrationId/identity")

@@ -32,6 +32,13 @@ export interface CreateAssistedRegistrationInput {
   permissions?: unknown;
 }
 
+export interface UpdateAssistedPermissionsInput {
+  permissions?: unknown;
+  consentConfirmed?: unknown;
+  consentMethod?: unknown;
+  consentNote?: unknown;
+}
+
 export interface UpdateAssistedIdentityInput {
   displayName?: unknown;
   username?: unknown;
@@ -75,16 +82,44 @@ export class AgentAssistedOnboardingService {
 
   async list(identity: AuthIdentity) {
     const agent = await this.requireAgent(identity);
-    return this.prisma.agentAssistedRegistration.findMany({
+    const registrations = await this.prisma.agentAssistedRegistration.findMany({
       where: { agentUserId: agent.id },
       include: this.registrationInclude(agent.id),
       orderBy: { createdAt: "desc" }
     });
+    // Retain a non-sensitive history row after claim without granting access
+    // to the owner's account, contacts, private proof or relationship grants.
+    return registrations.map((registration) =>
+      registration.status === AssistedRegistrationStatus.ACTIVE
+        ? registration
+        : {
+            id: registration.id,
+            principalUserId: registration.principalUserId,
+            agentUserId: registration.agentUserId,
+            status: registration.status,
+            createdAt: registration.createdAt,
+            claimedAt: registration.claimedAt,
+            cancelledAt: registration.cancelledAt,
+            principal: {
+              id: registration.principal.id,
+              displayName: registration.principal.displayName,
+              username: registration.principal.username,
+              location: registration.principal.location,
+              hustlerApplication: null
+            }
+          }
+    );
   }
 
   async get(identity: AuthIdentity, registrationId: string) {
     const agent = await this.requireAgent(identity);
-    return this.requireRegistration(registrationId, agent.id);
+    const registration = await this.requireRegistration(registrationId, agent.id);
+    if (registration.status !== AssistedRegistrationStatus.ACTIVE) {
+      throw new ForbiddenException(
+        "The owner claimed this account; use a newly authorized representation instead"
+      );
+    }
+    return registration;
   }
 
   async create(identity: AuthIdentity, input: CreateAssistedRegistrationInput) {
@@ -205,6 +240,134 @@ export class AgentAssistedOnboardingService {
     return this.requireRegistration(registrationId, agent.id);
   }
 
+  async updatePermissions(
+    identity: AuthIdentity,
+    registrationId: string,
+    input: UpdateAssistedPermissionsInput
+  ) {
+    const agent = await this.requireAgent(identity);
+    const registration = await this.requireRegistration(registrationId, agent.id);
+
+    if (
+      registration.status !== AssistedRegistrationStatus.ACTIVE ||
+      !registration.principal.authSubject.startsWith("assisted:")
+    ) {
+      throw new ForbiddenException(
+        "Assisted permissions cannot change after the account is claimed"
+      );
+    }
+    if (registration.relationship.status !== AgentRelationshipStatus.ACTIVE) {
+      throw new ForbiddenException("The assisted Agent relationship is not active");
+    }
+    if (input.consentConfirmed !== true) {
+      throw new BadRequestException(
+        "Confirm that the account owner expressly agreed to the updated permissions"
+      );
+    }
+    const consentMethod = this.requiredConsentMethod(input.consentMethod);
+    const consentNote = this.optionalText(input.consentNote, "consentNote", 1000);
+    if (!Array.isArray(input.permissions)) {
+      throw new BadRequestException("permissions must be a list");
+    }
+    const next = this.registrationPermissions(input.permissions).sort();
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      // Lock the assisted record against a simultaneous account claim.
+      const activeRegistration = await tx.agentAssistedRegistration.updateMany({
+        where: {
+          id: registration.id,
+          agentUserId: agent.id,
+          status: AssistedRegistrationStatus.ACTIVE
+        },
+        data: { updatedAt: now }
+      });
+      if (activeRegistration.count !== 1) {
+        throw new ForbiddenException("The account has already been claimed");
+      }
+
+      const relationship = await tx.agentRelationship.findUnique({
+        where: { id: registration.relationship.id }
+      });
+      if (relationship?.status !== AgentRelationshipStatus.ACTIVE) {
+        throw new ForbiddenException("The assisted Agent relationship is no longer active");
+      }
+
+      const activeGrants = await tx.agentPermissionGrant.findMany({
+        where: { relationshipId: relationship.id, active: true },
+        select: { scope: true }
+      });
+      const previous = activeGrants.map((item) => item.scope).sort();
+      const before = new Set(previous);
+      const after = new Set(next);
+      const added = next.filter((scope) => !before.has(scope));
+      const removed = previous.filter((scope) => !after.has(scope));
+
+      if (added.length === 0 && removed.length === 0) return;
+
+      if (removed.length) {
+        await tx.agentPermissionGrant.updateMany({
+          where: { relationshipId: relationship.id, scope: { in: removed }, active: true },
+          data: { active: false, revokedAt: now }
+        });
+      }
+      for (const scope of added) {
+        await tx.agentPermissionGrant.upsert({
+          where: { relationshipId_scope: { relationshipId: relationship.id, scope } },
+          create: {
+            relationshipId: relationship.id,
+            scope,
+            active: true,
+            grantedByUserId: registration.principalUserId,
+            grantedAt: now
+          },
+          update: {
+            active: true,
+            grantedByUserId: registration.principalUserId,
+            grantedAt: now,
+            revokedAt: null
+          }
+        });
+      }
+      const metadata = {
+        registrationId: registration.id,
+        previous,
+        next,
+        added,
+        removed,
+        consentMethod,
+        consentNote: consentNote ?? null,
+        consentConfirmedAt: now.toISOString(),
+        permissionEditingEndsAtClaim: true
+      };
+      await tx.agentDelegationAudit.create({
+        data: {
+          relationshipId: relationship.id,
+          actorUserId: agent.id,
+          ownerUserId: registration.principalUserId,
+          action: "agent_assisted_registration.permissions_updated",
+          entityType: "AgentRelationship",
+          entityId: relationship.id,
+          metadata
+        }
+      });
+      await tx.systemEvent.create({
+        data: {
+          name: "agent_assisted_registration.permissions_updated",
+          source: "api",
+          payload: {
+            relationshipId: relationship.id,
+            actorUserId: agent.id,
+            principalUserId: registration.principalUserId,
+            ...metadata
+          }
+        }
+      });
+    });
+
+    return this.requireRegistration(registration.id, agent.id);
+  }
+
   async updateIdentity(
     identity: AuthIdentity,
     registrationId: string,
@@ -274,6 +437,11 @@ export class AgentAssistedOnboardingService {
   ) {
     const agent = await this.requireAgent(identity);
     const registration = await this.requireRegistration(registrationId, agent.id);
+    if (registration.status !== AssistedRegistrationStatus.ACTIVE) {
+      throw new ForbiddenException(
+        "Assisted onboarding ended when this person claimed their account"
+      );
+    }
 
     await this.relationships.assertAgentPermission(
       agent.id,
@@ -353,6 +521,11 @@ export class AgentAssistedOnboardingService {
   ) {
     const agent = await this.requireAgent(identity);
     const registration = await this.requireRegistration(registrationId, agent.id);
+    if (registration.status !== AssistedRegistrationStatus.ACTIVE) {
+      throw new ForbiddenException(
+        "Assisted onboarding ended when this person claimed their account"
+      );
+    }
 
     await this.relationships.assertAgentPermission(
       agent.id,
@@ -430,6 +603,11 @@ export class AgentAssistedOnboardingService {
   ) {
     const agent = await this.requireAgent(identity);
     const registration = await this.requireRegistration(registrationId, agent.id);
+    if (registration.status !== AssistedRegistrationStatus.ACTIVE) {
+      throw new ForbiddenException(
+        "Assisted onboarding ended when this person claimed their account"
+      );
+    }
 
     await this.relationships.assertAgentPermission(
       agent.id,
@@ -467,6 +645,11 @@ export class AgentAssistedOnboardingService {
   async submitHustlerApplication(identity: AuthIdentity, registrationId: string) {
     const agent = await this.requireAgent(identity);
     const registration = await this.requireRegistration(registrationId, agent.id);
+    if (registration.status !== AssistedRegistrationStatus.ACTIVE) {
+      throw new ForbiddenException(
+        "Assisted onboarding ended when this person claimed their account"
+      );
+    }
 
     await this.relationships.assertAgentPermission(
       agent.id,
