@@ -73,6 +73,10 @@ const transitions: Record<MarketplaceCaseStatus, MarketplaceCaseStatus[]> = {
 export class MarketplaceCaseService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async viewer(identity: AuthIdentity) {
+    return { userId: await this.actorId(identity) };
+  }
+
   async overview() {
     const [statuses, priorities] = await Promise.all([
       this.prisma.marketplaceCase.groupBy({
