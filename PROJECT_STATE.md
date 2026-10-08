@@ -6,7 +6,7 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
-Phase 19E — Appeals, Enforcement Review & Restoration (implementation in progress)
+Phase 19E — Appeals, Enforcement Review & Restoration (merged + database active; manual production/runtime acceptance pending)
 
 Phase 19D — Marketplace Content Moderation & Enforcement (merged + database active; manual production/runtime acceptance pending)
 
@@ -854,7 +854,20 @@ Phase 19D adds human-controlled Post/Service/Product HOLD/RELEASE without auto-r
 
 
 ### Phase 19E — Appeals, Enforcement Review & Restoration
-IMPLEMENTATION IN PROGRESS — runtime acceptance will join the consolidated production test.
+MERGED + DATABASE ACTIVE — runtime acceptance PENDING.
+
+- PR #68 merged SHA: `ecf6dec2895880afe51114c410e77e097a68a3bc`.
+- Corrected CI head: `8de3920c172ae8f0b4f631fc54f930bd9bb71c87`.
+- Full CI green: web/admin/mobile typechecks, Prisma generation, API typecheck, web/admin/API production builds.
+- Hosted Supabase migration `phase19e_enforcement_appeals` applied successfully.
+- `EnforcementAppeal` RLS verified enabled.
+- anon/authenticated direct SELECT=false.
+- hustle_api SELECT/INSERT/UPDATE=true and DELETE=false with 3 API-role policies.
+- New appeal indexes may show unused before runtime traffic; no Phase-19E-specific security advisor finding.
+- No Vercel deployment requested or performed by ChatGPT.
+- Canonical combined acceptance checklist: `Knowledge/QA/PHASE18D_19E_COMBINED_RUNTIME_ACCEPTANCE.md`.
+
+Runtime acceptance remains deferred to the project owner's combined manual production session.
 
 - User `/appeals` route exposed from Account.
 - Only active current content holds and HUSTLER/AGENT suspensions are appealable.
@@ -876,3 +889,18 @@ IMPLEMENTATION IN PROGRESS — runtime acceptance will join the consolidated pro
 ### Consolidated manual runtime acceptance — Phase 19E extension
 Canonical checklist is now `Knowledge/QA/PHASE18D_19E_COMBINED_RUNTIME_ACCEPTANCE.md`.
 The previous 18D–19D checklist is superseded. Phase 19E remains build-time only until the project owner manually deploys and completes the combined production validation.
+
+
+### Phase 19E release boundary
+Build/database activation is complete, but **production behavior has not been manually accepted**.
+
+The combined pending runtime batch is now:
+- Phase 18D
+- Phase 18E
+- Phase 19A
+- Phase 19B
+- Phase 19C
+- Phase 19D
+- Phase 19E
+
+Do not mark any of these runtime-complete until the relevant checks in `Knowledge/QA/PHASE18D_19E_COMBINED_RUNTIME_ACCEPTANCE.md` pass after a manual API/Web/Admin deployment.
