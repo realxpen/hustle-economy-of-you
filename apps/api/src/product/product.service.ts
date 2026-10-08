@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, ProductStatus, ProductType, ProfessionalProfileStatus } from "@prisma/client";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { PrismaService } from "../database/prisma.service";
@@ -146,12 +146,19 @@ export class ProductService {
     }
 
     const publishedAt = product.publishedAt ?? new Date();
-    await this.prisma.$transaction([
-      this.prisma.product.update({
-        where: { id: product.id },
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.product.updateMany({
+        where: {
+          id: product.id,
+          professionalProfileId: profile.id,
+          moderationState: "CLEAR"
+        },
         data: { status: ProductStatus.PUBLISHED, publishedAt }
-      }),
-      this.prisma.systemEvent.create({
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException("This product is under moderation hold or no longer belongs to your profile");
+      }
+      await tx.systemEvent.create({
         data: {
           name: "product.published",
           source: "api",
@@ -159,6 +166,8 @@ export class ProductService {
         }
       })
     ]);
+    });
+
     return this.requireOwnedProduct(profile.id, product.id);
   }
 
