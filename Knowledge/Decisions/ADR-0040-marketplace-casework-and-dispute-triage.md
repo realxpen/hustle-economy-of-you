@@ -32,7 +32,7 @@ Priority:
 
 Ownership:
 - an authorized admin opens cases;
-- an unassigned, non-closed case may be claimed by an admin;
+- an unassigned case, including a closed case that needs reopening, may be claimed by an admin;
 - only the assigned admin may update priority/status or write notes;
 - the assigned admin may release the case to the shared queue;
 - assignment checks guard mutations at the database operation boundary.
