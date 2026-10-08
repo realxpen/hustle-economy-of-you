@@ -282,6 +282,7 @@ export default function AdminOperationsHome() {
         </p>
       </div>
       <div className="top-actions">
+        <a className="secondary" href="/cases">Cases</a>
         <a className="secondary" href="/applications">Applications</a>
         <a className="secondary" href="/trust-safety">Trust & Safety</a>
         <button className="secondary" type="button" onClick={() => void loadOperations()} disabled={loading}>Refresh</button>
@@ -415,7 +416,7 @@ export default function AdminOperationsHome() {
           </div>
           <div className="table-list">
             {bookings.map((booking) => <div className="transaction-row" key={booking.id}>
-              <div><strong>{booking.serviceTitleSnapshot}</strong><small>{name(booking.client)} → {name(booking.hustler)}</small></div>
+              <div><strong>{booking.serviceTitleSnapshot}</strong><small>{name(booking.client)} → {name(booking.hustler)}</small><small><a href={`/cases?subjectType=BOOKING&subjectId=${encodeURIComponent(booking.id)}`}>Investigate Booking →</a></small></div>
               <div><span className="pill">{booking.status}</span><small>{money(booking.agreedPriceMinor, booking.currency)}</small></div>
               <time>{formatDate(booking.createdAt)}</time>
             </div>)}
@@ -431,7 +432,7 @@ export default function AdminOperationsHome() {
           </div>
           <div className="table-list">
             {orders.map((order) => <div className="transaction-row" key={order.id}>
-              <div><strong>{name(order.buyer)} → {name(order.seller)}</strong><small>{order._count.items} item{order._count.items === 1 ? "" : "s"}</small></div>
+              <div><strong>{name(order.buyer)} → {name(order.seller)}</strong><small>{order._count.items} item{order._count.items === 1 ? "" : "s"}</small><small><a href={`/cases?subjectType=ORDER&subjectId=${encodeURIComponent(order.id)}`}>Investigate Order →</a></small></div>
               <div><span className="pill">{order.status}</span><small>{money(order.totalMinor, order.currency)}</small></div>
               <time>{formatDate(order.createdAt)}</time>
             </div>)}
