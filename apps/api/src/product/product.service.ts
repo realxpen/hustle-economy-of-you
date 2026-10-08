@@ -198,16 +198,27 @@ export class ProductService {
       throw new BadRequestException("Pause a published product before deleting it");
     }
 
-    await this.prisma.$transaction([
-      this.prisma.product.delete({ where: { id: product.id } }),
-      this.prisma.systemEvent.create({
+    await this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.product.deleteMany({
+        where: {
+          id: product.id,
+          professionalProfileId: profile.id,
+          moderationState: "CLEAR"
+        }
+      });
+      if (deleted.count !== 1) {
+        throw new ConflictException("Moderation-held listings cannot be deleted");
+      }
+      await tx.systemEvent.create({
         data: {
           name: "product.deleted",
           source: "api",
           payload: { productId: product.id, professionalProfileId: profile.id, userId: profile.userId }
         }
       })
-    ]);
+
+    });
+
     return { deleted: true, id: product.id };
   }
 
