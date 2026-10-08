@@ -1,6 +1,6 @@
 # Hustle — Consolidated Production Runtime Acceptance
 **Target session:** 2026-10-08 (or next manual validation session)
-**Slices:** 18D, 18E, 19A, 19B, 19C
+**Slices:** 18D, 18E, 19A, 19B, 19C, 19D
 **Status:** PENDING — no user runtime checks performed yet
 
 ## Before testing
@@ -60,6 +60,21 @@
 - [ ] Case shows current canonical Booking/Order/Payment/Escrow statuses but edits **none** of them.
 - [ ] Confirm no automatic refund, release, payout, Review, reputation, capability suspension or SafetyReport punishment.
 - [ ] Verify MarketplaceCase/MarketplaceCaseNote RLS on, no direct anon/authenticated database table access.
+
+## F — 19D Content Moderation & Enforcement
+- [ ] Admin opens `/moderation`; ordinary CLIENT, HUSTLER and AGENT identities are denied moderation API access.
+- [ ] Admin lists Posts, Services and Products and inspects an exact content ID/owner.
+- [ ] Admin applies HOLD to a published disposable Post with a required, documented reason; Post becomes ARCHIVED and non-public.
+- [ ] Owner cannot republish held Post; an Agent with CONTENT_MANAGE cannot republish it either.
+- [ ] Admin applies HOLD to a published Service and a Product. Both become PAUSED and disappear from public discovery.
+- [ ] Owner and delegated Agent cannot republish or delete held Services/Products.
+- [ ] Holding already-held content and releasing non-held content return a conflict; missing content returns not found.
+- [ ] HOLD and RELEASE each produce immutable MarketplaceModerationAction and SystemEvent records identifying actor, owner, reason and status.
+- [ ] Admin releases each hold with an explicit reason. The item remains ARCHIVED/PAUSED and is **not republished automatically**.
+- [ ] After release, eligible owner/Agent may explicitly republish, subject to existing content validators.
+- [ ] A moderation hold does not change CLIENT/HUSTLER/AGENT capability, Booking/Order, escrow/refund/payout, Review/reputation, SafetyReport or casework state.
+- [ ] Verify MarketplaceModerationAction RLS and dedicated hustle_api read/insert policy; anon/authenticated have no direct table privileges.
+- [ ] Existing Trust & Safety console, Agent business workspace and public feed/storefront still operate as expected.
 
 ## Final sign-off
 - [ ] API deployment SHA: ______
