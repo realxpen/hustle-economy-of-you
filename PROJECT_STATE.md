@@ -18,7 +18,7 @@ Phase 19A — Admin Marketplace Operations Foundation (merged; runtime acceptanc
 
 Phase 18E — Delegated Bookings + Client Messages (merged + database activated; runtime acceptance intentionally deferred for combined validation)
 
-Phase 18D — Delegated Operational Actions & Agent Business Workspace (merged; partial production runtime acceptance: Agent PROFILE_MANAGE profile update/save and immediate revocation denial; SERVICE_MANAGE create/edit/publish/pause with principal Hustler ownership and post-revocation denial — all confirmed passing by owner 2026-10-08; remaining Product/Content/capability boundary/audit checks pending)
+Phase 18D — Delegated Operational Actions & Agent Business Workspace: COMPLETE — owner-confirmed production runtime validation 2026-10-08. PROFILE_MANAGE, SERVICE_MANAGE, PRODUCT_MANAGE, CONTENT_MANAGE, CLIENT-only capability boundaries, out-of-scope denial, immediate scope revocation and Agent actor/principal owner audit integrity all passed.
 
 Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants: COMPLETE — production runtime validated 2026-10-07.
 
@@ -39,7 +39,7 @@ Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI
 
 Current active slice: **Phase 19E Appeals, Enforcement Review & Restoration — independent review of exact enforcement events with controlled, non-financial restoration.**
 
-Immediate runtime gate: PR #69 and PR #70 are production-accepted. Phase 18D delegated Profile and Service operations with permission revocation have passed owner runtime testing; remaining 18D Product/Content, capability boundary and audit checks, Phase 18E delegated Bookings/Messages, and Phase 19A–19E Admin Marketplace Operations remain pending their respective acceptance checks. Keep each slice pending until its full checklist passes. API and Web are manually deployed from `f15ebead3823183045545d6bb716477f53d62900`; no automatic deployments or Vercel Git integrations. Deployments remain manual and owner-controlled.
+Immediate runtime gate: PR #69 and PR #70 are production-accepted; Phase 18D delegated Profile, Service, Product and Content operations plus capability boundaries, scope revocation and audits are now owner-validated COMPLETE. Next acceptance gate is Phase 18E delegated Bookings/Messages, then Phase 19A–19E Admin Marketplace Operations; these remain pending their respective production checks. Keep each slice pending until its full checklist passes. API and Web are manually deployed from `f15ebead3823183045545d6bb716477f53d62900`; no automatic deployments or Vercel Git integrations. Deployments remain manual and owner-controlled.
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -583,7 +583,7 @@ Goal:
 
 
 ### 18D — Delegated Operational Actions & Agent Business Workspace
-MERGED — manual production deployment/runtime acceptance pending.
+COMPLETE — owner-confirmed production runtime acceptance 2026-10-08 (all Phase 18D scenarios in the canonical 18D–19E combined checklist passed).
 
 Merge:
 - PR #62 `3713d027d3b238a4fcb5c8869d0eb9f689da8441`
@@ -634,9 +634,9 @@ Runtime acceptance after merge must prove:
 
 
 ### Phase 18 runtime validation scheduling — 2026-10-07
-The project owner explicitly deferred Phase 18D runtime testing so the remaining Agent slices can be built first and tested together in one consolidated session on 2026-10-08.
+The project owner explicitly deferred Phase 18D runtime testing until the Agent slices were ready for consolidated validation on 2026-10-08; Phase 18D has subsequently passed.
 
-Do not mark Phase 18D complete before that combined runtime acceptance.
+Phase 18D is marked complete only after owner confirmation of the combined runtime checks on 2026-10-08.
 
 ### 18E — Delegated Bookings + Client Messages
 MERGED + DATABASE ACTIVATED — runtime acceptance intentionally deferred for combined validation.
@@ -691,7 +691,7 @@ Per the canonical MVP build plan, the next phase after Agent MVP is:
 
 Goal: the Hustle team can operate users, capabilities, applications, content, reports, suspensions, bookings, orders, payments, escrow, disputes, moderation and audit logs without manual database access.
 
-Phase 18D/18E runtime validation remains pending by explicit project-owner choice and will be executed as one combined acceptance session on 2026-10-08.
+Phase 18D runtime validation is COMPLETE, confirmed by the project owner on 2026-10-08; Phase 18E runtime acceptance remains pending.
 
 
 ### 19A — Admin Marketplace Operations Foundation
@@ -792,7 +792,7 @@ Explicitly excluded:
 
 ### Consolidated runtime batch — planned for 2026-10-08
 Runtime validation is intentionally pending for:
-- Phase 18D — delegated Profile/Service/Product/Content operations;
+- Phase 18D — delegated Profile/Service/Product/Content operations: COMPLETE, owner-confirmed 2026-10-08;
 - Phase 18E — delegated Bookings + Client Messages;
 - Phase 19A — Admin Marketplace Operations read cockpit;
 - Phase 19B — unified capability reviews + reversible HUSTLER/AGENT suspension/reactivation.
