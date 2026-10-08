@@ -343,20 +343,15 @@ export class MarketplaceCaseService {
     const body = this.requiredText(input.body, "body", 4000);
 
     await this.prisma.$transaction(async (tx) => {
-      const record = await tx.marketplaceCase.findUnique({
-        where: { id: caseId },
-        select: { assignedToUserId: true, status: true }
+      const changed = await tx.marketplaceCase.updateMany({
+        where: { id: caseId, assignedToUserId: actorId },
+        data: { updatedAt: new Date() }
       });
-      if (!record) throw new NotFoundException("Marketplace case not found");
-      if (record.assignedToUserId !== actorId) {
+      if (changed.count !== 1) {
         throw new ForbiddenException("Claim the case before recording notes");
       }
       await tx.marketplaceCaseNote.create({
         data: { caseId, authorUserId: actorId, body }
-      });
-      await tx.marketplaceCase.update({
-        where: { id: caseId },
-        data: { updatedAt: new Date() }
       });
       await tx.systemEvent.create({
         data: {
