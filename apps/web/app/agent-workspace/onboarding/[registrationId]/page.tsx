@@ -4,6 +4,8 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type {
   AgentAssistedRegistration,
+  AgentPermissionScope,
+  AssistedConsentMethod,
   HustlerProofType,
   SaveHustlerApplicationInput
 } from "@hustle/types";
@@ -14,6 +16,7 @@ import {
   saveAssistedHustlerApplication,
   submitAssistedHustlerApplication,
   updateAssistedIdentity,
+  updateAssistedPermissions,
   uploadAssistedHustlerProof
 } from "../../../../lib/agent-assisted-onboarding";
 import styles from "../../../agents/page.module.css";
@@ -39,6 +42,15 @@ const proofTypes: { value: HustlerProofType; label: string }[] = [
   { value: "OTHER", label: "Other supporting proof" }
 ];
 
+const optionalScopes: { value: AgentPermissionScope; label: string; detail: string }[] = [
+  { value: "PROFILE_MANAGE", label: "Professional profile", detail: "Manage their professional profile after Hustler approval." },
+  { value: "SERVICE_MANAGE", label: "Services", detail: "Create and maintain their published services." },
+  { value: "PRODUCT_MANAGE", label: "Products", detail: "Maintain products and listings." },
+  { value: "CONTENT_MANAGE", label: "Content", detail: "Help create content on their behalf." },
+  { value: "BOOKING_MANAGE", label: "Bookings", detail: "Assist with bookings, without managing payments or completion." },
+  { value: "CLIENT_MESSAGE_MANAGE", label: "Client messages", detail: "Communicate with clients within the delegated messaging boundaries." }
+];
+
 export default function AssistedRegistrationDetailPage() {
   const params = useParams<{ registrationId: string }>();
   const registrationId = params.registrationId;
@@ -50,6 +62,10 @@ export default function AssistedRegistrationDetailPage() {
   const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [temporaryScopes, setTemporaryScopes] = useState<AgentPermissionScope[]>([]);
+  const [permissionConsentConfirmed, setPermissionConsentConfirmed] = useState(false);
+  const [permissionConsentMethod, setPermissionConsentMethod] = useState<AssistedConsentMethod>("IN_PERSON");
+  const [permissionConsentNote, setPermissionConsentNote] = useState("");
 
   const [primarySkill, setPrimarySkill] = useState("");
   const [category, setCategory] = useState("");
@@ -76,6 +92,16 @@ export default function AssistedRegistrationDetailPage() {
     setBio(next.principal.bio ?? "");
     setEmail(next.principal.email ?? "");
     setPhone(next.principal.phone ?? "");
+    setTemporaryScopes(
+      next.relationship.permissions
+        .filter((grant) => grant.active && ![
+          "ACCOUNT_ONBOARDING_MANAGE",
+          "HUSTLER_APPLICATION_MANAGE"
+        ].includes(grant.scope))
+        .map((grant) => grant.scope)
+    );
+    setPermissionConsentConfirmed(false);
+    setPermissionConsentNote("");
 
     const application = next.principal.hustlerApplication;
     setPrimarySkill(application?.primarySkill ?? "");
@@ -96,6 +122,37 @@ export default function AssistedRegistrationDetailPage() {
       hydrate(await getAssistedRegistration(registrationId));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load assisted identity");
+    }
+  }
+
+  function toggleTemporaryScope(scope: AgentPermissionScope) {
+    setTemporaryScopes((current) =>
+      current.includes(scope)
+        ? current.filter((item) => item !== scope)
+        : [...current, scope]
+    );
+    setPermissionConsentConfirmed(false);
+  }
+
+  async function savePermissions(event: FormEvent) {
+    event.preventDefault();
+    if (!registration || registration.status !== "ACTIVE") return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const next = await updateAssistedPermissions(registration.id, {
+        permissions: temporaryScopes,
+        consentConfirmed: true,
+        consentMethod: permissionConsentMethod,
+        consentNote: permissionConsentNote.trim() || null
+      });
+      hydrate(next);
+      setNotice("Temporary Agent permissions updated and consent recorded.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not update temporary permissions");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -206,8 +263,17 @@ export default function AssistedRegistrationDetailPage() {
   }
 
   const application = registration.principal.hustlerApplication;
-  const editableApplication = !application || application.status === "DRAFT";
-  const editableIdentity = registration.status === "ACTIVE";
+  const hasActiveScope = (scope: AgentPermissionScope) =>
+    registration.relationship.status === "ACTIVE" &&
+    registration.relationship.permissions.some((grant) => grant.active && grant.scope === scope);
+  const editableApplication =
+    registration.status === "ACTIVE" &&
+    hasActiveScope("HUSTLER_APPLICATION_MANAGE") &&
+    (!application || application.status === "DRAFT");
+  const editableIdentity =
+    registration.status === "ACTIVE" && hasActiveScope("ACCOUNT_ONBOARDING_MANAGE");
+  const editablePermissions =
+    registration.status === "ACTIVE" && registration.relationship.status === "ACTIVE";
   const proofs = application?.proofs ?? [];
 
   return <main className={styles.shell}>
@@ -250,6 +316,70 @@ export default function AssistedRegistrationDetailPage() {
           ? `Claim phone: ${registration.principal.phone}.`
           : "No claim phone saved."}
       </small>
+    </section>
+
+    <section className={styles.card}>
+      <p className={styles.panelLabel}>TEMPORARY AGENT PERMISSIONS</p>
+      <h2>Adjust access before they claim.</h2>
+      <p>
+        The person must expressly agree to each permission change. Account onboarding and
+        Hustler-application help are included while their assisted identity is unclaimed.
+        Every temporary permission, including optional business permissions, ends automatically
+        when the person claims their account. They can invite you again afterward.
+      </p>
+      {editablePermissions ? <form onSubmit={savePermissions}>
+        <div className={styles.scopeGrid}>
+          {optionalScopes.map((scope) => {
+            const active = temporaryScopes.includes(scope.value);
+            return <button
+              key={scope.value}
+              type="button"
+              className={active ? styles.scopeActive : styles.scopeButton}
+              disabled={busy}
+              onClick={() => toggleTemporaryScope(scope.value)}
+            >
+              <strong>{scope.label} {active ? "✓" : ""}</strong>
+              <span>{scope.detail}</span>
+            </button>;
+          })}
+        </div>
+        <label className={styles.field}>
+          <span>How they gave consent to this update</span>
+          <select
+            value={permissionConsentMethod}
+            onChange={(event) => setPermissionConsentMethod(event.target.value as AssistedConsentMethod)}
+          >
+            <option value="IN_PERSON">In person</option>
+            <option value="PHONE">Phone</option>
+            <option value="WRITTEN">Written</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </label>
+        <label className={styles.field}>
+          <span>Consent note — optional</span>
+          <input
+            maxLength={1000}
+            value={permissionConsentNote}
+            onChange={(event) => setPermissionConsentNote(event.target.value)}
+            placeholder="What the person agreed to and when"
+          />
+        </label>
+        <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 12, lineHeight: 1.5 }}>
+          <input
+            type="checkbox"
+            checked={permissionConsentConfirmed}
+            onChange={(event) => setPermissionConsentConfirmed(event.target.checked)}
+          />
+          <span>I confirm the account owner explicitly agreed to this updated set of permissions.</span>
+        </label>
+        <button className={styles.primary} type="submit" disabled={busy || !permissionConsentConfirmed}>
+          {busy ? "Saving…" : "Save temporary permissions"}
+        </button>
+      </form> : <p>
+        Temporary access is closed because this identity has been claimed or the Agent
+        relationship is no longer active. The owner must grant any new authority
+        from their own Manage Agents page.
+      </p>}
     </section>
 
     <section className={styles.panelGrid}>
