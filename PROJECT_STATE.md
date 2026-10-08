@@ -18,7 +18,7 @@ Phase 19A — Admin Marketplace Operations Foundation (merged; runtime acceptanc
 
 Phase 18E — Delegated Bookings + Client Messages (merged + database activated; runtime acceptance intentionally deferred for combined validation)
 
-Phase 18D — Delegated Operational Actions & Agent Business Workspace (merged; runtime acceptance intentionally deferred for combined validation)
+Phase 18D — Delegated Operational Actions & Agent Business Workspace (merged; partial production runtime acceptance: Agent PROFILE_MANAGE profile update/save and immediate permission-revocation denial confirmed passing by owner 2026-10-08; remaining 18D checks pending)
 
 Phase 18B — Client Principal↔Agent Relationship + Scoped Permission Grants: COMPLETE — production runtime validated 2026-10-07.
 
@@ -39,7 +39,7 @@ Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI
 
 Current active slice: **Phase 19E Appeals, Enforcement Review & Restoration — independent review of exact enforcement events with controlled, non-financial restoration.**
 
-Immediate runtime gate: PR #69 and PR #70 are production-accepted. Next outstanding gate is consolidated Phase 18D/18E delegated operations and Phase 19A–19E Admin Marketplace Operations runtime acceptance; keep each slice pending until specifically tested and confirmed. API and Web are manually deployed from `f15ebead3823183045545d6bb716477f53d62900`; no automatic deployments or Vercel Git integrations. Deployments remain manual and owner-controlled.
+Immediate runtime gate: PR #69 and PR #70 are production-accepted. Phase 18D Agent profile update/save and immediate PROFILE_MANAGE revocation denial have passed owner runtime testing; remaining 18D Service/Product/Content, capability boundary and audit checks, Phase 18E delegated Bookings/Messages, and Phase 19A–19E Admin Marketplace Operations remain pending their respective acceptance checks. Keep each slice pending until its full checklist passes. API and Web are manually deployed from `f15ebead3823183045545d6bb716477f53d62900`; no automatic deployments or Vercel Git integrations. Deployments remain manual and owner-controlled.
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
