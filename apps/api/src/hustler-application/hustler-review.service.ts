@@ -140,7 +140,38 @@ export class HustlerReviewService {
       throw new NotFoundException("Hustler application not found");
     }
 
-    return application;
+    const delegatedSubmission = await this.prisma.agentDelegationAudit.findFirst({
+      where: {
+        ownerUserId: application.userId,
+        entityType: "HustlerApplication",
+        entityId: application.id,
+        action: "agent.hustler_application.submitted"
+      },
+      orderBy: { occurredAt: "desc" },
+      select: {
+        relationshipId: true,
+        occurredAt: true,
+        actor: {
+          select: {
+            id: true,
+            displayName: true,
+            username: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    return {
+      ...application,
+      agentDelegation: delegatedSubmission
+        ? {
+            relationshipId: delegatedSubmission.relationshipId,
+            occurredAt: delegatedSubmission.occurredAt,
+            agent: delegatedSubmission.actor
+          }
+        : null
+    };
   }
 
   async start(identity: AuthIdentity, applicationId: string) {
