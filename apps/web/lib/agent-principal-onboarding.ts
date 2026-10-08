@@ -6,8 +6,7 @@ import type {
   HustlerApplication,
   HustlerApplicationProof,
   HustlerProofType,
-  SaveHustlerApplicationInput,
-  UpdateAgentAssistedIdentityInput
+  SaveHustlerApplicationInput
 } from "@hustle/types";
 
 import { authenticatedFetch } from "./api/authenticated-fetch";
