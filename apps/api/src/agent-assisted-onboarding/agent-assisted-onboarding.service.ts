@@ -437,6 +437,11 @@ export class AgentAssistedOnboardingService {
   ) {
     const agent = await this.requireAgent(identity);
     const registration = await this.requireRegistration(registrationId, agent.id);
+    if (registration.status !== AssistedRegistrationStatus.ACTIVE) {
+      throw new ForbiddenException(
+        "Assisted onboarding ended when this person claimed their account"
+      );
+    }
 
     await this.relationships.assertAgentPermission(
       agent.id,
@@ -516,6 +521,11 @@ export class AgentAssistedOnboardingService {
   ) {
     const agent = await this.requireAgent(identity);
     const registration = await this.requireRegistration(registrationId, agent.id);
+    if (registration.status !== AssistedRegistrationStatus.ACTIVE) {
+      throw new ForbiddenException(
+        "Assisted onboarding ended when this person claimed their account"
+      );
+    }
 
     await this.relationships.assertAgentPermission(
       agent.id,
@@ -593,6 +603,11 @@ export class AgentAssistedOnboardingService {
   ) {
     const agent = await this.requireAgent(identity);
     const registration = await this.requireRegistration(registrationId, agent.id);
+    if (registration.status !== AssistedRegistrationStatus.ACTIVE) {
+      throw new ForbiddenException(
+        "Assisted onboarding ended when this person claimed their account"
+      );
+    }
 
     await this.relationships.assertAgentPermission(
       agent.id,
@@ -630,6 +645,11 @@ export class AgentAssistedOnboardingService {
   async submitHustlerApplication(identity: AuthIdentity, registrationId: string) {
     const agent = await this.requireAgent(identity);
     const registration = await this.requireRegistration(registrationId, agent.id);
+    if (registration.status !== AssistedRegistrationStatus.ACTIVE) {
+      throw new ForbiddenException(
+        "Assisted onboarding ended when this person claimed their account"
+      );
+    }
 
     await this.relationships.assertAgentPermission(
       agent.id,
