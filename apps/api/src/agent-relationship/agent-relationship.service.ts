@@ -465,27 +465,8 @@ export class AgentRelationshipService {
           some: { scope, active: true }
         }
       },
-      select: { id: true, invitedAt: true }
+      select: { id: true }
     });
-
-    if (relationship) {
-      // Old claimed accounts may predate automatic claim-time revocation.
-      // Only a NEW owner-initiated invitation after the claim restores Agent authority.
-      const assisted = await this.prisma.agentAssistedRegistration.findUnique({
-        where: { principalUserId: ownerUserId },
-        select: { status: true, claimedAt: true, agentUserId: true }
-      });
-      if (
-        assisted?.status === "CLAIMED" &&
-        assisted.agentUserId === actorUserId &&
-        assisted.claimedAt &&
-        relationship.invitedAt <= assisted.claimedAt
-      ) {
-        throw new ForbiddenException(
-          "This assisted account has been claimed; the owner must grant new permissions"
-        );
-      }
-    }
 
     if (!relationship) {
       throw new ForbiddenException(
