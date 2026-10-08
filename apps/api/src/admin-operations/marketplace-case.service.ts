@@ -6,6 +6,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import {
+  FinancialSubjectType,
   MarketplaceCasePriority,
   MarketplaceCaseStatus,
   MarketplaceCaseSubjectType,
@@ -395,14 +396,16 @@ export class MarketplaceCaseService {
   private async latestPayment(
     subjectType: MarketplaceCaseSubjectType, subjectId: string
   ) {
+    const financialType = subjectType === MarketplaceCaseSubjectType.BOOKING
+      ? FinancialSubjectType.BOOKING : FinancialSubjectType.ORDER;
     const payment = await this.prisma.paymentAttempt.findFirst({
-      where: { subjectType, subjectId },
+      where: { subjectType: financialType, subjectId },
       orderBy: { createdAt: "desc" },
       select: { id: true, status: true, amountMinor: true, currency: true }
     });
     if (!payment) return null;
     const escrow = await this.prisma.escrowRecord.findUnique({
-      where: { subjectType_subjectId: { subjectType, subjectId } },
+      where: { subjectType_subjectId: { subjectType: financialType, subjectId } },
       select: { status: true, amountMinor: true, currency: true }
     });
     return { ...payment, escrow };
