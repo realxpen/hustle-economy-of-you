@@ -6,6 +6,8 @@ Updated: 2026-10-07
 Build
 
 ## Current MVP phase
+Phase 19E — Appeals, Enforcement Review & Restoration (implementation in progress)
+
 Phase 19D — Marketplace Content Moderation & Enforcement (merged + database active; manual production/runtime acceptance pending)
 
 Phase 19C — Marketplace Casework & Dispute Triage (merged + database active; runtime pending combined acceptance)
@@ -31,7 +33,7 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active slice: **Phase 19D Marketplace Content Moderation & Enforcement — reversible, server-enforced item holds independent from money/reputation and account bans.**
+Current active slice: **Phase 19E Appeals, Enforcement Review & Restoration — independent review of exact enforcement events with controlled, non-financial restoration.**
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -849,3 +851,23 @@ Pending slices: **18D, 18E, 19A, 19B, 19C, 19D**.
 After the project owner manually deploys latest main to API/Web/Admin, validate each slice and record actual failures/retests before marking complete.
 
 Phase 19D adds human-controlled Post/Service/Product HOLD/RELEASE without auto-republishing, account suspension, transaction/financial changes or reputation edits.
+
+
+### Phase 19E — Appeals, Enforcement Review & Restoration
+IMPLEMENTATION IN PROGRESS — runtime acceptance will join the consolidated production test.
+
+- User `/appeals` route exposed from Account.
+- Only active current content holds and HUSTLER/AGENT suspensions are appealable.
+- One appeal per exact enforcement event via unique `enforcementRef`.
+- Content appeals reference immutable MarketplaceModerationAction HOLD records.
+- Capability appeals reference durable `admin.capability.suspended` SystemEvents.
+- Admin `/appeals` route supports queue, independent claim, decision and close.
+- Original enforcing admin and appellant are prohibited from reviewing the appeal.
+- Decisions: UPHELD or OVERTURNED.
+- OVERTURNED releases only the same still-current restriction; newer enforcement cannot be removed by an older appeal.
+- Content overturn uses RELEASE and never auto-republishes.
+- Capability overturn uses existing HUSTLER/AGENT reactivation path.
+- Original enforcement history is preserved; appeal lifecycle emits separate SystemEvents.
+- RLS/server-only EnforcementAppeal table; no browser direct DB access and no delete endpoint.
+- No Booking/Order, payment, escrow, payout, Review/reputation, MarketplaceCase or SafetyReport mutation.
+- ADR: `Knowledge/Decisions/ADR-0042-independent-enforcement-appeals.md`.
