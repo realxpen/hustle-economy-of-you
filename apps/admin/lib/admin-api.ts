@@ -890,3 +890,107 @@ export const releaseModerationHold = (
   token, `/admin/operations/moderation/${type}/${encodeURIComponent(id)}/release`,
   { method: "POST", body: JSON.stringify({ reason }) }
 );
+
+
+export type EnforcementAppealStatus =
+  | "SUBMITTED"
+  | "UNDER_REVIEW"
+  | "DECIDED"
+  | "CLOSED";
+export type EnforcementAppealDecision = "UPHELD" | "OVERTURNED";
+export type EnforcementAppealActionType =
+  | "CONTENT_HOLD"
+  | "CAPABILITY_SUSPENSION";
+
+export type EnforcementAppealPerson = {
+  id: string;
+  displayName: string | null;
+  username: string | null;
+};
+
+export type AdminEnforcementAppeal = {
+  id: string;
+  actionType: EnforcementAppealActionType;
+  enforcementRef: string;
+  targetKind: string;
+  targetId: string;
+  reason: string;
+  status: EnforcementAppealStatus;
+  decision: EnforcementAppealDecision | null;
+  decisionReason: string | null;
+  submittedAt: string;
+  reviewStartedAt: string | null;
+  decidedAt: string | null;
+  closedAt: string | null;
+  appellant: EnforcementAppealPerson;
+  originalActor: EnforcementAppealPerson;
+  reviewer: EnforcementAppealPerson | null;
+};
+
+export type AdminEnforcementAppealDetail = AdminEnforcementAppeal & {
+  enforcement: {
+    ref: string;
+    action: string;
+    reason: string | null;
+    createdAt: string;
+    subjectType: string;
+    subjectId: string;
+    currentState: string | null;
+    actor: EnforcementAppealPerson;
+  } | null;
+};
+
+export type EnforcementAppealOverview = {
+  byStatus: Record<string, number>;
+};
+
+export const getEnforcementAppealOverview = (token: string) =>
+  adminFetch<EnforcementAppealOverview>(
+    token,
+    "/admin/operations/appeals/overview"
+  );
+
+export const listAdminEnforcementAppeals = (
+  token: string,
+  status = "",
+  limit = 100
+) =>
+  adminFetch<AdminEnforcementAppeal[]>(
+    token,
+    `/admin/operations/appeals?limit=${limit}${status ? `&status=${status}` : ""}`
+  );
+
+export const getAdminEnforcementAppeal = (token: string, appealId: string) =>
+  adminFetch<AdminEnforcementAppealDetail>(
+    token,
+    `/admin/operations/appeals/${encodeURIComponent(appealId)}`
+  );
+
+export const claimAdminEnforcementAppeal = (token: string, appealId: string) =>
+  adminFetch<AdminEnforcementAppealDetail>(
+    token,
+    `/admin/operations/appeals/${encodeURIComponent(appealId)}/claim`,
+    { method: "POST" }
+  );
+
+export const decideAdminEnforcementAppeal = (
+  token: string,
+  appealId: string,
+  decision: EnforcementAppealDecision,
+  reason: string
+) =>
+  adminFetch<AdminEnforcementAppealDetail>(
+    token,
+    `/admin/operations/appeals/${encodeURIComponent(appealId)}/decision`,
+    {
+      method: "POST",
+      body: JSON.stringify({ decision, reason })
+    }
+  );
+
+export const closeAdminEnforcementAppeal = (token: string, appealId: string) =>
+  adminFetch<AdminEnforcementAppealDetail>(
+    token,
+    `/admin/operations/appeals/${encodeURIComponent(appealId)}/close`,
+    { method: "POST" }
+  );
