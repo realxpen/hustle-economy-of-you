@@ -164,8 +164,7 @@ export class ProductService {
           source: "api",
           payload: { productId: product.id, professionalProfileId: profile.id, userId: profile.userId }
         }
-      })
-    ]);
+      });
     });
 
     return this.requireOwnedProduct(profile.id, product.id);
