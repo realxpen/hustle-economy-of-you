@@ -148,7 +148,7 @@ export default function AssistedRegistrationDetailPage() {
         consentNote: permissionConsentNote.trim() || null
       });
       hydrate(next);
-      setNotice("Temporary Agent permissions updated and consent recorded.");
+      setNotice("Assisted permission selection updated and consent recorded.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not update temporary permissions");
     } finally {
@@ -319,13 +319,14 @@ export default function AssistedRegistrationDetailPage() {
     </section>
 
     <section className={styles.card}>
-      <p className={styles.panelLabel}>TEMPORARY AGENT PERMISSIONS</p>
+      <p className={styles.panelLabel}>ASSISTED PERMISSION SETUP</p>
       <h2>Adjust access before they claim.</h2>
       <p>
         The person must expressly agree to each permission change. Account onboarding and
         Hustler-application help are included while their assisted identity is unclaimed.
-        Every temporary permission, including optional business permissions, ends automatically
-        when the person claims their account. They can invite you again afterward.
+        Your ability to choose or change these scopes ends when the person claims
+        their account. Already consented permissions stay in place until the owner
+        changes or revokes them from Manage Agents.
       </p>
       {editablePermissions ? <form onSubmit={savePermissions}>
         <div className={styles.scopeGrid}>
@@ -373,12 +374,12 @@ export default function AssistedRegistrationDetailPage() {
           <span>I confirm the account owner explicitly agreed to this updated set of permissions.</span>
         </label>
         <button className={styles.primary} type="submit" disabled={busy || !permissionConsentConfirmed}>
-          {busy ? "Saving…" : "Save temporary permissions"}
+          {busy ? "Saving…" : "Save approved permissions"}
         </button>
       </form> : <p>
-        Temporary access is closed because this identity has been claimed or the Agent
-        relationship is no longer active. The owner must grant any new authority
-        from their own Manage Agents page.
+        Agent-controlled permission setup is closed because this identity has been claimed
+        or its relationship is no longer active. The account owner can now edit or
+        revoke permissions from their own Manage Agents page.
       </p>}
     </section>
 
