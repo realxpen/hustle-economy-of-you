@@ -138,6 +138,19 @@ export default function HustlerReviewsPage() {
             <strong>{selected.status.replaceAll("_", " ")}</strong>
           </div>
 
+          {selected.agentDelegation && <article className={styles.story}>
+            <small>AGENT-DELEGATED HUSTLER APPLICATION</small>
+            <h3>{selected.agentDelegation.agent.displayName ?? selected.agentDelegation.agent.username ?? "Hustle Agent"}</h3>
+            <p>
+              @{selected.agentDelegation.agent.username ?? "agent"} submitted this application
+              under an explicit Client→Agent HUSTLER_APPLICATION_MANAGE grant.
+            </p>
+            <p>
+              The applicant remains the identity and capability owner. The Agent is the recorded
+              submission actor and cannot approve or activate HUSTLER.
+            </p>
+          </article>}
+
           {selected.user.assistedRegistration && <article className={styles.story}>
             <small>AGENT-ASSISTED REGISTRATION</small>
             <h3>{selected.user.assistedRegistration.agent.displayName ?? selected.user.assistedRegistration.agent.username ?? "Hustle Agent"}</h3>
