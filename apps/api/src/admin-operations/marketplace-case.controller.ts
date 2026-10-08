@@ -40,6 +40,11 @@ export class MarketplaceCaseController {
     return this.cases.list({ status, subjectType, limit, cursor });
   }
 
+  @Get("viewer")
+  viewer(@CurrentIdentity() identity: AuthIdentity) {
+    return this.cases.viewer(identity);
+  }
+
   @Get(":caseId")
   get(@Param("caseId") caseId: string) {
     return this.cases.get(caseId);
