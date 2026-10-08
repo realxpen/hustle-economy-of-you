@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
@@ -112,15 +113,19 @@ export class ServiceService {
 
     const publishedAt = service.publishedAt ?? new Date();
 
-    await this.prisma.$transaction([
-      this.prisma.service.update({
-        where: { id: service.id },
-        data: {
-          status: ServiceStatus.PUBLISHED,
-          publishedAt
-        }
-      }),
-      this.prisma.systemEvent.create({
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.service.updateMany({
+        where: {
+          id: service.id,
+          professionalProfileId: profile.id,
+          moderationState: "CLEAR"
+        },
+        data: { status: ServiceStatus.PUBLISHED, publishedAt }
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException("This service is under moderation hold or no longer belongs to your profile");
+      }
+      await tx.systemEvent.create({
         data: {
           name: "service.published",
           source: "api",
@@ -132,6 +137,7 @@ export class ServiceService {
         }
       })
     ]);
+    });
 
     return this.requireOwnedService(profile.id, service.id);
   }
