@@ -6,6 +6,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import {
+  AgentRelationshipStatus,
   BookingStatus,
   EscrowStatus,
   FinancialSubjectType,
@@ -104,6 +105,12 @@ export class ReviewService {
             const authority = subjectType === ReviewSubjectType.BOOKING
               ? await this.requireBookingAuthority(tx, reviewer.id, subjectId)
               : await this.requireOrderAuthority(tx, reviewer.id, subjectId);
+
+            await this.assertNoAgentRelationshipConflict(
+              tx,
+              authority.reviewerUserId,
+              authority.revieweeUserId
+            );
 
             const existing = await tx.review.findUnique({
               where: {
@@ -438,6 +445,50 @@ export class ReviewService {
         }))
       }
     };
+  }
+
+  private async assertNoAgentRelationshipConflict(
+    tx: Prisma.TransactionClient,
+    firstUserId: string,
+    secondUserId: string
+  ) {
+    const conflict = await tx.agentRelationship.findFirst({
+      where: {
+        AND: [
+          {
+            OR: [
+              { principalUserId: firstUserId, agentUserId: secondUserId },
+              { principalUserId: secondUserId, agentUserId: firstUserId }
+            ]
+          },
+          {
+            OR: [
+              { status: AgentRelationshipStatus.ACTIVE },
+              { activatedAt: { not: null } },
+              {
+                audits: {
+                  some: {
+                    action: {
+                      in: [
+                        "agent_relationship.accepted",
+                        "agent_assisted_registration.created"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      select: { id: true }
+    });
+
+    if (conflict) {
+      throw new ForbiddenException(
+        "Public reputation reviews are unavailable between an Agent and an account they represent or previously represented"
+      );
+    }
   }
 
   private async contextForReview(review: Pick<ReviewRow, "subjectType" | "subjectId">) {

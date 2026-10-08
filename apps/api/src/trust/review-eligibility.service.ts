@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
+  AgentRelationshipStatus,
   BookingStatus,
   EscrowStatus,
   FinancialSubjectType,
@@ -17,6 +18,7 @@ type EligibilityReason =
   | "ALREADY_REVIEWED"
   | "REVIEWER_ROLE_NOT_ELIGIBLE"
   | "SELF_REVIEW_BLOCKED"
+  | "AGENT_RELATIONSHIP_CONFLICT"
   | "TRANSACTION_REFUNDED"
   | "TRANSACTION_DISPUTED"
   | "BOOKING_NOT_COMPLETED"
@@ -91,6 +93,14 @@ export class ReviewEligibilityService {
 
     if (context.reviewerUserId === context.revieweeUserId) {
       return this.result(context, false, "SELF_REVIEW_BLOCKED", false);
+    }
+    if (
+      await this.hasAgentRelationshipConflict(
+        context.reviewerUserId,
+        context.revieweeUserId
+      )
+    ) {
+      return this.result(context, false, "AGENT_RELATIONSHIP_CONFLICT", false);
     }
     if (booking.status === BookingStatus.REFUNDED || booking.refundedAt) {
       return this.result(context, false, "TRANSACTION_REFUNDED", false);
@@ -176,6 +186,14 @@ export class ReviewEligibilityService {
 
     if (context.reviewerUserId === context.revieweeUserId) {
       return this.result(context, false, "SELF_REVIEW_BLOCKED", false);
+    }
+    if (
+      await this.hasAgentRelationshipConflict(
+        context.reviewerUserId,
+        context.revieweeUserId
+      )
+    ) {
+      return this.result(context, false, "AGENT_RELATIONSHIP_CONFLICT", false);
     }
     if (order.status === OrderStatus.REFUNDED || order.refundedAt) {
       return this.result(context, false, "TRANSACTION_REFUNDED", false);
@@ -270,6 +288,7 @@ export class ReviewEligibilityService {
       ALREADY_REVIEWED: "You have already reviewed this transaction.",
       REVIEWER_ROLE_NOT_ELIGIBLE: "Public reputation reviews are submitted by Clients and Buyers for providers in the Phase 14 MVP.",
       SELF_REVIEW_BLOCKED: "A user cannot review themselves.",
+      AGENT_RELATIONSHIP_CONFLICT: "Public reputation reviews are unavailable between an Agent and an account they represent or previously represented.",
       TRANSACTION_REFUNDED: "Refunded transactions are not eligible for reviews.",
       TRANSACTION_DISPUTED: "Disputed transactions are not eligible for reviews until resolved through a reviewable completion path.",
       BOOKING_NOT_COMPLETED: "The Booking must be completed before reviews unlock.",
@@ -279,6 +298,45 @@ export class ReviewEligibilityService {
       ORDER_PAYMENT_NOT_VERIFIED: "The Order has no applied authoritative payment."
     };
     return messages[reason];
+  }
+
+  private async hasAgentRelationshipConflict(
+    firstUserId: string,
+    secondUserId: string
+  ) {
+    const conflict = await this.prisma.agentRelationship.findFirst({
+      where: {
+        AND: [
+          {
+            OR: [
+              { principalUserId: firstUserId, agentUserId: secondUserId },
+              { principalUserId: secondUserId, agentUserId: firstUserId }
+            ]
+          },
+          {
+            OR: [
+              { status: AgentRelationshipStatus.ACTIVE },
+              { activatedAt: { not: null } },
+              {
+                audits: {
+                  some: {
+                    action: {
+                      in: [
+                        "agent_relationship.accepted",
+                        "agent_assisted_registration.created"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      select: { id: true }
+    });
+
+    return Boolean(conflict);
   }
 
   private async requireUser(identity: AuthIdentity) {
