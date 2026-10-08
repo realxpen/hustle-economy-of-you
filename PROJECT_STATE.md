@@ -26,7 +26,7 @@ Phase 18C — Agent-Assisted Onboarding & Hustler Registration: COMPLETE — pro
 
 Agent authority + review-integrity correction — COMPLETE in PR #69 (`7b1d7d6b3ce7c23e042fb4a4b2a6c121856a43d7`); all five production runtime acceptance tests confirmed passing by the project owner 2026-10-08. No database migration. The correction makes ACCOUNT_ONBOARDING_MANAGE and HUSTLER_APPLICATION_MANAGE actionable for ordinary existing Client principals, clarifies assisted identity claim/login, exposes delegated Hustler-application provenance to Admin, and blocks public Agent↔principal reputation reviews without blocking legitimate commerce.
 
-Assisted permissions + claim handoff correction — PR #70 implementation; CI/merge and post-deployment owner acceptance tracked separately. While an assisted identity is unclaimed, the Agent can correct optional scopes with freshly recorded consent. Claim closes Agent-controlled scope editing and private assisted-onboarding access; already consented relationship permissions remain in place but only the authenticated owner can edit or revoke them afterward through Manage Agents. No database migration. Canonical decision: `Knowledge/Decisions/ADR-0044-assisted-permissions-and-claim-handoff.md`.
+Assisted permissions + claim handoff correction — MERGED in PR #70 (`67e5c8bdd0e7ecf9b252ceda2482399d7c6c9685`); full CI passed; manual API/Web deployment and owner runtime acceptance pending. While an assisted identity is unclaimed, the Agent can correct optional scopes with freshly recorded consent. Claim closes Agent-controlled scope editing and private assisted-onboarding access; already consented relationship permissions remain in place but only the authenticated owner can edit or revoke them afterward through Manage Agents. No database migration. Canonical decision: `Knowledge/Decisions/ADR-0044-assisted-permissions-and-claim-handoff.md`.
 
 Phase 17 — Live Commerce Beta: COMPLETE — implementation, production media/runtime validation and final mobile fullscreen/Quick View acceptance validated 2026-10-07.
 
@@ -39,7 +39,7 @@ Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI
 
 Current active slice: **Phase 19E Appeals, Enforcement Review & Restoration — independent review of exact enforcement events with controlled, non-financial restoration.**
 
-Immediate runtime gate: PR #69 is accepted. After PR #70 passes CI and merges, the owner manually deploys latest API + web and validates assisted permission correction, claim-time end of Agent-controlled scope editing, and postclaim owner permission management. Phase 18D/18E and Phase 19A–19E combined runtime acceptance remains separately pending.
+Immediate runtime gate: PR #69 is accepted and PR #70 is merged with CI green. The owner manually deploys latest main API + web and validates assisted permission correction, claim-time end of Agent-controlled scope editing, and postclaim owner permission management. Phase 18D/18E and Phase 19A–19E combined runtime acceptance remains separately pending.
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
