@@ -22,6 +22,7 @@ import { LiveModule } from "./live/live.module";
 import { AgentApplicationModule } from "./agent-application/agent-application.module";
 import { AgentRelationshipModule } from "./agent-relationship/agent-relationship.module";
 import { AgentAssistedOnboardingModule } from "./agent-assisted-onboarding/agent-assisted-onboarding.module";
+import { AgentPrincipalOnboardingModule } from "./agent-principal-onboarding/agent-principal-onboarding.module";
 import { AgentBusinessModule } from "./agent-business/agent-business.module";
 import { AgentClientOperationsModule } from "./agent-client-operations/agent-client-operations.module";
 import { AdminOperationsModule } from "./admin-operations/admin-operations.module";
@@ -52,6 +53,7 @@ import { RequestContextMiddleware } from "./common/middleware/request-context.mi
     AgentApplicationModule,
     AgentRelationshipModule,
     AgentAssistedOnboardingModule,
+    AgentPrincipalOnboardingModule,
     AgentBusinessModule,
     AgentClientOperationsModule,
     AdminOperationsModule
