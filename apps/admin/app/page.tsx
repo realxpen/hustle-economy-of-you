@@ -282,6 +282,7 @@ export default function AdminOperationsHome() {
         </p>
       </div>
       <div className="top-actions">
+        <a className="secondary" href="/appeals">Appeals</a>
         <a className="secondary" href="/moderation">Moderation</a>
         <a className="secondary" href="/cases">Cases</a>
         <a className="secondary" href="/applications">Applications</a>
