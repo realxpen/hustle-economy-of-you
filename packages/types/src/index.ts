@@ -272,6 +272,13 @@ export interface CreateAgentAssistedRegistrationInput {
   permissions?: AgentPermissionScope[];
 }
 
+export interface UpdateAgentAssistedPermissionsInput {
+  permissions: AgentPermissionScope[];
+  consentConfirmed: true;
+  consentMethod: AssistedConsentMethod;
+  consentNote?: string | null;
+}
+
 export interface UpdateAgentAssistedIdentityInput {
   displayName?: string | null;
   username?: string;
