@@ -146,6 +146,23 @@ enum MarketplaceModerationActionType {
   RELEASE
 }
 
+enum EnforcementAppealActionType {
+  CONTENT_HOLD
+  CAPABILITY_SUSPENSION
+}
+
+enum EnforcementAppealStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  DECIDED
+  CLOSED
+}
+
+enum EnforcementAppealDecision {
+  UPHELD
+  OVERTURNED
+}
+
 enum PostMediaType {
   IMAGE
   VIDEO
@@ -389,6 +406,9 @@ model User {
   assignedMarketplaceCases    MarketplaceCase[] @relation("MarketplaceCaseAssignedTo")
   marketplaceCaseNotes         MarketplaceCaseNote[] @relation("MarketplaceCaseNoteAuthor")
   moderationActions            MarketplaceModerationAction[] @relation("MarketplaceModerationActionActor")
+  enforcementAppeals           EnforcementAppeal[] @relation("EnforcementAppealAppellant")
+  enforcementActionsAppealed   EnforcementAppeal[] @relation("EnforcementAppealOriginalActor")
+  enforcementAppealsReviewed   EnforcementAppeal[] @relation("EnforcementAppealReviewer")
   reputation                  UserReputation?
 }
 
@@ -1349,4 +1369,35 @@ model MarketplaceModerationAction {
   @@index([subjectType, subjectId, createdAt])
   @@index([actorUserId, createdAt])
   @@index([ownerUserId, createdAt])
+}
+
+
+model EnforcementAppeal {
+  id                    String                    @id @default(cuid())
+  actionType            EnforcementAppealActionType
+  enforcementRef        String                    @unique
+  targetKind            String
+  targetId              String
+  appellantUserId       String
+  originalActorUserId   String
+  assignedReviewerUserId String?
+  reason                String
+  status                EnforcementAppealStatus   @default(SUBMITTED)
+  decision              EnforcementAppealDecision?
+  decisionReason        String?
+  submittedAt           DateTime                  @default(now())
+  reviewStartedAt       DateTime?
+  decidedAt             DateTime?
+  closedAt              DateTime?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  appellant     User  @relation("EnforcementAppealAppellant", fields: [appellantUserId], references: [id], onDelete: Restrict)
+  originalActor User  @relation("EnforcementAppealOriginalActor", fields: [originalActorUserId], references: [id], onDelete: Restrict)
+  reviewer      User? @relation("EnforcementAppealReviewer", fields: [assignedReviewerUserId], references: [id], onDelete: SetNull)
+
+  @@index([appellantUserId, submittedAt])
+  @@index([status, submittedAt])
+  @@index([assignedReviewerUserId, status, updatedAt])
+  @@index([originalActorUserId, createdAt])
 }
