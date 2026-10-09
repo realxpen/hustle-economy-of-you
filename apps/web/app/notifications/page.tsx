@@ -21,6 +21,20 @@ function time(value: string) {
   }).format(new Date(value));
 }
 
+function notificationTitle(item: HustleNotification) {
+  if (item.kind !== "MESSAGE") return item.title;
+  if (item.unreadMessages > 1) return `${item.unreadMessages} new messages`;
+  if (item.unreadMessages === 1) return "New message";
+  if (item.messageCount > 1) return `${item.messageCount} messages in this conversation`;
+  return "Message";
+}
+
+function notificationDescription(item: HustleNotification) {
+  return item.kind === "MESSAGE"
+    ? "Open this conversation to catch up."
+    : item.body;
+}
+
 function allowedHref(path: string) {
   return path.startsWith("/") && !path.startsWith("//") && !path.includes("\\")
     ? path
@@ -133,10 +147,10 @@ export default function NotificationsPage() {
           <span className={styles.itemIcon} aria-hidden="true">{item.kind === "MESSAGE" ? "↗" : "•"}</span>
           <span className={styles.itemText}>
             <span className={styles.itemHead}>
-              <strong>{item.title}</strong>
+              <strong>{notificationTitle(item)}</strong>
               {!item.readAt && <span className={styles.dot} aria-label="Unread notification" />}
             </span>
-            <span className={styles.description}>{item.body}</span>
+            <span className={styles.description}>{notificationDescription(item)}</span>
             <time dateTime={item.createdAt}>{time(item.createdAt)}</time>
           </span>
           <span aria-hidden="true" className={styles.openArrow}>→</span>
