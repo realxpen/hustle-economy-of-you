@@ -351,6 +351,17 @@ enum MarketplaceCasePriority {
   HIGH
 }
 
+enum NotificationKind {
+  MESSAGE
+  BOOKING
+  ORDER
+  APPLICATION
+  REVIEW
+  LIVE
+  SOCIAL
+  SAFETY
+}
+
 model User {
   id                          String                    @id @default(cuid())
   authSubject                 String                    @unique
@@ -409,6 +420,7 @@ model User {
   enforcementAppeals           EnforcementAppeal[] @relation("EnforcementAppealAppellant")
   enforcementActionsAppealed   EnforcementAppeal[] @relation("EnforcementAppealOriginalActor")
   enforcementAppealsReviewed   EnforcementAppeal[] @relation("EnforcementAppealReviewer")
+  notifications              Notification[]
   reputation                  UserReputation?
 }
 
@@ -1299,6 +1311,26 @@ model UserBlock {
 
   @@id([blockerUserId, blockedUserId])
   @@index([blockedUserId, createdAt])
+}
+
+// Phase 20A: an authoritative, per-recipient in-app inbox.
+// eventKey prevents duplicate deliveries if a source action is retried.
+model Notification {
+  id              String           @id @default(cuid())
+  recipientUserId String
+  eventKey        String
+  kind            NotificationKind
+  title           String
+  body            String
+  href            String
+  readAt          DateTime?
+  createdAt       DateTime         @default(now())
+
+  recipient User @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  @@unique([recipientUserId, eventKey])
+  @@index([recipientUserId, createdAt, id])
+  @@index([recipientUserId, readAt, createdAt])
 }
 
 model SystemEvent {
