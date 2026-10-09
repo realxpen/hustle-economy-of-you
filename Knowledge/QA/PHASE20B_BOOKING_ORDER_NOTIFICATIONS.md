@@ -1,6 +1,6 @@
 # Phase 20B — Booking and Order Notifications QA
 
-Status: implementation in progress; CI and production runtime acceptance pending.
+Status: PR #74 merged, CI green on 2026-10-09. Existing Notification schema ready; no migration required. Manual API deployment and all listed production runtime acceptance tests PENDING.
 Scope: API-owned, in-app Booking/Order lifecycle notices.
 
 ## Booking (disposable accounts, no live money)
@@ -25,5 +25,5 @@ Scope: API-owned, in-app Booking/Order lifecycle notices.
 - [ ] Unrelated user cannot read Booking or Order detail from inbox URL.
 - [ ] Read/unread and MESSAGE grouping remain intact.
 - [ ] No external push/email, no economic authority attached to notifications.
-- [ ] CI Web/Admin/Mobile/API typechecks and Web/Admin/API builds green.
+- [x] CI Web/Admin/Mobile/API typechecks and Web/Admin/API builds green (PR #74 HEAD `6495605`, workflow run `37937420879` succeeded).
 - [ ] Owner deploys API manually after merge and confirms runtime acceptance with exact SHA.
