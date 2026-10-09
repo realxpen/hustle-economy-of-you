@@ -1,0 +1,64 @@
+name: Isolated Payment Sandbox
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/payment-sandbox.yml"
+      - "scripts/payment-sandbox/**"
+      - "apps/api/src/payment/**"
+      - "apps/api/src/commerce/**"
+      - "apps/api/src/notifications/**"
+      - "apps/api/prisma/**"
+      - "apps/api/package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+jobs:
+  paid-order-lifecycle:
+    name: Signed sandbox webhook to completed Order
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: sandbox_only
+          POSTGRES_DB: hustle_payment_sandbox
+        ports:
+          - 127.0.0.1:55439:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hustle_payment_sandbox"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:sandbox_only@127.0.0.1:55439/hustle_payment_sandbox?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Mint throwaway webhook secret
+        shell: bash
+        run: |
+          echo "HUSTLE_SANDBOX_WEBHOOK_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - name: Bootstrap Supabase-compatible database roles (isolated local Postgres only)
+        shell: bash
+        run: |
+          PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -f scripts/payment-sandbox/supabase-compat.sql
+      - name: Apply all Hustle migrations to disposable Postgres
+        run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+      - name: Build actual Nest API
+        run: npm run build --workspace=@hustle/api
+      - name: Run end-to-end paid Order and notification assertions
+        run: node scripts/payment-sandbox/run.mjs
