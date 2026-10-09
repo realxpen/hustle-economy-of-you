@@ -519,6 +519,7 @@ export default function AgentRepresentationBusinessPage() {
           <div className={styles.actions}>
             <span>{booking.nextAction ?? "No delegated booking action available."}</span>
             <div>
+              <a className={styles.secondary} href={`/agent-workspace/representations/${encodeURIComponent(principalUserId)}/bookings/${encodeURIComponent(booking.id)}`}>Review full request →</a>
               {booking.agentAllowedActions.includes("ACCEPT") && <button className={styles.primary} disabled={busy!==null} onClick={()=>run(`booking-${booking.id}`,()=>acceptAgentBooking(principalUserId,booking.id),"Booking accepted on the Hustler's behalf.")}>Accept requested time</button>}
               {booking.agentAllowedActions.includes("DECLINE") && <button className={styles.secondary} disabled={busy!==null} onClick={()=>run(`booking-${booking.id}`,()=>declineAgentBooking(principalUserId,booking.id),"Booking declined on the Hustler's behalf.")}>Decline</button>}
               {booking.agentAllowedActions.includes("CANCEL") && <button className={styles.danger} disabled={busy!==null} onClick={()=>run(`booking-${booking.id}`,()=>cancelAgentBooking(principalUserId,booking.id),"Booking cancelled before funded work.")}>Cancel</button>}
