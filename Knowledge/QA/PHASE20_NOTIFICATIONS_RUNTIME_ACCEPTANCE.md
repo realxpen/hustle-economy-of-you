@@ -1,12 +1,12 @@
 # Phase 20 — Notifications Runtime Acceptance
 
 **Current scope:** Phase 20A — persistent in-app inbox and direct-message alerts
-**Status:** implementation branch in progress; database activation, CI, deployment and runtime acceptance PENDING.
+**Status:** PR #72 merged with full CI green; approved production database migration applied and inspected 2026-10-09; owner-controlled API/Web deployment and runtime acceptance PENDING.
 **Boundary:** Do not mark Phase 20 complete until later source events are integrated and accepted.
 
 ## Database gate
-- [ ] Apply `20261009130000_phase20a_notification_inbox` to test/staging, verify API role access, RLS, uniqueness and indexes.
-- [ ] Approve and apply the migration to the correct production database BEFORE any API deployment using Phase 20A.
+- [ ] Isolated test/staging database run NOT performed — no existing branch; do not claim it passed. Preflight schema compatibility was inspected read-only, and production post-migration schema/index/RLS/privileges were verified.
+- [x] Owner approved and migration `phase20a_notification_inbox` applied to verified production Supabase project `pfgarmyygybmhiiuopym` on 2026-10-09 (Supabase migration version `20261009123129`). Verified table, 9 columns, enum, FK, 4 indexes, 3 API-only RLS policies, role privileges, zero initial rows.
 - [ ] Do not use a live payment or escrow event as a notification fixture.
 
 ## API and messaging
@@ -24,6 +24,6 @@
 - [ ] No external push/SMS/email or unsupported financial/reputation alerts are claimed.
 
 ## Release
-- [ ] GitHub CI green and PR reviewed/merged.
+- [x] GitHub CI green and PR #72 merged as `ea142411fda852931fd7bfdc0b5bffcc31ca0868`.
 - [ ] Owner manually deploys API and Web only after migration activation; no automatic deployment.
 - [ ] Owner confirms real frontend/runtime test results with date and deployed SHA.
