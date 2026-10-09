@@ -1,6 +1,6 @@
 # ADR-0048 — Phase 20B Booking and Order Lifecycle Notifications
 
-Status: Implementation proposed, runtime acceptance pending
+Status: PR #74 merged (`9b2370282af01fd9a69d7d33ef9616aaf0af664b`), CI green 2026-10-09; manual API deployment and owner runtime acceptance pending
 Date: 2026-10-09
 
 ## Context
