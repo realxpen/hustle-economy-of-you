@@ -6,7 +6,7 @@ Updated: 2026-10-09
 Build
 
 ## Current MVP phase
-Phase 20A — Notifications Foundation (implementation in feature branch; migration not applied; production API/Web not deployed; runtime acceptance pending). First slice: server-owned inbox, read/unread, user-scoped API, direct-message and Agent-delegated Message alerts, Web notifications route.
+Phase 20A — Notifications Foundation: MERGED PR #72 (`ea142411fda852931fd7bfdc0b5bffcc31ca0868`); full GitHub CI passed 2026-10-09 (Web/Admin/Mobile/API typechecks, Prisma generation, Web/Admin/API builds). In-app inbox, per-user notification API/read state and atomic notifications for ordinary and Agent-assisted direct Messages implemented. Database migration `20261009130000_phase20a_notification_inbox` NOT APPLIED; production API and Web NOT DEPLOYED for Phase 20A; runtime acceptance pending. Follow-on notifications for Bookings, Orders, applications, Live etc. not yet built.
 
 Phase 19E — Appeals, Enforcement Review & Restoration (merged + database active; manual production/runtime acceptance pending)
 
@@ -41,11 +41,11 @@ Phase 14 — Trust + Reputation is COMPLETE.
 Phase 15 — Public Hustle Storefront Website is COMPLETE.
 Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI and runtime validated 2026-09-17.
 
-Current active implementation slice: **Phase 20A Notifications Foundation — in-app inbox + direct-message alerts.** Phase 19C–19E are merged with database activation but still awaiting their independent runtime acceptance. Phase 18E's isolated sandbox-funded Booking start remains outstanding.
+Current active implementation milestone: **Phase 20A Notifications Foundation — merged, CI green; DATABASE MIGRATION + OWNER-CONTROLLED DEPLOYMENT + RUNTIME ACCEPTANCE PENDING.** Phase 19C–19E are merged with database activation but still awaiting their independent runtime acceptance. Phase 18E's isolated sandbox-funded Booking start remains outstanding.
 
 Runtime acceptance backlog: Phases 19C–19E (merged, DB active, production acceptance pending) and the isolated sandbox-only paid FUNDED Booking start test for Phase 18E. Phases 19A and 19B are closed. Next implementation build from the approved feature map is Phase 20 — Notifications.
 
-Phase 20A release gate: apply/test `20261009130000_phase20a_notification_inbox` in a safe environment, then approve/apply to intended production DB **before** manually deploying API/Web. No automatic deployments or external push delivery. Canonical ADR: `Knowledge/Decisions/ADR-0046-phase20a-user-notification-inbox.md`; QA: `Knowledge/QA/PHASE20_NOTIFICATIONS_RUNTIME_ACCEPTANCE.md`.
+Phase 20A release gate: PR #72 merged with full CI green. Apply/test `20261009130000_phase20a_notification_inbox` in a safe environment, then obtain owner approval/apply to production DB **before** manually deploying API/Web. No automatic deployments or external push delivery. Do not start Phase 20A API on a database missing Notification, because new direct-message writes depend on that table. Canonical ADR: `Knowledge/Decisions/ADR-0046-phase20a-user-notification-inbox.md`; QA: `Knowledge/QA/PHASE20_NOTIFICATIONS_RUNTIME_ACCEPTANCE.md`.
 
 Immediate runtime gate: PR #69 and PR #70 are production-accepted; Phase 18D delegated Profile, Service, Product and Content operations plus capability boundaries, scope revocation and audits are now owner-validated COMPLETE. Phase 18E tested Booking transitions/boundaries plus delegated Client Message read/reply, visible Agent attribution, unread-state preservation, message-grant revocation denial and ordinary messaging have passed owner runtime testing; unrelated-principal Booking isolation and immediate Booking-scope revocation denial have now passed; blocked-conversation enforcement has now passed; sandbox-only paid FUNDED Booking start remains pending; stored Agent message provenance and Agent suspension/reactivation enforcement passed owner testing on 2026-10-09, followed by Phase 19A–19E Admin Marketplace Operations. Phase 19A is now COMPLETE as of owner-confirmed 2026-10-09 acceptance. Phases 19B–19E remain pending their respective production checks. Keep each slice pending until its full checklist passes. API and Web are manually deployed from `f15ebead3823183045545d6bb716477f53d62900`; no automatic deployments or Vercel Git integrations. Deployments remain manual and owner-controlled.
 
