@@ -1,6 +1,6 @@
 # Phase 20B — Booking and Order Notifications QA
 
-Status: PR #74 merged, CI green on 2026-10-09. Existing Notification schema ready; no migration required. Manual API deployment and all listed production runtime acceptance tests PENDING.
+Status: PR #74 merged, CI green on 2026-10-09. Notification schema already active; no migration required. API and Web production deployments verified READY at `9bcd33e7cb3e5301820880828b7a35e21bff61f0` on 2026-10-09. Owner runtime acceptance tests listed below remain PENDING.
 Scope: API-owned, in-app Booking/Order lifecycle notices.
 
 ## Booking (disposable accounts, no live money)
@@ -26,4 +26,4 @@ Scope: API-owned, in-app Booking/Order lifecycle notices.
 - [ ] Read/unread and MESSAGE grouping remain intact.
 - [ ] No external push/email, no economic authority attached to notifications.
 - [x] CI Web/Admin/Mobile/API typechecks and Web/Admin/API builds green (PR #74 HEAD `6495605`, workflow run `37937420879` succeeded).
-- [ ] Owner deploys API manually after merge and confirms runtime acceptance with exact SHA.
+- [x] Owner reports API updated, and Vercel independently confirms API READY on `9bcd33e7cb3e5301820880828b7a35e21bff61f0`; Web also READY at the same SHA. **Runtime acceptance remains pending**.
