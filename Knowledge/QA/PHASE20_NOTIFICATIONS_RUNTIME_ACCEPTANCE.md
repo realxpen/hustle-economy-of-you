@@ -10,7 +10,7 @@
 - [ ] Do not use a live payment or escrow event as a notification fixture.
 
 ## API and messaging
-- [ ] Ordinary direct Message creates one persisted alert for the recipient and none for the sender.
+- [x] Ordinary direct Message creates one persisted alert for the recipient and none for the sender. Owner confirmed Phase 20A first-pass manual testing 2026-10-09 before grouping fix (repeated messages correctly produced separate underlying alerts).
 - [ ] Agent-assisted direct Message creates recipient alert without transferring principal ownership or Agent audit attribution.
 - [ ] Repeated source event cannot create duplicate alerts.
 - [ ] Alerts scoped to user; unrelated users cannot list/mark another user's alerts.
@@ -18,10 +18,26 @@
 - [ ] Stable cursor pagination and invalid-limit/cursor/unauthenticated denial.
 
 ## Web
-- [ ] `/notifications` loads, persists across refresh, and links to correct `/messages/:conversationId`.
+- [x] `/notifications` loads, persists across refresh, and links to correct `/messages/:conversationId` (owner-confirmed initial Phase 20A smoke test, 2026-10-09).
 - [ ] Mark-read, mark-all-read, badges and older notifications work.
 - [ ] Account/Messages navigation displays route, works on mobile viewport.
 - [ ] No external push/SMS/email or unsupported financial/reputation alerts are claimed.
+
+## Grouping correction — ADR-0047
+
+**Observation:** Owner confirmed normal message notification flow worked but repeated messages in the same conversation showed separate inbox cards. Grouping correction merged status and deployment acceptance are tracked separately.
+
+- [ ] Three unread messages from one person/conversation display **one notification card**, e.g. "3 new messages"; original Messages stay separate in the conversation.
+- [ ] Existing historical notification cards also consolidate without deleting notification rows.
+- [ ] Two separate conversations display separate cards; non-message notifications stay independent.
+- [ ] Unread badge counts attention-worthy **groups** (one thread with three unread messages counts once).
+- [ ] Opening a thread notification marks that group read only; unrelated threads stay unread.
+- [ ] A message arriving after the selected card remains unread; new activity reactivates the group.
+- [ ] Page 1/Load older shows distinct groups (no split of one thread across pages).
+- [ ] Unauthorized access and cross-user mark-read are denied; no notification database migration.
+- [ ] API/Web builds and runtime acceptance passed after owner-controlled deployment.
+
+**Preflight:** A read-only production grouping query on 2026-10-09 verified that two existing notification events from one conversation formed one group. This is database query validation only, **not** production app acceptance.
 
 ## Release
 - [x] GitHub CI green and PR #72 merged as `ea142411fda852931fd7bfdc0b5bffcc31ca0868`.
