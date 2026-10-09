@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminAuth } from "../components/admin-auth-provider";
+
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   getAdminApplicationQueues,
@@ -22,7 +24,6 @@ import {
   type OperationsOverview
 } from "../lib/admin-api";
 
-const TOKEN_KEY = "hustle-admin-access-token";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
@@ -52,8 +53,7 @@ function count(record: Record<string, number>, key: string) {
 }
 
 export default function AdminOperationsHome() {
-  const [token, setToken] = useState("");
-  const [tokenDraft, setTokenDraft] = useState("");
+  const { token, signOut } = useAdminAuth();
   const [overview, setOverview] = useState<OperationsOverview | null>(null);
   const [applications, setApplications] = useState<AdminApplicationQueues | null>(null);
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
@@ -71,12 +71,6 @@ export default function AdminOperationsHome() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    const existing = window.sessionStorage.getItem(TOKEN_KEY) ?? "";
-    setToken(existing);
-    setTokenDraft(existing);
-  }, []);
 
   useEffect(() => {
     if (token) void loadOperations(token);
@@ -116,28 +110,6 @@ export default function AdminOperationsHome() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function saveToken() {
-    const next = tokenDraft.trim();
-    if (!next) return;
-    window.sessionStorage.setItem(TOKEN_KEY, next);
-    setToken(next);
-    setNotice("Admin session stored only for this browser tab session.");
-  }
-
-  function clearToken() {
-    window.sessionStorage.removeItem(TOKEN_KEY);
-    setToken("");
-    setTokenDraft("");
-    setOverview(null);
-    setApplications(null);
-    setUsers([]);
-    setSelectedUser(null);
-    setBookings([]);
-    setOrders([]);
-    setFinance(null);
-    setAudit([]);
   }
 
   async function searchUsers(event?: FormEvent) {
@@ -246,31 +218,6 @@ export default function AdminOperationsHome() {
     );
   }, [overview]);
 
-  if (!token) {
-    return <main className="admin-shell auth-shell">
-      <section className="auth-card">
-        <p className="eyebrow">HUSTLE / OPERATIONS</p>
-        <h1>Run the marketplace.</h1>
-        <p>
-          Phase 19A is a read-oriented operating console. It exposes authoritative marketplace
-          state without granting money-moving or suspension actions.
-        </p>
-        <label className="field">
-          <span>ADMIN ACCESS TOKEN</span>
-          <textarea
-            rows={5}
-            value={tokenDraft}
-            onChange={(event) => setTokenDraft(event.target.value)}
-            placeholder="Paste the current authenticated admin bearer token"
-          />
-        </label>
-        <button className="primary" type="button" onClick={saveToken} disabled={!tokenDraft.trim()}>
-          Open operations
-        </button>
-      </section>
-    </main>;
-  }
-
   return <main className="admin-shell">
     <header className="topbar">
       <div>
@@ -288,7 +235,7 @@ export default function AdminOperationsHome() {
         <a className="secondary" href="/applications">Applications</a>
         <a className="secondary" href="/trust-safety">Trust & Safety</a>
         <button className="secondary" type="button" onClick={() => void loadOperations()} disabled={loading}>Refresh</button>
-        <button className="danger" type="button" onClick={clearToken}>End session</button>
+        <button className="danger" type="button" onClick={() => void signOut()}>End session</button>
       </div>
     </header>
 
