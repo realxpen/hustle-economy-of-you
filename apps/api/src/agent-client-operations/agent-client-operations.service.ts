@@ -876,6 +876,13 @@ export class AgentClientOperationsService {
         });
       }
 
+      await this.notifications.recordBookingStatus(
+        tx,
+        updated,
+        updated.status,
+        ctx.actorUserId
+      );
+
       return this.serializeBooking(updated);
     });
   }
