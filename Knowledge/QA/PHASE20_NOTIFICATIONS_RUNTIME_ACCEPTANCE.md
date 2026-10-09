@@ -25,7 +25,7 @@
 
 ## Grouping correction — ADR-0047
 
-**Observation:** Owner confirmed normal message notification flow worked but repeated messages in the same conversation showed separate inbox cards. Grouping correction merged status and deployment acceptance are tracked separately.
+**Observation:** Owner confirmed normal message notification flow worked but repeated messages in the same conversation showed separate inbox cards. Grouping fix PR #73 merged (`ba70e5a`), all GitHub CI green on 2026-10-09. Read-only production SQL confirmed one group for existing same-thread events. This code is NOT deployed; API/Web production remain at earlier `980352e`. All checklist scenarios below still require owner-confirmed post-deployment runtime acceptance.
 
 - [ ] Three unread messages from one person/conversation display **one notification card**, e.g. "3 new messages"; original Messages stay separate in the conversation.
 - [ ] Existing historical notification cards also consolidate without deleting notification rows.
