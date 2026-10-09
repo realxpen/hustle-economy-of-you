@@ -18,6 +18,7 @@
     "dev:mobile": "npm run start --workspace=@hustle/mobile",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
+    "sandbox:payments": "node scripts/payment-sandbox/local.mjs",
     "phase2:gate": "node scripts/phase2-gate-check.mjs",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
