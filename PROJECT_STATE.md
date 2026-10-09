@@ -12,7 +12,7 @@ Phase 19D — Marketplace Content Moderation & Enforcement (merged + database ac
 
 Phase 19C — Marketplace Casework & Dispute Triage (merged + database active; runtime pending combined acceptance)
 
-Phase 19B — Admin Capability + Application Operations (merged; PARTIAL production acceptance 2026-10-09: Hustler and Agent application review/verification/proof preview/approval passed; Agent capability ACTIVE, assigned reviewer and self-review denial confirmed. Rejection reason, missing-verification/proof negative tests and capability suspension/reactivation boundaries remain pending)
+Phase 19B — Admin Capability + Application Operations (merged; PARTIAL production acceptance 2026-10-09: Hustler and Agent application review/verification/proof preview/approval passed; Agent capability ACTIVE, reviewer-assignment and self-review denial confirmed. Empty-reason rejection, unverified/missing-proof approval denial and valid reasoned rejection passed. Capability suspension/reactivation boundaries remain pending)
 
 Phase 19A — Admin Marketplace Operations Foundation: COMPLETE — owner-confirmed production runtime acceptance 2026-10-09. Overview, non-Admin denial, marketplace datasets, Trust & Safety navigation, user search and capability visibility, read-only user inspection, audit event history, Booking/Order status filters and finance read-only/no-money-operation boundaries all passed.
 
@@ -750,7 +750,7 @@ Phase 19A runtime acceptance COMPLETE, owner-confirmed 2026-10-09 after Admin au
 
 
 ### 19B — Admin Capability + Application Operations
-MERGED — PARTIAL production acceptance, owner-confirmed 2026-10-09. Eligible Hustler and Agent applications each passed queue visibility, start review, secure identity proof preview, verified identity and approval. Approved Agent became ACTIVE; self-review and unauthorized reviewer bypass were denied. Rejection without reason, unverified/missing-proof approval, capability suspension/reactivation consistency, protected mutation denial and audit boundaries still pending.
+MERGED — PARTIAL production acceptance, owner-confirmed 2026-10-09. Eligible Hustler and Agent applications each passed queue visibility, start review, secure identity proof preview, verified identity and approval. Approved Agent became ACTIVE; self-review and unauthorized reviewer bypass were denied. Rejection without reason, unverified/missing-proof approval, and valid rejection with preserved reason passed owner testing on 2026-10-09. Capability suspension/reactivation consistency, protected mutation denial and audit boundaries still pending.
 
 Merge:
 - PR #65 `318d3b07df8c4cccd1c46216ecd2994b90bed0d8`
