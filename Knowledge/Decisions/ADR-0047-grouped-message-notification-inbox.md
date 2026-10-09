@@ -1,6 +1,6 @@
 # ADR-0047 — Group Direct Message Notifications by Conversation
 
-Status: Accepted for implementation; runtime acceptance pending
+Status: PR #73 MERGED, full GitHub CI passed 2026-10-09; manual API/Web deployment and owner runtime acceptance pending.
 Date: 2026-10-09
 
 ## Observation
@@ -44,5 +44,7 @@ The REST endpoints remain:
 - [ ] Grouping occurs before pagination and load-more never duplicates groups in a stable dataset.
 - [ ] API recipient isolation, unauthenticated denial, and no external push/financial side effects remain intact.
 - [ ] Web/API types and production builds pass.
+
+PR #73 merge: `ba70e5a7ab1ca8c3e4b42debffe7dbcd94747540`. The source query was exercised read-only against Hustle's existing production notification events and showed multiple events from one conversation as one group. GitHub CI passed Web/Admin/Mobile/API typechecks and Web/Admin/API production builds. The change needs no database migration. API/Web Vercel production remained at the pre-fix `980352e` when checked; no deployment was triggered.
 
 CI and API behavior are separate from owner-reported production acceptance. Owner controls Vercel releases.
