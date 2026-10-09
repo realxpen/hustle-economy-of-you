@@ -14,7 +14,7 @@ Phase 19C — Marketplace Casework & Dispute Triage (merged + database active; r
 
 Phase 19B — Admin Capability + Application Operations (merged; runtime acceptance deferred for combined validation)
 
-Phase 19A — Admin Marketplace Operations Foundation (merged; PARTIAL production runtime acceptance: overview, denied non-Admin, primary marketplace data, Trust & Safety, user search by username/name/email/ID, capability visibility and read-only user inspection, and actor/event/timestamp audit history confirmed by owner 2026-10-09; Booking/Order filter accuracy and finance read-only boundary still pending)
+Phase 19A — Admin Marketplace Operations Foundation: COMPLETE — owner-confirmed production runtime acceptance 2026-10-09. Overview, non-Admin denial, marketplace datasets, Trust & Safety navigation, user search and capability visibility, read-only user inspection, audit event history, Booking/Order status filters and finance read-only/no-money-operation boundaries all passed.
 
 Admin automatic session auth — PR #71 MERGED (`9757971ebd64b3c54786f8a78901498d3e2a5381`); full PR CI green 2026-10-09. Standalone Admin now uses first-party Supabase email/password login with automatic session restoration and refresh, shared guard across all Admin routes, same-origin auth transport and server-enforced AdminGuard. Admin production NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are configured; API ADMIN_ORIGIN is configured. Owner confirmed successful Admin production deployment and runtime acceptance on 2026-10-09: login, session restoration after refresh, cross-route navigation, API data visibility, non-Admin denial and sign-out passed. No API redeploy required for PR #71, no schema migration, no automatic deployment. Canonical decision: `Knowledge/Decisions/ADR-0045-admin-authenticated-session.md`.
 
@@ -41,7 +41,9 @@ Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI
 
 Current active slice: **Phase 19E Appeals, Enforcement Review & Restoration — independent review of exact enforcement events with controlled, non-financial restoration.**
 
-Immediate runtime gate: PR #69 and PR #70 are production-accepted; Phase 18D delegated Profile, Service, Product and Content operations plus capability boundaries, scope revocation and audits are now owner-validated COMPLETE. Phase 18E tested Booking transitions/boundaries plus delegated Client Message read/reply, visible Agent attribution, unread-state preservation, message-grant revocation denial and ordinary messaging have passed owner runtime testing; unrelated-principal Booking isolation and immediate Booking-scope revocation denial have now passed; blocked-conversation enforcement has now passed; sandbox-only paid FUNDED Booking start remains pending; stored Agent message provenance and Agent suspension/reactivation enforcement passed owner testing on 2026-10-09, followed by Phase 19A–19E Admin Marketplace Operations. These remain pending their respective production checks. Keep each slice pending until its full checklist passes. API and Web are manually deployed from `f15ebead3823183045545d6bb716477f53d62900`; no automatic deployments or Vercel Git integrations. Deployments remain manual and owner-controlled.
+Runtime acceptance focus: **Phase 19B — Admin Capability + Application Operations**, followed by Phase 19C–19E. Phase 19A is closed; Phase 18E remains partial until a sandbox-only paid FUNDED Booking start test is completed.
+
+Immediate runtime gate: PR #69 and PR #70 are production-accepted; Phase 18D delegated Profile, Service, Product and Content operations plus capability boundaries, scope revocation and audits are now owner-validated COMPLETE. Phase 18E tested Booking transitions/boundaries plus delegated Client Message read/reply, visible Agent attribution, unread-state preservation, message-grant revocation denial and ordinary messaging have passed owner runtime testing; unrelated-principal Booking isolation and immediate Booking-scope revocation denial have now passed; blocked-conversation enforcement has now passed; sandbox-only paid FUNDED Booking start remains pending; stored Agent message provenance and Agent suspension/reactivation enforcement passed owner testing on 2026-10-09, followed by Phase 19A–19E Admin Marketplace Operations. Phase 19A is now COMPLETE as of owner-confirmed 2026-10-09 acceptance. Phases 19B–19E remain pending their respective production checks. Keep each slice pending until its full checklist passes. API and Web are manually deployed from `f15ebead3823183045545d6bb716477f53d62900`; no automatic deployments or Vercel Git integrations. Deployments remain manual and owner-controlled.
 
 Phase 17 is CLOSED. All four final production runtime checks were confirmed by the project owner on 2026-10-07.
 
@@ -697,7 +699,7 @@ Phase 18D runtime validation is COMPLETE, confirmed by the project owner on 2026
 
 
 ### 19A — Admin Marketplace Operations Foundation
-MERGED — runtime acceptance deferred for combined validation.
+COMPLETE — owner-confirmed production runtime acceptance 2026-10-09; all section C checks in the canonical 18D–19E acceptance checklist passed.
 
 Merge:
 - PR #64 `c24aaa7ebf0a46ca4679cc844b1275b92c493b07`
@@ -744,7 +746,7 @@ Admin app:
 These higher-risk controls require explicit Phase 19 follow-on policy and audit decisions.
 
 
-Phase 19A runtime acceptance began 2026-10-09 after Admin auto-login validation; dedicated search/filter/audit/read-only checks remain pending.
+Phase 19A runtime acceptance COMPLETE, owner-confirmed 2026-10-09 after Admin auto-login validation and dedicated user search, Booking/Order filters, audit event visibility, finance read-only and prohibited money-operation checks.
 
 
 ### 19B — Admin Capability + Application Operations
