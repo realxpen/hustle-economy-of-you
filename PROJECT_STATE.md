@@ -12,7 +12,7 @@ Phase 19D — Marketplace Content Moderation & Enforcement (merged + database ac
 
 Phase 19C — Marketplace Casework & Dispute Triage (merged + database active; runtime pending combined acceptance)
 
-Phase 19B — Admin Capability + Application Operations (merged; PARTIAL production acceptance 2026-10-09: Hustler and Agent application review/verification/proof preview/approval passed; Agent capability ACTIVE, reviewer-assignment and self-review denial confirmed. Empty-reason rejection, unverified/missing-proof approval denial and valid reasoned rejection passed. Capability suspension/reactivation boundaries remain pending)
+Phase 19B — Admin Capability + Application Operations: COMPLETE — owner-confirmed production runtime acceptance 2026-10-09. Hustler/Agent reviews and approval safeguards, assigned-reviewer/self-review denial, reasoned rejection, reversible capability suspension/reactivation, corresponding application states, retained history, CLIENT continuity, protected-action denial/recovery, audit evidence and no forbidden financial/reputation/account-ban actions passed.
 
 Phase 19A — Admin Marketplace Operations Foundation: COMPLETE — owner-confirmed production runtime acceptance 2026-10-09. Overview, non-Admin denial, marketplace datasets, Trust & Safety navigation, user search and capability visibility, read-only user inspection, audit event history, Booking/Order status filters and finance read-only/no-money-operation boundaries all passed.
 
@@ -41,7 +41,7 @@ Phase 16 — Stories + Universal User Content is COMPLETE — implementation, CI
 
 Current active slice: **Phase 19E Appeals, Enforcement Review & Restoration — independent review of exact enforcement events with controlled, non-financial restoration.**
 
-Runtime acceptance focus: **Phase 19B — Admin Capability + Application Operations**, followed by Phase 19C–19E. Phase 19A is closed; Phase 18E remains partial until a sandbox-only paid FUNDED Booking start test is completed.
+Runtime acceptance backlog: Phases 19C–19E (merged, DB active, production acceptance pending) and the isolated sandbox-only paid FUNDED Booking start test for Phase 18E. Phases 19A and 19B are closed. Next implementation build from the approved feature map is Phase 20 — Notifications.
 
 Immediate runtime gate: PR #69 and PR #70 are production-accepted; Phase 18D delegated Profile, Service, Product and Content operations plus capability boundaries, scope revocation and audits are now owner-validated COMPLETE. Phase 18E tested Booking transitions/boundaries plus delegated Client Message read/reply, visible Agent attribution, unread-state preservation, message-grant revocation denial and ordinary messaging have passed owner runtime testing; unrelated-principal Booking isolation and immediate Booking-scope revocation denial have now passed; blocked-conversation enforcement has now passed; sandbox-only paid FUNDED Booking start remains pending; stored Agent message provenance and Agent suspension/reactivation enforcement passed owner testing on 2026-10-09, followed by Phase 19A–19E Admin Marketplace Operations. Phase 19A is now COMPLETE as of owner-confirmed 2026-10-09 acceptance. Phases 19B–19E remain pending their respective production checks. Keep each slice pending until its full checklist passes. API and Web are manually deployed from `f15ebead3823183045545d6bb716477f53d62900`; no automatic deployments or Vercel Git integrations. Deployments remain manual and owner-controlled.
 
@@ -750,7 +750,7 @@ Phase 19A runtime acceptance COMPLETE, owner-confirmed 2026-10-09 after Admin au
 
 
 ### 19B — Admin Capability + Application Operations
-MERGED — PARTIAL production acceptance, owner-confirmed 2026-10-09. Eligible Hustler and Agent applications each passed queue visibility, start review, secure identity proof preview, verified identity and approval. Approved Agent became ACTIVE; self-review and unauthorized reviewer bypass were denied. Rejection without reason, unverified/missing-proof approval, and valid rejection with preserved reason passed owner testing on 2026-10-09. Capability suspension/reactivation consistency, protected mutation denial and audit boundaries still pending.
+COMPLETE — owner-confirmed production runtime acceptance 2026-10-09. Hustler and Agent application reviews, proof verification, eligibility and reviewer rules, rejection safeguards, reversible suspension/reactivation, CLIENT continuity, preserved application/Agent relationship history, protected action denial/restoration and audit evidence all passed. No bank, escrow, ban or reputation authority.
 
 Merge:
 - PR #65 `318d3b07df8c4cccd1c46216ecd2994b90bed0d8`
