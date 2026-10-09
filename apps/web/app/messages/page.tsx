@@ -106,6 +106,7 @@ export default function MessagesPage() {
         <Link href="/home">Home</Link>
         <Link href="/search">Search</Link>
         <Link href="/marketplace">Marketplace</Link>
+        <Link href="/notifications">Notifications</Link>
         <Link href="/account">Your identity</Link>
       </nav>
     </header>
