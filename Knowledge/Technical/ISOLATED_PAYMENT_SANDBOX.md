@@ -1,6 +1,6 @@
 # Isolated Payment Sandbox — Phase 20B
 
-Status: CI/integration verification in progress. Not a hosted production or Vercel Preview payment environment.
+Status: Isolated GitHub Actions integration checks PASSED on 2026-10-09 (run `37947556127`; full signed PAID→COMPLETED lifecycle). Final mask-security rerun and PR merge pending. Not a hosted production or Vercel Preview payment environment.
 Date: 2026-10-09
 
 ## Purpose
@@ -34,6 +34,12 @@ docker compose -f docker-compose.payment-sandbox.yml down -v
 ```
 
 Or use **GitHub Actions → Isolated Payment Sandbox → Run workflow**. The PR workflow also runs when sandbox or payment-relevant paths change, with no credentials.
+
+## Historical migration compatibility
+
+One hosted migration (`20260908113729_phase3_hustler_proof_storage`) targets managed Supabase `storage.buckets`, `storage.objects`, `storage.foldername()` and `auth.uid()`. Bare PostgreSQL does not ship these objects, so `supabase-compat.sql` creates **schema-only local substitutes** solely for applying RLS policies; no real Storage service or authentication endpoint is simulated.
+
+Two repository migrations overlap: `20260917124500_phase16b_story_rls_hardening` defines all four Story API policies, and `20260917130500_phase16b_story_rls_hardening` recreates those identical grants/policies without dropping them. The disposable sandbox marks the later duplicate as already represented in its **isolated Prisma migration ledger** before applying the remaining migrations. No production migration file is altered; no production migration ledger is touched.
 
 ## What the automated test exercises
 
