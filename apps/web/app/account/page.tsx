@@ -55,6 +55,7 @@ export default function AccountPage() {
         <a className="futureTag" href="/orders">ORDERS →</a>
         <a className="futureTag" href="/bookings">BOOKINGS →</a>
         <a className="futureTag" href="/messages">MESSAGES →</a>
+        <a className="futureTag" href="/notifications">NOTIFICATIONS →</a>
         <a className="futureTag" href="/search">SEARCH HUSTLE →</a>
         <a className="futureTag" href="/marketplace">BROWSE MARKETPLACE →</a>
         <a className="futureTag" href={isHustler ? "/professional-profile" : "/hustler-application"}>{isHustler ? "EDIT PROFESSIONAL PROFILE →" : "APPLY TO BECOME A HUSTLER →"}</a>
