@@ -1,7 +1,7 @@
 # Phase 20 — Notifications Runtime Acceptance
 
 **Current scope:** Phase 20A — persistent in-app inbox and direct-message alerts
-**Status:** PR #72 merged with full CI green; approved production database migration applied and inspected 2026-10-09; owner-controlled API/Web deployment and runtime acceptance PENDING.
+**Status:** PR #72 merged CI green; production notification migration applied/verified 2026-10-09; production API and Web Vercel deployments independently verified READY on Phase20A commit `980352e`. Actual API/Web runtime acceptance PENDING.
 **Boundary:** Do not mark Phase 20 complete until later source events are integrated and accepted.
 
 ## Database gate
@@ -25,5 +25,5 @@
 
 ## Release
 - [x] GitHub CI green and PR #72 merged as `ea142411fda852931fd7bfdc0b5bffcc31ca0868`.
-- [ ] Owner manually deploys API and Web only after migration activation; no automatic deployment.
+- [x] API and Web projects already have production READY deployments at Phase20A-inclusive commit `980352e` (verified independently via Vercel), with migration now present. These deployments predated completion of migration verification; ChatGPT did not deploy or initiate them. Verify alias routing and real message notification behavior in runtime.
 - [ ] Owner confirms real frontend/runtime test results with date and deployed SHA.
