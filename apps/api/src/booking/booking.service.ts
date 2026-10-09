@@ -179,6 +179,8 @@ export class BookingService {
       await this.requireDirectConversationForPair(conversationId, client.id, hustlerUserId);
     }
 
+    const serviceTitleSnapshot = service.title.trim();
+    const agreedPriceMinor = service.priceMinor;
     const booking = await this.prisma.$transaction(async (tx) => {
       const created = await tx.booking.create({
       data: {
@@ -191,8 +193,8 @@ export class BookingService {
         requirements,
         location,
         notes,
-        serviceTitleSnapshot: service.title.trim(),
-        agreedPriceMinor: service.priceMinor,
+        serviceTitleSnapshot,
+        agreedPriceMinor,
         currency: service.currency,
         pricingTypeSnapshot: service.pricingType
       },
