@@ -1,7 +1,7 @@
 # Hustle — Consolidated Production Runtime Acceptance (18D–19E)
 **Target session:** 2026-10-08 (or next manual validation session)
 **Slices:** 18D, 18E, 19A, 19B, 19C, 19D, 19E
-**Status:** Phase 18D COMPLETE — all section A checks confirmed passing in production by the project owner on 2026-10-08; Phase 18E PARTIAL (previous Booking and Messaging checks plus unrelated-principal isolation and BOOKING_MANAGE revocation denial passed; blocked-conversation enforcement passed; only safe funded start pending; stored message attribution and Agent suspension passed owner testing); Phases 19A–19E PENDING. Evidence is owner-reported runtime testing; no automated test output or screenshots attached to this checklist.
+**Status:** Phase 18D COMPLETE — all section A checks confirmed passing in production by the project owner on 2026-10-08; Phase 18E PARTIAL (previous Booking and Messaging checks plus unrelated-principal isolation and BOOKING_MANAGE revocation denial passed; blocked-conversation enforcement passed; only safe funded start pending; stored message attribution and Agent suspension passed owner testing); Phase 19A PARTIAL (Admin overview, unauthorized denial, core data visibility and Trust & Safety navigation passed 2026-10-09); Phases 19B–19E PENDING. Evidence is owner-reported runtime testing; no automated test output or screenshots attached to this checklist.
 
 ## Before testing
 1. Manually deploy the latest `main` to **API + Web + Admin**. Vercel auto-deploy remains disabled. ChatGPT must not deploy.
@@ -42,11 +42,14 @@
 **18E partial acceptance (2026-10-08):** Project owner reports that the Agent could view a represented Hustler's booking, accept a REQUESTED Booking, retain principal ownership, and was blocked from accepting a conflicting Booking. Unrelated-principal Booking isolation was subsequently tested and passed. Booking decline, pre-funding cancellation, free-work start, and forbidden financial/completion/reputation actions were subsequently confirmed passing by the owner on 2026-10-08. Owner subsequently confirmed (2026-10-08) that delegated Message read/reply, recipient/principal Agent attribution, preserved owner unread state, immediate CLIENT_MESSAGE_MANAGE revocation denial and ordinary messaging passed. Further owner-confirmed 2026-10-08: Agent with access to Hustler A could not view or mutate Hustler B's Bookings, and revoking BOOKING_MANAGE immediately blocked Hustler A's Booking operations. Owner additionally confirmed 2026-10-08 that a represented account's UserBlock policy prevents delegated read/reply on blocked conversations. Owner confirmed on 2026-10-09 that server-side `delegatedByAgentUserId` attribution and Agent suspension/reactivation access controls also passed. Only isolated sandbox-funded Booking start is pending; do not simulate successful payments in production.
 
 ## C — 19A Admin Marketplace Operations
-- [ ] Admin console root loads overview metrics using AdminGuard; unauthorized account is denied.
+- [x] Admin console root loads overview metrics using AdminGuard; unauthorized account is denied.
 - [ ] User search by username/name/email/ID shows capability state without allowing edits in read surfaces.
-- [ ] Hustler and Agent application queues, Bookings, Orders, financial snapshots and audit events load.
+- [x] Hustler and Agent application queues, Bookings, Orders and financial summaries load.
+- [ ] Audit events load and show correct actor, event and timestamps.
 - [ ] Booking/Order filters work and reflect canonical statuses; finance remains read-only.
-- [ ] Existing Trust & Safety console at `/trust-safety` remains accessible to authorized admins.
+- [x] Existing Trust & Safety console at `/trust-safety` remains accessible to authorized admins.
+
+**19A partial sign-off (2026-10-09):** After manually deploying Admin at main `58b3156`, the project owner confirmed conventional Admin login, reload persistence, all six Admin routes, non-Admin denial, sign-out and primary Marketplace Operations datasets. User search, filter status accuracy, finance read-only boundary and audit history visibility were not separately confirmed and remain unchecked.
 
 ## D — 19B Capability / Application Operations
 - [ ] Admin opens `/applications` and reviews an eligible Hustler application: start, secure proof preview, verification and approve.
