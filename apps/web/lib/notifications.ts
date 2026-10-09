@@ -10,6 +10,8 @@ export type HustleNotification = {
   href: string;
   readAt: string | null;
   createdAt: string;
+  messageCount: number;
+  unreadMessages: number;
 };
 
 export type NotificationPage = {
