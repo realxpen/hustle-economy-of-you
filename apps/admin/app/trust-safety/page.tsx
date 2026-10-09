@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminAuth } from "../../components/admin-auth-provider";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   getSafetyOverview,
@@ -12,7 +14,6 @@ import {
   type UserSafetySummary
 } from "../../lib/admin-api";
 
-const TOKEN_KEY = "hustle-admin-access-token";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -26,8 +27,7 @@ function displayName(user: { displayName: string | null; username: string | null
 }
 
 export default function AdminHome() {
-  const [token, setToken] = useState("");
-  const [tokenDraft, setTokenDraft] = useState("");
+  const { token, signOut } = useAdminAuth();
   const [overview, setOverview] = useState<AdminSafetyOverview | null>(null);
   const [reports, setReports] = useState<SafetyReport[]>([]);
   const [statusFilter, setStatusFilter] = useState<SafetyStatus | "ALL">("ALL");
@@ -37,12 +37,6 @@ export default function AdminHome() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    const existing = window.sessionStorage.getItem(TOKEN_KEY) ?? "";
-    setToken(existing);
-    setTokenDraft(existing);
-  }, []);
 
   async function load(nextToken = token, nextFilter = statusFilter) {
     if (!nextToken) return;
@@ -68,24 +62,6 @@ export default function AdminHome() {
   useEffect(() => {
     if (token) void load(token, statusFilter);
   }, [token, statusFilter]);
-
-  function saveToken() {
-    const next = tokenDraft.trim();
-    if (!next) return;
-    window.sessionStorage.setItem(TOKEN_KEY, next);
-    setToken(next);
-    setNotice("Admin session stored only for this browser tab session.");
-  }
-
-  function clearToken() {
-    window.sessionStorage.removeItem(TOKEN_KEY);
-    setToken("");
-    setTokenDraft("");
-    setOverview(null);
-    setReports([]);
-    setSelectedUser(null);
-    setSelectedUserId(null);
-  }
 
   async function inspectUser(userId: string) {
     if (!token) return;
@@ -127,30 +103,6 @@ export default function AdminHome() {
     [reports]
   );
 
-  if (!token) {
-    return <main className="admin-shell auth-shell">
-      <section className="auth-card">
-        <p className="eyebrow">HUSTLE / INTERNAL</p>
-        <h1>Trust & Safety Console</h1>
-        <p>
-          This internal MVP console never stores the bearer token in the repository or sends it anywhere except the Hustle API. The token remains in this tab&apos;s session storage.
-        </p>
-        <label className="field">
-          <span>ADMIN ACCESS TOKEN</span>
-          <textarea
-            rows={5}
-            value={tokenDraft}
-            onChange={(event) => setTokenDraft(event.target.value)}
-            placeholder="Paste the current authenticated admin bearer token"
-          />
-        </label>
-        <button className="primary" type="button" onClick={saveToken} disabled={!tokenDraft.trim()}>
-          Open internal console
-        </button>
-      </section>
-    </main>;
-  }
-
   return <main className="admin-shell">
     <header className="topbar">
       <div>
@@ -161,7 +113,7 @@ export default function AdminHome() {
       <div className="top-actions">
         <a className="secondary" href="/">Operations</a><a className="secondary" href="/appeals">Appeals</a><a className="secondary" href="/moderation">Content moderation</a>
         <button className="secondary" type="button" onClick={() => void load()} disabled={loading}>Refresh</button>
-        <button className="danger" type="button" onClick={clearToken}>End session</button>
+        <button className="danger" type="button" onClick={() => void signOut()}>End session</button>
       </div>
     </header>
 
