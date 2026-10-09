@@ -43,13 +43,13 @@
 
 ## C — 19A Admin Marketplace Operations
 - [x] Admin console root loads overview metrics using AdminGuard; unauthorized account is denied.
-- [ ] User search by username/name/email/ID shows capability state without allowing edits in read surfaces.
+- [x] User search by username/name/email/ID shows capability state without allowing edits in read surfaces.
 - [x] Hustler and Agent application queues, Bookings, Orders and financial summaries load.
-- [ ] Audit events load and show correct actor, event and timestamps.
+- [x] Audit events load and show correct actor, event and timestamps.
 - [ ] Booking/Order filters work and reflect canonical statuses; finance remains read-only.
 - [x] Existing Trust & Safety console at `/trust-safety` remains accessible to authorized admins.
 
-**19A partial sign-off (2026-10-09):** After manually deploying Admin at main `58b3156`, the project owner confirmed conventional Admin login, reload persistence, all six Admin routes, non-Admin denial, sign-out and primary Marketplace Operations datasets. User search, filter status accuracy, finance read-only boundary and audit history visibility were not separately confirmed and remain unchecked.
+**19A partial sign-off (2026-10-09):** After manually deploying Admin at main `58b3156`, the project owner confirmed conventional Admin login, reload persistence, all six Admin routes, non-Admin denial, sign-out and primary Marketplace Operations datasets. User search by username, display name, email and User ID; capability visibility; unchanged read-only user details; and audit event actor/event/time display were separately confirmed passing by the owner on 2026-10-09. Booking/Order filter accuracy and finance read-only boundary remain pending.
 
 ## D — 19B Capability / Application Operations
 - [ ] Admin opens `/applications` and reviews an eligible Hustler application: start, secure proof preview, verification and approve.
