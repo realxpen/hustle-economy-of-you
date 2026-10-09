@@ -2,6 +2,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { Capability, CapabilityStatus, OrderStatus, ProductType } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 const fulfillmentOrderSelect = {
@@ -25,7 +26,7 @@ const fulfillmentOrderSelect = {
 
 @Injectable()
 export class FulfillmentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
 
   async process(identity: AuthIdentity, orderId: string) {
     const userId = await this.requireUserId(identity);
@@ -40,6 +41,7 @@ export class FulfillmentService {
         data: { status: OrderStatus.PROCESSING, processingAt: now }
       });
       if (updated.count !== 1) throw new ConflictException("Order changed before processing could start. Refresh and try again");
+      await this.notifications.recordOrderStatus(tx, order, OrderStatus.PROCESSING, userId);
       await tx.systemEvent.create({
         data: {
           name: "order.processing",
@@ -68,6 +70,7 @@ export class FulfillmentService {
         data: { status: OrderStatus.SHIPPED, shippedAt: now }
       });
       if (updated.count !== 1) throw new ConflictException("Order changed before shipping could be recorded. Refresh and try again");
+      await this.notifications.recordOrderStatus(tx, order, OrderStatus.SHIPPED, userId);
       await tx.systemEvent.create({
         data: {
           name: "order.shipped",
@@ -98,6 +101,7 @@ export class FulfillmentService {
         data: { status: OrderStatus.DELIVERED, deliveredAt: now }
       });
       if (updated.count !== 1) throw new ConflictException("Order changed before delivery could be recorded. Refresh and try again");
+      await this.notifications.recordOrderStatus(tx, order, OrderStatus.DELIVERED, userId);
       await tx.systemEvent.create({
         data: {
           name: "order.delivered",
@@ -128,6 +132,7 @@ export class FulfillmentService {
         data: { status: OrderStatus.COMPLETED, completedAt: now }
       });
       if (updated.count !== 1) throw new ConflictException("Order changed before completion could be confirmed. Refresh and try again");
+      await this.notifications.recordOrderStatus(tx, order, OrderStatus.COMPLETED, userId);
       await tx.systemEvent.create({
         data: {
           name: "order.completed",
@@ -159,6 +164,7 @@ export class FulfillmentService {
         data: { status: OrderStatus.CANCELLED, cancelledAt: now }
       });
       if (updated.count !== 1) throw new ConflictException("Order changed before cancellation completed. Refresh and try again");
+      await this.notifications.recordOrderStatus(tx, order, OrderStatus.CANCELLED, userId);
       await tx.systemEvent.create({
         data: {
           name: "order.cancelled",
