@@ -49,7 +49,9 @@ jobs:
       - name: Mint throwaway webhook secret
         shell: bash
         run: |
-          echo "HUSTLE_SANDBOX_WEBHOOK_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$secret"
+          echo "HUSTLE_SANDBOX_WEBHOOK_SECRET=$secret" >> "$GITHUB_ENV"
       - name: Bootstrap Supabase-compatible database roles (isolated local Postgres only)
         shell: bash
         run: |
