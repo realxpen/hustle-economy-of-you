@@ -1,10 +1,10 @@
 # Phase 20B — Booking and Order Notifications QA
 
-Status: PR #74 merged, CI green on 2026-10-09. Notification schema already active; no migration required. API and Web production deployments verified READY at `9bcd33e7cb3e5301820880828b7a35e21bff61f0` on 2026-10-09. Owner runtime acceptance tests listed below remain PENDING.
+Status: PR #74 merged, CI green on 2026-10-09. Notification schema already active; no migration required. API and Web production READY at `9bcd33e7cb3e5301820880828b7a35e21bff61f0`. Owner-confirmed production smoke tests on 2026-10-09: Booking request notification and Booking acceptance notification (the applicable free/paid branch), plus seller's new Order alert, correct Order navigation and no buyer self-alert PASSED. Remaining lifecycle and negative-path tests PENDING.
 Scope: API-owned, in-app Booking/Order lifecycle notices.
 
 ## Booking (disposable accounts, no live money)
-- [ ] New Booking request → exactly one Hustler card links to the right Booking; not the Client.
+- [x] New Booking request → exactly one Hustler card links to the right Booking; not the Client. Owner-confirmed 2026-10-09.
 - [ ] Booking accepted (free) → Client notified.
 - [ ] Booking accepted (paid) → Client informed payment is pending, not falsely marked paid.
 - [ ] Decline/cancel → correct counterparty notified; invalid status transitions create no alerts.
@@ -13,8 +13,10 @@ Scope: API-owned, in-app Booking/Order lifecycle notices.
 - [ ] After authoritative sandbox funding only: FUNDED → Hustler notified; no live escrow/refund/payout side effects.
 - [ ] Start and completion → Client notified at correct statuses.
 
+**Booking acceptance smoke test:** Owner confirmed the acceptance notification reached Client A with correct status copy for the tested price path. The owner did not identify whether the disposable Booking was free or paid, so separate free-Booking and payment-pending checkboxes below remain open for targeted acceptance.
+
 ## Order (disposable sandbox orders)
-- [ ] Checkout → Seller gets new Order card; Buyer is not spammed about own checkout.
+- [x] Checkout → Seller gets new Order card, opens correct Order; Buyer is not spammed about own checkout. Owner-confirmed 2026-10-09.
 - [ ] Authoritative sandbox payment confirmation → Seller receives PAID notice, never before.
 - [ ] Fulfillment status PROCESSING/SHIPPED/DELIVERED → Buyer gets correct notice.
 - [ ] Buyer COMPLETED → Seller notified.
