@@ -1,7 +1,7 @@
 # Hustle — Consolidated Production Runtime Acceptance (18D–19E)
 **Target session:** 2026-10-08 (or next manual validation session)
 **Slices:** 18D, 18E, 19A, 19B, 19C, 19D, 19E
-**Status:** Phase 18D COMPLETE — all section A checks confirmed passing in production by the project owner on 2026-10-08; Phase 18E PARTIAL (previous Booking and Messaging checks plus unrelated-principal isolation and BOOKING_MANAGE revocation denial passed; blocked-conversation enforcement passed; only safe funded start pending; stored message attribution and Agent suspension passed owner testing); Phase 19A COMPLETE (all six section C checks passed in production, owner-confirmed 2026-10-09); Phases 19B–19E PENDING. Evidence is owner-reported runtime testing; no automated test output or screenshots attached to this checklist.
+**Status:** Phase 18D COMPLETE — all section A checks confirmed passing in production by the project owner on 2026-10-08; Phase 18E PARTIAL (previous Booking and Messaging checks plus unrelated-principal isolation and BOOKING_MANAGE revocation denial passed; blocked-conversation enforcement passed; only safe funded start pending; stored message attribution and Agent suspension passed owner testing); Phase 19A COMPLETE (all six section C checks passed in production, owner-confirmed 2026-10-09); Phase 19B COMPLETE (all Section D checks passed, owner-confirmed 2026-10-09); Phases 19C–19E PENDING. Evidence is owner-reported runtime testing; no automated test output or screenshots attached to this checklist.
 
 ## Before testing
 1. Manually deploy the latest `main` to **API + Web + Admin**. Vercel auto-deploy remains disabled. ChatGPT must not deploy.
@@ -55,13 +55,15 @@
 - [x] Admin opens `/applications` and reviews an eligible Hustler application: start, secure proof preview, verification and approve.
 - [x] Admin opens a separate Agent application: start, verify, approve; assigned reviewer rules and self-review prohibition hold.
 - [x] Rejection cannot proceed without a reason. Approval cannot proceed without VERIFIED identity and proof.
-- [ ] Using a disposable test account, Admin suspends HUSTLER or AGENT with mandatory reason.
-- [ ] Corresponding approved application mirrors SUSPENDED; CLIENT remains ACTIVE; original review notes are preserved.
-- [ ] Suspended Agent/Hustler loses protected mutation authority, but relationship history is not deleted.
-- [ ] Admin reactivates the test capability with a required reason; status returns ACTIVE/APPROVED; audit records actor/target/reason.
-- [ ] No CLIENT-ban, permanent revocation, money or reputation mutations appear.
+- [x] Using a disposable test account, Admin suspends HUSTLER or AGENT with mandatory reason.
+- [x] Corresponding approved application mirrors SUSPENDED; CLIENT remains ACTIVE; original review notes are preserved.
+- [x] Suspended Agent/Hustler loses protected mutation authority, but relationship history is not deleted.
+- [x] Admin reactivates the test capability with a required reason; status returns ACTIVE/APPROVED; audit records actor/target/reason.
+- [x] No CLIENT-ban, permanent revocation, money or reputation mutations appear.
 
 **19B partial acceptance (2026-10-09):** Project owner confirmed the Hustler application review workflow passed: queue visibility, review initiation, secure proof preview, verification checks and approval of an eligible verified Hustler application. Owner further confirmed all six Agent application review checks passed 2026-10-09: Agent queue, review start, private proof preview, genuine identity verification, Agent approval and ACTIVE capability, plus blocked self-review and unauthorized reviewer assignment bypass. The owner subsequently confirmed all four approval/rejection safeguard checks passing: empty rejection reason blocked without status change, approval blocked without verified identity, approval blocked without valid identity proof, and valid rejection changed a disposable application to REJECTED while retaining its reason. Capability suspension/reactivation, corresponding application state, CLIENT preservation, protected-action denial, audit evidence and prohibited operations remain pending.
+
+**19B final sign-off (2026-10-09):** Owner confirmed all remaining seven capability suspension and reactivation checks had already passed for Hustler and Agent: required reasons, ACTIVE/SUSPENDED transitions, matching approved-application status, CLIENT continuity, preserved review notes/representation history, immediate protected-action denial, recovery after reactivation, durable Admin audit attribution and absent forbidden ban/financial/reputation controls. Section D COMPLETE. Phase 19C–19E production runtime acceptance remains separate and pending.
 
 ## E — 19C Marketplace Casework / Dispute Triage
 - [ ] Admin opens `/cases`; unauthorized and CLIENT/AGENT/HUSTLER-only accounts cannot access API.
