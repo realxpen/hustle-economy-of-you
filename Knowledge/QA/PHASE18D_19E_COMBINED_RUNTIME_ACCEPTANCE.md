@@ -52,7 +52,7 @@
 **19A partial sign-off (2026-10-09):** After manually deploying Admin at main `58b3156`, the project owner confirmed conventional Admin login, reload persistence, all six Admin routes, non-Admin denial, sign-out and primary Marketplace Operations datasets. User search by username, display name, email and User ID; capability visibility; unchanged read-only user details; and audit event actor/event/time display were separately confirmed passing by the owner on 2026-10-09. Owner additionally confirmed on 2026-10-09 that Booking and Order status filters return correctly filtered records and that financial state is read-only, with no payment confirmation, escrow release, refund or payout execution available in Phase 19A views. All Phase 19A checks passed; runtime COMPLETE.
 
 ## D — 19B Capability / Application Operations
-- [ ] Admin opens `/applications` and reviews an eligible Hustler application: start, secure proof preview, verification and approve.
+- [x] Admin opens `/applications` and reviews an eligible Hustler application: start, secure proof preview, verification and approve.
 - [ ] Admin opens a separate Agent application: start, verify, approve; assigned reviewer rules and self-review prohibition hold.
 - [ ] Rejection cannot proceed without a reason. Approval cannot proceed without VERIFIED identity and proof.
 - [ ] Using a disposable test account, Admin suspends HUSTLER or AGENT with mandatory reason.
@@ -60,6 +60,8 @@
 - [ ] Suspended Agent/Hustler loses protected mutation authority, but relationship history is not deleted.
 - [ ] Admin reactivates the test capability with a required reason; status returns ACTIVE/APPROVED; audit records actor/target/reason.
 - [ ] No CLIENT-ban, permanent revocation, money or reputation mutations appear.
+
+**19B partial acceptance (2026-10-09):** Project owner confirmed the Hustler application review workflow passed: queue visibility, review initiation, secure proof preview, verification checks and approval of an eligible verified Hustler application. Independent Agent application approval, negative-path self-review/approval rejection, rejection-reason enforcement and suspension/reactivation integrity remain pending.
 
 ## E — 19C Marketplace Casework / Dispute Triage
 - [ ] Admin opens `/cases`; unauthorized and CLIENT/AGENT/HUSTLER-only accounts cannot access API.
