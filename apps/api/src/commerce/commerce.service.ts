@@ -17,6 +17,7 @@ import {
 } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 export interface AddCartItemInput {
@@ -156,7 +157,7 @@ type AssessedCartItem = {
 
 @Injectable()
 export class CommerceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
 
   async getCart(identity: AuthIdentity) {
     const user = await this.requireUser(identity);
@@ -344,6 +345,12 @@ export class CommerceService {
             select: { id: true }
           });
           createdIds.push(order.id);
+          await this.notifications.recordOrderStatus(
+            tx,
+            { id: order.id, buyerUserId: user.id, sellerUserId: group.sellerId },
+            OrderStatus.PENDING,
+            user.id
+          );
           await tx.systemEvent.create({
             data: {
               name: "order.created",
@@ -471,6 +478,12 @@ export class CommerceService {
             if (updated.count !== 1) throw new ConflictException("A Product no longer has enough stock for this Order");
           }
         }
+
+        await this.notifications.recordOrderStatus(
+          tx,
+          existing,
+          OrderStatus.PAID
+        );
 
         await tx.systemEvent.create({
           data: {
