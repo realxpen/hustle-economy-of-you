@@ -14,7 +14,7 @@ Phase 19C — Marketplace Casework & Dispute Triage (merged + database active; r
 
 Phase 19B — Admin Capability + Application Operations (merged; runtime acceptance deferred for combined validation)
 
-Phase 19A — Admin Marketplace Operations Foundation (merged; runtime acceptance deferred for combined validation)
+Phase 19A — Admin Marketplace Operations Foundation (merged; PARTIAL production runtime acceptance: overview metrics, unauthorized denial, primary marketplace data and Trust & Safety access confirmed by owner 2026-10-09; dedicated search/filter/audit/read-only checks pending)
 
 Admin automatic session auth — PR #71 MERGED (`9757971ebd64b3c54786f8a78901498d3e2a5381`); full PR CI green 2026-10-09. Standalone Admin now uses first-party Supabase email/password login with automatic session restoration and refresh, shared guard across all Admin routes, same-origin auth transport and server-enforced AdminGuard. Admin production NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are configured; API ADMIN_ORIGIN is configured. Owner confirmed successful Admin production deployment and runtime acceptance on 2026-10-09: login, session restoration after refresh, cross-route navigation, API data visibility, non-Admin denial and sign-out passed. No API redeploy required for PR #71, no schema migration, no automatic deployment. Canonical decision: `Knowledge/Decisions/ADR-0045-admin-authenticated-session.md`.
 
@@ -744,7 +744,7 @@ Admin app:
 These higher-risk controls require explicit Phase 19 follow-on policy and audit decisions.
 
 
-Phase 19A runtime testing is intentionally deferred into the same consolidated validation session as Phase 18D/18E.
+Phase 19A runtime acceptance began 2026-10-09 after Admin auto-login validation; dedicated search/filter/audit/read-only checks remain pending.
 
 
 ### 19B — Admin Capability + Application Operations
