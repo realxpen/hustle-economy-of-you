@@ -15,6 +15,7 @@ import {
 } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 export interface CreateBookingInput {
@@ -116,7 +117,7 @@ type BookingRecord = Prisma.BookingGetPayload<{ select: typeof bookingSelect }>;
 
 @Injectable()
 export class BookingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
 
   async create(identity: AuthIdentity, input: CreateBookingInput) {
     const client = await this.requireUser(identity);
@@ -178,7 +179,8 @@ export class BookingService {
       await this.requireDirectConversationForPair(conversationId, client.id, hustlerUserId);
     }
 
-    const booking = await this.prisma.booking.create({
+    const booking = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.booking.create({
       data: {
         serviceId: service.id,
         clientUserId: client.id,
@@ -195,6 +197,9 @@ export class BookingService {
         pricingTypeSnapshot: service.pricingType
       },
       select: bookingSelect
+      });
+      await this.notifications.recordBookingStatus(tx, created, BookingStatus.REQUESTED, client.id);
+      return created;
     });
 
     await this.recordEvent("booking.requested", {
@@ -528,20 +533,24 @@ export class BookingService {
     data: Prisma.BookingUncheckedUpdateManyInput,
     viewerUserId: string
   ) {
-    const result = await this.prisma.booking.updateMany({
-      where: { id: bookingId, status: expectedStatus },
-      data
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.booking.updateMany({
+        where: { id: bookingId, status: expectedStatus },
+        data
+      });
+      if (result.count !== 1) {
+        throw new ConflictException("Booking changed before this action could be completed. Refresh and try again");
+      }
+      const booking = await tx.booking.findUnique({
+        where: { id: bookingId },
+        select: bookingSelect
+      });
+      if (!booking || (booking.clientUserId !== viewerUserId && booking.hustlerUserId !== viewerUserId)) {
+        throw new NotFoundException("Booking not found");
+      }
+      await this.notifications.recordBookingStatus(tx, booking, booking.status, viewerUserId);
+      return booking;
     });
-    if (result.count !== 1) {
-      throw new ConflictException("Booking changed before this action could be completed. Refresh and try again");
-    }
-
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, select: bookingSelect });
-    if (!booking) throw new NotFoundException("Booking not found");
-    if (booking.clientUserId !== viewerUserId && booking.hustlerUserId !== viewerUserId) {
-      throw new NotFoundException("Booking not found");
-    }
-    return booking;
   }
 
   private async requireBookingParticipant(bookingId: string, userId: string) {
