@@ -6,15 +6,17 @@ import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 type PageCursor = { createdAt: Date; id: string };
 
-const notificationSelect = {
-  id: true,
-  kind: true,
-  title: true,
-  body: true,
-  href: true,
-  readAt: true,
-  createdAt: true
-} satisfies Prisma.NotificationSelect;
+type NotificationInboxRow = {
+  id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  href: string;
+  readAt: Date | null;
+  createdAt: Date;
+  messageCount: number;
+  unreadMessages: number;
+};
 
 @Injectable()
 export class NotificationsService {
@@ -56,23 +58,47 @@ export class NotificationsService {
     return { limit, cursor };
   }
 
+  // Existing notification rows stay immutable as delivery evidence. The inbox
+  // folds MESSAGE events by recipient + direct conversation; unrelated kinds
+  // remain independent. The grouping occurs BEFORE pagination, so a thread
+  // never splits into multiple cards just because it crossed a page boundary.
   async list(identity: AuthIdentity, query: { limit?: unknown; cursor?: unknown }) {
     const recipientUserId = await this.userId(identity);
     const { limit, cursor } = this.pagination(query.limit, query.cursor);
-    const rows = await this.prisma.notification.findMany({
-      where: {
-        recipientUserId,
-        ...(cursor ? {
-          OR: [
-            { createdAt: { lt: cursor.createdAt } },
-            { createdAt: cursor.createdAt, id: { lt: cursor.id } }
-          ]
-        } : {})
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: limit + 1,
-      select: notificationSelect
-    });
+    const cursorFilter = cursor
+      ? Prisma.sql`WHERE (clusters."createdAt", clusters."latestId") < (${cursor.createdAt}, ${cursor.id})`
+      : Prisma.empty;
+
+    const rows = await this.prisma.$queryRaw<NotificationInboxRow[]>(Prisma.sql`
+      WITH clusters AS (
+        SELECT
+          CASE WHEN n.kind = 'MESSAGE'::"NotificationKind"
+            THEN 'thread:' || n.href ELSE 'notification:' || n.id END AS "groupKey",
+          (ARRAY_AGG(n.id ORDER BY n."createdAt" DESC, n.id DESC))[1] AS "latestId",
+          MAX(n."createdAt") AS "createdAt",
+          COUNT(*)::integer AS "messageCount",
+          (COUNT(*) FILTER (WHERE n."readAt" IS NULL))::integer AS "unreadMessages"
+        FROM "Notification" n
+        WHERE n."recipientUserId" = ${recipientUserId}
+        GROUP BY 1
+      ),
+      selected AS (
+        SELECT * FROM clusters
+        ${cursorFilter}
+        ORDER BY "createdAt" DESC, "latestId" DESC
+        LIMIT ${limit + 1}
+      )
+      SELECT
+        n.id, n.kind, n.title, n.body, n.href,
+        selected."createdAt",
+        CASE WHEN selected."unreadMessages" > 0 THEN NULL ELSE n."readAt" END AS "readAt",
+        selected."messageCount",
+        selected."unreadMessages"
+      FROM selected
+      JOIN "Notification" n ON n.id = selected."latestId"
+      ORDER BY selected."createdAt" DESC, selected."latestId" DESC
+    `);
+
     const hasMore = rows.length > limit;
     const items = rows.slice(0, limit);
     const last = items.at(-1);
@@ -87,26 +113,50 @@ export class NotificationsService {
 
   async unreadCount(identity: AuthIdentity) {
     const recipientUserId = await this.userId(identity);
-    return {
-      count: await this.prisma.notification.count({
-        where: { recipientUserId, readAt: null }
-      })
-    };
+    const rows = await this.prisma.$queryRaw<{ count: number }[]>(Prisma.sql`
+      SELECT COUNT(*)::integer AS count
+      FROM (
+        SELECT 1
+        FROM "Notification" n
+        WHERE n."recipientUserId" = ${recipientUserId} AND n."readAt" IS NULL
+        GROUP BY CASE WHEN n.kind = 'MESSAGE'::"NotificationKind"
+          THEN 'thread:' || n.href ELSE 'notification:' || n.id END
+      ) unread_groups
+    `);
+    return { count: rows[0]?.count ?? 0 };
   }
 
   async markRead(identity: AuthIdentity, notificationId: string) {
     const recipientUserId = await this.userId(identity);
-    if (!notificationId || notificationId.length > 200) throw new BadRequestException("Invalid notification id");
-    const result = await this.prisma.notification.updateMany({
-      where: { id: notificationId, recipientUserId, readAt: null },
+    if (!notificationId || notificationId.length > 200) {
+      throw new BadRequestException("Invalid notification id");
+    }
+
+    const selected = await this.prisma.notification.findFirst({
+      where: { id: notificationId, recipientUserId },
+      select: { id: true, kind: true, href: true, createdAt: true }
+    });
+    if (!selected) throw new NotFoundException("Notification not found");
+
+    // Bound the update to the notification the user actually opened: a new
+    // message arriving after the rendered card must remain unread.
+    await this.prisma.notification.updateMany({
+      where: {
+        recipientUserId,
+        readAt: null,
+        ...(selected.kind === NotificationKind.MESSAGE
+          ? {
+              kind: NotificationKind.MESSAGE,
+              href: selected.href,
+              OR: [
+                { createdAt: { lt: selected.createdAt } },
+                { createdAt: selected.createdAt, id: { lte: selected.id } }
+              ]
+            }
+          : { id: selected.id })
+      },
       data: { readAt: new Date() }
     });
-    if (!result.count) {
-      const exists = await this.prisma.notification.findFirst({
-        where: { id: notificationId, recipientUserId }, select: { id: true }
-      });
-      if (!exists) throw new NotFoundException("Notification not found");
-    }
     return { id: notificationId, read: true };
   }
 
