@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminAuth } from "../../components/admin-auth-provider";
+
 import { FormEvent, useEffect, useState } from "react";
 import {
   claimAdminEnforcementAppeal,
@@ -15,7 +17,6 @@ import {
   type EnforcementAppealStatus
 } from "../../lib/admin-api";
 
-const TOKEN_KEY = "hustle-admin-access-token";
 const statuses: EnforcementAppealStatus[] = [
   "SUBMITTED",
   "UNDER_REVIEW",
@@ -43,7 +44,7 @@ function person(value: {
 }
 
 export default function EnforcementAppealsAdminPage() {
-  const [token, setToken] = useState("");
+  const { token } = useAdminAuth();
   const [overview, setOverview] = useState<EnforcementAppealOverview | null>(null);
   const [items, setItems] = useState<AdminEnforcementAppeal[]>([]);
   const [selected, setSelected] = useState<AdminEnforcementAppealDetail | null>(null);
@@ -55,10 +56,8 @@ export default function EnforcementAppealsAdminPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = window.sessionStorage.getItem(TOKEN_KEY) ?? "";
-    setToken(stored);
-    if (stored) void refresh(stored, "");
-  }, []);
+    if (token) void refresh(token, "");
+  }, [token]);
 
   async function refresh(nextToken = token, nextStatus = status) {
     if (!nextToken) return;
