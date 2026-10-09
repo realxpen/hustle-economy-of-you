@@ -22,6 +22,7 @@ import type {
   DeclineBookingInput
 } from "../booking/booking.service";
 import { PrismaService } from "../database/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 export interface AgentConversationPaginationInput {
@@ -177,7 +178,8 @@ export class AgentClientOperationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly relationships: AgentRelationshipService,
-    private readonly bookingSchedule: BookingScheduleService
+    private readonly bookingSchedule: BookingScheduleService,
+    private readonly notifications: NotificationsService
   ) {}
 
   async listBookings(
@@ -668,6 +670,7 @@ export class AgentClientOperationsService {
         }
       });
 
+      await this.notifications.recordDirectMessage(tx, message);
       return message;
     });
 
