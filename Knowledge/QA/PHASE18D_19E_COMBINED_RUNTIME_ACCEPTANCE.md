@@ -54,14 +54,14 @@
 ## D — 19B Capability / Application Operations
 - [x] Admin opens `/applications` and reviews an eligible Hustler application: start, secure proof preview, verification and approve.
 - [x] Admin opens a separate Agent application: start, verify, approve; assigned reviewer rules and self-review prohibition hold.
-- [ ] Rejection cannot proceed without a reason. Approval cannot proceed without VERIFIED identity and proof.
+- [x] Rejection cannot proceed without a reason. Approval cannot proceed without VERIFIED identity and proof.
 - [ ] Using a disposable test account, Admin suspends HUSTLER or AGENT with mandatory reason.
 - [ ] Corresponding approved application mirrors SUSPENDED; CLIENT remains ACTIVE; original review notes are preserved.
 - [ ] Suspended Agent/Hustler loses protected mutation authority, but relationship history is not deleted.
 - [ ] Admin reactivates the test capability with a required reason; status returns ACTIVE/APPROVED; audit records actor/target/reason.
 - [ ] No CLIENT-ban, permanent revocation, money or reputation mutations appear.
 
-**19B partial acceptance (2026-10-09):** Project owner confirmed the Hustler application review workflow passed: queue visibility, review initiation, secure proof preview, verification checks and approval of an eligible verified Hustler application. Owner further confirmed all six Agent application review checks passed 2026-10-09: Agent queue, review start, private proof preview, genuine identity verification, Agent approval and ACTIVE capability, plus blocked self-review and unauthorized reviewer assignment bypass. Rejection reason and missing-verification/proof negative paths, capability suspension/reactivation and protected-action boundaries still require independent acceptance.
+**19B partial acceptance (2026-10-09):** Project owner confirmed the Hustler application review workflow passed: queue visibility, review initiation, secure proof preview, verification checks and approval of an eligible verified Hustler application. Owner further confirmed all six Agent application review checks passed 2026-10-09: Agent queue, review start, private proof preview, genuine identity verification, Agent approval and ACTIVE capability, plus blocked self-review and unauthorized reviewer assignment bypass. The owner subsequently confirmed all four approval/rejection safeguard checks passing: empty rejection reason blocked without status change, approval blocked without verified identity, approval blocked without valid identity proof, and valid rejection changed a disposable application to REJECTED while retaining its reason. Capability suspension/reactivation, corresponding application state, CLIENT preservation, protected-action denial, audit evidence and prohibited operations remain pending.
 
 ## E — 19C Marketplace Casework / Dispute Triage
 - [ ] Admin opens `/cases`; unauthorized and CLIENT/AGENT/HUSTLER-only accounts cannot access API.
