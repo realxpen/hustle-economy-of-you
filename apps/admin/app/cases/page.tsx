@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminAuth } from "../../components/admin-auth-provider";
+
 import { FormEvent, useEffect, useState } from "react";
 import {
   addMarketplaceCaseNote,
@@ -19,7 +21,6 @@ import {
   type MarketplaceCaseSubjectType
 } from "../../lib/admin-api";
 
-const TOKEN_KEY = "hustle-admin-access-token";
 const statuses: MarketplaceCaseStatus[] = [
   "OPEN", "IN_REVIEW", "WAITING_INFORMATION", "RESOLVED", "CLOSED"
 ];
@@ -47,7 +48,7 @@ function price(value: number, currency: string) {
 }
 
 export default function CasesPage() {
-  const [token, setToken] = useState("");
+  const { token } = useAdminAuth();
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [overview, setOverview] = useState<MarketplaceCaseOverview | null>(null);
   const [items, setItems] = useState<MarketplaceCaseListItem[]>([]);
@@ -69,14 +70,15 @@ export default function CasesPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    const existing = window.sessionStorage.getItem(TOKEN_KEY) ?? "";
     const q = new URLSearchParams(window.location.search);
     const type = q.get("subjectType");
     if (type === "BOOKING" || type === "ORDER") setSubjectType(type);
     setSubjectId(q.get("subjectId") ?? "");
-    setToken(existing);
-    if (existing) void refresh(existing, "", "", null);
   }, []);
+
+  useEffect(() => {
+    if (token) void refresh(token, "", "", null);
+  }, [token]);
 
   async function refresh(
     t = token,

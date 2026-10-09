@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminAuth } from "../../components/admin-auth-provider";
+
 import { useEffect, useState } from "react";
 import {
   approveAgentAdminApplication,
@@ -19,7 +21,6 @@ import {
   type AdminReviewRecord
 } from "../../lib/admin-api";
 
-const TOKEN_KEY = "hustle-admin-access-token";
 
 type Kind = "HUSTLER" | "AGENT";
 
@@ -36,7 +37,7 @@ function formatDate(value: string | null) {
 }
 
 export default function ApplicationsOperationsPage() {
-  const [token, setToken] = useState("");
+  const { token } = useAdminAuth();
   const [queues, setQueues] = useState<AdminApplicationQueues | null>(null);
   const [kind, setKind] = useState<Kind | null>(null);
   const [selected, setSelected] = useState<AdminReviewRecord | null>(null);
@@ -47,10 +48,8 @@ export default function ApplicationsOperationsPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    const existing = window.sessionStorage.getItem(TOKEN_KEY) ?? "";
-    setToken(existing);
-    if (existing) void loadQueues(existing);
-  }, []);
+    if (token) void loadQueues(token);
+  }, [token]);
 
   async function loadQueues(nextToken = token) {
     if (!nextToken) return;
