@@ -1,7 +1,7 @@
 # Phase 20 — Notifications Runtime Acceptance
 
 **Current scope:** Phase 20A — persistent in-app inbox and direct-message alerts
-**Status:** PR #72 merged CI green; production notification migration applied/verified 2026-10-09; production API and Web Vercel deployments independently verified READY on Phase20A commit `980352e`. Actual API/Web runtime acceptance PENDING.
+**Status:** Phase 20A direct-message notifications and grouped conversation display passed owner production smoke test 2026-10-09; PR #73 grouped fix deployed on API/Web commit `7b5c10d`, both READY. Deeper authorization, concurrency, and pagination acceptance tests remain pending. Phase 20B+ events not built/accepted.
 **Boundary:** Do not mark Phase 20 complete until later source events are integrated and accepted.
 
 ## Database gate
@@ -25,21 +25,21 @@
 
 ## Grouping correction — ADR-0047
 
-**Observation:** Owner confirmed normal message notification flow worked but repeated messages in the same conversation showed separate inbox cards. Grouping fix PR #73 merged (`ba70e5a`), all GitHub CI green on 2026-10-09. Read-only production SQL confirmed one group for existing same-thread events. This code is NOT deployed; API/Web production remain at earlier `980352e`. All checklist scenarios below still require owner-confirmed post-deployment runtime acceptance.
+**Observation:** Owner confirmed the new PR #73 grouping fix is live on 2026-10-09. Vercel reports production API and Web READY on commit `7b5c10d`. Owner screenshot on `/notifications` shows one card labelled **5 new messages** and a badge labelled **1 unread**; owner says updated features work. This confirms grouping and group unread badge, not the entire independent regression checklist.
 
-- [ ] Three unread messages from one person/conversation display **one notification card**, e.g. "3 new messages"; original Messages stay separate in the conversation.
+- [x] Multiple unread messages from one conversation display **one notification card**; screenshot captured **5 new messages** in one card on 2026-10-09. Original individual message history was not independently inspected during this screenshot.
 - [ ] Existing historical notification cards also consolidate without deleting notification rows.
 - [ ] Two separate conversations display separate cards; non-message notifications stay independent.
-- [ ] Unread badge counts attention-worthy **groups** (one thread with three unread messages counts once).
+- [x] Unread badge counts attention-worthy **groups** (screenshot shows **1 unread** with **5 new messages** in one group).
 - [ ] Opening a thread notification marks that group read only; unrelated threads stay unread.
 - [ ] A message arriving after the selected card remains unread; new activity reactivates the group.
 - [ ] Page 1/Load older shows distinct groups (no split of one thread across pages).
 - [ ] Unauthorized access and cross-user mark-read are denied; no notification database migration.
-- [ ] API/Web builds and runtime acceptance passed after owner-controlled deployment.
+- [x] API/Web builds passed CI, both owner-updated production deployments READY at `7b5c10d`, and basic grouped-card runtime smoke test passed; remaining in-depth grouping edge cases listed above still pending.
 
 **Preflight:** A read-only production grouping query on 2026-10-09 verified that two existing notification events from one conversation formed one group. This is database query validation only, **not** production app acceptance.
 
 ## Release
 - [x] GitHub CI green and PR #72 merged as `ea142411fda852931fd7bfdc0b5bffcc31ca0868`.
 - [x] API and Web projects already have production READY deployments at Phase20A-inclusive commit `980352e` (verified independently via Vercel), with migration now present. These deployments predated completion of migration verification; ChatGPT did not deploy or initiate them. Verify alias routing and real message notification behavior in runtime.
-- [ ] Owner confirms real frontend/runtime test results with date and deployed SHA.
+- [x] Owner confirms working grouped-message production frontend and supplies screenshot on 2026-10-09; deployments API/Web at `7b5c10d`. This is a feature smoke test, not full Phase 20 completion.
