@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { NotificationKind, Prisma } from "@prisma/client";
+import { BookingStatus, NotificationKind, OrderStatus, Prisma } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
@@ -167,6 +167,89 @@ export class NotificationsService {
       data: { readAt: new Date() }
     });
     return { updatedCount: result.count };
+  }
+
+  /**
+   * Record a Booking status change only after the authoritative state update
+   * has succeeded. Called inside the caller's transaction, never by a browser.
+   * The actor may be an Agent; the affected principal remains the Hustler.
+   */
+  async recordBookingStatus(
+    tx: Prisma.TransactionClient,
+    booking: { id: string; clientUserId: string; hustlerUserId: string },
+    status: BookingStatus,
+    actorUserId?: string
+  ) {
+    const recipientId =
+      status === BookingStatus.REQUESTED ||
+      status === BookingStatus.FUNDED
+        ? booking.hustlerUserId
+        : status === BookingStatus.CANCELLED
+          ? actorUserId === booking.clientUserId
+            ? booking.hustlerUserId
+            : booking.clientUserId
+          : booking.clientUserId;
+    const texts: Partial<Record<BookingStatus, [string, string]>> = {
+      REQUESTED: ["New booking request", "A client has requested your service."],
+      ACCEPTED: ["Booking accepted", "Your booking request was accepted."],
+      PAYMENT_PENDING: ["Booking accepted", "Your booking was accepted and is awaiting payment."],
+      DECLINED: ["Booking declined", "Your booking request was declined."],
+      CANCELLED: ["Booking cancelled", "A booking involving you was cancelled."],
+      FUNDED: ["Booking funded", "Your booking has been funded through the payment system."],
+      IN_PROGRESS: ["Booking started", "Work on your booking has started."],
+      COMPLETED: ["Booking completed", "The Hustler marked your booking completed."]
+    };
+    const copy = texts[status];
+    if (!copy || recipientId === actorUserId) return;
+    await tx.notification.createMany({
+      data: [{
+        recipientUserId: recipientId,
+        eventKey: `booking:${booking.id}:${status}`,
+        kind: NotificationKind.BOOKING,
+        title: copy[0],
+        body: copy[1],
+        href: `/bookings/${encodeURIComponent(booking.id)}`
+      }],
+      skipDuplicates: true
+    });
+  }
+
+  /** This is a read-only side-effect of an authorized Order transition. */
+  async recordOrderStatus(
+    tx: Prisma.TransactionClient,
+    order: { id: string; buyerUserId: string; sellerUserId: string },
+    status: OrderStatus,
+    actorUserId?: string
+  ) {
+    const recipientId = status === OrderStatus.PENDING ||
+        status === OrderStatus.PAID ||
+        status === OrderStatus.COMPLETED
+      ? order.sellerUserId
+      : status === OrderStatus.CANCELLED
+        ? actorUserId === order.buyerUserId ? order.sellerUserId : order.buyerUserId
+        : order.buyerUserId;
+    const texts: Partial<Record<OrderStatus, [string, string]>> = {
+      PENDING: ["New order received", "A buyer placed an order for your products."],
+      PAID: ["Order payment confirmed", "The payment system confirmed an order's payment."],
+      PROCESSING: ["Order being prepared", "The seller is preparing your order."],
+      SHIPPED: ["Order shipped", "Your order has been shipped."],
+      DELIVERED: ["Order delivered", "The seller marked your order as delivered."],
+      COMPLETED: ["Order completed", "The buyer confirmed your order is complete."],
+      CANCELLED: ["Order cancelled", "An order involving you was cancelled."]
+    };
+    const copy = texts[status];
+    if (!copy || recipientId === actorUserId) return;
+    await tx.notification.createMany({
+      data: [{
+        recipientUserId: recipientId,
+        eventKey: `order:${order.id}:${status}`,
+        kind: NotificationKind.ORDER,
+        title: copy[0],
+        body: copy[1],
+        href: `/orders/${encodeURIComponent(order.id)}`
+      }],
+      skipDuplicates: true
+    });
   }
 
   // Called within the authoritative message write transaction. Nothing is delivered
