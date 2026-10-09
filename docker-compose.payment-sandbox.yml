@@ -1,0 +1,20 @@
+# Standalone disposable Postgres for paid-order sandbox checks.
+# No production volumes, DNS, Supabase connections or hosted infrastructure.
+services:
+  sandbox-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sandbox_only
+      POSTGRES_DB: hustle_payment_sandbox
+    ports:
+      - "127.0.0.1:55439:5432"
+    volumes:
+      - sandbox_payment_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hustle_payment_sandbox"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  sandbox_payment_db:
