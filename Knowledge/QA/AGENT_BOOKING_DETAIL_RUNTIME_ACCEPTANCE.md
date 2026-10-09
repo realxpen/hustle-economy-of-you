@@ -1,6 +1,6 @@
 # Agent Booking Detail — Owner Runtime Acceptance
 
-**State:** implementation in progress; no production deployment yet.
+**State:** PR #75 merged (merge commit `7060d0a2dab10fbe1b67ec591664ea11fa459fb6`) with GitHub CI successful. Owner reported Web updated on 2026-10-09; Vercel independently verified Web production READY at that exact SHA. **Functional runtime acceptance checks below still pending.**
 **Source:** owner Phase 20B feedback on 2026-10-09. Four preceding notification/cancellation tests reportedly worked, but the Agent lacked a Hustler-equivalent detail screen for represented Booking requests.
 
 ## Detailed request experience
@@ -18,6 +18,6 @@
 - [ ] Web mobile and desktop layout are readable.
 
 ## Build/release
-- [ ] PR CI green; merged.
-- [ ] Owner manually deploys **Web only**. No API, database migration, or Admin redeploy.
+- [x] PR #75 CI green (run `37941935853`); merged as `7060d0a2dab10fbe1b67ec591664ea11fa459fb6`.
+- [x] Owner reported Web updated; independently verified Vercel Web production READY at `7060d0a` on 2026-10-09. No API/database/Admin redeployment required.
 - [ ] Owner confirms production behavior and deployment SHA.
