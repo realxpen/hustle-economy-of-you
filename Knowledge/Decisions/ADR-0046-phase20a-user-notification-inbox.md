@@ -1,6 +1,6 @@
 # ADR-0046 — Phase 20A User Notification Inbox
 
-Status: Accepted for implementation; database activation and runtime acceptance pending
+Status: Implementation merged; production database active and verified 2026-10-09; API/Web deployment and runtime acceptance pending
 Date: 2026-10-09
 
 ## Context
@@ -32,6 +32,13 @@ Creating an ordinary or Agent-assisted direct Message atomically creates the rec
 
 ## Database and release gate
 Migration: `20261009130000_phase20a_notification_inbox`. Apply and verify on a non-production/test database first, then with owner approval on the designated Supabase production database **before deploying API**. Do not write notification-producing messages while the API code expects a missing table.
+
+### Database activation record — 2026-10-09
+Project owner approved the migration in the development conversation. Verified the production project against the live Web Supabase URL and the project API: `pfgarmyygybmhiiuopym` (`hustle-economy of you`). The in-repo migration source was applied with the Supabase migration authority under `phase20a_notification_inbox`; Supabase recorded migration version `20261009123129`.
+
+Post-apply read-only checks confirmed 9 Notification columns, NotificationKind enum, User foreign key, 4 indexes including `(recipientUserId,eventKey)` uniqueness, RLS ON, three hustle_api-only policies and SELECT/INSERT/UPDATE role permissions with no DELETE. `anon` and `authenticated` have no SELECT. Initial notification count was zero. Security advisor had no Notification-specific warnings; the performance advisor flagged the new indexes as unused (expected before production traffic), in addition to existing unrelated project advisories. No data-creating test messages or production payment tests were run.
+
+An existing staging branch and local PostgreSQL server were not available. Therefore, we performed schema/role/RLS compatibility preflight and production post-migration validation, **not** a separate staging execution. This must not be misrepresented as staging acceptance. Owner controls release; API/Web deployment and runtime validation remain pending.
 
 ## Acceptance checks
 1. User A sends a direct message to User B. Only B gets one MESSAGE alert, with safe link to the actual thread; A gets none.
