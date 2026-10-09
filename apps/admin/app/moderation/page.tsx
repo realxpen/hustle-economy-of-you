@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminAuth } from "../../components/admin-auth-provider";
+
 import { FormEvent, useEffect, useState } from "react";
 import {
   applyModerationHold,
@@ -14,7 +16,6 @@ import {
   type ModerationSubjectType
 } from "../../lib/admin-api";
 
-const TOKEN_KEY = "hustle-admin-access-token";
 const TYPES: ModerationSubjectType[] = ["POST", "SERVICE", "PRODUCT"];
 
 function person(value: { displayName: string | null; username: string | null }) {
@@ -27,7 +28,7 @@ function timestamp(value: string) {
 }
 
 export default function ModerationPage() {
-  const [token, setToken] = useState("");
+  const { token } = useAdminAuth();
   const [type, setType] = useState<ModerationSubjectType>("POST");
   const [state, setState] = useState<ModerationState | "">("");
   const [contentId, setContentId] = useState("");
@@ -40,16 +41,14 @@ export default function ModerationPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = window.sessionStorage.getItem(TOKEN_KEY) ?? "";
-    setToken(stored);
     const q = new URLSearchParams(window.location.search);
     const qType = q.get("type");
     const nextType = TYPES.includes(qType as ModerationSubjectType)
       ? qType as ModerationSubjectType : "POST";
     setType(nextType);
     setContentId(q.get("id") ?? "");
-    if (stored) void load(stored, nextType, "");
-  }, []);
+    if (token) void load(token, nextType, "");
+  }, [token]);
 
   async function load(t = token, nextType = type, nextState = state) {
     if (!t) return;
