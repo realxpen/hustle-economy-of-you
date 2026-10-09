@@ -14,6 +14,7 @@ import {
 } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 export interface OpenDirectConversationInput {
@@ -99,7 +100,7 @@ type UnreadCountRow = {
 
 @Injectable()
 export class MessagingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
 
   async openDirect(identity: AuthIdentity, input: OpenDirectConversationInput) {
     const viewer = await this.requireUser(identity);
@@ -299,8 +300,8 @@ export class MessagingService {
     }
 
     const now = new Date();
-    const [message] = await this.prisma.$transaction([
-      this.prisma.message.create({
+    const message = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.message.create({
         data: {
           conversationId: id,
           senderId: viewer.id,
@@ -310,23 +311,20 @@ export class MessagingService {
           contextId: context?.id ?? null
         },
         select: messageSelect
-      }),
-      this.prisma.conversation.update({
+      });
+      await tx.conversation.update({
         where: { id },
         data: { lastActivityAt: now },
         select: { id: true }
-      }),
-      this.prisma.conversationParticipant.update({
-        where: {
-          conversationId_userId: {
-            conversationId: id,
-            userId: viewer.id
-          }
-        },
+      });
+      await tx.conversationParticipant.update({
+        where: { conversationId_userId: { conversationId: id, userId: viewer.id } },
         data: { lastReadAt: now },
         select: { conversationId: true }
-      })
-    ]);
+      });
+      await this.notifications.recordDirectMessage(tx, created);
+      return created;
+    });
 
     await this.prisma.systemEvent.create({
       data: {
