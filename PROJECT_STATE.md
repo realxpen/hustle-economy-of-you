@@ -1,6 +1,6 @@
 # Hustle Project State
 
-Updated: 2026-10-08
+Updated: 2026-10-09
 
 ## Current AED capability
 Build
@@ -15,6 +15,8 @@ Phase 19C — Marketplace Casework & Dispute Triage (merged + database active; r
 Phase 19B — Admin Capability + Application Operations (merged; runtime acceptance deferred for combined validation)
 
 Phase 19A — Admin Marketplace Operations Foundation (merged; runtime acceptance deferred for combined validation)
+
+Admin automatic session auth — PR #71 MERGED (`9757971ebd64b3c54786f8a78901498d3e2a5381`); full PR CI green 2026-10-09. Standalone Admin now uses first-party Supabase email/password login with automatic session restoration and refresh, shared guard across all Admin routes, same-origin auth transport and server-enforced AdminGuard. Admin production NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are configured; API ADMIN_ORIGIN is configured. **Owner must manually deploy Admin from new main and validate runtime**; prior Admin/API production deployments at `7892ff3` do NOT contain this feature. No API redeploy required for PR #71, no schema migration, no automatic deployment. Canonical decision: `Knowledge/Decisions/ADR-0045-admin-authenticated-session.md`.
 
 Phase 18E — Delegated Bookings + Client Messages (merged + database activated; PARTIAL production runtime acceptance, owner-confirmed 2026-10-08: represented Booking visibility/acceptance/conflict denial, decline, pre-funding cancellation, free-work start, forbidden completion/financial/reputation actions; CLIENT_MESSAGE_MANAGE read/reply, visible Agent attribution, preserved owner unread state, immediate message permission revocation denial and ordinary owner messaging all passed. Blocked-conversation enforcement passed on 2026-10-08. Still pending: sandbox-only paid FUNDED Booking start. Server-side message provenance (`delegatedByAgentUserId`) and Agent suspension/reactivation access enforcement were confirmed passing by the project owner on 2026-10-09. Unrelated-principal Booking isolation and immediate BOOKING_MANAGE revocation denial passed on 2026-10-08.)
 
