@@ -56,7 +56,13 @@ jobs:
           PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
             -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
             -f scripts/payment-sandbox/supabase-compat.sql
-      - name: Apply all Hustle migrations to disposable Postgres
+      - name: Mark historical duplicate Story policy migration as already represented
+        run: |
+          # 20260917124500 already defines these same four Story grants/policies.
+          # The later 20260917130500 repeats CREATE POLICY without DROP; do
+          # not edit historical migrations or attempt a production repair.
+          npx prisma migrate resolve --applied 20260917130500_phase16b_story_rls_hardening --schema=apps/api/prisma/schema.prisma
+      - name: Apply all other Hustle migrations to disposable Postgres
         run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
       - name: Build actual Nest API
         run: npm run build --workspace=@hustle/api
