@@ -27,4 +27,17 @@ The standalone Hustle Admin app previously required a pasted bearer access token
 - Sign-out removes Admin session and returns to sign-in.
 - No change to Agent/Hustler/Web sessions and no use of a browser-supplied Admin flag.
 
+## Production acceptance — 2026-10-09
+PR #71 passed GitHub CI and was deployed manually to Admin (Vercel production commit `58b3156`).
+
+Owner-confirmed checks:
+- Existing Hustle email/password sign-in, without manual bearer token entry;
+- Admin overview and primary datasets load without the prior fetch failure;
+- Session persists on browser refresh;
+- Navigation through all six Admin pages uses the same session;
+- Non-Admin login cannot access protected Admin operations;
+- Sign-out returns to authentication.
+
+Automatic refresh under an actual token-expiry cycle, invalid-credential recovery and Admin/Web session independence were implemented but **not separately runtime-tested**. The product authentication improvement is accepted based on the requested six-check production smoke test; those extra robustness scenarios remain available for future regression tests.
+
 Production sign-off is separate from CI/build validation.
