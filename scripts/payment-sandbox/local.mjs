@@ -23,7 +23,7 @@ try {
   call("docker",[...compose,"exec","-T","sandbox-db",
     "psql","-v","ON_ERROR_STOP=1","-U","postgres","-d","hustle_payment_sandbox"],
     {input:readFileSync("scripts/payment-sandbox/supabase-compat.sql","utf8"),stdio:["pipe","inherit","inherit"]});
-  call("npx",["prisma","migrate","deploy","--schema=apps/api/prisma/schema.prisma"]);
+  // 20260917130500 repeats the already applied 20260917124500 Story RLS policies.\n  // Mark duplicate-only migration on this disposable database, not production.\n  call("npx",["prisma","migrate","resolve","--applied","20260917130500_phase16b_story_rls_hardening","--schema=apps/api/prisma/schema.prisma"]);\n  call("npx",["prisma","migrate","deploy","--schema=apps/api/prisma/schema.prisma"]);
   call("npm",["run","build","--workspace=@hustle/api"]);
   call("node",["scripts/payment-sandbox/run.mjs"]);
   console.log("Isolated payment sandbox assertions passed.");
