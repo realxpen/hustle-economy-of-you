@@ -1,6 +1,6 @@
 # Isolated Payment Sandbox — Phase 20B
 
-Status: Isolated GitHub Actions integration checks PASSED on 2026-10-09 (run `37947556127`; full signed PAID→COMPLETED lifecycle). Final mask-security rerun and PR merge pending. Not a hosted production or Vercel Preview payment environment.
+Status: MERGED PR #76 (`39c67b8a5675e9b8ade017af9b003d88f07b262c`). Final isolated paid-Order integration check PASSED 2026-10-09 (workflow `37947854960`), normal build/typecheck CI PASSED (`37947855011`). Webhook HMAC secret masks correctly in logs. Not a hosted production or Vercel Preview payment environment.
 Date: 2026-10-09
 
 ## Purpose
