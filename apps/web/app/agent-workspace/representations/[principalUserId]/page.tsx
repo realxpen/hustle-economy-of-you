@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { ExperienceState } from "../../../../components/experience/experience-state";
 import type {
@@ -94,6 +94,7 @@ function formatDate(value: string | null) {
 export default function AgentRepresentationBusinessPage() {
   const params = useParams<{ principalUserId: string }>();
   const principalUserId = params.principalUserId;
+  const refreshVersion = useRef(0);
 
   const [overview, setOverview] = useState<AgentRelationship | null>(null);
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
@@ -149,10 +150,11 @@ export default function AgentRepresentationBusinessPage() {
   }, [principalUserId]);
 
   async function refresh() {
+    const version = ++refreshVersion.current;
     setError(null);
     try {
       const nextOverview = await getAgentBusinessOverview(principalUserId);
-      setOverview(nextOverview);
+      if (version !== refreshVersion.current) return;
       const nextScopes = nextOverview.permissions.filter((item) => item.active).map((item) => item.scope);
 
       const nextIsHustler = nextOverview.principal.capabilities?.some(
@@ -180,6 +182,8 @@ export default function AgentRepresentationBusinessPage() {
           : Promise.resolve([])
       ]);
 
+      if (version !== refreshVersion.current) return;
+      setOverview(nextOverview);
       setProfile(nextProfile);
       setServices(nextServices);
       setProducts(nextProducts);
@@ -198,6 +202,8 @@ export default function AgentRepresentationBusinessPage() {
         });
       }
     } catch (reason) {
+      if (version !== refreshVersion.current) return;
+      setOverview(null); setProfile(null); setServices([]); setProducts([]); setPosts([]); setBookings([]); setConversations([]);
       setError(reason instanceof Error ? reason.message : "Could not load delegated business workspace");
     }
   }
@@ -356,7 +362,7 @@ export default function AgentRepresentationBusinessPage() {
     }
   }
 
-  if (!overview) {
+  if (!overview || overview.principalUserId !== principalUserId) {
     return <main className={styles.shell}>
       <ExperienceState kind={error ? "error" : "loading"} title={error ? "Represented workspace unavailable." : "Checking represented account access…"} description={error ?? undefined} action={error ? { label: "Back to Agent workspace", href: "/agent-workspace" } : undefined} />
     </main>;
