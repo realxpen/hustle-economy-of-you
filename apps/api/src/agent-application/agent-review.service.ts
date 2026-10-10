@@ -131,8 +131,8 @@ export class AgentReviewService {
       );
     }
 
-    await this.prisma.$transaction([
-      this.prisma.agentApplication.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.agentApplication.update({
         where: { id: application.id },
         data: {
           status: AgentApplicationStatus.UNDER_REVIEW,
@@ -146,7 +146,7 @@ export class AgentReviewService {
           reviewedAt: null
         }
       }),
-      this.prisma.systemEvent.create({
+      await tx.systemEvent.create({
         data: {
           name: "agent_application.review_started",
           source: "admin",
@@ -156,8 +156,14 @@ export class AgentReviewService {
             reviewerUserId: reviewer.id
           }
         }
-      })
-    ]);
+      });
+      await this.notifications.recordCapabilityApplication(tx, {
+        applicationId: application.id,
+        applicantUserId: application.userId,
+        capability: "AGENT",
+        status: "UNDER_REVIEW"
+      });
+    });
 
     return this.get(identity, applicationId);
   }
