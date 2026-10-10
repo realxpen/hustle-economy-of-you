@@ -10,6 +10,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { PrismaService } from "../database/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 export interface HustlerReviewDecisionInput {
   notes?: unknown;
@@ -26,7 +27,7 @@ const reviewerStatuses = new Set<HustlerApplicationStatus>([
 
 @Injectable()
 export class HustlerReviewService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
 
   async list(identity: AuthIdentity, status?: string) {
     await this.requireReviewerUser(identity);
@@ -385,6 +386,12 @@ export class HustlerReviewService {
           }
         }
       });
+      await this.notifications.recordCapabilityApplication(tx, {
+        applicationId: application.id,
+        applicantUserId: application.userId,
+        capability: "HUSTLER",
+        status: "APPROVED"
+      });
     });
 
     return this.get(identity, applicationId);
@@ -411,8 +418,8 @@ export class HustlerReviewService {
     const notes = this.optionalText(input.notes, "notes", 2000);
     const now = new Date();
 
-    await this.prisma.$transaction([
-      this.prisma.hustlerApplication.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.hustlerApplication.update({
         where: { id: application.id },
         data: {
           status: HustlerApplicationStatus.REJECTED,
@@ -421,7 +428,7 @@ export class HustlerReviewService {
           rejectionReason
         }
       }),
-      this.prisma.systemEvent.create({
+      await tx.systemEvent.create({
         data: {
           name: "hustler_application.rejected",
           source: "api",
@@ -432,8 +439,14 @@ export class HustlerReviewService {
             rejectionReason
           }
         }
-      })
-    ]);
+      });
+      await this.notifications.recordCapabilityApplication(tx, {
+        applicationId: application.id,
+        applicantUserId: application.userId,
+        capability: "HUSTLER",
+        status: "REJECTED"
+      });
+    });
 
     return this.get(identity, applicationId);
   }
