@@ -163,6 +163,35 @@ export default function AnalyticsPage() {
         </div>
       </section>
 
+      <section aria-labelledby="journey-association" className={styles.section}>
+        <div className={styles.sectionHeading}>
+          <div>
+            <p className={styles.eyebrow}>02 / OPT-IN ATTRIBUTION</p>
+            <h2 id="journey-association">Discovery → opportunity</h2>
+          </div>
+          <span className={styles.observedPill}>Consented association · not causation</span>
+        </div>
+        <p className={styles.sectionIntro}>{snapshot.attribution.note}</p>
+        <div className={styles.metricGrid}>
+          <Metric label="Consented Booking requests" value={snapshot.attribution.bookings.consentingOutcomes} help="Bookings from users whose opt-in remains active" />
+          <Metric label="Bookings linked to offer tap" value={snapshot.attribution.bookings.linkedOutcomes} help="Same customer and Service, within seven days" keySignal />
+          <Metric label="Consented Orders placed" value={snapshot.attribution.orders.consentingOutcomes} help="Orders from users whose opt-in remains active" />
+          <Metric label="Orders linked to offer tap" value={snapshot.attribution.orders.linkedOutcomes} help="Same customer and Product, within seven days" keySignal />
+        </div>
+        <div className={styles.activityGrid}>
+          {([
+            { label: "Booking associations", values: snapshot.attribution.bookings.byLastEligibleClick },
+            { label: "Order associations", values: snapshot.attribution.orders.byLastEligibleClick }
+          ] as const).map(group => <article className={styles.activityCard} key={group.label}>
+            <span>{group.label} by last eligible interaction</span>
+            <p>Feed: {count(group.values.feed)}</p>
+            <p>Search: {count(group.values.search)}</p>
+            <p>Marketplace: {count(group.values.marketplace)}</p>
+          </article>)}
+        </div>
+        <p className={styles.sectionIntro}>Attribution is off by default in Account privacy settings. Opting out removes all of that account's associations from this report; opting back in does not backfill old clicks. These figures must not be presented as click-through conversion rates, causal effects, or a total of all Hustle customers.</p>
+      </section>
+
       <Timeline snapshot={snapshot}/>
 
       <section aria-labelledby="discovery-observations" className={styles.section}>
