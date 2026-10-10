@@ -1,18 +1,18 @@
 # UX-003 Interaction Polish — automated build and Monday review
 
-**Status:** feature branch, CI and owner Monday runtime acceptance pending.
+**Status:** PR #84 MERGED (`b4b84f8e4caccbe317f2ffce6ce774aa5d7c5387`) on 2026-10-10. Hustle Foundation CI `38055953269` SUCCESS on final head `168a1e51ae186e3a95ce871a658f09b53fa3b7e1` (Web/Admin/Mobile/API typechecks and builds). No production deployment or manual browser acceptance. Web-only PR; isolated payment sandbox **not triggered**.
 
 ## Source/code and automated build checks
-- [ ] Reusable accessible loading/empty/error state with meaningful action and reduced-motion skeleton.
-- [ ] Discover, Search, Marketplace, Messages, Activity, public Storefront and Service/Product detail use shared states.
-- [ ] Booking/Order managers show useful retry and empty paths without false role/account switching.
-- [ ] Search/Marketplace ignore superseded primary requests and preserve current pagination.
-- [ ] Clear filters runs an appropriately reset query and form controls are labeled.
-- [ ] Booking form checks end-after-start, explains required data, shows errors and guards duplicate submission.
-- [ ] Checkout differentiates preview unavailable/empty/loading, uses autofill and cannot submit empty/unvalidated preview.
-- [ ] No stale developer-phase finance guidance and no payment/booking/authorization backend changes.
-- [ ] Web/Admin/Mobile/API typechecks and builds green on final commit.
-- [ ] PR merged without automatic deployment; existing financial isolated regression unchanged.
+- [x] Reusable accessible loading/empty/error state with meaningful action and reduced-motion skeleton.
+- [x] Discover, Search, Marketplace, Messages, Activity, public Storefront and Service/Product detail use shared states.
+- [x] Booking/Order managers show useful retry and empty paths without false role/account switching.
+- [x] Search/Marketplace ignore superseded primary requests and preserve current pagination.
+- [x] Clear filters runs an appropriately reset query and form controls are labeled.
+- [x] Booking form includes end-after-start validation, field help, errors and a submission-busy check at code level; live browser acceptance remains Monday.
+- [x] Checkout code differentiates failed/empty/loading preview, offers retry and autofill, and prevents submitting absent preview or during a busy state.
+- [x] No stale developer-phase finance guidance and no payment/booking/authorization backend changes.
+- [x] Web/Admin/Mobile/API typechecks and builds green on final commit.
+- [x] PR merged without automatic deployment; payment/backend code unaffected. **Payment isolated regression was not triggered for this Web-only PR**.
 
 ## Monday laptop/device acceptance — deliberately not completed
 - [ ] 320/360/390px and tablet desktop: touch targets, gutters, scroll, tab bars and no horizontal overflow.
