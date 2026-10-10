@@ -428,7 +428,7 @@ export default function DiscoveryHomePage() {
     </section>
 
     <nav className={styles.tabs} aria-label="Discovery feed tabs">
-      {tabs.map((item) => <button key={item.id} type="button" className={tab === item.id ? styles.activeTab : undefined} onClick={() => setTab(item.id)}>{item.label}</button>)}
+      {tabs.map((item) => <button key={item.id} type="button" className={tab === item.id ? styles.activeTab : undefined} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}
     </nav>
 
     {meta.coldStart && tab === "for-you" && <section className={styles.coldStart}><strong>Cold start, not an empty start.</strong><span>Hustle is using location, recency, trust and useful published content while it learns from real interactions.</span></section>}
