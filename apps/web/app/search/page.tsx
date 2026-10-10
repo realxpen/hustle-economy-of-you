@@ -65,7 +65,7 @@ export default function SearchPageScreen() {
     if (initial) setQuery(initial);
   }, []);
 
-  async function runSearch(nextTab: SearchTab, cursor: string | null = null, append = false) {
+  async function runSearch(nextTab: SearchTab, cursor: string | null = null, append = false, appliedFilters: SearchFilters = filters) {
     const normalized = query.trim();
     if (!normalized) {
       setError("Enter what you need to find on Hustle.");
@@ -76,7 +76,7 @@ export default function SearchPageScreen() {
     append ? setLoadingMore(true) : setLoading(true);
     setError(null);
     try {
-      const page = await getSearchPage(nextTab, { q: normalized, cursor, limit: 12, filters });
+      const page = await getSearchPage(nextTab, { q: normalized, cursor, limit: 12, filters: appliedFilters });
       if (version !== requestVersion.current) return;
       setItems((current) => append ? [...current, ...page.items] : page.items);
       setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore, zeroResults: page.zeroResults });
@@ -180,14 +180,14 @@ export default function SearchPageScreen() {
       <select aria-label="Filter by product type" value={filters.productType ?? ""} onChange={(event) => setFilters({ ...filters, productType: event.target.value })}><option value="">Any product type</option><option value="PHYSICAL">Physical product</option><option value="DIGITAL">Digital product</option></select>
       <label className={styles.checkField}><input type="checkbox" checked={Boolean(filters.nearby)} onChange={(event) => setFilters({ ...filters, nearby: event.target.checked })} /> Nearby me</label>
       <button className={styles.primaryButton} type="button" onClick={() => void runSearch(tab)} disabled={loading || !query.trim()}>Apply filters</button>
-      <button className={styles.resetButton} type="button" disabled={loading} onClick={() => { setFilters(emptyFilters); setError(null); }}>Clear filters</button>
+      <button className={styles.resetButton} type="button" disabled={loading} onClick={() => { setFilters(emptyFilters); setError(null); if (query.trim()) void runSearch(tab, null, false, emptyFilters); }}>Clear filters</button>
     </section>
 
     <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
       <div className={styles.resultMeta} role="status" aria-live="polite"><strong>{resultLabel}</strong><span>{loading ? "Searching…" : `${items.length} loaded · ${tab}`}</span></div>
       {error && <ExperienceState kind="error" title="Search isn't available right now." description={error} action={{ label: "Retry search", onClick: () => void runSearch(tab), disabled: loading || !query.trim() }} />}
       {!error && loading && <ExperienceState kind="loading" title="Finding people, work and offers…" description="Checking currently published Hustle results." />}
-      {!error && !loading && meta.zeroResults && <ExperienceState kind="empty" title="No useful match yet." description="Try a broader skill, category or location. Hustle won't silently substitute unrelated results." action={{label:"Clear filters",onClick:()=>{setFilters(emptyFilters);setError(null);}}} />}
+      {!error && !loading && meta.zeroResults && <ExperienceState kind="empty" title="No useful match yet." description="Try a broader skill, category or location. Hustle won't silently substitute unrelated results." action={{label:"Clear filters",onClick:()=>{setFilters(emptyFilters);setError(null);if(query.trim())void runSearch(tab,null,false,emptyFilters);}}} />}
       {!error && !loading && !meta.zeroResults && items.length === 0 && <ExperienceState kind="empty" title="What do you need?" description="Search for a professional, capability, Service, Product or demonstrated work." />}
       {!loading && items.length > 0 && <div className={styles.grid}>{items.map((item, index) => <ResultCard key={`${item.kind}-${item.id}`} item={item} onOpen={() => openResult(item, index)} />)}</div>}
       {!loading && !error && meta.hasMore && <div className={styles.loadMore}><button className={styles.primaryButton} type="button" disabled={loadingMore} onClick={() => void runSearch(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more"}</button></div>}
