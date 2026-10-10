@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
@@ -104,11 +105,9 @@ export default function BookingDetailPage() {
   const canComplete = booking.viewerRole === "HUSTLER" && booking.status === "IN_PROGRESS";
   const messageUrl = booking.conversationId ? `/messages/${booking.conversationId}` : `/messages/start?userId=${encodeURIComponent(other.id)}`;
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE↗</a>
-      <nav><a href="/bookings">Bookings</a><a href={`/services/${booking.serviceId}`}>Service</a><a href="/wallet">Wallet</a><a href="/messages">Messages</a></nav>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Booking detail" trail={[{ href: "/bookings", label: "Bookings" }]}
+      secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, { href: "/wallet", label: "Wallet" }]} />
 
     <div className={styles.detailGrid}>
       <section className={styles.detailMain}>
