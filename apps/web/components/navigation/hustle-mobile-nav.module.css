@@ -1,0 +1,107 @@
+.dock {
+  --dock-height: 74px;
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .dock {
+    display: block;
+    position: fixed;
+    z-index: 90;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 7px max(8px, env(safe-area-inset-left)) calc(7px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
+    background: color-mix(in srgb, var(--h-paper, #f5f2ec) 94%, transparent);
+    border-top: 1px solid var(--h-border, #cbc5b9);
+    box-shadow: 0 -6px 26px rgba(19, 18, 16, .07);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
+
+  .inner {
+    width: 100%;
+    max-width: 570px;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 3px;
+    margin-inline: auto;
+  }
+
+  .link {
+    min-width: 0;
+    min-height: 58px;
+    display: flex;
+    gap: 4px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--h-muted, #65615a);
+    border-radius: 16px;
+    transition: background-color 160ms ease, color 160ms ease;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .link:active {
+    background: var(--h-sand, #eae5db);
+  }
+
+  .selected {
+    color: var(--h-ink, #141311);
+    background: var(--h-sand, #eae5db);
+  }
+
+  .selected .icon {
+    color: var(--h-orange, #e64c18);
+  }
+
+  .icon {
+    width: 30px;
+    height: 25px;
+    display: grid;
+    place-items: center;
+    position: relative;
+  }
+
+  .unread {
+    position: absolute;
+    right: -7px;
+    top: -5px;
+    min-width: 16px;
+    height: 16px;
+    display: grid;
+    place-items: center;
+    padding-inline: 3px;
+    background: var(--h-orange, #e64c18);
+    color: white;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 2px var(--h-paper, #f5f2ec);
+  }
+
+  .label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: -.012em;
+    line-height: 1.2;
+  }
+
+  @media (max-width: 340px) {
+    .label { font-size: 9px; }
+    .inner { gap: 0; }
+    .link { border-radius: 12px; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link { transition: none; }
+}
