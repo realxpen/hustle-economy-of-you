@@ -91,7 +91,11 @@ function MediaRail({ item }: { item: FeedItem }) {
         }
         return <video className={styles.media} key={media.id} src={media.mediaUrl ?? undefined} controls muted loop playsInline preload="metadata" aria-label="Hustle post video, muted by default" />;
       }
-      return media.mediaUrl ? <img className={styles.media} key={media.id} src={media.mediaUrl} alt={"Work shared by " + (item.creator.displayName ?? item.creator.username ?? "a Hustler")} loading="lazy" /> : null;
+      return media.mediaUrl ? <div key={media.id} className={styles.mediaSlide}>
+        <img className={styles.mediaBackdrop} src={media.mediaUrl} alt="" aria-hidden="true" loading="lazy" />
+        <img className={styles.mediaImage} src={media.mediaUrl}
+          alt={"Work shared by " + (item.creator.displayName ?? item.creator.username ?? "a Hustler")} loading="lazy" />
+      </div> : null;
     })}
   </div>;
 }
@@ -152,13 +156,17 @@ function FeedCard({
     const observer = new IntersectionObserver((entries) => {
       const entry = entries[0];
       const visible = Boolean(entry?.isIntersecting && entry.intersectionRatio >= 0.55);
-      const video = node.querySelector("video");
+      const videos = node.querySelectorAll("video");
       if (!visible || document.visibilityState !== "visible") {
-        video?.pause();
-      } else if (video && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        videos.forEach((video) => video.pause());
+      } else {
+        // Native muted autoplay is limited to a VIDEO that leads this post.
+        const video = item.post.media[0]?.type === "VIDEO" ? videos[0] : null;
+        if (video && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         // Only the active native video plays, silently. Sound remains a user choice.
         video.muted = true;
         void video.play().catch(() => undefined);
+        }
       }
       if (visible) {
         if (!viewedRef.current) {
@@ -179,13 +187,13 @@ function FeedCard({
 
     observer.observe(node);
     const onHidden = () => {
-      if (document.visibilityState === "hidden") { flushWatch(); node.querySelector("video")?.pause(); }
+      if (document.visibilityState === "hidden") { flushWatch(); node.querySelectorAll("video").forEach((video) => video.pause()); }
     };
     document.addEventListener("visibilitychange", onHidden);
 
     return () => {
       observer.disconnect();
-      node.querySelector("video")?.pause();
+      node.querySelectorAll("video").forEach((video) => video.pause());
       document.removeEventListener("visibilitychange", onHidden);
       flushWatch();
     };
@@ -394,6 +402,7 @@ export default function DiscoveryHomePage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
   const feedRef = useRef<HTMLElement | null>(null);
   const paginationTrigger = useRef<HTMLButtonElement | null>(null);
   const requestVersion = useRef(0);
@@ -408,7 +417,8 @@ export default function DiscoveryHomePage() {
     const version = append ? requestVersion.current : ++requestVersion.current;
     if (append) paginationInFlight.current = true;
     append ? setLoadingMore(true) : setLoading(true);
-    setError(null);
+    if (append) setPageError(null);
+    else { setError(null); setPageError(null); }
     try {
       const page = await getFeedPage(nextTab, { cursor, limit: 8 });
       if (version !== requestVersion.current) return;
@@ -425,7 +435,8 @@ export default function DiscoveryHomePage() {
     } catch (reason) {
       if (version !== requestVersion.current) return;
       const message = reason instanceof Error ? reason.message : "Could not load discovery feed";
-      setError(message);
+      if (append) setPageError(message);
+      else setError(message);
       if (message.toLowerCase().includes("sign in")) setTimeout(() => router.replace("/auth"), 900);
     } finally {
       if (append) paginationInFlight.current = false;
@@ -447,7 +458,7 @@ export default function DiscoveryHomePage() {
   useEffect(() => {
     const trigger = paginationTrigger.current;
     const feed = feedRef.current;
-    if (!trigger || !feed || !meta.hasMore || !meta.nextCursor || loading || loadingMore || error) return;
+    if (!trigger || !feed || !meta.hasMore || !meta.nextCursor || loading || loadingMore || error || pageError) return;
     const observer = new IntersectionObserver(([entry]) => {
       if (entry?.isIntersecting) {
         observer.disconnect();
@@ -456,7 +467,7 @@ export default function DiscoveryHomePage() {
     }, { root: feed, rootMargin: "180px 0px" });
     observer.observe(trigger);
     return () => observer.disconnect();
-  }, [tab, meta.hasMore, meta.nextCursor, loading, loadingMore, error, items.length, load]);
+  }, [tab, meta.hasMore, meta.nextCursor, loading, loadingMore, error, pageError, items.length, load]);
 
   const activeTab = useMemo(() => tabs.find((item) => item.id === tab) ?? tabs[0], [tab]);
 
@@ -512,6 +523,7 @@ export default function DiscoveryHomePage() {
             sessionId={sessionId} onChange={replaceItem} onCreatorFollowChange={updateCreatorFollow}
           />)}
           {meta.hasMore && <div className={styles.paginationFrame}>
+            {pageError && <p className={styles.paginationError} role="alert">{pageError} · Retry when ready.</p>}
             <button ref={paginationTrigger} className={styles.loadNext} type="button"
               disabled={loadingMore} onClick={() => void load(tab, meta.nextCursor, true)}>
               {loadingMore ? "Loading more work…" : "Discover more posts ↓"}

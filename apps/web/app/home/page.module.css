@@ -296,3 +296,14 @@
   .tabs button,.actionDisc{transition:none}
   .actionRail a:hover .actionDisc,.actionRail button:hover .actionDisc{transform:none}
 }
+
+/* Keep original work legible even when its aspect ratio is not a portrait.
+   The soft dark ambient backdrop fills the vertical canvas without cropping. */
+.mediaSlide{position:relative;flex:0 0 100%;width:100%;height:100%;
+  overflow:hidden;scroll-snap-align:start;background:#0b0b0e}
+.mediaBackdrop{position:absolute;inset:-7%;width:114%;height:114%;object-fit:cover;
+  filter:blur(30px) brightness(.27) saturate(1.1);transform:scale(1.03);pointer-events:none}
+.mediaImage{position:relative;z-index:1;display:block;width:100%;height:100%;
+  object-fit:contain}
+.paginationError{max-width:370px;color:#ffd4bd;font-size:13px;text-align:center;line-height:1.5}
+.paginationFrame{display:flex;flex-direction:column;gap:18px;align-items:center;justify-content:center}
