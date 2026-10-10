@@ -1,6 +1,7 @@
 "use client";
 
 import { ExperienceHeader } from "../../../components/navigation/experience-header";
+import { ExperienceState } from "../../../components/experience/experience-state";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { PublicService } from "@hustle/types";
@@ -22,8 +23,8 @@ export default function PublicServicePage() {
     getPublicService(serviceId).then(setData).catch((reason: Error) => setError(reason.message));
   }, [params?.serviceId]);
 
-  if (error) return <main className={styles.shell}><section className={styles.notFound}><p>HUSTLE · SERVICE</p><h1>Service unavailable.</h1><span>{error}</span><a href="/">← Hustle</a></section></main>;
-  if (!data) return <main className={styles.shell}><p className={styles.loading}>Loading service…</p></main>;
+  if (error) return <main className={styles.shell}><ExperienceState kind="error" title="Service unavailable." description={error} action={{ label: "Explore Services", href: "/marketplace" }} /></main>;
+  if (!data) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Service details…" /></main>;
 
   const { service, owner } = data;
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
