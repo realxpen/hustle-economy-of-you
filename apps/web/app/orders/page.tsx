@@ -29,7 +29,7 @@ function OrderSection({ title, eyebrow, page, error, onRetry }: { title: string;
     <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>{eyebrow}</small><h2>{title}</h2></div>{page && <small>{page.items.length} loaded</small>}</div>
     {error && <ExperienceState compact kind="error" title="Could not load orders." description={error} action={{ label: "Try again", onClick: onRetry }} />}
     {!error && !page && <ExperienceState compact kind="loading" title="Getting your orders…" />}
-    {!error && page && page.items.length === 0 && <ExperienceState compact kind="empty" title={eyebrow === "AS BUYER" ? "No purchases yet." : "No sales yet."} description={eyebrow === "AS BUYER" ? "Products you purchase will appear here." : "Orders from customers will appear here when you sell a Product."} action={eyebrow === "AS BUYER" ? { label: "Explore Products", href: "/marketplace" } : { label: "Manage Products", href: "/products/manage" }} />
+    {!error && page && page.items.length === 0 && <ExperienceState compact kind="empty" title={eyebrow === "AS BUYER" ? "No purchases yet." : "No sales yet."} description={eyebrow === "AS BUYER" ? "Products you purchase will appear here." : "Orders from customers will appear here when you sell a Product."} action={eyebrow === "AS BUYER" ? { label: "Explore Products", href: "/marketplace" } : { label: "Manage Products", href: "/products/manage" }} />}
     {page && page.items.length > 0 && <div className={styles.list}>{page.items.map((order) => <OrderCard key={order.id} order={order} />)}</div>}
   </section>;
 }
