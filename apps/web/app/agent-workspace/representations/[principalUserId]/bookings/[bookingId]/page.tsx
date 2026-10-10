@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceStatus } from "../../../../../../components/navigation/experience-status";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
@@ -137,7 +138,7 @@ export default function RepresentedBookingDetailPage() {
           <p className={styles.eyebrow}>AGENT VIEW · REPRESENTED BOOKING</p>
           <h1>{booking.serviceTitleSnapshot}</h1>
           <div className={styles.meta}>
-            <span className={styles.status}>{booking.status.replaceAll("_", " ")}</span>
+            <ExperienceStatus kind="booking" value={booking.status} />
             <span>{formatBookingPrice(booking)}</span>
             <span>Client: {clientLabel}</span>
           </div>
