@@ -193,7 +193,8 @@ export class HustlerReviewService {
       );
     }
 
-    await this.prisma.hustlerApplication.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.hustlerApplication.update({
       where: { id: application.id },
       data: {
         status: HustlerApplicationStatus.UNDER_REVIEW,
@@ -206,6 +207,13 @@ export class HustlerReviewService {
         rejectionReason: null,
         reviewedAt: null
       }
+      });
+      await this.notifications.recordCapabilityApplication(tx, {
+        applicationId: application.id,
+        applicantUserId: application.userId,
+        capability: "HUSTLER",
+        status: "UNDER_REVIEW"
+      });
     });
 
     return this.get(identity, applicationId);
