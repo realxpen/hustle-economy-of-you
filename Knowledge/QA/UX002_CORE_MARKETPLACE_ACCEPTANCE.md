@@ -1,16 +1,16 @@
 # UX-002 Core Marketplace Harmonization — Build & Laptop QA
 
-Status: Feature branch implementation; PR/automated CI and owner Monday acceptance pending.
+Status: PR #83 MERGED (`46c6747ca65431559a66b8a40fab1fd5464221fa`), 2026-10-10. Hustle Foundation CI `38050241323` SUCCESS on final PR head `e851053e9718983c302d63364b63db169ab1702a` (Web/Admin/Mobile/API typechecks and builds). **Isolated payment sandbox was not triggered because this PR changes Web/UX only.** No production deployment. Monday visual acceptance pending.
 
 ## Implementation evidence
-- [ ] Shared contextual desktop navigation, breadcrumb hierarchy, no conflict with existing mobile dock.
-- [ ] Consistent responsive page width, typography, warm paper, surface cards and filter gutters.
-- [ ] Discover, Search, Marketplace selected modes accessible to keyboard/screen readers with aria-pressed.
-- [ ] Public Storefront retains anchor section navigation and sharing; Service and Product pages retain original offer actions.
-- [ ] Bookings/Orders status pills have explicit text for authoritative paid vs pending and are independent of financial mutation logic.
-- [ ] Obsolete internal Phase 11/12/13 customer-facing labels removed from touched listing/Service pages.
-- [ ] Monorepo Web/Admin/Mobile/API CI typechecks/builds pass; isolated payment regression unchanged.
-- [ ] PR merged with green checks; no auto deployment.
+- [x] Shared contextual desktop navigation, breadcrumb hierarchy, and 761–900px navigation gap corrected in code. Mobile dock runtime coexistence remains to be visually checked Monday.
+- [x] Consistent responsive page width, typography, warm paper, surface cards and filter gutters.
+- [x] Discover, Search, Marketplace selected modes accessible to keyboard/screen readers with aria-pressed.
+- [x] Public Storefront retains anchor section navigation and sharing; Service and Product pages retain original offer action handlers in code. Monday user acceptance still required.
+- [x] Bookings/Orders status pills have explicit text for authoritative paid vs pending and are independent of financial mutation logic.
+- [x] Obsolete internal Phase 11/12/13 customer-facing labels removed from touched listing/Service pages.
+- [x] Monorepo Web/Admin/Mobile/API CI typechecks/builds pass (Foundation CI `38050241323`); no payment modules changed. The isolated payment workflow did **not** run for this Web-only PR.
+- [x] PR merged with green checks; no auto deployment.
 
 ## Monday 2026-10-12 laptop review
 - [ ] Desktop: 1024/1440px — desktop links, max width, storefront sections, grids, hover affordances.
