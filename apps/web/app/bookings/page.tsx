@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceStatus } from "../../components/navigation/experience-status";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -27,7 +28,7 @@ function BookingCard({ booking }: { booking: BookingRecord }) {
         <small className={styles.eyebrow}>{booking.viewerRole === "CLIENT" ? "YOUR REQUEST" : "SERVICE REQUEST"}</small>
         <h3>{booking.serviceTitleSnapshot}</h3>
       </div>
-      <span className={styles.status}>{booking.status.replaceAll("_", " ")}</span>
+      <ExperienceStatus kind="booking" value={booking.status} />
     </div>
     <div className={styles.meta}>
       <span>{formatBookingPrice(booking)}</span>
