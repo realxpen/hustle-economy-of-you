@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { PublicService } from "@hustle/types";
@@ -27,8 +28,8 @@ export default function PublicServicePage() {
   const { service, owner } = data;
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
 
-  return <main className={styles.shell}>
-    <header className={styles.header}><a href="/" className={styles.brand}>HUSTLE↗</a><span>THE ECONOMY OF YOU</span></header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Service" trail={[{ href: "/marketplace", label: "Marketplace" }]} />
 
     <section className={styles.hero}>
       <div className={styles.offer}>
@@ -65,7 +66,7 @@ export default function PublicServicePage() {
         <div><small>MODE</small><strong>{service.deliveryMode}</strong></div>
         <div><small>LOCATION</small><strong>{service.location ?? "Remote"}</strong></div>
         <div><small>AVAILABILITY</small><strong>{service.availabilityNote}</strong></div>
-        <p>Booking requests now preserve the Service terms and schedule. Paid bookings stop at the payment boundary until Phase 13 confirms real funding.</p>
+        <p>Bookings preserve the Service terms and schedule. Paid work is funded only after authoritative payment confirmation.</p>
       </aside>
     </section>
 
