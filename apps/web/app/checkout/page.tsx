@@ -60,7 +60,7 @@ export default function CheckoutPage() {
       <p>Checkout creates a durable PENDING Order. It does not charge you, reserve stock, or claim payment success.</p>
     </section>
 
-    {error && <div className={styles.error} role="alert">{error}</div>}
+    {error && preview && <div className={styles.error} role="alert">{error}</div>}
     {!preview && previewBusy && <ExperienceState kind="loading" title="Checking cart and product availability…" />}
     {!preview && !previewBusy && error && <ExperienceState kind="error" title="Could not prepare Checkout." description="Your cart remains available. Try loading the preview again." action={{label:"Retry checkout preview",onClick:()=>void reloadPreview()}} />}
     {preview && preview.groups.length === 0 && <ExperienceState kind="empty" title="Your cart is empty." description="Add a Product before starting an Order." action={{label:"Explore Products",href:"/marketplace"}} />}
@@ -76,15 +76,15 @@ export default function CheckoutPage() {
         {requiresDelivery && <div className={styles.form} style={{ marginTop: 18 }}>
           <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>DELIVERY</small><h2>Where should it go?</h2></div></div>
           <div className={styles.split}>
-            <label>Recipient name<input required value={form.deliveryName ?? ""} onChange={(event) => setField("deliveryName", event.target.value)} /></label>
-            <label>Phone<input required value={form.deliveryPhone ?? ""} onChange={(event) => setField("deliveryPhone", event.target.value)} /></label>
+            <label>Recipient name<input autoComplete="name" required value={form.deliveryName ?? ""} onChange={(event) => setField("deliveryName", event.target.value)} /></label>
+            <label>Phone<input type="tel" inputMode="tel" autoComplete="tel" required value={form.deliveryPhone ?? ""} onChange={(event) => setField("deliveryPhone", event.target.value)} /></label>
           </div>
-          <label>Address<input required value={form.deliveryAddress ?? ""} onChange={(event) => setField("deliveryAddress", event.target.value)} /></label>
+          <label>Address<input autoComplete="street-address" required value={form.deliveryAddress ?? ""} onChange={(event) => setField("deliveryAddress", event.target.value)} /></label>
           <div className={styles.split}>
-            <label>City<input required value={form.deliveryCity ?? ""} onChange={(event) => setField("deliveryCity", event.target.value)} /></label>
-            <label>State<input required value={form.deliveryState ?? ""} onChange={(event) => setField("deliveryState", event.target.value)} /></label>
+            <label>City<input autoComplete="address-level2" required value={form.deliveryCity ?? ""} onChange={(event) => setField("deliveryCity", event.target.value)} /></label>
+            <label>State<input autoComplete="address-level1" required value={form.deliveryState ?? ""} onChange={(event) => setField("deliveryState", event.target.value)} /></label>
           </div>
-          <label>Country<input required value={form.deliveryCountry ?? ""} onChange={(event) => setField("deliveryCountry", event.target.value)} /></label>
+          <label>Country<input autoComplete="country-name" required value={form.deliveryCountry ?? ""} onChange={(event) => setField("deliveryCountry", event.target.value)} /></label>
           <label>Delivery note<textarea value={form.deliveryNote ?? ""} onChange={(event) => setField("deliveryNote", event.target.value)} placeholder="Landmark, access note, preferred delivery instructions…" /></label>
         </div>}
       </section>
