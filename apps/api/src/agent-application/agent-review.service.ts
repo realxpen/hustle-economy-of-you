@@ -13,6 +13,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { PrismaService } from "../database/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 export interface AgentReviewDecisionInput {
   notes?: unknown;
@@ -29,7 +30,7 @@ const reviewerStatuses = new Set<AgentApplicationStatus>([
 
 @Injectable()
 export class AgentReviewService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
 
   async list(identity: AuthIdentity, status?: string) {
     await this.requireAdminUser(identity);
@@ -130,8 +131,8 @@ export class AgentReviewService {
       );
     }
 
-    await this.prisma.$transaction([
-      this.prisma.agentApplication.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.agentApplication.update({
         where: { id: application.id },
         data: {
           status: AgentApplicationStatus.UNDER_REVIEW,
@@ -145,7 +146,7 @@ export class AgentReviewService {
           reviewedAt: null
         }
       }),
-      this.prisma.systemEvent.create({
+      await tx.systemEvent.create({
         data: {
           name: "agent_application.review_started",
           source: "admin",
@@ -155,8 +156,14 @@ export class AgentReviewService {
             reviewerUserId: reviewer.id
           }
         }
-      })
-    ]);
+      });
+      await this.notifications.recordCapabilityApplication(tx, {
+        applicationId: application.id,
+        applicantUserId: application.userId,
+        capability: "AGENT",
+        status: "UNDER_REVIEW"
+      });
+    });
 
     return this.get(identity, applicationId);
   }
@@ -351,6 +358,12 @@ export class AgentReviewService {
           }
         }
       });
+      await this.notifications.recordCapabilityApplication(tx, {
+        applicationId: application.id,
+        applicantUserId: application.userId,
+        capability: "AGENT",
+        status: "APPROVED"
+      });
     });
 
     return this.get(identity, applicationId);
@@ -377,8 +390,8 @@ export class AgentReviewService {
     const notes = this.optionalText(input.notes, "notes", 2000);
     const now = new Date();
 
-    await this.prisma.$transaction([
-      this.prisma.agentApplication.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.agentApplication.update({
         where: { id: application.id },
         data: {
           status: AgentApplicationStatus.REJECTED,
@@ -387,7 +400,7 @@ export class AgentReviewService {
           rejectionReason
         }
       }),
-      this.prisma.systemEvent.create({
+      await tx.systemEvent.create({
         data: {
           name: "agent_application.rejected",
           source: "admin",
@@ -398,8 +411,14 @@ export class AgentReviewService {
             rejectionReason
           }
         }
-      })
-    ]);
+      });
+      await this.notifications.recordCapabilityApplication(tx, {
+        applicationId: application.id,
+        applicantUserId: application.userId,
+        capability: "AGENT",
+        status: "REJECTED"
+      });
+    });
 
     return this.get(identity, applicationId);
   }
