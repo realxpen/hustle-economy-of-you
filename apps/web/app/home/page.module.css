@@ -316,7 +316,7 @@
 @media(max-width:760px){
   /* Product screenshots: remove the breadcrumb from the immersive mobile viewer,
      while preserving the account identity, appearance and Create Posts action. */
-  :global(main.h-discover-immersive)>header>div:last-child{display:none}
+  .shell>header>div:last-child{display:none}
   .quickLinks{gap:2px}
   .quickLinks a{font-size:20px;min-height:40px;min-width:40px}
   .tabs{scroll-snap-type:x proximity}
