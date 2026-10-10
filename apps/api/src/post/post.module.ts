@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 import { OwnerPostController, PublicPostController } from "./post.controller";
 import {
   AuthenticatedPostInteractionController,
@@ -11,7 +12,7 @@ import { PostInteractionService } from "./post-interaction.service";
 import { PostService } from "./post.service";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, NotificationsModule],
   controllers: [
     OwnerPostController,
     PublicPostController,
