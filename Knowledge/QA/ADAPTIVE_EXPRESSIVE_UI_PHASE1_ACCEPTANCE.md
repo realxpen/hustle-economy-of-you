@@ -34,3 +34,5 @@ The owner deployed main c6afecd4fe6dea6e2a7fe2a556729539b027c331 and showed /hom
 - [ ] Legacy wallet, bookings, Agent and admin surfaces retain appropriate original styling.
 - [ ] One, multiple and zero feed item desktop layouts all behave intentionally.
 - [ ] Check mobile Stories and floating dock fit at 320/360/390px.
+
+Code correction result: PR #87 MERGED 2026-10-10, Foundation CI 38086889332 SUCCESS; manual deployment of this correction and 100%-zoom visual/browser runtime acceptance NOT YET DONE.
