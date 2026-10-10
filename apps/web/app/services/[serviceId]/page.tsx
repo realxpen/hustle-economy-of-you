@@ -34,14 +34,14 @@ export default function PublicServicePage() {
     <section className={styles.hero}>
       <div className={styles.offer}>
         <p>{service.category} · {service.deliveryMode}</p>
-        <h1>{service.title}</h1>
+        <h1 className="h-experience-heading">{service.title}</h1>
         <strong>{formatServicePrice(service)}</strong>
         <div className={styles.offerActions}>
           <a className={styles.bookButton} href={`/bookings/new/${service.id}`}>Book this service →</a>
           <a className={styles.messageButton} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`}>Message first</a>
         </div>
       </div>
-      <aside className={styles.ownerCard}>
+      <aside className={[styles.ownerCard, "h-experience-surface"].join(" ")}>
         <div className={styles.avatar}>{owner.avatarUrl ? <img src={owner.avatarUrl} alt="" /> : initial}</div>
         <small>SERVICE BY</small>
         <h2>{owner.displayName ?? `@${owner.username}`}</h2>
@@ -55,7 +55,7 @@ export default function PublicServicePage() {
     {service.mediaUrls.length > 0 && <section className={styles.mediaGrid}>{service.mediaUrls.map((url) => isVideo(url) ? <video key={url} controls src={url} /> : <img key={url} src={url} alt="Service media" />)}</section>}
 
     <section className={styles.contentGrid}>
-      <article className={styles.description}>
+      <article className={[styles.description, "h-experience-surface"].join(" ")}>
         <p className={styles.kicker}>THE OFFER</p>
         <p>{service.description}</p>
         {service.requirements && <><h3>What I need from you</h3><p>{service.requirements}</p></>}
