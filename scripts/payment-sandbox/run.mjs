@@ -29,6 +29,7 @@ const { NestFactory } = require("@nestjs/core");
 const { DatabaseModule } = require("../../apps/api/dist/database/database.module.js");
 const { PaymentModule } = require("../../apps/api/dist/payment/payment.module.js");
 const { LiveModule } = require("../../apps/api/dist/live/live.module.js");
+const { AnalyticsModule } = require("../../apps/api/dist/analytics/analytics.module.js");
 const { TrustModule } = require("../../apps/api/dist/trust/trust.module.js");
 const { PrismaService } = require("../../apps/api/dist/database/prisma.service.js");
 const { CommerceService } = require("../../apps/api/dist/commerce/commerce.service.js");
@@ -37,9 +38,10 @@ const { PaymentService } = require("../../apps/api/dist/payment/payment.service.
 const { NotificationsService } = require("../../apps/api/dist/notifications/notifications.service.js");
 const { LiveService } = require("../../apps/api/dist/live/live.service.js");
 const { ReviewService } = require("../../apps/api/dist/trust/review.service.js");
+const { AnalyticsService } = require("../../apps/api/dist/analytics/analytics.service.js");
 
 class SandboxTestModule {}
-Module({ imports: [DatabaseModule, PaymentModule, LiveModule, TrustModule] })(SandboxTestModule);
+Module({ imports: [DatabaseModule, PaymentModule, LiveModule, TrustModule, AnalyticsModule] })(SandboxTestModule);
 
 function identity(subject) {
   return { subject, emailVerified: false, phoneVerified: false };
@@ -64,6 +66,7 @@ async function main() {
   const notifications = app.get(NotificationsService);
   const live = app.get(LiveService);
   const reviews = app.get(ReviewService);
+  const analytics = app.get(AnalyticsService);
 
   try {
     assert.equal((await prisma.$queryRawUnsafe("SELECT current_database() AS db"))[0].db, "hustle_payment_sandbox");
@@ -260,6 +263,39 @@ async function main() {
     assert.equal(await prisma.notification.count({
       where: { recipientUserId: seller.id, kind: "LIVE" }
     }), 0);
+
+    // Analytics must reflect canonical record timestamps rather than
+    // accepting inferred funnel conversions from untrusted click telemetry.
+    const rawEventsBefore = await prisma.systemEvent.count();
+    const unauthorizedAnalytics = await fetch(
+      `http://127.0.0.1:${address.port}/api/v1/events/overview?days=7`
+    );
+    assert.equal(unauthorizedAnalytics.status, 401, "Admin Analytics must reject unauthenticated callers");
+
+    const analyticsSnapshot = await analytics.overview("7");
+    assert.equal(analyticsSnapshot.authoritative.placedOrders, 1);
+    assert.equal(analyticsSnapshot.authoritative.paidOrders, 1);
+    assert.equal(analyticsSnapshot.authoritative.completedOrders, 1);
+    assert.equal(analyticsSnapshot.authoritative.appliedPayments, 1);
+    assert.equal(analyticsSnapshot.authoritative.verifiedReviews, 1);
+    assert.equal(analyticsSnapshot.authoritative.sentMessages, 0);
+    assert.equal(analyticsSnapshot.timeline.length, 7);
+    assert.equal(analyticsSnapshot.timeline.reduce((sum, row) => sum + row.ordersPaid, 0), 1);
+    assert.equal(analyticsSnapshot.timeline.reduce((sum, row) => sum + row.verifiedReviews, 0), 1);
+    assert.equal(analyticsSnapshot.observation.trustLevel, "CLIENT_REPORTED");
+    assert.equal(analyticsSnapshot.authoritative.trustLevel, "CANONICAL_RECORDS");
+    await expectRejected(() => analytics.overview("2"), "Unsupported analytics window must be rejected");
+    assert.equal(await prisma.systemEvent.count(), rawEventsBefore, "Admin Analytics must be read-only");
+
+    // Observational activity is deliberately separate from verified outcomes.
+    await prisma.systemEvent.create({
+      data: { name: "feed.view", source: "web", payload: { postId: "disposable-post" } }
+    });
+    const withView = await analytics.overview("30");
+    assert.equal(withView.observation.events["feed.view"], 1);
+    assert.equal(withView.authoritative.placedOrders, 1);
+    assert.equal(withView.authoritative.verifiedReviews, 1);
+    console.log("PASS: Phase21 Analytics admin guard, canonical milestone counts, daily series and observational isolation");
 
     console.log("PASS: verified review alerts only after paid completion, no self-review or duplicate");
     console.log("PASS: Live started alert fans out once to eligible followers; blocked follower excluded");
