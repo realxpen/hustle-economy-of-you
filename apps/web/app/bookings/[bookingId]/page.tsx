@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceStatus } from "../../../components/navigation/experience-status";
 import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -114,7 +115,7 @@ export default function BookingDetailPage() {
         <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
           <p className={styles.eyebrow}>{booking.viewerRole} VIEW · BOOKING</p>
           <h1 className="h-experience-heading">{booking.serviceTitleSnapshot}</h1>
-          <div className={styles.meta}><span className={styles.status}>{booking.status.replaceAll("_", " ")}</span><span>{formatBookingPrice(booking)}</span><span>with {other.displayName ?? other.username ?? "Hustle user"}</span></div>
+          <div className={styles.meta}><ExperienceStatus kind="booking" value={booking.status} /><span>{formatBookingPrice(booking)}</span><span>with {other.displayName ?? other.username ?? "Hustle user"}</span></div>
           <p className={styles.next}>{booking.nextAction}</p>
         </article>
         <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
