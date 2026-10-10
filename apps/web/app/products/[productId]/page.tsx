@@ -34,7 +34,7 @@ export default function PublicProductPage() {
       <div className={styles.summary}>
         <div className={styles.badges}><span>{product.type}</span><span>{product.inStock ? "AVAILABLE" : "OUT OF STOCK"}</span></div>
         <p className={styles.kicker}>{product.category}</p>
-        <h1>{product.title}</h1>
+        <h1 className="h-experience-heading">{product.title}</h1>
         <strong className={styles.price}>{formatProductPrice(product)}</strong>
         <p className={styles.description}>{product.description}</p>
         <AddToCart data={data} />
@@ -45,13 +45,13 @@ export default function PublicProductPage() {
     {product.mediaUrls.length > 1 && <section className={styles.mediaStrip}>{product.mediaUrls.slice(1).map((url, index) => <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer">Media {index + 2} ↗</a>)}</section>}
 
     <section className={styles.detailGrid}>
-      <article className={styles.details}>
+      <article className={[styles.details, "h-experience-surface"].join(" ")}>
         <div><small>TYPE</small><strong>{product.type}</strong></div>
         <div><small>INVENTORY</small><strong>{product.trackInventory ? product.inStock ? `${product.inventoryQuantity ?? "Variant"} available` : "Out of stock" : "Available"}</strong></div>
         <div className={styles.wide}><small>DELIVERY / ACCESS</small><p>{product.deliveryInformation || "Seller will provide delivery or access details."}</p></div>
       </article>
 
-      <aside className={styles.ownerCard}>
+      <aside className={[styles.ownerCard, "h-experience-surface"].join(" ")}>
         <div className={styles.ownerTop}><div className={styles.avatar}>{owner.avatarUrl ? <img src={owner.avatarUrl} alt="" /> : initial}</div><div><small>SELLER IDENTITY</small><h2>{owner.displayName ?? `@${owner.username}`}</h2><span>@{owner.username} · {owner.location ?? "Location not set"}</span></div></div>
         <p>{owner.professionalProfile.headline}</p>
         <div className={styles.skills}>{[owner.professionalProfile.primarySkill, ...owner.professionalProfile.secondarySkills].filter(Boolean).slice(0,6).map((skill) => <span key={skill as string}>{skill}</span>)}</div>
