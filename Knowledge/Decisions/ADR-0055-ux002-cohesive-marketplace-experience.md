@@ -1,6 +1,6 @@
 # ADR-0055 — Hustle UX-002: One Marketplace Experience
 
-Status: Implemented in branch, CI and Monday visual acceptance pending
+Status: MERGED PR #83 (`46c6747ca65431559a66b8a40fab1fd5464221fa`), Foundation CI `38050241323` SUCCESS 2026-10-10. Manual Web deployment and consolidated Monday visual/runtime acceptance PENDING.
 Date: 2026-10-10
 
 ## Intent
