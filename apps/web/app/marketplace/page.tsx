@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { FormEvent, useEffect, useState } from "react";
 import {
   captureMarketplaceObservation,
@@ -118,28 +119,25 @@ export default function MarketplacePage() {
     }).catch(() => undefined);
   }
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE<span>↗</span></a>
-      <nav className={styles.headerNav}><a href="/home">Home</a><a href="/search">Search</a><a href="/account">Your identity</a></nav>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Marketplace" />
 
-    <section className={styles.hero}>
+    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
       <div className={styles.browseIntro}>
-        <div><p className={styles.eyebrow}>MARKETPLACE</p><h1>Browse current economic opportunities.</h1></div>
+        <div><p className={styles.eyebrow}>MARKETPLACE</p><h1 className="h-experience-heading">Browse current economic opportunities.</h1></div>
         <a href="/search">Need something specific? Search →</a>
       </div>
       <p>Services and Products stay attached to the same professional identities and proof that created them.</p>
     </section>
 
-    <form className={styles.searchForm} onSubmit={submit}>
+    <form className={[styles.searchForm, "h-experience-content"].join(" ")} onSubmit={submit}>
       <div className={styles.searchBar}>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Optional: narrow marketplace by keyword" aria-label="Narrow marketplace" />
         <button type="submit" disabled={loading}>{loading ? "Loading…" : "Browse"}</button>
       </div>
     </form>
 
-    <div className={styles.tabs}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>
+    <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>
 
     <section className={styles.filters} aria-label="Marketplace filters">
       <input placeholder="Category" value={filters.category ?? ""} onChange={(event) => setFilters({ ...filters, category: event.target.value })} />
@@ -154,7 +152,7 @@ export default function MarketplacePage() {
       <button className={styles.primaryButton} type="button" disabled={loading} onClick={() => void browse(tab)}>Apply filters</button>
     </section>
 
-    <section className={styles.resultsWrap}>
+    <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
       <div className={styles.resultMeta}><strong>{tab === "all" ? "Marketplace" : tab === "services" ? "Services" : "Products"}</strong><span>{items.length} loaded</span></div>
       {error && <div className={styles.error}>{error}</div>}
       {!error && loading && <div className={styles.loading}>Loading current published offers…</div>}

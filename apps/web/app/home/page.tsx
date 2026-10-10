@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../components/navigation/experience-header";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -262,7 +263,7 @@ function FeedCard({
   const skill = item.creator.professionalProfile.primarySkill ?? item.creator.professionalProfile.headline ?? item.post.category;
   const creatorHref = item.creator.username ? `/u/${item.creator.username}` : "/home";
 
-  return <article ref={cardRef} className={styles.card}>
+  return <article ref={cardRef} className={[styles.card, "h-experience-surface"].join(" ")}>
     <div className={styles.cardTop}>
       <Link
         className={styles.creator}
@@ -416,21 +417,18 @@ export default function DiscoveryHomePage() {
       : item));
   }
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <Link className={styles.brand} href="/">HUSTLE<span>↗</span></Link>
-      <div className={styles.headerActions}><Link href="/posts/manage">Create / manage content</Link><Link href="/account">Your identity</Link></div>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Discover" actions={<Link href="/posts/manage">Create or manage posts ↗</Link>} />
 
     <HomeStoriesRow />
 
-    <section className={styles.hero}>
-      <div><p>HOME · DISCOVERY</p><h1>Find people by what they <em>share and do.</em></h1><span>{activeTab.note}</span></div>
+    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
+      <div><p>HOME · DISCOVERY</p><h1 className="h-experience-heading">Find people by what they <em>share and do.</em></h1><span>{activeTab.note}</span></div>
       <div className={styles.locationBadge}><small>YOUR DISCOVERY LOCATION</small><strong>{meta.viewerLocation ?? "Loading…"}</strong></div>
     </section>
 
     <nav className={styles.tabs} aria-label="Discovery feed tabs">
-      {tabs.map((item) => <button key={item.id} type="button" className={tab === item.id ? styles.activeTab : undefined} onClick={() => setTab(item.id)}>{item.label}</button>)}
+      {tabs.map((item) => <button key={item.id} type="button" className={tab === item.id ? styles.activeTab : undefined} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}
     </nav>
 
     {meta.coldStart && tab === "for-you" && <section className={styles.coldStart}><strong>Cold start, not an empty start.</strong><span>Hustle is using location, recency, trust and useful published content while it learns from real interactions.</span></section>}

@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { formatProductPrice, getPublicProduct, type PublicProduct } from "../../../lib/product";
@@ -25,15 +26,15 @@ export default function PublicProductPage() {
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
   const heroMedia = product.mediaUrls[0];
 
-  return <main className={styles.shell}>
-    <header className={styles.header}><a href="/" className={styles.brand}>HUSTLE↗</a><nav className={styles.headerNav}><a href="/marketplace">Marketplace</a><a href="/cart">Cart</a><a href="/orders">Orders</a></nav></header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Product" trail={[{ href: "/marketplace", label: "Marketplace" }]} secondaryLinks={[{ href: "/cart", label: "Cart" }, { href: "/orders", label: "Orders" }]} />
 
     <section className={styles.topGrid}>
       <div className={styles.media} style={heroMedia ? { backgroundImage: `url(${heroMedia})` } : undefined}>{!heroMedia && <span>PRODUCT MEDIA</span>}</div>
       <div className={styles.summary}>
         <div className={styles.badges}><span>{product.type}</span><span>{product.inStock ? "AVAILABLE" : "OUT OF STOCK"}</span></div>
         <p className={styles.kicker}>{product.category}</p>
-        <h1>{product.title}</h1>
+        <h1 className="h-experience-heading">{product.title}</h1>
         <strong className={styles.price}>{formatProductPrice(product)}</strong>
         <p className={styles.description}>{product.description}</p>
         <AddToCart data={data} />
@@ -44,7 +45,7 @@ export default function PublicProductPage() {
     {product.mediaUrls.length > 1 && <section className={styles.mediaStrip}>{product.mediaUrls.slice(1).map((url, index) => <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer">Media {index + 2} ↗</a>)}</section>}
 
     <section className={styles.detailGrid}>
-      <article className={styles.details}>
+      <article className={[styles.details, "h-experience-surface"].join(" ")}>
         <div><small>TYPE</small><strong>{product.type}</strong></div>
         <div><small>INVENTORY</small><strong>{product.trackInventory ? product.inStock ? `${product.inventoryQuantity ?? "Variant"} available` : "Out of stock" : "Available"}</strong></div>
         <div className={styles.wide}><small>DELIVERY / ACCESS</small><p>{product.deliveryInformation || "Seller will provide delivery or access details."}</p></div>

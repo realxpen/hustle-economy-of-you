@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { PublicService } from "@hustle/types";
@@ -27,13 +28,13 @@ export default function PublicServicePage() {
   const { service, owner } = data;
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
 
-  return <main className={styles.shell}>
-    <header className={styles.header}><a href="/" className={styles.brand}>HUSTLE↗</a><span>THE ECONOMY OF YOU</span></header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Service" trail={[{ href: "/marketplace", label: "Marketplace" }]} />
 
     <section className={styles.hero}>
       <div className={styles.offer}>
         <p>{service.category} · {service.deliveryMode}</p>
-        <h1>{service.title}</h1>
+        <h1 className="h-experience-heading">{service.title}</h1>
         <strong>{formatServicePrice(service)}</strong>
         <div className={styles.offerActions}>
           <a className={styles.bookButton} href={`/bookings/new/${service.id}`}>Book this service →</a>
@@ -54,7 +55,7 @@ export default function PublicServicePage() {
     {service.mediaUrls.length > 0 && <section className={styles.mediaGrid}>{service.mediaUrls.map((url) => isVideo(url) ? <video key={url} controls src={url} /> : <img key={url} src={url} alt="Service media" />)}</section>}
 
     <section className={styles.contentGrid}>
-      <article className={styles.description}>
+      <article className={[styles.description, "h-experience-surface"].join(" ")}>
         <p className={styles.kicker}>THE OFFER</p>
         <p>{service.description}</p>
         {service.requirements && <><h3>What I need from you</h3><p>{service.requirements}</p></>}
@@ -65,7 +66,7 @@ export default function PublicServicePage() {
         <div><small>MODE</small><strong>{service.deliveryMode}</strong></div>
         <div><small>LOCATION</small><strong>{service.location ?? "Remote"}</strong></div>
         <div><small>AVAILABILITY</small><strong>{service.availabilityNote}</strong></div>
-        <p>Booking requests now preserve the Service terms and schedule. Paid bookings stop at the payment boundary until Phase 13 confirms real funding.</p>
+        <p>Bookings preserve the Service terms and schedule. Paid work is funded only after authoritative payment confirmation.</p>
       </aside>
     </section>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   captureSearchObservation,
@@ -143,26 +144,23 @@ export default function SearchPageScreen() {
 
   const resultLabel = useMemo(() => searchedQuery ? `Results for “${searchedQuery}”` : "Search across Hustle", [searchedQuery]);
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE<span>↗</span></a>
-      <nav className={styles.headerNav}><a href="/home">Home</a><a href="/marketplace">Marketplace</a><a href="/account">Your identity</a></nav>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Search" />
 
-    <section className={styles.hero}>
+    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
       <p className={styles.eyebrow}>INTENTIONAL DISCOVERY</p>
-      <h1>Find who or what can genuinely help.</h1>
+      <h1 className="h-experience-heading">Find who or what can genuinely help.</h1>
       <p>Search people by capability, inspect proof, and move directly into a published Service, Product or professional identity.</p>
     </section>
 
-    <form className={styles.searchForm} onSubmit={submit}>
+    <form className={[styles.searchForm, "h-experience-content"].join(" ")} onSubmit={submit}>
       <div className={styles.searchBar}>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try: full stack developer Lagos" aria-label="Search Hustle" />
         <button type="submit" disabled={loading}>{loading ? "Searching…" : "Search Hustle"}</button>
       </div>
     </form>
 
-    <div className={styles.tabs}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>
+    <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>
 
     <section className={styles.filters} aria-label="Search filters">
       <input placeholder="Category" value={filters.category ?? ""} onChange={(event) => setFilters({ ...filters, category: event.target.value })} />
@@ -177,7 +175,7 @@ export default function SearchPageScreen() {
       <button className={styles.primaryButton} type="button" onClick={() => void runSearch(tab)} disabled={loading || !query.trim()}>Apply filters</button>
     </section>
 
-    <section className={styles.resultsWrap}>
+    <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
       <div className={styles.resultMeta}><strong>{resultLabel}</strong><span>{items.length} loaded · {tab}</span></div>
       {error && <div className={styles.error}>{error}</div>}
       {!error && loading && <div className={styles.loading}>Matching intent to current public capability…</div>}

@@ -44,7 +44,7 @@ export function ResultCard({
 
   if (item.kind === "person") {
     const profile = item.person.professionalProfile;
-    return <a className={styles.card} href={href} onClick={handleOpen}>
+    return <a className={[styles.card, "h-experience-surface"].join(" ")} href={href} onClick={handleOpen}>
       <div className={styles.media}><div className={styles.mediaFallback}>{(item.person.displayName ?? item.person.username ?? "H").charAt(0)}</div></div>
       <div className={styles.cardBody}>
         <span className={styles.kind}>PERSON · {Math.round(item.ranking.score)} RELEVANCE</span>
@@ -58,7 +58,7 @@ export function ResultCard({
 
   if (item.kind === "post") {
     const first = item.post.media[0];
-    return <a className={styles.card} href={href} onClick={handleOpen}>
+    return <a className={[styles.card, "h-experience-surface"].join(" ")} href={href} onClick={handleOpen}>
       <div className={styles.media}>
         {first?.type === "IMAGE" && first.mediaUrl
           ? <img src={first.mediaUrl} alt="Demonstrated capability" loading="lazy" />
@@ -75,7 +75,7 @@ export function ResultCard({
   }
 
   if (item.kind === "service") {
-    return <a className={styles.card} href={href} onClick={handleOpen}>
+    return <a className={[styles.card, "h-experience-surface"].join(" ")} href={href} onClick={handleOpen}>
       <div className={styles.media}>
         {item.service.mediaUrls?.[0]
           ? <img src={item.service.mediaUrls[0]} alt="" loading="lazy" />
@@ -92,7 +92,7 @@ export function ResultCard({
     </a>;
   }
 
-  return <a className={styles.card} href={href} onClick={handleOpen}>
+  return <a className={[styles.card, "h-experience-surface"].join(" ")} href={href} onClick={handleOpen}>
     <div className={styles.media}>
       {item.product.mediaUrls?.[0]
         ? <img src={item.product.mediaUrls[0]} alt="" loading="lazy" />

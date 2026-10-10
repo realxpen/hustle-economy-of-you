@@ -1,5 +1,7 @@
 "use client";
 
+import { ExperienceStatus } from "../../../components/navigation/experience-status";
+import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
@@ -104,25 +106,23 @@ export default function BookingDetailPage() {
   const canComplete = booking.viewerRole === "HUSTLER" && booking.status === "IN_PROGRESS";
   const messageUrl = booking.conversationId ? `/messages/${booking.conversationId}` : `/messages/start?userId=${encodeURIComponent(other.id)}`;
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE↗</a>
-      <nav><a href="/bookings">Bookings</a><a href={`/services/${booking.serviceId}`}>Service</a><a href="/wallet">Wallet</a><a href="/messages">Messages</a></nav>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Booking detail" trail={[{ href: "/bookings", label: "Bookings" }]}
+      secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, { href: "/wallet", label: "Wallet" }]} />
 
     <div className={styles.detailGrid}>
       <section className={styles.detailMain}>
-        <article className={styles.summaryCard}>
+        <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
           <p className={styles.eyebrow}>{booking.viewerRole} VIEW · BOOKING</p>
-          <h1>{booking.serviceTitleSnapshot}</h1>
-          <div className={styles.meta}><span className={styles.status}>{booking.status.replaceAll("_", " ")}</span><span>{formatBookingPrice(booking)}</span><span>with {other.displayName ?? other.username ?? "Hustle user"}</span></div>
+          <h1 className="h-experience-heading">{booking.serviceTitleSnapshot}</h1>
+          <div className={styles.meta}><ExperienceStatus kind="booking" value={booking.status} /><span>{formatBookingPrice(booking)}</span><span>with {other.displayName ?? other.username ?? "Hustle user"}</span></div>
           <p className={styles.next}>{booking.nextAction}</p>
         </article>
-        <article className={styles.summaryCard}>
+        <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
           <p className={styles.eyebrow}>SCHEDULE</p>
           <div className={styles.facts}><Fact label="REQUESTED START" value={formatDate(booking.requestedStartAt)} /><Fact label="REQUESTED END" value={formatDate(booking.requestedEndAt)} /><Fact label="CONFIRMED START" value={formatDate(booking.confirmedStartAt)} /><Fact label="CONFIRMED END" value={formatDate(booking.confirmedEndAt)} /></div>
         </article>
-        <article className={styles.summaryCard}>
+        <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
           <p className={styles.eyebrow}>REQUIREMENTS</p><p className={styles.copy}>{booking.requirements}</p>
           {booking.location && <><p className={styles.eyebrow}>LOCATION</p><p className={styles.copy}>{booking.location}</p></>}
           {booking.notes && <><p className={styles.eyebrow}>NOTES</p><p className={styles.copy}>{booking.notes}</p></>}

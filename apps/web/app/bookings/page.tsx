@@ -1,5 +1,7 @@
 "use client";
 
+import { ExperienceStatus } from "../../components/navigation/experience-status";
+import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { useCallback, useEffect, useState } from "react";
 import {
   type BookingPage,
@@ -20,13 +22,13 @@ function formatDate(value: string | null) {
 
 function BookingCard({ booking }: { booking: BookingRecord }) {
   const counterpart = booking.viewerRole === "CLIENT" ? booking.hustler : booking.client;
-  return <a className={styles.card} href={`/bookings/${booking.id}`}>
+  return <a className={[styles.card, "h-experience-surface"].join(" ")} href={`/bookings/${booking.id}`}>
     <div className={styles.cardTop}>
       <div>
         <small className={styles.eyebrow}>{booking.viewerRole === "CLIENT" ? "YOUR REQUEST" : "SERVICE REQUEST"}</small>
         <h3>{booking.serviceTitleSnapshot}</h3>
       </div>
-      <span className={styles.status}>{booking.status.replaceAll("_", " ")}</span>
+      <ExperienceStatus kind="booking" value={booking.status} />
     </div>
     <div className={styles.meta}>
       <span>{formatBookingPrice(booking)}</span>
@@ -52,7 +54,7 @@ function BookingSection({
   onLoadMore: () => void;
   loadingMore: boolean;
 }) {
-  return <section className={styles.panel}>
+  return <section className={[styles.panel, "h-experience-surface"].join(" ")}>
     <div className={styles.panelHead}>
       <div><small>{eyebrow}</small><h2>{title}</h2></div>
       {page && <small>{page.items.length} loaded</small>}
@@ -110,14 +112,11 @@ export default function BookingsPage() {
     } finally { setLoadingMoreHustler(false); }
   }
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE↗</a>
-      <nav><a href="/home">Home</a><a href="/marketplace">Marketplace</a><a href="/messages">Messages</a><a href="/account">Account</a></nav>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Bookings" secondaryLinks={[{ href: "/marketplace", label: "Find a service ↗" }, { href: "/messages", label: "Messages" }]} />
 
-    <section className={styles.hero}>
-      <div><p className={styles.eyebrow}>PHASE 11 · BOOKINGS</p><h1>Work, clearly scheduled.</h1></div>
+    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
+      <div><p className={styles.eyebrow}>BOOKING MANAGER</p><h1 className="h-experience-heading">Work, clearly scheduled.</h1></div>
       <p>One identity, two relationship views. Requests you make and requests for your Services live together without switching account modes.</p>
     </section>
 
@@ -126,6 +125,6 @@ export default function BookingsPage() {
       <BookingSection title="Requests for your services" eyebrow="AS HUSTLER" page={hustlerPage} error={hustlerError} onLoadMore={loadMoreHustler} loadingMore={loadingMoreHustler} />
     </div>
 
-    <footer className={styles.footer}><span>Booking status is server-authoritative.</span><strong>Payment + escrow arrives in Phase 13.</strong></footer>
+    <footer className={styles.footer}><span>Booking status is server-authoritative.</span><strong>Funding and settlement reflect the payment system’s confirmed state.</strong></footer>
   </main>;
 }
