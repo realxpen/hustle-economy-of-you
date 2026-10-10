@@ -21,7 +21,7 @@ function formatDate(value: string | null) {
 
 function BookingCard({ booking }: { booking: BookingRecord }) {
   const counterpart = booking.viewerRole === "CLIENT" ? booking.hustler : booking.client;
-  return <a className={styles.card} href={`/bookings/${booking.id}`}>
+  return <a className={[styles.card, "h-experience-surface"].join(" ")} href={`/bookings/${booking.id}`}>
     <div className={styles.cardTop}>
       <div>
         <small className={styles.eyebrow}>{booking.viewerRole === "CLIENT" ? "YOUR REQUEST" : "SERVICE REQUEST"}</small>
@@ -53,7 +53,7 @@ function BookingSection({
   onLoadMore: () => void;
   loadingMore: boolean;
 }) {
-  return <section className={styles.panel}>
+  return <section className={[styles.panel, "h-experience-surface"].join(" ")}>
     <div className={styles.panelHead}>
       <div><small>{eyebrow}</small><h2>{title}</h2></div>
       {page && <small>{page.items.length} loaded</small>}
@@ -114,8 +114,8 @@ export default function BookingsPage() {
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Bookings" secondaryLinks={[{ href: "/marketplace", label: "Find a service ↗" }, { href: "/messages", label: "Messages" }]} />
 
-    <section className={styles.hero}>
-      <div><p className={styles.eyebrow}>BOOKING MANAGER</p><h1>Work, clearly scheduled.</h1></div>
+    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
+      <div><p className={styles.eyebrow}>BOOKING MANAGER</p><h1 className="h-experience-heading">Work, clearly scheduled.</h1></div>
       <p>One identity, two relationship views. Requests you make and requests for your Services live together without switching account modes.</p>
     </section>
 
