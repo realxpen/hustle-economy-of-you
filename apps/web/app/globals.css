@@ -182,3 +182,48 @@ main.h-experience-shell .h-experience-intro-copy {
   line-height: 1.6;
   max-width: var(--h-reading-width);
 }
+
+
+/* Adaptive Expressive UI 01 — opt-in surfaces only.
+   Dark tokens are scoped to redesigned pages until the rest of the MVP is adapted. */
+main.h-adaptive {
+  --h-paper:#f5f5f5;
+  --h-canvas:#ececec;
+  --h-surface:#fff;
+  --h-sand:#ededee;
+  --h-ink:#111214;
+  --h-ink-soft:#37373b;
+  --h-muted:#5c5c63;
+  --h-muted-quiet:#73737b;
+  --h-border:#d4d4d8;
+  --h-border-subtle:#e4e4e7;
+  --h-orange:#e85a16;
+  --h-focus:#ca480c;
+  --h-shadow-raised:0 18px 45px rgba(0,0,0,.09);
+  background:var(--h-paper);
+  color:var(--h-ink);
+}
+html[data-hustle-theme="dark"] main.h-adaptive {
+  color-scheme:dark;
+  --h-paper:#0d0d0f;
+  --h-canvas:#151518;
+  --h-surface:#19191d;
+  --h-sand:#242428;
+  --h-ink:#faf9f6;
+  --h-ink-soft:#e0dedc;
+  --h-muted:#c1bcb8;
+  --h-muted-quiet:#a5a09f;
+  --h-border:#424247;
+  --h-border-subtle:#303034;
+  --h-orange:#ff8829;
+  --h-orange-on-dark:#ffab58;
+  --h-focus:#ffad63;
+  --h-danger:#ffa58c;
+  --h-success:#80dbab;
+  --h-shadow-raised:0 18px 45px rgba(0,0,0,.34);
+}
+@media(max-width:760px){
+  body:has(main.h-adaptive) #hustle-page-content {
+    padding-bottom:calc(103px + env(safe-area-inset-bottom));
+  }
+}

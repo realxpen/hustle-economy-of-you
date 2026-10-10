@@ -111,20 +111,24 @@ export default function MessagesPage() {
     };
   }, []);
 
-  return <main className={styles.shell}>
+  return <main className={[styles.shell, "h-adaptive"].join(" ")}>
     <ExperienceHeader section="Messages" secondaryLinks={[{ href: "/notifications", label: "Activity" }, { href: "/account", label: "Your identity" }]} />
 
     <section className={styles.hero}>
-      <p className={styles.eyebrow}>DIRECT MESSAGING</p>
-      <h1>Keep opportunity context in the conversation.</h1>
-      <p>Messages belong to the same Hustle identity. A client can move from discovery into a direct thread without creating a separate buyer or seller inbox.</p>
+      <p className={styles.eyebrow}>YOUR PEOPLE · YOUR OPPORTUNITIES</p>
+      <h1>Messages<span className={styles.headlineDot}>.</span></h1>
+      <p>Keep the conversation moving, from first hello to work done.</p>
     </section>
 
     <div className={styles.inboxTools} aria-label="Conversation filters">
-      <label className={styles.searchLabel}>Find a conversation
-        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, username or skill" />
+      <label className={styles.searchLabel}>
+        <span className={styles.visuallyHidden}>Search loaded conversations</span>
+        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="⌕  Search conversations..." />
       </label>
-      <button className={styles.filterButton} type="button" aria-pressed={unreadOnly} onClick={() => setUnreadOnly((value) => !value)}>{unreadOnly ? "Showing unread" : "Unread only"}</button>
+      <div className={styles.segmented} role="group" aria-label="Message status">
+        <button className={styles.filterButton} type="button" aria-pressed={!unreadOnly} onClick={() => setUnreadOnly(false)}>All</button>
+        <button className={styles.filterButton} type="button" aria-pressed={unreadOnly} onClick={() => setUnreadOnly(true)}>Unread <span className={styles.filterCount}>{items.filter((item) => item.viewer.unreadCount > 0).length}</span></button>
+      </div>
     </div>
     {error && <ExperienceState kind="error" title="Inbox unavailable." description={error} action={{ label: "Retry inbox", onClick: () => void load() }} />}
     {!error && loading && <ExperienceState kind="loading" title="Loading conversations…" description="Fetching your messages and recent replies." />}

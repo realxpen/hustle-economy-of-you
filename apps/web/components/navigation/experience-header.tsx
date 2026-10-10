@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import styles from "./experience-header.module.css";
+import { ExperienceThemeControl } from "./experience-theme-control";
 
 type NavItem = { href: string; label: string };
 const primary: readonly NavItem[] = [
@@ -46,6 +47,7 @@ export function ExperienceHeader({
         >{item.label}</Link>)}
       </nav>
       {actions && <div className={styles.actions}>{actions}</div>}
+      <div className={styles.appearance}><ExperienceThemeControl /></div>
       <Link className={styles.mobileMarket} href="/marketplace">Explore offers <span aria-hidden="true">↗</span></Link>
     </div>
     <div className={styles.contextRow}>
