@@ -126,17 +126,17 @@ export default function NewBookingPage() {
         <div className={styles.grid2}>
           <div className={styles.field}>
             <label htmlFor="start">REQUESTED START</label>
-            <input id="start" type="datetime-local" required aria-invalid={Boolean(error && error.includes("start"))} value={requestedStartAt} onChange={(event) => setRequestedStartAt(event.target.value)} />
+            <input id="start" type="datetime-local" required aria-invalid={Boolean(error && error.includes("start"))} value={requestedStartAt} onChange={(event) => { setRequestedStartAt(event.target.value); if (error) setError(null); }} />
           </div>
           <div className={styles.field}>
             <label htmlFor="end">REQUESTED END · OPTIONAL</label>
-            <input id="end" type="datetime-local" aria-invalid={Boolean(error && error.includes("end"))} value={requestedEndAt} onChange={(event) => setRequestedEndAt(event.target.value)} />
+            <input id="end" type="datetime-local" aria-invalid={Boolean(error && error.includes("end"))} value={requestedEndAt} onChange={(event) => { setRequestedEndAt(event.target.value); if (error) setError(null); }} />
           </div>
         </div>
 
         <div className={styles.field}>
           <label htmlFor="requirements">WHAT DO YOU NEED?</label>
-          <textarea id="requirements" required maxLength={4000} aria-describedby="requirements-hint" value={requirements} onChange={(event) => setRequirements(event.target.value)} placeholder="Describe the project, expected outcome, important features, constraints and deadline." />
+          <textarea id="requirements" required maxLength={4000} aria-describedby="requirements-hint" value={requirements} onChange={(event) => { setRequirements(event.target.value); if (error) setError(null); }} placeholder="Describe the project, expected outcome, important features, constraints and deadline." />
           <small id="requirements-hint">Explain the outcome you need. {requirements.length}/4000 characters.</small>
         </div>
 
