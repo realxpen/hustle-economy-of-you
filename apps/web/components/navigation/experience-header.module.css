@@ -2,3 +2,11 @@
 /* Tactile, unobtrusive appearance control in shared chrome */
 .appearance{display:flex;align-items:center}
 @media(max-width:760px){.primaryRow{gap:8px;flex-wrap:wrap}.appearance{margin-left:auto}.actions{display:flex;flex:1 0 100%;justify-content:flex-start;order:3}.mobileMarket{display:none}.brand{font-size:19px}.primaryRow{padding-inline:2px}}
+
+/* Desktop navigation that stays legible outside a design mockup. */
+@media(min-width:761px){
+ .primaryNav>a{font-size:13px;letter-spacing:-.01em;padding:12px clamp(9px,1vw,14px)}
+ .brand{font-size:23px}
+ .breadcrumbs{font-size:12px}
+ .section{font-weight:850}
+}

@@ -2,6 +2,8 @@
 
 Updated: 2026-10-10
 
+Adaptive UI screenshot QA follow-up (2026-10-10): Owner manually deployed Web main c6afecd and showed /home. Confirmed unthemed cream canvas and white Stories in dark mode; screenshot unusually tiny layout is also consistent with browser zoom far below 100% (awaiting owner Ctrl+0 verification). Follow-up CSS correction addresses scoped canvas/Stories, desktop typography and singleton feed. No new production deploy authorization inferred; manual device acceptance still pending.
+
 Adaptive Expressive visual redesign Phase 1: PR #86 MERGED 7d153f08cb874aad1487a88666adb2f84e4d72d6 on 2026-10-10; Foundation CI 38085361947 SUCCESS (all workspace typechecks and Web/Admin/API production builds); owner-approved Pinterest-inspired pale tactile + immersive orange/charcoal direction applied to Discover, public Hustler Storefront, Messages and floating shared navigation with opt-in local System/Light/Dark control. Design response to owner's dissatisfaction with existing UI. Source-of-truth live feed/profile/messages/trust/commerce unchanged. ADR-0058 and Knowledge/QA/ADAPTIVE_EXPRESSIVE_UI_PHASE1_ACCEPTANCE.md. Monday 2026-10-12 device/browser visual and runtime acceptance remains pending; no deploy or real money. Additional app surfaces remain deliberately unadapted.
 
 ## Current AED capability

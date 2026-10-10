@@ -25,3 +25,12 @@ State: PR #86 MERGED on 2026-10-10, Hustle Foundation CI 38085361947 SUCCESS (We
 
 ## Release constraint
 Do not treat Foundation CI as screenshot/runtime evidence or production release authorization. Owner manually controls deploys. Re-run device/browser acceptance after any merged code is explicitly released.
+
+## Saturday production screenshot follow-up
+The owner deployed main c6afecd4fe6dea6e2a7fe2a556729539b027c331 and showed /home at desktop browser width approx. 1650px. The main app appears approx. 480px wide and text is unusually tiny, consistent with Chrome page zoom substantially below 100%. Zoom cannot be proved from a screenshot; the owner should first try Ctrl+0. Separately, code inspection confirms unthemed cream document gutters and an unthemed white Stories strip. Follow-up code scopes document color to h-adaptive routes, themes Stories, raises desktop text density and centers lone feed cards without inventing additional content.
+
+- [ ] Compare real /home at browser 100% zoom after owner deployment of the fix.
+- [ ] Light, Dark and System background canvas, Stories and gutters match in all adapted routes.
+- [ ] Legacy wallet, bookings, Agent and admin surfaces retain appropriate original styling.
+- [ ] One, multiple and zero feed item desktop layouts all behave intentionally.
+- [ ] Check mobile Stories and floating dock fit at 320/360/390px.
