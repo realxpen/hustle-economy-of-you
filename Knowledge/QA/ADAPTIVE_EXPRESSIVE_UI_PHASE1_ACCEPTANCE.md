@@ -1,6 +1,6 @@
 # Adaptive Expressive UI — Phase 1 acceptance
 
-State: code implemented, automated CI pending; manual/runtime visual acceptance pending until Monday Oct 12, 2026.
+State: PR #86 MERGED on 2026-10-10, Hustle Foundation CI 38085361947 SUCCESS (Web/Admin/Mobile/API typechecks, Prisma generation, Web/Admin/API builds); manual/runtime visual acceptance PENDING until Monday Oct 12, 2026. No production deployment.
 
 ## Code scope
 - [x] Opt-in light and orange-accented dark semantic variables on three redesigned Web journeys.

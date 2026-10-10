@@ -1,6 +1,6 @@
 # ADR-0058 — Adaptive Expressive visual redesign, initial Web implementation
 
-Status: Accepted for code implementation; visual/runtime acceptance pending
+Status: PR #86 merged; Foundation CI green; visual/runtime acceptance pending
 Date: 2026-10-10
 Scope: Web UI (Discovery, public Hustler Storefront and Inbox, shared chrome); no API or database changes.
 
