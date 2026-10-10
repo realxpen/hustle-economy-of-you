@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
@@ -95,11 +96,9 @@ export default function OrderDetailPage() {
     order.status === "REFUNDED" ? "This Order was refunded through authoritative payment handling." : null
   );
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <Link className={styles.brand} href="/">HUSTLE↗</Link>
-      <nav className={styles.nav}><Link href="/orders">Orders</Link><Link href="/wallet">Wallet</Link><Link href="/cart">Cart</Link><Link href="/marketplace">Marketplace</Link><Link href="/messages">Messages</Link></nav>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Order detail" trail={[{ href: "/orders", label: "Orders" }]}
+      secondaryLinks={[{ href: "/wallet", label: "Wallet" }, { href: "/cart", label: "Cart" }, { href: "/messages", label: "Messages" }]} />
 
     <section className={styles.hero}><div><p className={styles.eyebrow}>ORDER · {order.viewerRole}</p><h1>{order.status.replaceAll("_", " ")}</h1></div><p>{derivedNextAction}</p></section>
 
