@@ -1,18 +1,18 @@
 # Phase 21B Opt-in Attribution — Build & Monday Acceptance
 
-**State:** Feature branch implementation. Automated CI and merged state pending.
+**State:** PR #82 MERGED (`337763ca88550b865b2855c57d2ef605bd1239ab`), 2026-10-10. Hustle Foundation CI `38049347922` and isolated Postgres/Nest sandbox `38049347924` both SUCCESS on final PR head `f50e6641825e0500d55246eac2c0f37b8e11301c`. No production deployment. Monday manual acceptance pending.
 
 ## Isolated CI checks
-- [ ] Default preference off. GET preference denies unauthenticated requests.
-- [ ] Valid authenticated boolean choice required; forged analytics/feed/consent events blocked at legacy public `POST /events`.
-- [ ] Pre-consent offer taps remain observational but ineligible for linked outcomes.
-- [ ] Real published Post and attached Service click, followed by a genuine Booking for that Service, is counted once under consented Booking associations.
-- [ ] Same user taps a published Product in Marketplace and places an Order containing it: one associated Order, with marketplace as latest source.
-- [ ] Distinct window and source aggregates returned without user-level data.
-- [ ] Opting out removes linked outcomes from Admin summary; repeat opt-in starts a new period without old-click backfill.
-- [ ] New post-opt-in offer click and new Booking become newly eligible.
-- [ ] Phase21A canonical metrics and isolated payment/ledger/Review/Live tests remain green; no production writes.
-- [ ] CI API/Admin/Web/Mobile builds and typechecks green; PR merged.
+- [x] Default preference off. GET preference denies unauthenticated requests.
+- [x] Valid authenticated boolean choice required; forged analytics/feed/consent events blocked at legacy public `POST /events`.
+- [x] Pre-consent offer taps remain observational but ineligible for linked outcomes.
+- [x] Real published Post and attached Service click, followed by a genuine Booking for that Service, is counted once under consented Booking associations.
+- [x] Same user taps a published Product in Marketplace and places an Order containing it: one associated Order, with marketplace as latest source.
+- [x] Seven-day and 30-day aggregate/reporting paths and last-touch source grouping verified; only counts returned, no user-level data. Separate 90-day manual filter acceptance retained for Monday.
+- [x] Opting out removes linked outcomes from Admin summary; repeat opt-in starts a new period without old-click backfill.
+- [x] New post-opt-in offer click and new Booking become newly eligible.
+- [x] Phase21A canonical metrics and isolated payment/ledger/Review/Live tests remain green; no production writes.
+- [x] CI API/Admin/Web/Mobile builds and typechecks green; PR merged.
 
 ## Monday consolidated laptop review
 - [ ] User can see **Account → Optional Analytics** setting, off by default, with an accessible explanation, no dark patterns.
