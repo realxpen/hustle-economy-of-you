@@ -22,6 +22,11 @@ function time(value: string) {
 }
 
 function notificationTitle(item: HustleNotification) {
+  if (item.kind === "SOCIAL" && item.href.startsWith("/posts/")) {
+    if (item.unreadMessages > 1) return `${item.unreadMessages} new comments and replies`;
+    if (item.messageCount > 1 && !item.unreadMessages) return `${item.messageCount} comments in this discussion`;
+    return item.title;
+  }
   if (item.kind !== "MESSAGE") return item.title;
   if (item.unreadMessages > 1) return `${item.unreadMessages} new messages`;
   if (item.unreadMessages === 1) return "New message";
@@ -30,9 +35,11 @@ function notificationTitle(item: HustleNotification) {
 }
 
 function notificationDescription(item: HustleNotification) {
-  return item.kind === "MESSAGE"
-    ? "Open this conversation to catch up."
-    : item.body;
+  if (item.kind === "MESSAGE") return "Open this conversation to catch up.";
+  if (item.kind === "SOCIAL" && item.href.startsWith("/posts/") && item.messageCount > 1) {
+    return "Open the post to see what's being discussed.";
+  }
+  return item.body;
 }
 
 function allowedHref(path: string) {
@@ -136,7 +143,7 @@ export default function NotificationsPage() {
       {initialLoad && <div className={styles.loading}>Loading your activity…</div>}
       {!initialLoad && !error && items.length === 0 && <div className={styles.empty}>
         <strong>Nothing needs your attention yet.</strong>
-        <p>New direct messages will appear here. More meaningful marketplace updates will follow in Phase 20.</p>
+        <p>Messages, booking and order changes, new followers, and comments on your work will show up here.</p>
         <Link href="/home">Explore Hustle →</Link>
       </div>}
       <section aria-label="Notifications" className={styles.list}>
@@ -144,7 +151,7 @@ export default function NotificationsPage() {
           type="button" key={item.id} onClick={() => void open(item)}
           className={item.readAt ? styles.item : `${styles.item} ${styles.newItem}`}
         >
-          <span className={styles.itemIcon} aria-hidden="true">{item.kind === "MESSAGE" ? "↗" : "•"}</span>
+          <span className={styles.itemIcon} aria-hidden="true">{item.kind === "MESSAGE" ? "↗" : item.kind === "SOCIAL" ? "◎" : item.kind === "BOOKING" ? "▣" : item.kind === "ORDER" ? "◇" : "•"}</span>
           <span className={styles.itemText}>
             <span className={styles.itemHead}>
               <strong>{notificationTitle(item)}</strong>
