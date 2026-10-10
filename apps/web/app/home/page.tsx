@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../components/navigation/experience-header";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -416,11 +417,8 @@ export default function DiscoveryHomePage() {
       : item));
   }
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <Link className={styles.brand} href="/">HUSTLE<span>↗</span></Link>
-      <div className={styles.headerActions}><Link href="/posts/manage">Create / manage content</Link><Link href="/account">Your identity</Link></div>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Discover" actions={<Link href="/posts/manage">Create or manage posts ↗</Link>} />
 
     <HomeStoriesRow />
 
