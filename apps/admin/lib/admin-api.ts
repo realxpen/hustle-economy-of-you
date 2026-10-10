@@ -994,3 +994,46 @@ export const closeAdminEnforcementAppeal = (token: string, appealId: string) =>
     `/admin/operations/appeals/${encodeURIComponent(appealId)}/close`,
     { method: "POST" }
   );
+
+
+/** Phase 21 read-only admin marketplace analytics. */
+export type AnalyticsWindow = 7 | 30 | 90;
+
+export type AnalyticsSnapshot = {
+  generatedAt: string;
+  window: { days: AnalyticsWindow; from: string; to: string; timezone: "UTC" };
+  observation: {
+    trustLevel: "CLIENT_REPORTED";
+    note: string;
+    events: Record<string, number>;
+  };
+  authoritative: {
+    trustLevel: "CANONICAL_RECORDS";
+    note: string;
+    newAccounts: number;
+    publishedProfiles: number;
+    publishedPosts: number;
+    newFollows: number;
+    newConversations: number;
+    sentMessages: number;
+    bookingRequests: number;
+    fundedBookings: number;
+    completedBookings: number;
+    placedOrders: number;
+    paidOrders: number;
+    completedOrders: number;
+    appliedPayments: number;
+    verifiedReviews: number;
+  };
+  timeline: Array<{
+    day: string;
+    bookingsRequested: number;
+    ordersPlaced: number;
+    ordersPaid: number;
+    verifiedReviews: number;
+  }>;
+  cautions: string[];
+};
+
+export const getAdminAnalytics = (token: string, days: AnalyticsWindow = 30) =>
+  adminFetch<AnalyticsSnapshot>(token, `/events/overview?days=${days}`);
