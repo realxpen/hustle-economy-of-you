@@ -263,7 +263,7 @@ function FeedCard({
   const skill = item.creator.professionalProfile.primarySkill ?? item.creator.professionalProfile.headline ?? item.post.category;
   const creatorHref = item.creator.username ? `/u/${item.creator.username}` : "/home";
 
-  return <article ref={cardRef} className={styles.card}>
+  return <article ref={cardRef} className={[styles.card, "h-experience-surface"].join(" ")}>
     <div className={styles.cardTop}>
       <Link
         className={styles.creator}
@@ -422,8 +422,8 @@ export default function DiscoveryHomePage() {
 
     <HomeStoriesRow />
 
-    <section className={styles.hero}>
-      <div><p>HOME · DISCOVERY</p><h1>Find people by what they <em>share and do.</em></h1><span>{activeTab.note}</span></div>
+    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
+      <div><p>HOME · DISCOVERY</p><h1 className="h-experience-heading">Find people by what they <em>share and do.</em></h1><span>{activeTab.note}</span></div>
       <div className={styles.locationBadge}><small>YOUR DISCOVERY LOCATION</small><strong>{meta.viewerLocation ?? "Loading…"}</strong></div>
     </section>
 
