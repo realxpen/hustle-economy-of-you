@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { ExperienceState } from "../../../../components/experience/experience-state";
 import type {
   AgentPermissionScope,
   AgentRelationship,
@@ -140,7 +141,12 @@ export default function AgentRepresentationBusinessPage() {
     (item) => item.capability === "HUSTLER" && item.status === "ACTIVE"
   ) ?? false;
 
-  useEffect(() => { void refresh(); }, [principalUserId]);
+  useEffect(() => {
+    // Fail closed on principal navigation until this principal has been authorized by the API.
+    setOverview(null); setProfile(null); setServices([]); setProducts([]); setPosts([]); setBookings([]); setConversations([]);
+    setSelectedConversationId(null); setConversationMessages([]);
+    void refresh();
+  }, [principalUserId]);
 
   async function refresh() {
     setError(null);
@@ -352,7 +358,7 @@ export default function AgentRepresentationBusinessPage() {
 
   if (!overview) {
     return <main className={styles.shell}>
-      <p className={error ? styles.error : styles.loading}>{error ?? "Loading delegated business workspace…"}</p>
+      <ExperienceState kind={error ? "error" : "loading"} title={error ? "Represented workspace unavailable." : "Checking represented account access…"} description={error ?? undefined} action={error ? { label: "Back to Agent workspace", href: "/agent-workspace" } : undefined} />
     </main>;
   }
 
@@ -361,7 +367,7 @@ export default function AgentRepresentationBusinessPage() {
   return <main className={styles.shell}>
     <header className={styles.topbar}>
       <a href="/agent-workspace">← Agent workspace</a>
-      <span>PHASE 18E · DELEGATED OPERATIONS</span>
+      <span>DELEGATED OPERATIONS · OWNER-CONTROLLED</span>
     </header>
 
     <section className={styles.hero}>
@@ -375,8 +381,8 @@ export default function AgentRepresentationBusinessPage() {
       </p>
     </section>
 
-    {error && <p className={styles.error}>{error}</p>}
-    {notice && <p className={styles.notice}>{notice}</p>}
+    {error && <p className={styles.error} role="alert">{error}</p>}
+    {notice && <p className={styles.notice} role="status">{notice}</p>}
 
     <section className={styles.boundary}>
       <strong>Granted authority</strong>
