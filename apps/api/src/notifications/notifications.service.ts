@@ -296,6 +296,65 @@ export class NotificationsService {
   }
 
   /**
+   * A Live start is authoritative only after the DRAFT→LIVE compare-and-swap.
+   * INSERT…SELECT avoids loading the host's follow graph into API memory and
+   * remains in the same database transaction as the status change. Existing
+   * blocks in either direction exclude that follower at notification time.
+   */
+  async recordLiveStarted(
+    tx: Prisma.TransactionClient,
+    input: { liveId: string; hostUserId: string }
+  ) {
+    await tx.$executeRaw`
+      INSERT INTO "Notification"
+        ("id", "recipientUserId", "eventKey", "kind", "title", "body", "href", "createdAt")
+      SELECT
+        gen_random_uuid()::text, f."followerId",
+        ${`live:started:${input.liveId}`},
+        'LIVE'::"NotificationKind",
+        'A Hustler you follow is live',
+        'Join their Live session to see what they are making and offering.',
+        ${`/live/${encodeURIComponent(input.liveId)}`},
+        CURRENT_TIMESTAMP
+      FROM "UserFollow" AS f
+      WHERE f."followingId" = ${input.hostUserId}
+        AND f."followerId" <> ${input.hostUserId}
+        AND NOT EXISTS (
+          SELECT 1 FROM "UserBlock" AS b
+          WHERE (b."blockerUserId" = ${input.hostUserId} AND b."blockedUserId" = f."followerId")
+             OR (b."blockedUserId" = ${input.hostUserId} AND b."blockerUserId" = f."followerId")
+        )
+      ON CONFLICT ("recipientUserId", "eventKey") DO NOTHING
+    `;
+  }
+
+  /** Only the canonical transaction-backed PUBLISHED Review triggers this. */
+  async recordVerifiedReview(
+    tx: Prisma.TransactionClient,
+    review: {
+      id: string;
+      revieweeUserId: string;
+      reviewerUserId: string;
+      subjectType: "BOOKING" | "ORDER";
+      subjectId: string;
+    }
+  ) {
+    if (review.revieweeUserId === review.reviewerUserId) return;
+    const context = review.subjectType === "BOOKING" ? "booking" : "order";
+    await tx.notification.createMany({
+      data: [{
+        recipientUserId: review.revieweeUserId,
+        eventKey: `review:verified:${review.id}`,
+        kind: NotificationKind.REVIEW,
+        title: "New verified review",
+        body: `A transaction-backed review was published for your ${context}.`,
+        href: `/${context}s/${encodeURIComponent(review.subjectId)}`
+      }],
+      skipDuplicates: true
+    });
+  }
+
+  /**
    * Meaningful social activity is written with the authoritative Post/Follow
    * mutation. Comments are grouped per Post in the read model to avoid spam;
    * follower notifications are unique per follower/recipient pair.
