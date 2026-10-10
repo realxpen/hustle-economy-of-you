@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { PostStatus } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 export interface CreatePostCommentInput {
@@ -11,7 +12,7 @@ export interface CreatePostCommentInput {
 
 @Injectable()
 export class PostInteractionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
 
   async getPublic(postId: string) {
     const post = await this.requirePublicPost(postId);
@@ -98,27 +99,36 @@ export class PostInteractionService {
   }
 
   async comment(identity: AuthIdentity, postId: string, input: CreatePostCommentInput) {
-    const [user] = await Promise.all([this.requireUser(identity), this.requirePublicPost(postId)]);
+    const [user, post] = await Promise.all([this.requireUser(identity), this.requirePublicPost(postId)]);
     const body = this.requiredBody(input.body);
     const parentId = this.optionalId(input.parentId, "parentId");
+    let replyToUserId: string | null = null;
     if (parentId) {
       const parent = await this.prisma.postComment.findFirst({
         where: { id: parentId, postId },
-        select: { id: true }
+        select: { id: true, userId: true }
       });
       if (!parent) throw new BadRequestException("Reply parent must belong to this post");
+      replyToUserId = parent.userId;
     }
-    return this.prisma.postComment.create({
-      data: { postId, userId: user.id, body, parentId: parentId ?? null },
-      select: {
-        id: true,
-        postId: true,
-        parentId: true,
-        body: true,
-        createdAt: true,
-        updatedAt: true,
-        user: { select: { id: true, displayName: true, username: true, avatarUrl: true } }
-      }
+    return this.prisma.$transaction(async (tx) => {
+      const comment = await tx.postComment.create({
+        data: { postId, userId: user.id, body, parentId: parentId ?? null },
+        select: {
+          id: true,
+          postId: true,
+          parentId: true,
+          body: true,
+          createdAt: true,
+          updatedAt: true,
+          user: { select: { id: true, displayName: true, username: true, avatarUrl: true } }
+        }
+      });
+      await this.notifications.recordPostComment(tx, {
+        commentId: comment.id, postId,
+        authorUserId: user.id, ownerUserId: post.ownerUserId, replyToUserId
+      });
+      return comment;
     });
   }
 
@@ -136,12 +146,24 @@ export class PostInteractionService {
   async follow(identity: AuthIdentity, followingId: string) {
     const user = await this.requireUser(identity);
     if (user.id === followingId) throw new BadRequestException("You cannot follow yourself");
-    const target = await this.prisma.user.findUnique({ where: { id: followingId }, select: { id: true } });
+    const [target, follower] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: followingId }, select: { id: true } }),
+      this.prisma.user.findUnique({ where: { id: user.id }, select: { username: true } })
+    ]);
     if (!target) throw new NotFoundException("User not found");
-    await this.prisma.userFollow.upsert({
-      where: { followerId_followingId: { followerId: user.id, followingId } },
-      update: {},
-      create: { followerId: user.id, followingId }
+    await this.prisma.$transaction(async (tx) => {
+      // Existing follows are not a new social event. The pair notification's
+      // unique eventKey suppresses unfollow/refollow notification spam.
+      const created = await tx.userFollow.createMany({
+        data: [{ followerId: user.id, followingId }],
+        skipDuplicates: true
+      });
+      if (created.count === 1) {
+        await this.notifications.recordNewFollower(tx, {
+          followerUserId: user.id, followedUserId: followingId,
+          followerUsername: follower?.username ?? null
+        });
+      }
     });
     return { following: true, userId: followingId };
   }
