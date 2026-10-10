@@ -30,6 +30,9 @@ const { DatabaseModule } = require("../../apps/api/dist/database/database.module
 const { PaymentModule } = require("../../apps/api/dist/payment/payment.module.js");
 const { LiveModule } = require("../../apps/api/dist/live/live.module.js");
 const { AnalyticsModule } = require("../../apps/api/dist/analytics/analytics.module.js");
+const { FeedModule } = require("../../apps/api/dist/feed/feed.module.js");
+const { SearchModule } = require("../../apps/api/dist/search/search.module.js");
+const { BookingModule } = require("../../apps/api/dist/booking/booking.module.js");
 const { TrustModule } = require("../../apps/api/dist/trust/trust.module.js");
 const { PrismaService } = require("../../apps/api/dist/database/prisma.service.js");
 const { CommerceService } = require("../../apps/api/dist/commerce/commerce.service.js");
@@ -39,9 +42,13 @@ const { NotificationsService } = require("../../apps/api/dist/notifications/noti
 const { LiveService } = require("../../apps/api/dist/live/live.service.js");
 const { ReviewService } = require("../../apps/api/dist/trust/review.service.js");
 const { AnalyticsService } = require("../../apps/api/dist/analytics/analytics.service.js");
+const { AttributionConsentService } = require("../../apps/api/dist/analytics/attribution-consent.service.js");
+const { FeedService } = require("../../apps/api/dist/feed/feed.service.js");
+const { SearchObservationService } = require("../../apps/api/dist/search/search-observation.service.js");
+const { BookingService } = require("../../apps/api/dist/booking/booking.service.js");
 
 class SandboxTestModule {}
-Module({ imports: [DatabaseModule, PaymentModule, LiveModule, TrustModule, AnalyticsModule] })(SandboxTestModule);
+Module({ imports: [DatabaseModule, PaymentModule, LiveModule, TrustModule, AnalyticsModule, FeedModule, SearchModule, BookingModule] })(SandboxTestModule);
 
 function identity(subject) {
   return { subject, emailVerified: false, phoneVerified: false };
@@ -67,6 +74,10 @@ async function main() {
   const live = app.get(LiveService);
   const reviews = app.get(ReviewService);
   const analytics = app.get(AnalyticsService);
+  const consent = app.get(AttributionConsentService);
+  const feed = app.get(FeedService);
+  const searchObservation = app.get(SearchObservationService);
+  const bookingService = app.get(BookingService);
 
   try {
     assert.equal((await prisma.$queryRawUnsafe("SELECT current_database() AS db"))[0].db, "hustle_payment_sandbox");
@@ -295,6 +306,118 @@ async function main() {
     assert.equal(withView.observation.events["feed.view"], 1);
     assert.equal(withView.authoritative.placedOrders, 1);
     assert.equal(withView.authoritative.verifiedReviews, 1);
+    // Phase21B: authenticated, optional attribution. Existing platform
+    // observation should continue normally, but without consent there must
+    // never be an attributionEligible marker or linked report.
+    const signedOutPreference = await fetch(
+      `http://127.0.0.1:${address.port}/api/v1/events/attribution-consent`
+    );
+    assert.equal(signedOutPreference.status, 401);
+    assert.equal((await consent.status(by)).enabled, false, "Attribution off by default");
+    await expectRejected(
+      () => analytics.capture({
+        name: "feed.product_clicked", source: "web",
+        payload: { viewerUserId: buyer.id, productId: product.id, attributionEligible: true }
+      }),
+      "Generic capture endpoint must not forge authenticated attribution events"
+    );
+    await expectRejected(
+      () => consent.set(by, { enabled: "true" }),
+      "Consent requires an explicit boolean"
+    );
+
+    const proofPost = await prisma.post.create({
+      data: {
+        professionalProfileId: profile.id, status: "PUBLISHED",
+        caption: "Isolated proof of real work", publishedAt: new Date()
+      }
+    });
+    const sandboxService = await prisma.service.create({
+      data: {
+        professionalProfileId: profile.id, status: "PUBLISHED",
+        title: "Disposable Consented Service", priceMinor: 0,
+        pricingType: "FIXED", publishedAt: new Date()
+      }
+    });
+    await prisma.postProductAttachment.create({ data: { postId: proofPost.id, productId: product.id } });
+    await prisma.postServiceAttachment.create({ data: { postId: proofPost.id, serviceId: sandboxService.id } });
+
+    const priorClick = await feed.capture(by, {
+      name: "feed.product_clicked", postId: proofPost.id,
+      productId: product.id, source: "web"
+    });
+    const priorRow = await prisma.systemEvent.findUniqueOrThrow({ where: { id: priorClick.id } });
+    assert.equal(priorRow.payload.attributionEligible, undefined);
+
+    await consent.set(by, { enabled: true });
+    assert.equal((await consent.status(by)).enabled, true);
+    const optedInTap = await feed.capture(by, {
+      name: "feed.service_clicked", postId: proofPost.id,
+      serviceId: sandboxService.id, source: "web"
+    });
+    const clickRecord = await prisma.systemEvent.findUniqueOrThrow({ where: { id: optedInTap.id } });
+    assert.equal(clickRecord.payload.attributionEligible, true, "Server must stamp opt-in click");
+
+    const bookingResult = await bookingService.create(by, {
+      serviceId: sandboxService.id, requirements: "Disposable, consented Booking test",
+      requestedStartAt: new Date(Date.now() + 86_400_000).toISOString()
+    });
+    assert.ok(bookingResult.id, "Real Booking must be created after consented tap");
+
+    await searchObservation.recordMarketplace(by, {
+      name: "marketplace.result_clicked", resultType: "product",
+      resultId: product.id, source: "web"
+    });
+    await commerce.addCartItem(by, { productId: product.id, quantity: 1 });
+    const linkedCheckout = await commerce.checkout(by, {
+      deliveryName: "Disposable Test Buyer", deliveryPhone: "00000000000",
+      deliveryAddress: "Sandbox testing only", deliveryCity: "Local Test",
+      deliveryCountry: "Nigeria"
+    });
+    assert.equal(linkedCheckout.orders.length, 1);
+
+    const linkedOverview = await analytics.overview("7");
+    assert.deepEqual(linkedOverview.attribution.bookings, {
+      consentingOutcomes: 1,
+      linkedOutcomes: 1,
+      byLastEligibleClick: { feed: 1, search: 0, marketplace: 0 }
+    });
+    assert.deepEqual(linkedOverview.attribution.orders, {
+      consentingOutcomes: 1,
+      linkedOutcomes: 1,
+      byLastEligibleClick: { feed: 0, search: 0, marketplace: 1 }
+    });
+
+    // A fresh opt-out excludes all account-level associations. A later opt-in
+    // starts a new timeline and must NEVER backfill old clicked offers.
+    await consent.set(by, { enabled: false });
+    assert.equal((await consent.status(by)).enabled, false);
+    assert.equal((await consent.clickMetadata(buyer.id, "feed.service_clicked")).attributionEligible, undefined);
+    const optedOutOverview = await analytics.overview("7");
+    assert.equal(optedOutOverview.attribution.bookings.consentingOutcomes, 0);
+    assert.equal(optedOutOverview.attribution.orders.linkedOutcomes, 0);
+    await consent.set(by, { enabled: true });
+    const restartedOverview = await analytics.overview("7");
+    assert.equal(restartedOverview.attribution.bookings.consentingOutcomes, 0);
+    assert.equal(restartedOverview.attribution.orders.linkedOutcomes, 0);
+
+    // A genuinely new offer tap and new Booking after re-enabling are eligible.
+    await feed.capture(by, {
+      name: "feed.service_clicked", postId: proofPost.id,
+      serviceId: sandboxService.id, source: "web"
+    });
+    await bookingService.create(by, {
+      serviceId: sandboxService.id,
+      requirements: "Second independent opt-in period",
+      requestedStartAt: new Date(Date.now() + 172_800_000).toISOString()
+    });
+    const currentOverview = await analytics.overview("7");
+    assert.equal(currentOverview.attribution.bookings.consentingOutcomes, 1);
+    assert.equal(currentOverview.attribution.bookings.linkedOutcomes, 1);
+    assert.equal(currentOverview.attribution.orders.linkedOutcomes, 0);
+
+    console.log("PASS: Phase21B off-by-default consent, authentic offer-click stamping, matching Service/Product associations, opt-out exclusion and fresh opt-in");
+
     console.log("PASS: Phase21 Analytics admin guard, canonical milestone counts, daily series and observational isolation");
 
     console.log("PASS: verified review alerts only after paid completion, no self-review or duplicate");
