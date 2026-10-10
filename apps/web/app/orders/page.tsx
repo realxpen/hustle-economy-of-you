@@ -12,7 +12,7 @@ function formatDate(value: string) {
 
 function OrderCard({ order }: { order: OrderRecord }) {
   const counterpart = order.viewerRole === "BUYER" ? order.seller : order.buyer;
-  return <Link className={styles.card} href={`/orders/${order.id}`}>
+  return <Link className={[styles.card, "h-experience-surface"].join(" ")} href={`/orders/${order.id}`}>
     <div className={styles.cardTop}>
       <div><small className={styles.eyebrow}>{order.viewerRole === "BUYER" ? "PURCHASE" : "SALE"}</small><h3>{order.items[0]?.productTitleSnapshot ?? "Order"}{order.items.length > 1 ? ` +${order.items.length - 1}` : ""}</h3></div>
       <span className={styles.status}>{order.status}</span>
@@ -23,7 +23,7 @@ function OrderCard({ order }: { order: OrderRecord }) {
 }
 
 function OrderSection({ title, eyebrow, page, error }: { title: string; eyebrow: string; page: OrderPage | null; error: string | null }) {
-  return <section className={styles.panel}>
+  return <section className={[styles.panel, "h-experience-surface"].join(" ")}>
     <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>{eyebrow}</small><h2>{title}</h2></div>{page && <small>{page.items.length} loaded</small>}</div>
     {error && <div className={styles.error}>{error}</div>}
     {!error && !page && <div className={styles.empty}>Loading orders…</div>}
@@ -51,8 +51,8 @@ export default function OrdersPage() {
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Orders" secondaryLinks={[{ href: "/cart", label: "Your cart ↗" }, { href: "/marketplace", label: "Browse offers" }]} />
 
-    <section className={styles.hero}>
-      <div><p className={styles.eyebrow}>ORDER MANAGER</p><h1>Commerce, one identity.</h1></div>
+    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
+      <div><p className={styles.eyebrow}>ORDER MANAGER</p><h1 className="h-experience-heading">Commerce, one identity.</h1></div>
       <p>Your purchases and Product sales live together. There is no buyer/seller role switch—only the relationship you have to each Order.</p>
     </section>
 
