@@ -72,8 +72,12 @@ export class NotificationsService {
     const rows = await this.prisma.$queryRaw<NotificationInboxRow[]>(Prisma.sql`
       WITH clusters AS (
         SELECT
-          CASE WHEN n.kind = 'MESSAGE'::"NotificationKind"
-            THEN 'thread:' || n.href ELSE 'notification:' || n.id END AS "groupKey",
+          CASE
+            WHEN n.kind = 'MESSAGE'::"NotificationKind" THEN 'thread:' || n.href
+            WHEN n.kind = 'SOCIAL'::"NotificationKind" AND n.href LIKE '/posts/%'
+              THEN 'post:' || n.href
+            ELSE 'notification:' || n.id
+          END AS "groupKey",
           (ARRAY_AGG(n.id ORDER BY n."createdAt" DESC, n.id DESC))[1] AS "latestId",
           MAX(n."createdAt") AS "createdAt",
           COUNT(*)::integer AS "messageCount",
@@ -119,8 +123,12 @@ export class NotificationsService {
         SELECT 1
         FROM "Notification" n
         WHERE n."recipientUserId" = ${recipientUserId} AND n."readAt" IS NULL
-        GROUP BY CASE WHEN n.kind = 'MESSAGE'::"NotificationKind"
-          THEN 'thread:' || n.href ELSE 'notification:' || n.id END
+        GROUP BY CASE
+          WHEN n.kind = 'MESSAGE'::"NotificationKind" THEN 'thread:' || n.href
+          WHEN n.kind = 'SOCIAL'::"NotificationKind" AND n.href LIKE '/posts/%'
+            THEN 'post:' || n.href
+          ELSE 'notification:' || n.id
+        END
       ) unread_groups
     `);
     return { count: rows[0]?.count ?? 0 };
@@ -144,9 +152,10 @@ export class NotificationsService {
       where: {
         recipientUserId,
         readAt: null,
-        ...(selected.kind === NotificationKind.MESSAGE
+        ...(selected.kind === NotificationKind.MESSAGE ||
+          (selected.kind === NotificationKind.SOCIAL && selected.href.startsWith("/posts/"))
           ? {
-              kind: NotificationKind.MESSAGE,
+              kind: selected.kind,
               href: selected.href,
               OR: [
                 { createdAt: { lt: selected.createdAt } },
@@ -248,6 +257,56 @@ export class NotificationsService {
         body: copy[1],
         href: `/orders/${encodeURIComponent(order.id)}`
       }],
+      skipDuplicates: true
+    });
+  }
+
+  /**
+   * Meaningful social activity is written with the authoritative Post/Follow
+   * mutation. Comments are grouped per Post in the read model to avoid spam;
+   * follower notifications are unique per follower/recipient pair.
+   */
+  async recordNewFollower(
+    tx: Prisma.TransactionClient,
+    input: { followerUserId: string; followedUserId: string; followerUsername: string | null }
+  ) {
+    if (input.followerUserId === input.followedUserId) return;
+    await tx.notification.createMany({
+      data: [{
+        recipientUserId: input.followedUserId,
+        eventKey: `social:follow:${input.followerUserId}`,
+        kind: NotificationKind.SOCIAL,
+        title: "New follower",
+        body: "Someone new is following your work on Hustle.",
+        href: input.followerUsername
+          ? `/u/${encodeURIComponent(input.followerUsername)}`
+          : "/notifications"
+      }],
+      skipDuplicates: true
+    });
+  }
+
+  async recordPostComment(
+    tx: Prisma.TransactionClient,
+    input: { commentId: string; postId: string; authorUserId: string; ownerUserId: string; replyToUserId: string | null }
+  ) {
+    const recipients = new Map<string, string>();
+    if (input.ownerUserId !== input.authorUserId) {
+      recipients.set(input.ownerUserId, "New comment on your post");
+    }
+    if (input.replyToUserId && input.replyToUserId !== input.authorUserId) {
+      recipients.set(input.replyToUserId, "New reply to your comment");
+    }
+    if (!recipients.size) return;
+    await tx.notification.createMany({
+      data: [...recipients.entries()].map(([recipientUserId, title]) => ({
+        recipientUserId,
+        eventKey: `social:comment:${input.commentId}`,
+        kind: NotificationKind.SOCIAL,
+        title,
+        body: "A conversation about demonstrated work has a new contribution.",
+        href: `/posts/${encodeURIComponent(input.postId)}`
+      })),
       skipDuplicates: true
     });
   }
