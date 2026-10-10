@@ -1,6 +1,6 @@
 # ADR-0054 — Phase 21B: Opt-in Opportunity Attribution
 
-**Status:** Implemented in feature branch; CI and Monday acceptance pending
+**Status:** MERGED PR #82 (`337763ca88550b865b2855c57d2ef605bd1239ab`), 2026-10-10. Foundation CI `38049347922` and disposable PostgreSQL/Nest attribution + financial integration `38049347924` SUCCESS. No deployment; owner Monday acceptance pending.
 **Date:** 2026-10-10
 **MVP boundary:** No migration, financial state change, production deployment or third-party tracking SDK.
 
