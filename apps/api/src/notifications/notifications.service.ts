@@ -262,6 +262,40 @@ export class NotificationsService {
   }
 
   /**
+   * Record capability application decisions only after the corresponding
+   * authoritative reviewer state transition. Never include proof documents,
+   * notes or sensitive rejection details in the notification body.
+   */
+  async recordCapabilityApplication(
+    tx: Prisma.TransactionClient,
+    input: {
+      applicationId: string;
+      applicantUserId: string;
+      capability: "HUSTLER" | "AGENT";
+      status: "UNDER_REVIEW" | "APPROVED" | "REJECTED";
+    }
+  ) {
+    const label = input.capability === "HUSTLER" ? "Hustler" : "Agent";
+    const details = {
+      UNDER_REVIEW: [`${label} application in review`, "Your application is being reviewed. We'll let you know when there's a decision."],
+      APPROVED: [`${label} application approved`, `Your ${label} capability has been activated on your Hustle account.`],
+      REJECTED: [`${label} application update`, "Your application was not approved. Open the application page for the details."]
+    } as const;
+    const [title, body] = details[input.status];
+    await tx.notification.createMany({
+      data: [{
+        recipientUserId: input.applicantUserId,
+        eventKey: `application:${input.capability.toLowerCase()}:${input.applicationId}:${input.status}`,
+        kind: NotificationKind.APPLICATION,
+        title,
+        body,
+        href: input.capability === "HUSTLER" ? "/hustler-application" : "/agent-application"
+      }],
+      skipDuplicates: true
+    });
+  }
+
+  /**
    * Meaningful social activity is written with the authoritative Post/Follow
    * mutation. Comments are grouped per Post in the read model to avoid spam;
    * follower notifications are unique per follower/recipient pair.
