@@ -19,6 +19,7 @@ import {
 import { formatProductPrice } from "../../lib/product";
 import { formatServicePrice } from "../../lib/service";
 import { HomeStoriesRow } from "./home-stories-row";
+import { HomeSkillShortcuts } from "./home-skill-shortcuts";
 import styles from "./page.module.css";
 
 const tabs: Array<{ id: FeedTab; label: string; note: string }> = [
@@ -429,14 +430,7 @@ export default function DiscoveryHomePage() {
         <Link href="/search" className={styles.heroSearch} aria-label="Search Hustle for a person, service or skill">
           <span aria-hidden="true">⌕</span><strong>Who or what do you need?</strong><b aria-hidden="true">↗</b>
         </Link>
-        <nav className={styles.skillLinks} aria-label="Popular skills">
-          <Link href="/search?q=barber">✂ <span>Barbers</span></Link>
-          <Link href="/search?q=tailor">♧ <span>Tailors</span></Link>
-          <Link href="/search?q=cook">♨ <span>Cooks</span></Link>
-          <Link href="/search?q=designer">✳ <span>Designers</span></Link>
-          <Link href="/search?q=beauty">✦ <span>Beauty</span></Link>
-          <Link href="/search">⋯ <span>More</span></Link>
-        </nav>
+        <HomeSkillShortcuts />
       </div>
       <aside className={styles.heroAside}>
         <div className={styles.locationBadge}><small>YOUR DISCOVERY LOCATION</small><strong>{meta.viewerLocation ?? "Your location"}</strong></div>

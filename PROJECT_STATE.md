@@ -2,6 +2,8 @@
 
 Updated: 2026-10-10
 
+Adaptive Expressive visual redesign Phase 1: IMPLEMENTED ON FEATURE BRANCH feat/hustle-adaptive-expressive-ui-phase1; owner-approved Pinterest-inspired pale tactile + immersive orange/charcoal direction applied to Discover, public Hustler Storefront, Messages and floating shared navigation with opt-in local System/Light/Dark control. Design response to owner's dissatisfaction with existing UI. Source-of-truth live feed/profile/messages/trust/commerce unchanged. ADR-0058 and Knowledge/QA/ADAPTIVE_EXPRESSIVE_UI_PHASE1_ACCEPTANCE.md. CI/PR/merge and Monday 2026-10-12 visual acceptance pending as of this update; no deploy or real money. Additional app surfaces remain deliberately unadapted.
+
 ## Current AED capability
 Build
 
