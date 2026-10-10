@@ -111,3 +111,6 @@ Discover content → inspect profile/proof → open referenced offer → message
 Also review permissions (Client, Hustler, Agent, Admin), responsive screen hierarchy on 360px/390px/768px/1280px, live/media permission states, empty/error/loading views and touch targets. No live money/escrow/payout manual testing without separate owner approval.
 
 **Current acceptance:** design-token/nav implementation and CI are build evidence. Monday owner-facing UI/runtime acceptance is intentionally deferred. No claim that the entire MVP has passed pilot activation yet.
+
+## 10. UX-004 harmonization (candidate; October 10)
+Messaging, Activity, Wallet, Live, content authoring and Agent workspace now extend the same mobile-first interaction, error-state and permission/financial-status language. See ADR-0057 and UX-004 QA acceptance for exact code boundaries and pending Monday visual/runtime evidence. Live remains intentionally immersive rather than forced into an ordinary card dashboard. Client filters on already-loaded messages/notifications must never be misrepresented as server-wide search or historical backfill. No role switcher or frontend financial authority was added.
