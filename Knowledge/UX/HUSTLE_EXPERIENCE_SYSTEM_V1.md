@@ -114,3 +114,9 @@ Also review permissions (Client, Hustler, Agent, Admin), responsive screen hiera
 
 ## 10. UX-004 harmonization (merged PR #85; October 10; runtime acceptance pending)
 Messaging, Activity, Wallet, Live, content authoring and Agent workspace now extend the same mobile-first interaction, error-state and permission/financial-status language. See ADR-0057 and UX-004 QA acceptance for exact code boundaries and pending Monday visual/runtime evidence. Live remains intentionally immersive rather than forced into an ordinary card dashboard. Client filters on already-loaded messages/notifications must never be misrepresented as server-wide search or historical backfill. No role switcher or frontend financial authority was added.
+
+
+## 11. Adaptive Expressive visual direction — owner-approved (2026-10-10)
+The owner supplied a broad Pinterest collection and singled out two inspirations: pale/silver rounded soft-tactile cards with black circular icon controls, and a dark content-driven interface with floating glass navigation. The requested combined Hustle direction uses orange in place of the latter reference's pink. The previous warm-paper MVP interface remains as historical v1; the next style is opt-in for three initial Web journeys, not a forced change to unreworked finance/trust/admin workflows.
+
+See ADR-0058 and Knowledge/QA/ADAPTIVE_EXPRESSIVE_UI_PHASE1_ACCEPTANCE.md for implemented theming boundaries, live-data safeguards and pending visual acceptance. Do not copy another app's icon branding or use Pinterest assets as commercial production images. Motion remains reduced-motion-aware; real content and trust/commerce authority take precedence over glass, gradients and glow.

@@ -19,6 +19,7 @@ import {
 import { formatProductPrice } from "../../lib/product";
 import { formatServicePrice } from "../../lib/service";
 import { HomeStoriesRow } from "./home-stories-row";
+import { HomeSkillShortcuts } from "./home-skill-shortcuts";
 import styles from "./page.module.css";
 
 const tabs: Array<{ id: FeedTab; label: string; note: string }> = [
@@ -418,19 +419,31 @@ export default function DiscoveryHomePage() {
       : item));
   }
 
-  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+  return <main className={[styles.shell, "h-experience-shell", "h-adaptive"].join(" ")}>
     <ExperienceHeader section="Discover" actions={<Link href="/posts/manage">Create or manage posts ↗</Link>} />
 
-    <HomeStoriesRow />
-
     <section className={[styles.hero, "h-experience-hero"].join(" ")}>
-      <div><p>HOME · DISCOVERY</p><h1 className="h-experience-heading">Find people by what they <em>share and do.</em></h1><span>{activeTab.note}</span></div>
-      <div className={styles.locationBadge}><small>YOUR DISCOVERY LOCATION</small><strong>{meta.viewerLocation ?? "Loading…"}</strong></div>
+      <div className={styles.heroCopy}>
+        <p className={styles.eyebrow}>HUSTLE · THE ECONOMY OF YOU</p>
+        <h1 className="h-experience-heading">Find your next <em>Hustler.</em></h1>
+        <span>Discover real skills, see the work, and make your next move.</span>
+        <Link href="/search" className={styles.heroSearch} aria-label="Search Hustle for a person, service or skill">
+          <span aria-hidden="true">⌕</span><strong>Who or what do you need?</strong><b aria-hidden="true">↗</b>
+        </Link>
+        <HomeSkillShortcuts />
+      </div>
+      <aside className={styles.heroAside}>
+        <div className={styles.locationBadge}><small>YOUR DISCOVERY LOCATION</small><strong>{meta.viewerLocation ?? "Your location"}</strong></div>
+        <Link className={styles.marketLink} href="/marketplace">Browse services & products <span aria-hidden="true">↗</span></Link>
+      </aside>
     </section>
 
+    <HomeStoriesRow />
+    <div className={styles.feedIntro}><span>THE WORK IS THE PROOF</span><Link href="/posts/manage">Share your work ↗</Link></div>
     <nav className={styles.tabs} aria-label="Discovery feed tabs">
       {tabs.map((item) => <button key={item.id} type="button" className={tab === item.id ? styles.activeTab : undefined} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}
     </nav>
+    <p className={styles.tabContext}>{activeTab.note}</p>
 
     {meta.coldStart && tab === "for-you" && <section className={styles.coldStart}><strong>Cold start, not an empty start.</strong><span>Hustle is using location, recency, trust and useful published content while it learns from real interactions.</span></section>}
 

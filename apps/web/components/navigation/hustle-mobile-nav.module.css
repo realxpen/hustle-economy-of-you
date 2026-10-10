@@ -105,3 +105,38 @@
 @media (prefers-reduced-motion: reduce) {
   .link { transition: none; }
 }
+
+
+/* Floating glass dock, retaining all six canonical destinations. */
+@media(max-width:760px){
+  .dock{
+    left:max(12px,env(safe-area-inset-left));
+    right:max(12px,env(safe-area-inset-right));
+    bottom:calc(11px + env(safe-area-inset-bottom));
+    width:auto;
+    padding:7px;
+    border:1px solid rgba(150,147,143,.29);
+    border-radius:30px;
+    background:rgba(251,250,249,.88);
+    box-shadow:0 15px 45px rgba(11,11,13,.17),inset 0 1px rgba(255,255,255,.73);
+    -webkit-backdrop-filter:blur(25px) saturate(140%);
+    backdrop-filter:blur(25px) saturate(140%);
+  }
+  .inner{gap:2px}
+  .link{min-height:59px;border-radius:23px}
+  .icon{height:29px;width:33px}
+  .icon svg{width:21px;height:21px}
+  .label{font-size:9px}
+  .selected{background:var(--h-ink,#141311);color:#fff}
+  .selected .icon{color:var(--h-orange,#ff7924)}
+  .unread{background:#f57119;color:#111;box-shadow:0 0 0 2px #fff}
+  :global(html[data-hustle-theme="dark"]) .dock{
+    color:#f5f3f0;background:rgba(24,24,27,.88);
+    border-color:rgba(255,255,255,.16);
+    box-shadow:0 17px 44px rgba(0,0,0,.56),inset 0 1px rgba(255,255,255,.13);
+  }
+  :global(html[data-hustle-theme="dark"]) .link{color:#c7c2c0}
+  :global(html[data-hustle-theme="dark"]) .selected{background:rgba(255,136,41,.16);color:#ffad63}
+  :global(html[data-hustle-theme="dark"]) .selected .icon{color:#ff8829}
+  :global(html[data-hustle-theme="dark"]) .unread{box-shadow:0 0 0 2px #18181b}
+}

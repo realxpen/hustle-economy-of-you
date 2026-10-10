@@ -98,7 +98,7 @@ export default function PublicProfilePage() {
   const targetLabel = user.displayName ?? user.username ?? "this Hustler";
   const messageHref = `/messages/start?userId=${encodeURIComponent(user.id)}`;
 
-  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+  return <main className={[styles.shell, "h-experience-shell", "h-adaptive"].join(" ")}>
     <ExperienceHeader
       section={user.displayName ?? user.username ?? "Storefront"}
       trail={[{ href: "/marketplace", label: "Explore" }]}
@@ -153,6 +153,14 @@ export default function PublicProfilePage() {
       <div><strong>{data.counts.verifiedReviews}</strong><span>Verified reviews</span></div>
       <div><strong>{data.socialProof.followerCount}</strong><span>Followers</span></div>
     </section>
+
+    <nav className={styles.profileTabs} aria-label="Explore this Hustler">
+      <a href="#services">Services</a>
+      <a href="#work">Work</a>
+      <a href="#shop">Products</a>
+      <a href="#reviews">Reviews</a>
+      <a href="#about">About</a>
+    </nav>
 
     <section className={styles.contentGrid} id="about">
       <article className={styles.mainStory}>
