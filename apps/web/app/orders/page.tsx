@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../components/navigation/experience-header";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { formatMoney, listBuyerOrders, listSellerOrders, type OrderPage, type OrderRecord } from "../../lib/commerce";
@@ -47,14 +48,11 @@ export default function OrdersPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <Link className={styles.brand} href="/">HUSTLE↗</Link>
-      <nav className={styles.nav}><Link href="/home">Home</Link><Link href="/marketplace">Marketplace</Link><Link href="/cart">Cart</Link><Link href="/messages">Messages</Link><Link href="/account">Account</Link></nav>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Orders" secondaryLinks={[{ href: "/cart", label: "Your cart ↗" }, { href: "/marketplace", label: "Browse offers" }]} />
 
     <section className={styles.hero}>
-      <div><p className={styles.eyebrow}>PHASE 12 · ORDERS</p><h1>Commerce, one identity.</h1></div>
+      <div><p className={styles.eyebrow}>ORDER MANAGER</p><h1>Commerce, one identity.</h1></div>
       <p>Your purchases and Product sales live together. There is no buyer/seller role switch—only the relationship you have to each Order.</p>
     </section>
 
@@ -63,6 +61,6 @@ export default function OrdersPage() {
       <OrderSection title="Orders for your products" eyebrow="AS SELLER" page={seller} error={sellerError} />
     </div>
 
-    <footer className={styles.footer}><span>PENDING Orders are durable checkout attempts.</span><strong>PAID requires Phase 13 financial confirmation.</strong></footer>
+    <footer className={styles.footer}><span>PENDING Orders are durable checkout attempts.</span><strong>PAID means provider-confirmed funding, never a self-reported payment.</strong></footer>
   </main>;
 }
