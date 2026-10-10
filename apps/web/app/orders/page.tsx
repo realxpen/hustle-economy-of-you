@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceStatus } from "../../components/navigation/experience-status";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -15,7 +16,7 @@ function OrderCard({ order }: { order: OrderRecord }) {
   return <Link className={[styles.card, "h-experience-surface"].join(" ")} href={`/orders/${order.id}`}>
     <div className={styles.cardTop}>
       <div><small className={styles.eyebrow}>{order.viewerRole === "BUYER" ? "PURCHASE" : "SALE"}</small><h3>{order.items[0]?.productTitleSnapshot ?? "Order"}{order.items.length > 1 ? ` +${order.items.length - 1}` : ""}</h3></div>
-      <span className={styles.status}>{order.status}</span>
+      <ExperienceStatus kind="order" value={order.status} />
     </div>
     <div className={styles.meta}><span>{formatMoney(order.totalMinor, order.currency)}</span><span>{formatDate(order.createdAt)}</span><span>{counterpart.displayName ?? counterpart.username ?? "Hustle user"}</span></div>
     <p>{order.nextAction}</p>
