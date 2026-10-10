@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   captureSearchObservation,
@@ -143,11 +144,8 @@ export default function SearchPageScreen() {
 
   const resultLabel = useMemo(() => searchedQuery ? `Results for “${searchedQuery}”` : "Search across Hustle", [searchedQuery]);
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE<span>↗</span></a>
-      <nav className={styles.headerNav}><a href="/home">Home</a><a href="/marketplace">Marketplace</a><a href="/account">Your identity</a></nav>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Search" />
 
     <section className={styles.hero}>
       <p className={styles.eyebrow}>INTENTIONAL DISCOVERY</p>
