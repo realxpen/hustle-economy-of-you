@@ -59,12 +59,12 @@ export default function MarketplacePage() {
     setSessionId(createSessionId());
   }, []);
 
-  async function browse(nextTab: MarketplaceTab, cursor: string | null = null, append = false) {
+  async function browse(nextTab: MarketplaceTab, cursor: string | null = null, append = false, appliedFilters: SearchFilters = filters, appliedQuery = query) {
     const version = append ? requestVersion.current : ++requestVersion.current;
     append ? setLoadingMore(true) : setLoading(true);
     setError(null);
     try {
-      const page = await getMarketplacePage(nextTab, { q: query, cursor, limit: 12, filters });
+      const page = await getMarketplacePage(nextTab, { q: appliedQuery, cursor, limit: 12, filters: appliedFilters });
       if (version !== requestVersion.current) return;
       setItems((current) => append ? [...current, ...page.items] : page.items);
       setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore, zeroResults: page.zeroResults });
@@ -157,14 +157,14 @@ export default function MarketplacePage() {
       <select aria-label="Filter by product type" value={filters.productType ?? ""} onChange={(event) => setFilters({ ...filters, productType: event.target.value })}><option value="">Any product type</option><option value="PHYSICAL">Physical product</option><option value="DIGITAL">Digital product</option></select>
       <label className={styles.checkField}><input type="checkbox" checked={Boolean(filters.nearby)} onChange={(event) => setFilters({ ...filters, nearby: event.target.checked })} /> Nearby me</label>
       <button className={styles.primaryButton} type="button" disabled={loading} onClick={() => void browse(tab)}>Apply filters</button>
-      <button className={styles.resetButton} type="button" disabled={loading} onClick={() => { setFilters(emptyFilters); setError(null); }}>Clear filters</button>
+      <button className={styles.resetButton} type="button" disabled={loading} onClick={() => { setFilters(emptyFilters); setError(null); void browse(tab, null, false, emptyFilters); }}>Clear filters</button>
     </section>
 
     <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
       <div className={styles.resultMeta} role="status" aria-live="polite"><strong>{tab === "all" ? "Marketplace" : tab === "services" ? "Services" : "Products"}</strong><span>{loading ? "Loading offers…" : `${items.length} loaded`}</span></div>
       {error && <ExperienceState kind="error" title="Marketplace isn't available right now." description={error} action={{label:"Try again",onClick:()=>void browse(tab)}} />}
       {!error && loading && <ExperienceState kind="loading" title="Loading currently published offers…" description="Checking availability and matching your filters." />}
-      {!error && !loading && items.length === 0 && <ExperienceState kind="empty" title={meta.zeroResults ? "No matching offers." : "Nothing published here yet."} description={meta.zeroResults ? "Clear a filter or broaden the category or location." : "Explore another category, or come back as Hustlers add work and products."} action={{label:"Reset filters",onClick:()=>{setFilters(emptyFilters);setQuery("");setError(null);}}} />}
+      {!error && !loading && items.length === 0 && <ExperienceState kind="empty" title={meta.zeroResults ? "No matching offers." : "Nothing published here yet."} description={meta.zeroResults ? "Clear a filter or broaden the category or location." : "Explore another category, or come back as Hustlers add work and products."} action={{label:"Reset filters",onClick:()=>{setFilters(emptyFilters);setQuery("");setError(null);void browse(tab,null,false,emptyFilters,"");}}} />}
       {!loading && items.length > 0 && <div className={styles.grid}>{items.map((item, index) => <ResultCard key={`${item.kind}-${item.id}`} item={item} onOpen={() => openResult(item, index)} />)}</div>}
       {!loading && !error && meta.hasMore && <div className={styles.loadMore}><button className={styles.primaryButton} type="button" disabled={loadingMore} onClick={() => void browse(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more"}</button></div>}
     </section>
