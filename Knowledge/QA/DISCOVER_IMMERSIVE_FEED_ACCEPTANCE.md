@@ -1,11 +1,11 @@
 # Immersive Discovery — acceptance
 
-State: Implemented in branch feat/discover-immersive-snap-feed, CI pending, owner/browser acceptance pending.
+State: PR #88 MERGED 2026-10-10; Foundation CI 38088362956 SUCCESS on final head a526e90fdc40f25f444304d6504600c95698f21e; owner-controlled production Web release and real browser/device acceptance PENDING.
 Scope: apps/web/app/home; no backend or finance changes.
 
 ## Automated checks
-- [ ] GitHub Foundation CI Web/Admin/Mobile/API typechecks and Prisma generation, Web/Admin/API production builds succeed on final head.
-- [ ] No API/database/payment/Agent changes and no deployment initiated.
+- [x] GitHub Foundation CI Web/Admin/Mobile/API typechecks and Prisma generation, Web/Admin/API production builds passed on final head (38088362956).
+- [x] PR contains only Web Discover TSX/CSS and Knowledge documents; no API/database/payment/Agent changes and no deployment initiated.
 
 ## Visual and interaction acceptance (NOT run)
 - [ ] At 320/360/390px light/dark mobile, opening /home places **one real Post** in the immersive area, not a marketing hero or an ordinary card list.

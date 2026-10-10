@@ -1,6 +1,6 @@
 # ADR-0059 — Immersive post-first Discovery
 
-Status: Implemented in feature branch; automated CI and browser/runtime acceptance pending
+Status: PR #88 merged; Foundation CI run 38088362956 passed; browser/runtime acceptance pending
 Date: 2026-10-10
 Scope: Web /home only, Discovery presentation + browser media behavior. No server, database, money, roles, trust or commerce schema changes.
 
