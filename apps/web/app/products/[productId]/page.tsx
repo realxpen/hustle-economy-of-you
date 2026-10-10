@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { formatProductPrice, getPublicProduct, type PublicProduct } from "../../../lib/product";
@@ -25,8 +26,8 @@ export default function PublicProductPage() {
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
   const heroMedia = product.mediaUrls[0];
 
-  return <main className={styles.shell}>
-    <header className={styles.header}><a href="/" className={styles.brand}>HUSTLE↗</a><nav className={styles.headerNav}><a href="/marketplace">Marketplace</a><a href="/cart">Cart</a><a href="/orders">Orders</a></nav></header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Product" trail={[{ href: "/marketplace", label: "Marketplace" }]} secondaryLinks={[{ href: "/cart", label: "Cart" }, { href: "/orders", label: "Orders" }]} />
 
     <section className={styles.topGrid}>
       <div className={styles.media} style={heroMedia ? { backgroundImage: `url(${heroMedia})` } : undefined}>{!heroMedia && <span>PRODUCT MEDIA</span>}</div>
