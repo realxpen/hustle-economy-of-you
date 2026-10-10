@@ -168,3 +168,17 @@ main.h-experience-shell :where(img,video) { max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   main.h-experience-shell a.h-experience-surface { transition: none; }
 }
+
+/* Search/Market filter zones consume the same single-level page gutter. */
+main.h-experience-shell .h-experience-content {
+  padding-inline: 0;
+}
+main.h-experience-shell {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+main.h-experience-shell .h-experience-intro-copy {
+  color: var(--h-muted);
+  font-size: clamp(14px, 1.4vw, 17px);
+  line-height: 1.6;
+  max-width: var(--h-reading-width);
+}
