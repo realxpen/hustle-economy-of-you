@@ -1,7 +1,7 @@
 # ADR-0057 — UX-004: Final MVP experience refinement
 
 Date: 2026-10-10
-Status: Candidate code on `feat/ux004-mvp-experience-refinement`; requires final CI success and merge verification. Manual deployment and Monday October 12 runtime acceptance pending.
+Status: MERGED PR #85 (`7c80e8963c278d0685eddcf4be47c19471e3b271`), final PR head `5d5ebab389b5bd8fbceac800a3439393e74747f0`; Hustle Foundation CI run `38077085748` SUCCESS (Web/Admin/Mobile/API typechecks, Prisma generation and Web/Admin/API builds). No payment sandbox triggered on this Web-only PR. Manual deployment and Monday October 12 runtime acceptance pending.
 
 ## Context
 UX-001/002/003 established mobile-first tokens, shared chrome, canonical commerce statuses and async recovery. Important Messaging, Activity, Wallet, content creation, Live and Agent screens still used older patterns, opaque money states or stale implementation-phase labels.
