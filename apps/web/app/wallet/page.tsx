@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { ExperienceState } from "../../components/experience/experience-state";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import styles from "./wallet.module.css";
