@@ -1,6 +1,6 @@
 # ADR-0052 — Phase 20C3: Live-start and Verified Review Activity
 
-Status: Implemented on branch, automated CI and Monday acceptance pending
+Status: MERGED PR #80 (`f78f9e6919a69ada5c267681ea3edc32af281b7e`); Foundation CI `38041849418` and isolated Live/Review/financial integration CI `38041849387` PASSED 2026-10-10; manual Monday acceptance and owner deployment pending
 Date: 2026-10-10
 
 ## Meaningful events
@@ -31,10 +31,10 @@ No new database tables, grants, migrations, direct browser notification creation
 ## Validation
 
 Extend the **disposable PostgreSQL/Nest** sandbox `scripts/payment-sandbox/run.mjs`:
-- [ ] Paid/completed Order permits exactly one buyer-authored verified Review, not seller self-review and not duplicate Review.
-- [ ] Seller receives one REVIEW alert, buyer receives none.
-- [ ] Active Hustler LIVE session start notifies a follower once; cannot start twice.
-- [ ] A blocked follower receives no LIVE alert even if follower edge persists; host receives no self-alert.
-- [ ] Existing isolated paid-Order sandbox and Foundation CI green.
+- [x] Paid/completed Order permits exactly one buyer-authored verified Review, not seller self-review and not duplicate Review.
+- [x] Seller receives one REVIEW alert, buyer receives none.
+- [x] Active Hustler LIVE session start notifies a follower once; cannot start twice.
+- [x] A blocked follower receives no LIVE alert even if follower edge persists; host receives no self-alert.
+- [x] Existing isolated paid-Order sandbox and Foundation CI green.
 
 **Monday:** Review browser Activity links, unread and permissions with disposable Client/Hustler accounts. Full manual acceptance paused until October 12.
