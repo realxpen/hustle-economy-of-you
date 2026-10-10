@@ -481,7 +481,7 @@ export default function DiscoveryHomePage() {
       : item));
   }
 
-  return <main className={[styles.shell, "h-experience-shell", "h-adaptive"].join(" ")}>
+  return <main className={[styles.shell, "h-experience-shell", "h-adaptive", "h-discover-immersive"].join(" ")}>
     <ExperienceHeader section="Discover" actions={<Link href="/posts/manage">Create or manage posts ↗</Link>} />
 
     <section className={styles.discoverLayout} aria-label="Hustle Discovery">
@@ -495,9 +495,10 @@ export default function DiscoveryHomePage() {
             {tabs.map((option) => <button key={option.id} type="button"
               className={tab === option.id ? styles.activeTab : undefined}
               aria-pressed={tab === option.id} onClick={() => setTab(option.id)}>{option.label}</button>)}
+            <Link className={styles.tabLink} href="/live">Live</Link>
           </nav>
           <div className={styles.quickLinks}>
-            <Link href="/live" aria-label="Explore live sessions">◉ <span>Live</span></Link>
+            <Link href="/stories" aria-label="Explore Stories">◉</Link>
             <Link href="/search" aria-label="Search people, skills, services and products">⌕</Link>
           </div>
         </div>

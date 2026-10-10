@@ -307,3 +307,18 @@
   object-fit:contain}
 .paginationError{max-width:370px;color:#ffd4bd;font-size:13px;text-align:center;line-height:1.5}
 .paginationFrame{display:flex;flex-direction:column;gap:18px;align-items:center;justify-content:center}
+
+/* The Live destination is a real route, not a pretend Feed API mode. */
+.tabLink{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+ min-height:44px;color:var(--h-orange);border-radius:99px;padding:9px 13px;
+ font-weight:850;font-size:13px}
+.quickLinks a:first-child{color:var(--h-orange)}
+@media(max-width:760px){
+  /* Product screenshots: remove the breadcrumb from the immersive mobile viewer,
+     while preserving the account identity, appearance and Create Posts action. */
+  :global(main.h-discover-immersive)>header>div:last-child{display:none}
+  .quickLinks{gap:2px}
+  .quickLinks a{font-size:20px;min-height:40px;min-width:40px}
+  .tabs{scroll-snap-type:x proximity}
+  .tabs button,.tabs .tabLink{scroll-snap-align:start}
+}
