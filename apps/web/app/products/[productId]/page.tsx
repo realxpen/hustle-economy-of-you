@@ -51,7 +51,7 @@ export default function PublicProductPage() {
         <div className={styles.wide}><small>DELIVERY / ACCESS</small><p>{product.deliveryInformation || "Seller will provide delivery or access details."}</p></div>
       </article>
 
-      <aside className={[styles.ownerCard, "h-experience-surface"].join(" ")}>
+      <aside className={styles.ownerCard}>
         <div className={styles.ownerTop}><div className={styles.avatar}>{owner.avatarUrl ? <img src={owner.avatarUrl} alt="" /> : initial}</div><div><small>SELLER IDENTITY</small><h2>{owner.displayName ?? `@${owner.username}`}</h2><span>@{owner.username} · {owner.location ?? "Location not set"}</span></div></div>
         <p>{owner.professionalProfile.headline}</p>
         <div className={styles.skills}>{[owner.professionalProfile.primarySkill, ...owner.professionalProfile.secondarySkills].filter(Boolean).slice(0,6).map((skill) => <span key={skill as string}>{skill}</span>)}</div>
