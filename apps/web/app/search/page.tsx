@@ -147,9 +147,9 @@ export default function SearchPageScreen() {
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Search" />
 
-    <section className={styles.hero}>
+    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
       <p className={styles.eyebrow}>INTENTIONAL DISCOVERY</p>
-      <h1>Find who or what can genuinely help.</h1>
+      <h1 className="h-experience-heading">Find who or what can genuinely help.</h1>
       <p>Search people by capability, inspect proof, and move directly into a published Service, Product or professional identity.</p>
     </section>
 
