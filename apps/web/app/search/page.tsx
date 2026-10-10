@@ -65,6 +65,15 @@ export default function SearchPageScreen() {
     if (initial) setQuery(initial);
   }, []);
 
+  // A shared search link may open /search?q=... from another Hustle page.
+  // Run that initial intent once, after session + URL state have hydrated.
+  useEffect(() => {
+    if (!sessionId || !query.trim()) return;
+    void runSearch("top");
+    // Do not auto-search on every keystroke: explicit submit and Apply control it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
   async function runSearch(nextTab: SearchTab, cursor: string | null = null, append = false, appliedFilters: SearchFilters = filters) {
     const normalized = query.trim();
     if (!normalized) {
