@@ -196,7 +196,7 @@ export default function AnalyticsPage() {
 
       <section aria-labelledby="discovery-observations" className={styles.section}>
         <div className={styles.sectionHeading}>
-          <div><p className={styles.eyebrow}>02 / OBSERVATIONAL</p><h2 id="discovery-observations">Signals of discovery</h2></div>
+          <div><p className={styles.eyebrow}>03 / OBSERVATIONAL</p><h2 id="discovery-observations">Signals of discovery</h2></div>
           <span className={styles.observedPill}>Client-reported activity</span>
         </div>
         <p className={styles.sectionIntro}>{snapshot.observation.note}</p>
@@ -210,7 +210,7 @@ export default function AnalyticsPage() {
       </section>
 
       <section className={styles.section} aria-labelledby="growth-signals">
-        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>03 / ECOSYSTEM</p><h2 id="growth-signals">Supply and connections</h2></div></div>
+        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>04 / ECOSYSTEM</p><h2 id="growth-signals">Supply and connections</h2></div></div>
         <div className={styles.supplyGrid}>
           <Metric label="New accounts" value={snapshot.authoritative.newAccounts} help="New Hustle identities"/>
           <Metric label="Published professional profiles" value={snapshot.authoritative.publishedProfiles} help="Currently published; publication fell in window"/>
