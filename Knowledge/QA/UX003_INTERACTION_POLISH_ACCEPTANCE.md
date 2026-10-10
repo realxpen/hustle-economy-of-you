@@ -4,7 +4,7 @@
 
 ## Source/code and automated build checks
 - [ ] Reusable accessible loading/empty/error state with meaningful action and reduced-motion skeleton.
-- [ ] Discover, Search, Marketplace, Messages and Activity use shared states.
+- [ ] Discover, Search, Marketplace, Messages, Activity, public Storefront and Service/Product detail use shared states.
 - [ ] Booking/Order managers show useful retry and empty paths without false role/account switching.
 - [ ] Search/Marketplace ignore superseded primary requests and preserve current pagination.
 - [ ] Clear filters runs an appropriately reset query and form controls are labeled.
