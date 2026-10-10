@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ConversationSafetyActions } from "../../../components/trust/conversation-safety-actions";
+import { ExperienceState } from "../../../components/experience/experience-state";
 import {
   createMessageAttachmentUrl,
   deleteMessageAttachment,
@@ -441,12 +442,12 @@ export default function ConversationPage() {
     router.push(message.context.url);
   }
 
-  if (loading) return <main className={styles.start}><section className={styles.startCard}><p className={styles.eyebrow}>HUSTLE MESSAGING</p><h1>Loading conversation…</h1></section></main>;
-  if (!conversation) return <main className={styles.start}><section className={styles.startCard}><p className={styles.eyebrow}>HUSTLE MESSAGING</p><h1>Conversation unavailable.</h1><p>{error ?? "This thread could not be opened."}</p><Link href="/messages">Back to messages →</Link></section></main>;
+  if (loading) return <main className={styles.start}><ExperienceState kind="loading" title="Opening your conversation…" description="Loading messages and available attachments." /></main>;
+  if (!conversation) return <main className={styles.start}><ExperienceState kind="error" title="Conversation unavailable." description={error ?? "This thread could not be opened."} action={{ label: "Back to inbox", href: "/messages" }} /></main>;
 
   return <main className={styles.threadShell}>
     <header className={styles.threadHeader}>
-      <Link className={styles.back} href="/messages">←</Link>
+      <Link className={styles.back} href="/messages" aria-label="Back to inbox">←</Link>
       <div className={styles.threadIdentity}>
         <div className={styles.avatar}>{other?.avatarUrl ? <img src={other.avatarUrl} alt="" /> : initial}</div>
         <div className={styles.identityText}>
@@ -466,7 +467,7 @@ export default function ConversationPage() {
     </div>}
 
     <div className={styles.threadBody}>
-      <section className={styles.messages}>
+      <section className={styles.messages} aria-label="Conversation history" aria-live="polite" aria-relevant="additions text">
         {meta.hasMore && <button className={styles.older} type="button" disabled={loadingOlder} onClick={() => void loadOlder()}>{loadingOlder ? "Loading…" : "Load older messages"}</button>}
         {messages.length === 0 && <div className={styles.empty}><strong>Start the conversation.</strong><p>Ask about the work, Service or Product that brought you here.</p></div>}
         {messages.map((message) => {
@@ -511,11 +512,11 @@ export default function ConversationPage() {
           </div>;
         })}
         <div ref={messagesEndRef} />
-        {error && <p className={styles.threadError}>{error}</p>}
+        {error && <p className={styles.threadError} role="alert">{error}</p>}
       </section>
 
       <div className={styles.composerWrap}>
-        <form className={styles.composer} onSubmit={submit}>
+        <form className={styles.composer} onSubmit={submit} aria-busy={sending}>
           {otherTyping && <div className={styles.typingIndicator}>{other?.displayName ?? other?.username ?? "Hustle user"} is typing…</div>}
           {pendingContext && <div className={styles.pendingContext}>
             <span><strong>{contextLabel(pendingContext.type)}</strong> will be attached to your next message.</span>
@@ -536,14 +537,16 @@ export default function ConversationPage() {
             </label>
             <textarea
               rows={2}
+              aria-label="Message text"
               maxLength={4000}
               value={text}
               onChange={(event) => handleTextChange(event.target.value)}
               placeholder={`Message ${other?.displayName ?? other?.username ?? "this Hustle user"}…`}
+              onKeyDown={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }}
             />
             <button type="submit" disabled={!canSend || sending}>{sending ? "Sending…" : "Send"}</button>
           </div>
-          <p className={styles.notice}>Messages sync automatically using lightweight deltas while this thread is open. Private image/file attachments remain participant-only.</p>
+          <p className={styles.notice}>Ctrl/⌘ + Enter to send · Attachments up to 25 MB · Private files are available only to conversation participants.</p>
         </form>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { ExperienceState } from "../../../../components/experience/experience-state";
 import type {
   AgentAssistedRegistration,
   AgentPermissionScope,
@@ -258,7 +259,7 @@ export default function AssistedRegistrationDetailPage() {
 
   if (!registration) {
     return <main className={styles.shell}>
-      <p className={error ? styles.error : styles.loading}>{error ?? "Loading assisted identity…"}</p>
+      <ExperienceState kind={error ? "error" : "loading"} title={error ? "Assisted identity unavailable." : "Loading assisted identity…"} description={error ?? undefined} action={error ? { label: "Back to onboarding", href: "/agent-workspace/onboarding" } : undefined} />
     </main>;
   }
 
@@ -293,8 +294,8 @@ export default function AssistedRegistrationDetailPage() {
       </p>
     </section>
 
-    {error && <p className={styles.error}>{error}</p>}
-    {notice && <p className={styles.notice}>{notice}</p>}
+    {error && <p className={styles.error} role="alert">{error}</p>}
+    {notice && <p className={styles.notice} role="status">{notice}</p>}
 
     <section className={styles.boundary}>
       <strong>How this person gets their own login</strong>
@@ -336,6 +337,7 @@ export default function AssistedRegistrationDetailPage() {
               key={scope.value}
               type="button"
               className={active ? styles.scopeActive : styles.scopeButton}
+              aria-pressed={active}
               disabled={busy}
               onClick={() => toggleTemporaryScope(scope.value)}
             >
@@ -424,7 +426,7 @@ export default function AssistedRegistrationDetailPage() {
             <label className={styles.field}><span>Proof type</span><select value={proofType} onChange={(e) => setProofType(e.target.value as HustlerProofType)}>{proofTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
             <label className={styles.secondary} style={{ display: "inline-block", cursor: "pointer" }}>
               {uploading ? "Uploading…" : "Attach proof"}
-              <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={attachProof} disabled={uploading || !application} style={{ display: "none" }} />
+              <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={attachProof} disabled={uploading || !application} style={{ position: "absolute", width: 1, height: 1, opacity: 0 }} />
             </label>
           </>}
         </article>

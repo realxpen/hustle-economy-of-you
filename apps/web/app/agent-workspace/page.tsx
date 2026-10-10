@@ -10,6 +10,7 @@ import {
   leaveAgentRelationship
 } from "../../lib/agent-relationships";
 import { getMyAccount } from "../../lib/auth/hustle-account";
+import { ExperienceState } from "../../components/experience/experience-state";
 import styles from "../agents/page.module.css";
 
 const permissionLabels: Record<string, string> = {
@@ -77,13 +78,15 @@ export default function AgentWorkspacePage() {
   const history = relationships.filter((item) => item.status === "DECLINED" || item.status === "REVOKED");
 
   if (loading) {
-    return <main className={styles.shell}><p className={styles.loading}>Loading Agent workspace…</p></main>;
+    return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Agent workspace…" /></main>;
   }
+
+  if (!account && error) return <main className={styles.shell}><ExperienceState kind="error" title="Agent workspace unavailable." description={error} action={{ label: "Retry", onClick: () => void refresh() }} /></main>;
 
   return <main className={styles.shell}>
     <header className={styles.topbar}>
       <a href="/account">← Your identity</a>
-      <span>PHASE 18E · AGENT WORKSPACE</span>
+      <span>AGENT WORKSPACE · DELEGATED ACCESS</span>
     </header>
 
     <section className={styles.hero}>
@@ -97,8 +100,8 @@ export default function AgentWorkspacePage() {
       </p>
     </section>
 
-    {error && <p className={styles.error}>{error}</p>}
-    {notice && <p className={styles.notice}>{notice}</p>}
+    {error && <p className={styles.error} role="alert">{error} <button type="button" onClick={() => void refresh()}>Retry</button></p>}
+    {notice && <p className={styles.notice} role="status">{notice}</p>}
 
     {isAgent && <section className={styles.boundary}>
       <strong>Helping someone who is not comfortable with tech?</strong>
@@ -114,7 +117,12 @@ export default function AgentWorkspacePage() {
       <p>Your Agent capability must be approved before you can receive representation invitations.</p>
       <a href="/agent-application">Open Agent application →</a>
     </section> : <>
-      <section className={styles.workspaceSection}>
+      <nav aria-label="Agent workspace sections" className={styles.chips}>
+        <a href="#invitations">Invitations ({pending.length})</a>
+        <a href="#representations">Representations ({active.length})</a>
+        {history.length > 0 && <a href="#relationship-history">History</a>}
+      </nav>
+      <section id="invitations" className={styles.workspaceSection}>
         <div className={styles.sectionHeading}><span>01</span><div><strong>Pending invitations</strong><p>Review the account owner and exact permission scopes before accepting.</p></div></div>
         {pending.length === 0 ? <div className={styles.empty}><strong>No pending invitations.</strong></div> : pending.map((relationship) =>
           <article className={styles.card} key={relationship.id}>
@@ -126,7 +134,7 @@ export default function AgentWorkspacePage() {
               <b className={styles.status}>PENDING</b>
             </div>
             <div className={styles.chips}>
-              {relationship.permissions.map((grant) => <span key={grant.id}>{permissionLabels[grant.scope] ?? grant.scope}</span>)}
+              {relationship.permissions.filter((grant) => grant.active).map((grant) => <span key={grant.id}>{permissionLabels[grant.scope] ?? grant.scope}</span>)}
             </div>
             <div className={styles.actions}>
               <span>No authority becomes active until you accept.</span>
@@ -139,7 +147,7 @@ export default function AgentWorkspacePage() {
         )}
       </section>
 
-      <section className={styles.workspaceSection}>
+      <section id="representations" className={styles.workspaceSection}>
         <div className={styles.sectionHeading}><span>02</span><div><strong>Active representations</strong><p>One Agent can represent multiple Hustle users, each with independent grants.</p></div></div>
         {active.length === 0 ? <div className={styles.empty}><strong>No active representation relationships.</strong></div> : active.map((relationship) =>
           <article className={styles.card} key={relationship.id}>
@@ -151,14 +159,14 @@ export default function AgentWorkspacePage() {
               <b className={styles.status}>ACTIVE</b>
             </div>
             <div className={styles.chips}>
-              {relationship.permissions.map((grant) => <span key={grant.id}>{permissionLabels[grant.scope] ?? grant.scope}</span>)}
+              {relationship.permissions.filter((grant) => grant.active).map((grant) => <span key={grant.id}>{permissionLabels[grant.scope] ?? grant.scope}</span>)}
             </div>
             <div className={styles.actions}>
               <span>Granted scopes now unlock the matching delegated business tools. Ownership stays with the represented account.</span>
               <div>
-                {relationship.permissions.some((grant) => ["ACCOUNT_ONBOARDING_MANAGE","HUSTLER_APPLICATION_MANAGE"].includes(grant.scope)) &&
+                {relationship.permissions.some((grant) => grant.active && ["ACCOUNT_ONBOARDING_MANAGE","HUSTLER_APPLICATION_MANAGE"].includes(grant.scope)) &&
                   <a className={styles.secondary} href={`/agent-workspace/representations/${relationship.principalUserId}/onboarding`}>Open onboarding & Hustler tools</a>}
-                {relationship.permissions.some((grant) => ["PROFILE_MANAGE","SERVICE_MANAGE","PRODUCT_MANAGE","CONTENT_MANAGE","BOOKING_MANAGE","CLIENT_MESSAGE_MANAGE"].includes(grant.scope)) &&
+                {relationship.permissions.some((grant) => grant.active && ["PROFILE_MANAGE","SERVICE_MANAGE","PRODUCT_MANAGE","CONTENT_MANAGE","BOOKING_MANAGE","CLIENT_MESSAGE_MANAGE"].includes(grant.scope)) &&
                   <a className={styles.primary} href={`/agent-workspace/representations/${relationship.principalUserId}`}>Open business workspace</a>}
                 <button className={styles.danger} disabled={busyId === relationship.id} onClick={() => run(relationship.id, () => leaveAgentRelationship(relationship.id), "You left the relationship. Delegated authority is revoked.")}>Leave relationship</button>
               </div>
@@ -167,7 +175,7 @@ export default function AgentWorkspacePage() {
         )}
       </section>
 
-      {history.length > 0 && <section className={styles.workspaceSection}>
+      {history.length > 0 && <section id="relationship-history" className={styles.workspaceSection}>
         <div className={styles.sectionHeading}><span>03</span><div><strong>Relationship history</strong><p>Closed invitations remain visible as lifecycle history.</p></div></div>
         <div className={styles.history}>
           {history.map((relationship) => <div key={relationship.id}>

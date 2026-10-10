@@ -14,13 +14,14 @@ export default function CreateLivePage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (busy || !title.trim()) return;
     setBusy(true);
     setError(null);
     try {
       const session = await createLiveSession({
-        title,
-        category: category || null,
-        playbackUrl: playbackUrl || null
+        title: title.trim(),
+        category: category.trim() || null,
+        playbackUrl: playbackUrl.trim() || null
       });
       window.location.assign(`/live/${session.id}/control`);
     } catch (reason) {
@@ -40,17 +41,18 @@ export default function CreateLivePage() {
       <section className={styles.controlGrid}>
         <div className={styles.heroPanel}>
           <div className={styles.eyebrow}>HOST A LIVE</div>
-          <h1 style={{fontSize:"clamp(42px,6vw,72px)",lineHeight:.95,letterSpacing:"-.055em",margin:"10px 0 18px"}}>Turn demonstration into <em style={{fontStyle:"normal",color:"#b6ff5f"}}>opportunity.</em></h1>
+          <h1 style={{fontSize:"clamp(42px,6vw,72px)",lineHeight:.95,letterSpacing:"-.055em",margin:"10px 0 18px"}}>Turn demonstration into <em style={{fontStyle:"normal",color:"var(--h-orange, #ff5a1f)"}}>opportunity.</em></h1>
           <p className={styles.muted}>Only an approved Hustler with a published professional profile can host commerce Live. Viewers can still be any Hustle User—or signed-out visitors when watching.</p>
-          <div className={styles.transportNote} style={{marginTop:20}}><strong>17B native media:</strong> Create the room first, then connect your camera and microphone from the control room. Publishing credentials are issued by the Hustle API and provider secrets never enter the browser.</div>
+          <div className={styles.transportNote} style={{marginTop:20}}><strong>Before you go live:</strong> Creating a control room does not start broadcasting. You choose when to connect your camera and microphone. An external playback URL is only an optional fallback.</div>
         </div>
 
         <section className={styles.panel}>
-          <form className={styles.form} onSubmit={submit}>
-            {error && <div className={styles.error}>{error}</div>}
+          <form className={styles.form} onSubmit={submit} aria-busy={busy}>
+            {error && <div className={styles.error} role="alert">{error}</div>}
             <div className={styles.field}>
               <label htmlFor="title">Live title</label>
-              <input id="title" maxLength={120} required value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Building a landing page from scratch" />
+              <input id="title" maxLength={120} required value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Building a landing page from scratch" aria-describedby="live-title-hint" />
+              <span className={styles.hint} id="live-title-hint">{title.length}/120 characters · Describe the skill being demonstrated.</span>
             </div>
             <div className={styles.field}>
               <label htmlFor="category">Category</label>
@@ -58,10 +60,10 @@ export default function CreateLivePage() {
             </div>
             <div className={styles.field}>
               <label htmlFor="playback">External playback URL · optional</label>
-              <input id="playback" type="url" value={playbackUrl} onChange={(event) => setPlaybackUrl(event.target.value)} placeholder="https://youtube.com/live/..." />
+              <input id="playback" type="url" inputMode="url" autoComplete="url" value={playbackUrl} onChange={(event) => setPlaybackUrl(event.target.value)} placeholder="https://youtube.com/live/..." />
               <span className={styles.hint}>Optional fallback only. Native Hustle camera/microphone publishing is configured from the control room when LiveKit transport is available.</span>
             </div>
-            <button className={`${styles.button} ${styles.primary}`} disabled={busy} type="submit">{busy ? "Creating…" : "Create control room →"}</button>
+            <button className={`${styles.button} ${styles.primary}`} disabled={busy || !title.trim()} type="submit">{busy ? "Creating…" : "Create control room →"}</button>
           </form>
         </section>
       </section>

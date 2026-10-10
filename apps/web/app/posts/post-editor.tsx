@@ -260,14 +260,14 @@ export default function PostEditor({ postId }: { postId?: string }) {
 
     <section className={styles.hero}>
       <div><p>CONTENT · {post?.status ?? "NEW DRAFT"}</p><h1>Share the experience. <em>Reference the opportunity.</em></h1></div>
-      <div className={styles.status}><strong>{readiness}%</strong><span>publish ready</span></div>
+      <div className={styles.status}><strong>{readiness}%</strong><span>draft checklist</span></div>
     </section>
     <div className={styles.progress}><span style={{ width: `${readiness}%` }} /></div>
 
     <section className={styles.layout}>
-      <form className={styles.form} onSubmit={persist}>
+      <form className={styles.form} onSubmit={persist} aria-busy={busy}>
         <div className={styles.sectionTitle}><span>01</span><div><strong>What do you want to share?</strong><p>Posts belong to the Hustle user identity. You do not need to be a Hustler to publish.</p></div></div>
-        <label><span>Caption *</span><textarea rows={7} maxLength={4000} value={form.caption} onChange={(event) => setForm((current) => ({ ...current, caption: event.target.value }))} placeholder="Share work, an experience, recommendation, review-style opinion or useful context. Use @username to reference a Hustle user." /></label>
+        <label><span>Caption *</span><textarea rows={7} maxLength={4000} value={form.caption} onChange={(event) => setForm((current) => ({ ...current, caption: event.target.value }))} placeholder="Share work, an experience, recommendation, review-style opinion or useful context. Use @username to reference a Hustle user." /><small>{form.caption.length}/4000 characters · Describe your experience or demonstration.</small></label>
         <div className={styles.twoCol}>
           <label><span>Topic / category *</span><input maxLength={100} value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} placeholder="Technology, Fashion, Experience…" /></label>
           <label><span>Location</span><input maxLength={160} value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} placeholder="Lagos, Nigeria" /></label>
@@ -277,20 +277,21 @@ export default function PostEditor({ postId }: { postId?: string }) {
         <div className={styles.sectionTitle}><span>02</span><div><strong>Media</strong><p>Use one video, one image, or multiple images for a carousel.</p></div></div>
         <div className={styles.twoCol}>
           <label><span>Media type</span><select value={mediaType} onChange={(event) => setMediaType(event.target.value as PostMediaType)} disabled={busy || Boolean(mediaCount > 0 && post?.media[0]?.type === "VIDEO")}><option value="IMAGE">Image</option><option value="VIDEO">Video</option></select></label>
-          <label><span>Public media URL</span><input value={mediaUrl} onChange={(event) => setMediaUrl(event.target.value)} placeholder="https://…" /></label>
+          <label><span>Public media URL</span><input type="url" inputMode="url" value={mediaUrl} onChange={(event) => setMediaUrl(event.target.value)} placeholder="https://…" /></label>
         </div>
-        <div className={styles.actions}><button className={styles.secondary} type="button" onClick={addMedia} disabled={busy || !mediaUrl.trim()}>Add media</button></div>
+        <div className={styles.actions}><button className={styles.secondary} type="button" onClick={addMedia} disabled={busy || !mediaUrl.trim()}>{busy ? "Working…" : "Add media"}</button></div>
         <div className={styles.variantList}>
           {post?.media.map((item, index) => <article className={styles.variantCard} key={item.id}>
             <strong>{index + 1}. {item.type}</strong>
+            {item.mediaUrl && (item.type === "VIDEO" ? <video src={item.mediaUrl} controls preload="metadata" style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} /> : <img src={item.mediaUrl} loading="lazy" alt={`Attached post image ${index+1}`} style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} />)}
             <p className={styles.muted}>{item.mediaUrl ?? item.storageKey ?? "No source"}</p>
             <div className={styles.variantActions}><button className={styles.dangerText} type="button" onClick={() => void removeMedia(item.id)} disabled={busy}>Remove</button></div>
           </article>)}
-          {mediaCount === 0 && <p className={styles.muted}>No media yet. Publishing currently requires at least one media item.</p>}
+          {mediaCount === 0 && <p className={styles.muted}>No media yet. Add one image or video to publish; incomplete drafts can still be saved.</p>}
         </div>
 
         <div className={styles.sectionTitle}><span>03</span><div><strong>Hustle references</strong><p>Reference any currently published Service or Product, including another Hustler's offer. Use @username in the caption to reference a person.</p></div></div>
-        <label><span>Search public offers</span><div className={styles.twoCol}><input value={referenceQuery} onChange={(event) => setReferenceQuery(event.target.value)} placeholder="Search product, service or creator name" /><button className={styles.secondary} type="button" onClick={() => void loadReferences(referenceQuery.trim())} disabled={loadingReferences}>{loadingReferences ? "Searching…" : "Search"}</button></div></label>
+        <label><span>Search public offers</span><div className={styles.twoCol}><input type="search" value={referenceQuery} onChange={(event) => setReferenceQuery(event.target.value)} placeholder="Search product, service or creator name" /><button className={styles.secondary} type="button" onClick={() => void loadReferences(referenceQuery.trim())} disabled={loadingReferences}>{loadingReferences ? "Searching…" : "Search"}</button></div></label>
         <div className={styles.variants}>
           <strong>Published services</strong>
           <div className={styles.variantList}>{services.length === 0 ? <p className={styles.muted}>No matching published services.</p> : services.map((service) => <label className={styles.check} key={service.id}><input type="checkbox" checked={attachedServiceIds.has(service.id)} onChange={() => void toggleService(service.id)} disabled={busy} /> {service.title ?? "Untitled service"} — {service.owner}</label>)}</div>
@@ -299,18 +300,19 @@ export default function PostEditor({ postId }: { postId?: string }) {
         </div>
 
         <p className={styles.notice}>You can review or recommend something in a post. Hustle only counts a rating toward public reputation when the separate verified Booking/Order review flow says the transaction is eligible.</p>
-        {error && <p className={styles.error}>{error}</p>}
-        {notice && <p className={styles.notice}>{notice}</p>}
+        {error && <p className={styles.error} role="alert">{error}</p>}
+        {notice && <p className={styles.notice} role="status">{notice}</p>}
         <div className={styles.actions}>
           <button className={styles.secondary} type="submit" disabled={busy}>{busy ? "Working…" : "Save draft"}</button>
-          {!published ? <button className={styles.primary} type="button" onClick={() => void publish()} disabled={busy}>Publish post ↗</button> : <button className={styles.secondary} type="button" onClick={() => void archive()} disabled={busy}>Archive post</button>}
+          {!published ? <button className={styles.primary} type="button" onClick={() => void publish()} disabled={busy || !form.caption.trim() || !form.category.trim() || mediaCount === 0}>Publish post ↗</button> : <button className={styles.secondary} type="button" onClick={() => void archive()} disabled={busy}>Archive post</button>}
           {currentId && post?.status === "PUBLISHED" && <a className={styles.publicLink} href={`/posts/${currentId}`} target="_blank" rel="noreferrer">Open public post ↗</a>}
         </div>
+        {!published && (!form.caption.trim() || !form.category.trim() || mediaCount === 0) && <p className={styles.muted}>To publish: add a caption, category and media. You can save your work as a draft first.</p>}
       </form>
 
       <aside className={styles.preview}>
         <p className={styles.previewLabel}>CONTENT PREVIEW</p>
-        <div className={styles.media}>{post?.media[0]?.mediaUrl ? post.media[0].type === "VIDEO" ? <video src={post.media[0].mediaUrl} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", background: `url(${post.media[0].mediaUrl}) center/cover` }} /> : <span>Post media</span>}</div>
+        <div className={styles.media}>{post?.media[0]?.mediaUrl ? post.media[0].type === "VIDEO" ? <video src={post.media[0].mediaUrl} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <img src={post.media[0].mediaUrl} alt="Post image preview" style={{width:"100%",height:"100%",objectFit:"cover"}} /> : <span>Post media</span>}</div>
         <div className={styles.previewBody}>
           <span className={styles.badge}>{form.category || "CATEGORY"}</span>
           <h2>{form.caption ? form.caption.slice(0, 72) : "What you want to share"}</h2>

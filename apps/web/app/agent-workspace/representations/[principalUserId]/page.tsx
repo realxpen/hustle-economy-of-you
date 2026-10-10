@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { ExperienceState } from "../../../../components/experience/experience-state";
 import type {
   AgentPermissionScope,
   AgentRelationship,
@@ -93,6 +94,7 @@ function formatDate(value: string | null) {
 export default function AgentRepresentationBusinessPage() {
   const params = useParams<{ principalUserId: string }>();
   const principalUserId = params.principalUserId;
+  const refreshVersion = useRef(0);
 
   const [overview, setOverview] = useState<AgentRelationship | null>(null);
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
@@ -140,13 +142,19 @@ export default function AgentRepresentationBusinessPage() {
     (item) => item.capability === "HUSTLER" && item.status === "ACTIVE"
   ) ?? false;
 
-  useEffect(() => { void refresh(); }, [principalUserId]);
+  useEffect(() => {
+    // Fail closed on principal navigation until this principal has been authorized by the API.
+    setOverview(null); setProfile(null); setServices([]); setProducts([]); setPosts([]); setBookings([]); setConversations([]);
+    setSelectedConversationId(null); setConversationMessages([]);
+    void refresh();
+  }, [principalUserId]);
 
   async function refresh() {
+    const version = ++refreshVersion.current;
     setError(null);
     try {
       const nextOverview = await getAgentBusinessOverview(principalUserId);
-      setOverview(nextOverview);
+      if (version !== refreshVersion.current) return;
       const nextScopes = nextOverview.permissions.filter((item) => item.active).map((item) => item.scope);
 
       const nextIsHustler = nextOverview.principal.capabilities?.some(
@@ -174,6 +182,8 @@ export default function AgentRepresentationBusinessPage() {
           : Promise.resolve([])
       ]);
 
+      if (version !== refreshVersion.current) return;
+      setOverview(nextOverview);
       setProfile(nextProfile);
       setServices(nextServices);
       setProducts(nextProducts);
@@ -192,6 +202,8 @@ export default function AgentRepresentationBusinessPage() {
         });
       }
     } catch (reason) {
+      if (version !== refreshVersion.current) return;
+      setOverview(null); setProfile(null); setServices([]); setProducts([]); setPosts([]); setBookings([]); setConversations([]);
       setError(reason instanceof Error ? reason.message : "Could not load delegated business workspace");
     }
   }
@@ -350,9 +362,9 @@ export default function AgentRepresentationBusinessPage() {
     }
   }
 
-  if (!overview) {
+  if (!overview || overview.principalUserId !== principalUserId) {
     return <main className={styles.shell}>
-      <p className={error ? styles.error : styles.loading}>{error ?? "Loading delegated business workspace…"}</p>
+      <ExperienceState kind={error ? "error" : "loading"} title={error ? "Represented workspace unavailable." : "Checking represented account access…"} description={error ?? undefined} action={error ? { label: "Back to Agent workspace", href: "/agent-workspace" } : undefined} />
     </main>;
   }
 
@@ -361,7 +373,7 @@ export default function AgentRepresentationBusinessPage() {
   return <main className={styles.shell}>
     <header className={styles.topbar}>
       <a href="/agent-workspace">← Agent workspace</a>
-      <span>PHASE 18E · DELEGATED OPERATIONS</span>
+      <span>DELEGATED OPERATIONS · OWNER-CONTROLLED</span>
     </header>
 
     <section className={styles.hero}>
@@ -375,8 +387,8 @@ export default function AgentRepresentationBusinessPage() {
       </p>
     </section>
 
-    {error && <p className={styles.error}>{error}</p>}
-    {notice && <p className={styles.notice}>{notice}</p>}
+    {error && <p className={styles.error} role="alert">{error}</p>}
+    {notice && <p className={styles.notice} role="status">{notice}</p>}
 
     <section className={styles.boundary}>
       <strong>Granted authority</strong>

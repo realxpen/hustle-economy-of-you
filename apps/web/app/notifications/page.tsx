@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { ExperienceState } from "../../components/experience/experience-state";
+import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   getNotifications,
@@ -58,6 +59,8 @@ export default function NotificationsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const visibleItems = useMemo(() => unreadOnly ? items.filter(item => !item.readAt) : items, [items, unreadOnly]);
 
   async function refresh(cursor: string | null = null) {
     setBusy(true);
@@ -115,14 +118,7 @@ export default function NotificationsPage() {
   }
 
   return <main className={styles.shell}>
-    <header className={styles.header}>
-      <Link href="/" className={styles.brand}>HUSTLE<span>↗</span></Link>
-      <nav className={styles.nav}>
-        <Link href="/home">Discover</Link>
-        <Link href="/messages">Messages</Link>
-        <Link href="/account">Your identity</Link>
-      </nav>
-    </header>
+    <ExperienceHeader section="Activity" secondaryLinks={[{ href: "/messages", label: "Messages" }, { href: "/account", label: "Your identity" }]} />
     <div className={styles.content}>
       <section className={styles.hero}>
         <p className={styles.eyebrow}>YOUR ACTIVITY / THE ECONOMY OF YOU</p>
@@ -140,16 +136,22 @@ export default function NotificationsPage() {
           </button>
         </div>
       </section>
+      <div className={styles.filters} aria-label="Activity filters">
+        <button type="button" aria-pressed={!unreadOnly} onClick={() => setUnreadOnly(false)}>All activity</button>
+        <button type="button" aria-pressed={unreadOnly} onClick={() => setUnreadOnly(true)}>Unread only</button>
+      </div>
+      {!initialLoad && !error && unreadOnly && items.length > 0 && visibleItems.length === 0 && <ExperienceState kind="empty" compact title="You’re all caught up." description="No unread activity in the loaded notifications." action={{ label: "Show all", onClick: () => setUnreadOnly(false) }} />}
       {error && <ExperienceState kind="error" compact title="Could not update Activity." description={error} action={{label:"Try again",onClick:()=>void refresh(),disabled:busy}} />}
       {initialLoad && <ExperienceState kind="loading" title="Loading your Activity…" />}
       {!initialLoad && !error && items.length === 0 && <ExperienceState kind="empty" title="Nothing needs your attention yet." description="Messages, Booking and Order changes, new followers, and discussions about your work will appear here." action={{label:"Explore Hustle",href:"/home"}} />}
       <section aria-label="Notifications" className={styles.list}>
-        {items.map(item => <button
-          type="button" key={item.id} onClick={() => void open(item)}
+        {visibleItems.map(item => <button
+          type="button" key={item.id} onClick={() => void open(item)} aria-label={`Open ${notificationTitle(item)}. ${item.readAt ? "Read" : "Unread"}.`}
           className={item.readAt ? styles.item : `${styles.item} ${styles.newItem}`}
         >
           <span className={styles.itemIcon} aria-hidden="true">{item.kind === "MESSAGE" ? "↗" : item.kind === "SOCIAL" ? "◎" : item.kind === "BOOKING" ? "▣" : item.kind === "ORDER" ? "◇" : "•"}</span>
           <span className={styles.itemText}>
+            <span className={styles.kindLabel}>{item.kind === "MESSAGE" ? "Conversation" : item.kind === "SOCIAL" ? "Community" : item.kind === "BOOKING" ? "Booking" : item.kind === "ORDER" ? "Order" : item.kind === "APPLICATION" ? "Application" : item.kind === "LIVE" ? "Live" : item.kind === "REVIEW" ? "Review" : "Account activity"}</span>
             <span className={styles.itemHead}>
               <strong>{notificationTitle(item)}</strong>
               {!item.readAt && <span className={styles.dot} aria-label="Unread notification" />}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ExperienceState } from "../../components/experience/experience-state";
 
 import { formatLiveMoney, getActiveLiveSessions, type LiveSessionRecord } from "../../lib/live";
 import styles from "./live.module.css";
@@ -9,15 +10,18 @@ export default function LiveDiscoveryPage() {
   const [items, setItems] = useState<LiveSessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setError(null);
     getActiveLiveSessions(30)
       .then((sessions) => { if (active) setItems(sessions); })
       .catch((reason: Error) => { if (active) setError(reason.message); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [reload]);
 
   return <main className={styles.page}>
     <div className={styles.shell}>
@@ -31,18 +35,18 @@ export default function LiveDiscoveryPage() {
 
       <section className={styles.hero}>
         <div className={styles.heroPanel}>
-          <div className={styles.eyebrow}>LIVE COMMERCE · PHASE 17</div>
+          <div className={styles.eyebrow}>LIVE COMMERCE · REAL WORK IN MOTION</div>
           <h1>Watch the work. <em>Act while it is live.</em></h1>
           <p>Hustle Live connects demonstration directly to a real Service or Product. Watch, ask questions, visit the host, then move into the same canonical booking and buying flows already trusted elsewhere on Hustle.</p>
         </div>
-        <aside className={styles.statusCard}>
+        {!loading && !error && <aside className={styles.statusCard}>
           <div><div className={styles.eyebrow}>ACTIVE NOW</div><strong>{items.length}</strong></div>
           <span className={styles.liveDot}>{items.length === 1 ? "1 session live" : `${items.length} sessions live`}</span>
-        </aside>
+        </aside>}
       </section>
 
-      {loading && <section className={styles.empty}>Finding active Live sessions…</section>}
-      {error && <section className={styles.error}>{error}</section>}
+      {loading && <ExperienceState kind="loading" title="Finding Live sessions…" description="Checking which Hustlers are broadcasting now." />}
+      {error && <ExperienceState kind="error" title="Live sessions unavailable." description={error} action={{label:"Try again",onClick:()=>setReload(value=>value+1)}} />}
 
       {!loading && !error && items.length === 0 && <section className={styles.empty}>
         <div className={styles.eyebrow}>NO ONE IS LIVE YET</div>
@@ -51,7 +55,7 @@ export default function LiveDiscoveryPage() {
         <div className={styles.actions} style={{justifyContent:"center",marginTop:18}}><a className={styles.primary} href="/live/create">Host the first Live →</a></div>
       </section>}
 
-      {items.length > 0 && <section className={styles.grid}>
+      {!loading && !error && items.length > 0 && <section className={styles.grid}>
         {items.map((item) => {
           const offer = item.pinnedService ?? item.pinnedProduct;
           return <a className={styles.card} key={item.id} href={`/live/${item.id}`}>

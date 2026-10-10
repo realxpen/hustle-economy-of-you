@@ -13,6 +13,7 @@ import {
   listAssistedRegistrations
 } from "../../../lib/agent-assisted-onboarding";
 import { getMyAccount } from "../../../lib/auth/hustle-account";
+import { ExperienceState } from "../../../components/experience/experience-state";
 import styles from "../../agents/page.module.css";
 
 const optionalScopes: { value: AgentPermissionScope; label: string; detail: string }[] = [
@@ -89,8 +90,10 @@ export default function AssistedOnboardingHomePage() {
   }
 
   if (loading) {
-    return <main className={styles.shell}><p className={styles.loading}>Loading assisted onboarding…</p></main>;
+    return <main className={styles.shell}><ExperienceState kind="loading" title="Loading assisted onboarding…" /></main>;
   }
+
+  if (!account && error) return <main className={styles.shell}><ExperienceState kind="error" title="Onboarding unavailable." description={error} action={{ label: "Reload", onClick: () => window.location.reload() }} /></main>;
 
   if (!isAgent) {
     return <main className={styles.shell}>
@@ -105,7 +108,7 @@ export default function AssistedOnboardingHomePage() {
   return <main className={styles.shell}>
     <header className={styles.topbar}>
       <a href="/agent-workspace">← Agent workspace</a>
-      <span>PHASE 18C · ASSISTED ONBOARDING</span>
+      <span>AGENT WORKSPACE · ASSISTED ONBOARDING</span>
     </header>
 
     <section className={styles.hero}>
@@ -119,10 +122,10 @@ export default function AssistedOnboardingHomePage() {
       </p>
     </section>
 
-    {error && <p className={styles.error}>{error}</p>}
+    {error && <p className={styles.error} role="alert">{error}</p>}
 
     <section className={styles.panelGrid}>
-      <form className={styles.invitePanel} onSubmit={create}>
+      <form className={styles.invitePanel} onSubmit={create} aria-busy={busy}>
         <p className={styles.panelLabel}>01 · PERSON & CONSENT</p>
         <h2>Create an assisted identity.</h2>
 
@@ -177,12 +180,13 @@ export default function AssistedOnboardingHomePage() {
       </form>
 
       <div className={styles.relationshipPanel}>
-        <p className={styles.panelLabel}>02 · OPTIONAL FUTURE SCOPES</p>
+        <p className={styles.panelLabel}>02 · OPTIONAL FUTURE SCOPES ({permissions.length} SELECTED)</p>
+        <p>These are explicitly consented actions, not transfers of identity, payment or reputation authority. The owner can revoke grants.</p>
         <div className={styles.scopeGrid}>
           {optionalScopes.map((option) => {
             const active = permissions.includes(option.value);
-            return <button type="button" key={option.value} className={active ? styles.scopeActive : styles.scopeButton} onClick={() => toggleScope(option.value)}>
-              <strong>{option.label}</strong>
+            return <button type="button" key={option.value} className={active ? styles.scopeActive : styles.scopeButton} aria-pressed={active} onClick={() => toggleScope(option.value)}>
+              <strong>{option.label} {active ? "✓" : ""}</strong>
               <span>{option.detail}</span>
             </button>;
           })}
