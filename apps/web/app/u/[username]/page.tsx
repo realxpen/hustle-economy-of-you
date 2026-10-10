@@ -182,7 +182,7 @@ export default function PublicProfilePage() {
         <span>{data.counts.services} public</span>
       </div>
       {data.services.length === 0 ? <div className={styles.emptyState}>No public services yet. Message {targetLabel} to discuss a project.</div> : <div className={styles.serviceGrid}>
-        {data.services.map((service) => <article className={styles.offerCard} key={service.id}>
+        {data.services.map((service) => <article className={[styles.offerCard, "h-experience-surface"].join(" ")} key={service.id}>
           <a className={styles.offerMedia} href={`/services/${encodeURIComponent(service.id)}`}>
             {service.mediaUrls[0] ? <img src={service.mediaUrls[0]} alt="" /> : <span>{service.category ?? "SERVICE"}</span>}
           </a>
