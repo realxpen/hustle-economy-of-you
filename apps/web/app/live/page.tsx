@@ -55,7 +55,7 @@ export default function LiveDiscoveryPage() {
         <div className={styles.actions} style={{justifyContent:"center",marginTop:18}}><a className={styles.primary} href="/live/create">Host the first Live →</a></div>
       </section>}
 
-      {items.length > 0 && <section className={styles.grid}>
+      {!loading && !error && items.length > 0 && <section className={styles.grid}>
         {items.map((item) => {
           const offer = item.pinnedService ?? item.pinnedProduct;
           return <a className={styles.card} key={item.id} href={`/live/${item.id}`}>
