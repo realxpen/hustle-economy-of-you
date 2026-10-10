@@ -68,7 +68,19 @@ function Timeline({ snapshot }: { snapshot: AnalyticsSnapshot }) {
         </div>)}
       </div>
     </div>
-    <p className={styles.footnote}>The scale uses the highest daily count shown. Hover or focus the chart region for individual values. Zero indicates no qualifying recorded milestones.</p>
+    <p className={styles.footnote}>Bars are scaled to the highest daily milestone count. Zero indicates no qualifying recorded activity. Open the table below for precise values.</p>
+    <details className={styles.dataDetails}>
+      <summary>View all daily milestone counts as a table</summary>
+      <div className={styles.dataTableWrap}>
+        <table className={styles.dataTable}>
+          <thead><tr><th scope="col">Day (UTC)</th>{stages.map(stage => <th scope="col" key={stage.id}>{stage.label}</th>)}</tr></thead>
+          <tbody>{snapshot.timeline.map(day => <tr key={day.day}>
+            <th scope="row">{dateLabel(day.day)}</th>
+            {stages.map(stage => <td key={stage.id}>{count(day[stage.id])}</td>)}
+          </tr>)}</tbody>
+        </table>
+      </div>
+    </details>
   </section>;
 }
 
