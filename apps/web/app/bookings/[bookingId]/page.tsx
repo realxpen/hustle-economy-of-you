@@ -111,17 +111,17 @@ export default function BookingDetailPage() {
 
     <div className={styles.detailGrid}>
       <section className={styles.detailMain}>
-        <article className={styles.summaryCard}>
+        <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
           <p className={styles.eyebrow}>{booking.viewerRole} VIEW · BOOKING</p>
-          <h1>{booking.serviceTitleSnapshot}</h1>
+          <h1 className="h-experience-heading">{booking.serviceTitleSnapshot}</h1>
           <div className={styles.meta}><span className={styles.status}>{booking.status.replaceAll("_", " ")}</span><span>{formatBookingPrice(booking)}</span><span>with {other.displayName ?? other.username ?? "Hustle user"}</span></div>
           <p className={styles.next}>{booking.nextAction}</p>
         </article>
-        <article className={styles.summaryCard}>
+        <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
           <p className={styles.eyebrow}>SCHEDULE</p>
           <div className={styles.facts}><Fact label="REQUESTED START" value={formatDate(booking.requestedStartAt)} /><Fact label="REQUESTED END" value={formatDate(booking.requestedEndAt)} /><Fact label="CONFIRMED START" value={formatDate(booking.confirmedStartAt)} /><Fact label="CONFIRMED END" value={formatDate(booking.confirmedEndAt)} /></div>
         </article>
-        <article className={styles.summaryCard}>
+        <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
           <p className={styles.eyebrow}>REQUIREMENTS</p><p className={styles.copy}>{booking.requirements}</p>
           {booking.location && <><p className={styles.eyebrow}>LOCATION</p><p className={styles.copy}>{booking.location}</p></>}
           {booking.notes && <><p className={styles.eyebrow}>NOTES</p><p className={styles.copy}>{booking.notes}</p></>}
