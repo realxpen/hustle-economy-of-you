@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { FormEvent, useEffect, useState } from "react";
 import {
   captureMarketplaceObservation,
@@ -118,11 +119,8 @@ export default function MarketplacePage() {
     }).catch(() => undefined);
   }
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE<span>↗</span></a>
-      <nav className={styles.headerNav}><a href="/home">Home</a><a href="/search">Search</a><a href="/account">Your identity</a></nav>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Marketplace" />
 
     <section className={styles.hero}>
       <div className={styles.browseIntro}>
