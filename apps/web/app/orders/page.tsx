@@ -1,6 +1,7 @@
 "use client";
 
 import { ExperienceStatus } from "../../components/navigation/experience-status";
+import { ExperienceState } from "../../components/experience/experience-state";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -23,12 +24,12 @@ function OrderCard({ order }: { order: OrderRecord }) {
   </Link>;
 }
 
-function OrderSection({ title, eyebrow, page, error }: { title: string; eyebrow: string; page: OrderPage | null; error: string | null }) {
+function OrderSection({ title, eyebrow, page, error, onRetry }: { title: string; eyebrow: string; page: OrderPage | null; error: string | null; onRetry: () => void }) {
   return <section className={[styles.panel, "h-experience-surface"].join(" ")}>
     <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>{eyebrow}</small><h2>{title}</h2></div>{page && <small>{page.items.length} loaded</small>}</div>
-    {error && <div className={styles.error}>{error}</div>}
-    {!error && !page && <div className={styles.empty}>Loading orders…</div>}
-    {!error && page && page.items.length === 0 && <div className={styles.empty}>Nothing here yet.</div>}
+    {error && <ExperienceState compact kind="error" title="Could not load orders." description={error} action={{ label: "Try again", onClick: onRetry }} />}
+    {!error && !page && <ExperienceState compact kind="loading" title="Getting your orders…" />}
+    {!error && page && page.items.length === 0 && <ExperienceState compact kind="empty" title={eyebrow === "AS BUYER" ? "No purchases yet." : "No sales yet."} description={eyebrow === "AS BUYER" ? "Products you purchase will appear here." : "Orders from customers will appear here when you sell a Product."} action={eyebrow === "AS BUYER" ? { label: "Explore Products", href: "/marketplace" } : { label: "Manage Products", href: "/products/manage" }} />
     {page && page.items.length > 0 && <div className={styles.list}>{page.items.map((order) => <OrderCard key={order.id} order={order} />)}</div>}
   </section>;
 }
@@ -41,9 +42,9 @@ export default function OrdersPage() {
 
   const load = useCallback(async () => {
     const [buyerResult, sellerResult] = await Promise.allSettled([listBuyerOrders(), listSellerOrders()]);
-    if (buyerResult.status === "fulfilled") setBuyer(buyerResult.value);
+    if (buyerResult.status === "fulfilled") { setBuyer(buyerResult.value); setBuyerError(null); }
     else setBuyerError(buyerResult.reason instanceof Error ? buyerResult.reason.message : "Could not load purchases");
-    if (sellerResult.status === "fulfilled") setSeller(sellerResult.value);
+    if (sellerResult.status === "fulfilled") { setSeller(sellerResult.value); setSellerError(null); }
     else setSellerError(sellerResult.reason instanceof Error ? sellerResult.reason.message : "Could not load sales");
   }, []);
 
@@ -58,8 +59,8 @@ export default function OrdersPage() {
     </section>
 
     <div className={styles.grid}>
-      <OrderSection title="Your purchases" eyebrow="AS BUYER" page={buyer} error={buyerError} />
-      <OrderSection title="Orders for your products" eyebrow="AS SELLER" page={seller} error={sellerError} />
+      <OrderSection title="Your purchases" eyebrow="AS BUYER" page={buyer} error={buyerError} onRetry={() => void load()} />
+      <OrderSection title="Orders for your products" eyebrow="AS SELLER" page={seller} error={sellerError} onRetry={() => void load()} />
     </div>
 
     <footer className={styles.footer}><span>PENDING Orders are durable checkout attempts.</span><strong>PAID means provider-confirmed funding, never a self-reported payment.</strong></footer>
