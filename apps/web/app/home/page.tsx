@@ -1,6 +1,7 @@
 "use client";
 
 import { ExperienceHeader } from "../../components/navigation/experience-header";
+import { ExperienceState } from "../../components/experience/experience-state";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -433,17 +434,16 @@ export default function DiscoveryHomePage() {
 
     {meta.coldStart && tab === "for-you" && <section className={styles.coldStart}><strong>Cold start, not an empty start.</strong><span>Hustle is using location, recency, trust and useful published content while it learns from real interactions.</span></section>}
 
-    {loading && <section className={styles.loading}>Building your discovery feed…</section>}
-    {error && <section className={styles.error}><strong>Feed unavailable.</strong><span>{error}</span><button type="button" onClick={() => void load(tab)}>Retry</button></section>}
+    {loading && <ExperienceState kind="loading" title="Building your discovery feed…" description="Finding real work, stories and people to explore." />}
+    {error && <ExperienceState kind="error" title="Feed unavailable." description={error} action={{label:"Try again",onClick:()=>void load(tab)}} />}
 
-    {!loading && !error && items.length === 0 && <section className={styles.empty}>
-      <small>{tab.toUpperCase()}</small>
-      <h2>{tab === "connections" ? "No connected people in this feed yet." : "No eligible published content yet."}</h2>
-      <p>{meta.reason ?? (tab === "connections" ? "Follow people from For You, then return here to see what they publish." : "Discovery will populate as Hustle users publish content.")}</p>
-      {tab === "connections" && <button type="button" onClick={() => setTab("for-you")}>Discover people →</button>}
-    </section>}
+    {!loading && !error && items.length === 0 && <ExperienceState kind="empty"
+      title={tab === "connections" ? "Your connections feed is ready." : "No published work here yet."}
+      description={meta.reason ?? (tab === "connections" ? "Follow people from For You and their work will show up here." : "New work will appear as Hustlers publish it. Try another discovery view.")}
+      action={tab === "connections" ? {label:"Explore For You",onClick:()=>setTab("for-you")} : {label:"Explore Marketplace",href:"/marketplace"}}
+    />}
 
-    <section className={styles.feed}>
+    <section className={styles.feed} aria-label="Discovery posts">
       {items.map((item, index) => <FeedCard
         key={`${tab}-${item.post.id}`}
         item={item}
