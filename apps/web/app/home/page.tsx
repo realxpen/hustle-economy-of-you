@@ -19,7 +19,6 @@ import {
 import { formatProductPrice } from "../../lib/product";
 import { formatServicePrice } from "../../lib/service";
 import { HomeStoriesRow } from "./home-stories-row";
-import { HomeSkillShortcuts } from "./home-skill-shortcuts";
 import styles from "./page.module.css";
 
 const tabs: Array<{ id: FeedTab; label: string; note: string }> = [
@@ -59,6 +58,17 @@ function youtubeEmbedUrl(raw: string | null) {
   }
 }
 
+type FeedGlyphName = "like" | "comment" | "save" | "share";
+function FeedGlyph({ name, filled = false }: { name: FeedGlyphName; filled?: boolean }) {
+  const attributes = { width: 25, height: 25, viewBox: "0 0 24 24", fill: filled ? "currentColor" : "none",
+    stroke: "currentColor", strokeWidth: 1.9, strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const, "aria-hidden": true as const };
+  if (name === "like") return <svg {...attributes}><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6z"/></svg>;
+  if (name === "comment") return <svg {...attributes}><path d="M20.5 11.5a8.5 8.5 0 0 1-9 8.4 9.1 9.1 0 0 1-3.6-.8L3 20l1.2-4a8.4 8.4 0 0 1-1.2-4.5 8.5 8.5 0 0 1 8.7-8.5 8.5 8.5 0 0 1 8.8 8.5z"/><path d="M8 11h8"/></svg>;
+  if (name === "save") return <svg {...attributes}><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3h11A1.5 1.5 0 0 1 19 4.5V21l-7-5-7 5z"/></svg>;
+  return <svg {...attributes}><path d="m13 4 7 7-7 7M20 11H9a5 5 0 0 0-5 5v4"/></svg>;
+}
+
 function MediaRail({ item }: { item: FeedItem }) {
   if (item.post.media.length === 0) {
     return <div className={styles.mediaFallback}>A moment worth discovering.</div>;
@@ -79,9 +89,9 @@ function MediaRail({ item }: { item: FeedItem }) {
             allowFullScreen
           />;
         }
-        return <video className={styles.media} key={media.id} src={media.mediaUrl ?? undefined} controls playsInline preload="metadata" />;
+        return <video className={styles.media} key={media.id} src={media.mediaUrl ?? undefined} controls muted loop playsInline preload="metadata" aria-label="Hustle post video, muted by default" />;
       }
-      return <img className={styles.media} key={media.id} src={media.mediaUrl ?? ""} alt="Hustle content" loading="lazy" />;
+      return media.mediaUrl ? <img className={styles.media} key={media.id} src={media.mediaUrl} alt={"Work shared by " + (item.creator.displayName ?? item.creator.username ?? "a Hustler")} loading="lazy" /> : null;
     })}
   </div>;
 }
@@ -106,6 +116,8 @@ function FeedCard({
   const visibleSinceRef = useRef<number | null>(null);
   const [working, setWorking] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [offersOpen, setOffersOpen] = useState(false);
+  const [captionOpen, setCaptionOpen] = useState(false);
 
   useEffect(() => {
     void captureFeedEvent({
@@ -140,6 +152,14 @@ function FeedCard({
     const observer = new IntersectionObserver((entries) => {
       const entry = entries[0];
       const visible = Boolean(entry?.isIntersecting && entry.intersectionRatio >= 0.55);
+      const video = node.querySelector("video");
+      if (!visible || document.visibilityState !== "visible") {
+        video?.pause();
+      } else if (video && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        // Only the active native video plays, silently. Sound remains a user choice.
+        video.muted = true;
+        void video.play().catch(() => undefined);
+      }
       if (visible) {
         if (!viewedRef.current) {
           viewedRef.current = true;
@@ -159,12 +179,13 @@ function FeedCard({
 
     observer.observe(node);
     const onHidden = () => {
-      if (document.visibilityState === "hidden") flushWatch();
+      if (document.visibilityState === "hidden") { flushWatch(); node.querySelector("video")?.pause(); }
     };
     document.addEventListener("visibilitychange", onHidden);
 
     return () => {
       observer.disconnect();
+      node.querySelector("video")?.pause();
       document.removeEventListener("visibilitychange", onHidden);
       flushWatch();
     };
@@ -265,95 +286,96 @@ function FeedCard({
   const skill = item.creator.professionalProfile.primarySkill ?? item.creator.professionalProfile.headline ?? item.post.category;
   const creatorHref = item.creator.username ? `/u/${item.creator.username}` : "/home";
 
-  return <article ref={cardRef} className={[styles.card, "h-experience-surface"].join(" ")}>
-    <div className={styles.cardTop}>
-      <Link
-        className={styles.creator}
-        href={creatorHref}
-        onClick={() => void captureFeedEvent({
-          name: "feed.profile_clicked",
-          postId: item.post.id,
-          feedTab: tab,
-          position,
-          sessionId
-        }).catch(() => undefined)}
-      >
-        <div className={styles.avatar}>{item.creator.avatarUrl ? <img src={item.creator.avatarUrl} alt="" /> : initial}</div>
-        <div>
-          <strong>{item.creator.displayName ?? item.creator.username ?? "Hustle user"}</strong>
-          <span>@{item.creator.username ?? "user"}{item.creator.verified ? " · Verified" : ""}</span>
-        </div>
+  const offerCount = item.services.length + item.products.length;
+  const hasMedia = item.post.media.length > 0;
+
+  return <article ref={cardRef} className={styles.card} aria-label={"Post by " + (item.creator.displayName ?? item.creator.username ?? "a Hustler")}>
+    <MediaRail item={item} />
+    <div className={styles.mediaShade} aria-hidden="true" />
+    <div className={styles.postBadge}>
+      <span>HUSTLE</span>
+      <span className={styles.postBadgeDivider} aria-hidden="true">·</span>
+      <span>{skill ?? item.post.category ?? "CREATOR"}</span>
+      {item.post.media.length > 1 && <span className={styles.mediaCount}>{item.post.media.length} media · swipe sideways</span>}
+      {!hasMedia && <span className={styles.mediaCount}>TEXT POST</span>}
+    </div>
+
+    <div className={styles.actionRail} aria-label="Post actions">
+      <button className={item.viewer.liked ? styles.activeAction : undefined} type="button"
+        aria-label={item.viewer.liked ? "Unlike post" : "Like post"} aria-pressed={item.viewer.liked}
+        onClick={toggleLike} disabled={working === "like"}>
+        <span className={styles.actionDisc}><FeedGlyph name="like" filled={item.viewer.liked} /></span>
+        <span className={styles.actionNumber}>{item.engagement.likes}</span>
+      </button>
+      <Link href={"/posts/" + item.post.id} aria-label={"View " + item.engagement.comments + " comments"}>
+        <span className={styles.actionDisc}><FeedGlyph name="comment" /></span>
+        <span className={styles.actionNumber}>{item.engagement.comments}</span>
       </Link>
-      <button className={item.viewer.following ? styles.following : styles.follow} type="button" onClick={toggleFollow} disabled={working === "follow"}>
-        {item.viewer.following ? "Following" : "Follow"}
+      <button className={item.viewer.saved ? styles.activeAction : undefined} type="button"
+        aria-label={item.viewer.saved ? "Remove saved post" : "Save post"} aria-pressed={item.viewer.saved}
+        onClick={toggleSave} disabled={working === "save"}>
+        <span className={styles.actionDisc}><FeedGlyph name="save" filled={item.viewer.saved} /></span>
+        <span className={styles.actionNumber}>{item.engagement.saves}</span>
+      </button>
+      <button type="button" aria-label="Share post" onClick={share} disabled={working === "share"}>
+        <span className={styles.actionDisc}><FeedGlyph name="share" /></span>
+        <span className={styles.actionNumber}>Share</span>
       </button>
     </div>
 
-    <div className={styles.contextLine}>
-      <span>{skill ?? item.post.category ?? "Hustle content"}</span>
-      <span>{item.post.location ?? item.creator.location ?? "Location not set"}</span>
-    </div>
-
-    <MediaRail item={item} />
-
     <div className={styles.cardBody}>
-      <div className={styles.actions}>
-        <button type="button" className={item.viewer.liked ? styles.activeAction : undefined} onClick={toggleLike} disabled={working === "like"}>♥ {item.engagement.likes}</button>
-        <Link href={`/posts/${item.post.id}`}>◌ {item.engagement.comments}</Link>
-        <button type="button" className={item.viewer.saved ? styles.activeAction : undefined} onClick={toggleSave} disabled={working === "save"}>◇ {item.engagement.saves}</button>
-        <button type="button" onClick={share} disabled={working === "share"}>↗ Share</button>
+      <div className={styles.creatorRow}>
+        <Link className={styles.creator} href={creatorHref} onClick={() => void captureFeedEvent({
+          name: "feed.profile_clicked", postId: item.post.id, feedTab: tab, position, sessionId
+        }).catch(() => undefined)}>
+          <span className={styles.avatar}>{item.creator.avatarUrl ? <img src={item.creator.avatarUrl} alt="" /> : initial}</span>
+          <span className={styles.creatorName}>
+            <strong>{item.creator.displayName ?? item.creator.username ?? "Hustle user"} {item.creator.verified && <span className={styles.verification} aria-label="Verified creator">✓</span>}</strong>
+            <small>{"@" + (item.creator.username ?? "user")}{item.post.location || item.creator.location ? " · " + (item.post.location ?? item.creator.location) : ""}</small>
+          </span>
+        </Link>
+        <button className={item.viewer.following ? styles.following : styles.follow} type="button"
+          onClick={toggleFollow} disabled={working === "follow"} aria-pressed={item.viewer.following}>
+          {item.viewer.following ? "Following" : "Follow"}
+        </button>
       </div>
 
-      <Link className={styles.captionLink} href={`/posts/${item.post.id}`}><p>{item.post.caption}</p></Link>
-      {item.post.tags.length > 0 && <div className={styles.tags}>{item.post.tags.slice(0, 6).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
-
-      {(item.services.length > 0 || item.products.length > 0) && <div className={styles.opportunityBlock}>
-        <div className={styles.opportunityHeading}><span>REFERENCED OPPORTUNITIES</span><b>Content → action</b></div>
-        <div className={styles.opportunityGrid}>
-          {item.services.map((service) => <div className={styles.opportunityCard} key={service.id}>
-            <small>SERVICE</small>
-            <strong>{service.title ?? "Service"}</strong>
-            <span>{formatServicePrice(service)}</span>
-            <OfferQuickView
-              type="SERVICE"
-              id={service.id}
-              label="Quick view →"
-              sourceLabel="POST"
-              className={styles.opportunityQuickView}
-              onOpen={() => void captureFeedEvent({
-                name: "feed.service_clicked",
-                postId: item.post.id,
-                feedTab: tab,
-                position,
-                sessionId,
-                serviceId: service.id
-              }).catch(() => undefined)}
-            />
-          </div>)}
-          {item.products.map((product) => <div className={styles.opportunityCard} key={product.id}>
-            <small>PRODUCT</small>
-            <strong>{product.title ?? "Product"}</strong>
-            <span>{formatProductPrice(product)}</span>
-            <OfferQuickView
-              type="PRODUCT"
-              id={product.id}
-              label="Quick view →"
-              sourceLabel="POST"
-              className={styles.opportunityQuickView}
-              onOpen={() => void captureFeedEvent({
-                name: "feed.product_clicked",
-                postId: item.post.id,
-                feedTab: tab,
-                position,
-                sessionId,
-                productId: product.id
-              }).catch(() => undefined)}
-            />
-          </div>)}
-        </div>
+      {item.post.caption && <div className={styles.captionWrap}>
+        <p className={captionOpen ? styles.expandedCaption : styles.caption}>{item.post.caption}</p>
+        {item.post.caption.length > 110 && <button type="button" aria-expanded={captionOpen}
+          onClick={() => setCaptionOpen((previous) => !previous)}>{captionOpen ? "Less" : "More"}</button>}
       </div>}
+      {item.post.tags.length > 0 && <div className={styles.tags}>{item.post.tags.slice(0, 3).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
 
-      {notice && <p className={styles.notice}>{notice}</p>}
+      {offerCount > 0 && <section className={styles.opportunityDock} aria-label="Services and products attached to this post">
+        <button className={styles.offerToggle} type="button" aria-expanded={offersOpen}
+          onClick={() => setOffersOpen((previous) => !previous)}>
+          <span className={styles.offerIcon} aria-hidden="true">↗</span>
+          <span><strong>View attached {offerCount === 1 ? "offer" : offerCount + " offers"}</strong><small>Services & products from this post</small></span>
+          <b aria-hidden="true">{offersOpen ? "−" : "+"}</b>
+        </button>
+        {offersOpen && <div className={styles.opportunityBlock}>
+          <div className={styles.opportunityGrid}>
+            {item.services.map((service) => <div className={styles.opportunityCard} key={service.id}>
+              <small>SERVICE</small><strong>{service.title ?? "Service"}</strong>
+              <span>{formatServicePrice(service)}</span>
+              <OfferQuickView type="SERVICE" id={service.id} label="View service ↗" sourceLabel="POST"
+                className={styles.opportunityQuickView} onOpen={() => void captureFeedEvent({
+                  name: "feed.service_clicked", postId: item.post.id, feedTab: tab, position, sessionId, serviceId: service.id
+                }).catch(() => undefined)} />
+            </div>)}
+            {item.products.map((product) => <div className={styles.opportunityCard} key={product.id}>
+              <small>PRODUCT</small><strong>{product.title ?? "Product"}</strong>
+              <span>{formatProductPrice(product)}</span>
+              <OfferQuickView type="PRODUCT" id={product.id} label="View product ↗" sourceLabel="POST"
+                className={styles.opportunityQuickView} onOpen={() => void captureFeedEvent({
+                  name: "feed.product_clicked", postId: item.post.id, feedTab: tab, position, sessionId, productId: product.id
+                }).catch(() => undefined)} />
+            </div>)}
+          </div>
+        </div>}
+      </section>}
+      {notice && <p className={styles.notice} role="status">{notice}</p>}
     </div>
   </article>;
 }
@@ -372,17 +394,27 @@ export default function DiscoveryHomePage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const feedRef = useRef<HTMLElement | null>(null);
+  const paginationTrigger = useRef<HTMLButtonElement | null>(null);
+  const requestVersion = useRef(0);
+  const paginationInFlight = useRef(false);
 
   useEffect(() => {
     setSessionId(createSessionId());
   }, []);
 
   const load = useCallback(async (nextTab: FeedTab, cursor?: string | null, append = false) => {
+    if (append && (paginationInFlight.current || !cursor)) return;
+    const version = append ? requestVersion.current : ++requestVersion.current;
+    if (append) paginationInFlight.current = true;
     append ? setLoadingMore(true) : setLoading(true);
     setError(null);
     try {
       const page = await getFeedPage(nextTab, { cursor, limit: 8 });
-      setItems((current) => append ? [...current, ...page.items] : page.items);
+      if (version !== requestVersion.current) return;
+      setItems((current) => append
+        ? [...current, ...page.items.filter((item) => !current.some((existing) => existing.post.id === item.post.id))]
+        : page.items);
       setMeta({
         nextCursor: page.nextCursor,
         hasMore: page.hasMore,
@@ -391,12 +423,16 @@ export default function DiscoveryHomePage() {
         reason: page.reason
       });
     } catch (reason) {
+      if (version !== requestVersion.current) return;
       const message = reason instanceof Error ? reason.message : "Could not load discovery feed";
       setError(message);
       if (message.toLowerCase().includes("sign in")) setTimeout(() => router.replace("/auth"), 900);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (append) paginationInFlight.current = false;
+      if (version === requestVersion.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, [router]);
 
@@ -404,8 +440,23 @@ export default function DiscoveryHomePage() {
     if (!sessionId) return;
     setItems([]);
     setMeta({ nextCursor: null, hasMore: false, viewerLocation: null, coldStart: false });
+    if (feedRef.current) feedRef.current.scrollTop = 0;
     void load(tab);
   }, [load, sessionId, tab]);
+
+  useEffect(() => {
+    const trigger = paginationTrigger.current;
+    const feed = feedRef.current;
+    if (!trigger || !feed || !meta.hasMore || !meta.nextCursor || loading || loadingMore || error) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) {
+        observer.disconnect();
+        void load(tab, meta.nextCursor, true);
+      }
+    }, { root: feed, rootMargin: "180px 0px" });
+    observer.observe(trigger);
+    return () => observer.disconnect();
+  }, [tab, meta.hasMore, meta.nextCursor, loading, loadingMore, error, items.length, load]);
 
   const activeTab = useMemo(() => tabs.find((item) => item.id === tab) ?? tabs[0], [tab]);
 
@@ -422,54 +473,73 @@ export default function DiscoveryHomePage() {
   return <main className={[styles.shell, "h-experience-shell", "h-adaptive"].join(" ")}>
     <ExperienceHeader section="Discover" actions={<Link href="/posts/manage">Create or manage posts ↗</Link>} />
 
-    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
-      <div className={styles.heroCopy}>
-        <p className={styles.eyebrow}>HUSTLE · THE ECONOMY OF YOU</p>
-        <h1 className="h-experience-heading">Find your next <em>Hustler.</em></h1>
-        <span>Discover real skills, see the work, and make your next move.</span>
-        <Link href="/search" className={styles.heroSearch} aria-label="Search Hustle for a person, service or skill">
-          <span aria-hidden="true">⌕</span><strong>Who or what do you need?</strong><b aria-hidden="true">↗</b>
-        </Link>
-        <HomeSkillShortcuts />
+    <section className={styles.discoverLayout} aria-label="Hustle Discovery">
+      <div className={styles.playerColumn}>
+        <div className={styles.feedTopBar}>
+          <div className={styles.feedHeading}>
+            <strong>Discover<span>.</span></strong>
+            <small>Real people. Real work.</small>
+          </div>
+          <nav className={styles.tabs} aria-label="Discovery feed tabs">
+            {tabs.map((option) => <button key={option.id} type="button"
+              className={tab === option.id ? styles.activeTab : undefined}
+              aria-pressed={tab === option.id} onClick={() => setTab(option.id)}>{option.label}</button>)}
+          </nav>
+          <div className={styles.quickLinks}>
+            <Link href="/live" aria-label="Explore live sessions">◉ <span>Live</span></Link>
+            <Link href="/search" aria-label="Search people, skills, services and products">⌕</Link>
+          </div>
+        </div>
+
+        {meta.coldStart && tab === "for-you" && <p className={styles.coldStart}>Showing recently published work and relevant creators while your discoveries develop.</p>}
+
+        {loading && <ExperienceState kind="loading" title="Finding your next discovery…" description="Loading real creators and their work." />}
+        {error && <ExperienceState kind="error" title="Discovery unavailable." description={error}
+          action={{ label: "Try again", onClick: () => void load(tab) }} />}
+        {!loading && !error && items.length === 0 && <ExperienceState kind="empty"
+          title={tab === "connections" ? "Your connections feed is ready." : "No published work here yet."}
+          description={meta.reason ?? (tab === "connections"
+            ? "Follow creators from For You and their posts will appear here."
+            : "Switch discovery views or explore the marketplace while new work arrives.")}
+          action={tab === "connections"
+            ? { label: "Explore For You", onClick: () => setTab("for-you") }
+            : { label: "Explore Marketplace", href: "/marketplace" }} />}
+
+        {!loading && !error && items.length > 0 && <section ref={feedRef} className={styles.feed}
+          aria-label="Immersive discovery posts, scroll vertically for the next post" tabIndex={0}>
+          {items.map((item, index) => <FeedCard
+            key={tab + "-" + item.post.id} item={item} tab={tab} position={index}
+            sessionId={sessionId} onChange={replaceItem} onCreatorFollowChange={updateCreatorFollow}
+          />)}
+          {meta.hasMore && <div className={styles.paginationFrame}>
+            <button ref={paginationTrigger} className={styles.loadNext} type="button"
+              disabled={loadingMore} onClick={() => void load(tab, meta.nextCursor, true)}>
+              {loadingMore ? "Loading more work…" : "Discover more posts ↓"}
+            </button>
+          </div>}
+        </section>}
+        <div className={styles.feedFootnote} aria-live="polite">
+          <span>{activeTab.note}</span><span>Scroll ↑ ↓ to explore</span>
+        </div>
       </div>
-      <aside className={styles.heroAside}>
-        <div className={styles.locationBadge}><small>YOUR DISCOVERY LOCATION</small><strong>{meta.viewerLocation ?? "Your location"}</strong></div>
-        <Link className={styles.marketLink} href="/marketplace">Browse services & products <span aria-hidden="true">↗</span></Link>
+
+      <aside className={styles.sidePanel} aria-label="More ways to explore Hustle">
+        <div className={styles.sideIntro}>
+          <span className={styles.orangeMark}>H.</span>
+          <h2>Watch what people <em>can do.</em></h2>
+          <p>See the work first. Find the person, then book or buy with context.</p>
+        </div>
+        <Link className={styles.searchLink} href="/search"><span>⌕</span> Find a skill or Hustler <b>↗</b></Link>
+        <div className={styles.sideSection}>
+          <div className={styles.sideHeading}><strong>Stories</strong><Link href="/stories">See all ↗</Link></div>
+          <HomeStoriesRow />
+        </div>
+        <div className={styles.locationPanel}><span>YOUR DISCOVERY LOCATION</span><strong>{meta.viewerLocation ?? "Location not set"}</strong><Link href="/search">Search other locations ↗</Link></div>
+        <div className={styles.sideShortcuts}>
+          <Link href="/marketplace">Browse the marketplace <span>↗</span></Link>
+          <Link href="/posts/manage">Show your work <span>↗</span></Link>
+        </div>
       </aside>
     </section>
-
-    <HomeStoriesRow />
-    <div className={styles.feedIntro}><span>THE WORK IS THE PROOF</span><Link href="/posts/manage">Share your work ↗</Link></div>
-    <nav className={styles.tabs} aria-label="Discovery feed tabs">
-      {tabs.map((item) => <button key={item.id} type="button" className={tab === item.id ? styles.activeTab : undefined} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}
-    </nav>
-    <p className={styles.tabContext}>{activeTab.note}</p>
-
-    {meta.coldStart && tab === "for-you" && <section className={styles.coldStart}><strong>Cold start, not an empty start.</strong><span>Hustle is using location, recency, trust and useful published content while it learns from real interactions.</span></section>}
-
-    {loading && <ExperienceState kind="loading" title="Building your discovery feed…" description="Finding real work, stories and people to explore." />}
-    {error && <ExperienceState kind="error" title="Feed unavailable." description={error} action={{label:"Try again",onClick:()=>void load(tab)}} />}
-
-    {!loading && !error && items.length === 0 && <ExperienceState kind="empty"
-      title={tab === "connections" ? "Your connections feed is ready." : "No published work here yet."}
-      description={meta.reason ?? (tab === "connections" ? "Follow people from For You and their work will show up here." : "New work will appear as Hustlers publish it. Try another discovery view.")}
-      action={tab === "connections" ? {label:"Explore For You",onClick:()=>setTab("for-you")} : {label:"Explore Marketplace",href:"/marketplace"}}
-    />}
-
-    <section className={styles.feed} aria-label="Discovery posts">
-      {items.map((item, index) => <FeedCard
-        key={`${tab}-${item.post.id}`}
-        item={item}
-        tab={tab}
-        position={index}
-        sessionId={sessionId}
-        onChange={replaceItem}
-        onCreatorFollowChange={updateCreatorFollow}
-      />)}
-    </section>
-
-    {!loading && meta.hasMore && <div className={styles.loadMore}><button type="button" disabled={loadingMore} onClick={() => void load(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more ↓"}</button></div>}
-
-    <footer className={styles.footer}><span>Hustle — The Economy of You</span><span>Content → Discovery → Identity → Opportunity</span></footer>
   </main>;
 }
