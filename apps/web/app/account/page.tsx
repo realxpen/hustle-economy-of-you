@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { HustleAccount } from "@hustle/types";
 import { TrustActivityCenter } from "../../components/trust/trust-activity-center";
+import { AttributionConsentSettings } from "../../components/privacy/attribution-consent";
 import { getMyAccount } from "../../lib/auth/hustle-account";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 
@@ -68,6 +69,8 @@ export default function AccountPage() {
         {isHustler && <a className="futureTag" href="/products/manage">MANAGE PRODUCTS →</a>}
       </article>
     </section>
+
+    <AttributionConsentSettings />
 
     <div id="trust-activity"><TrustActivityCenter /></div>
   </main>;
