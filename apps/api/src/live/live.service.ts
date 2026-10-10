@@ -16,6 +16,7 @@ import {
 } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { BlockPolicyService } from "../trust-safety/block-policy.service";
 import { LIVE_MEDIA_PRESENCE_WINDOW_MS, LiveMediaService } from "./live-media.service";
@@ -80,7 +81,8 @@ export class LiveService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly blockPolicy: BlockPolicyService,
-    private readonly media: LiveMediaService
+    private readonly media: LiveMediaService,
+    private readonly notifications: NotificationsService
   ) {}
 
   async listActive(limitInput?: unknown) {
@@ -178,9 +180,17 @@ export class LiveService {
     if (existing) throw new BadRequestException("End your current Live session before starting another one");
 
     const startedAt = new Date();
-    const updated = await this.prisma.liveSession.update({
-      where: { id: session.id },
-      data: { status: LiveSessionStatus.LIVE, startedAt, endedAt: null }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.liveSession.updateMany({
+        where: { id: session.id, hostUserId: host.id, status: LiveSessionStatus.DRAFT },
+        data: { status: LiveSessionStatus.LIVE, startedAt, endedAt: null }
+      });
+      if (changed.count !== 1) {
+        throw new BadRequestException("This Live session has already changed. Refresh and try again");
+      }
+      const active = await tx.liveSession.findUniqueOrThrow({ where: { id: session.id } });
+      await this.notifications.recordLiveStarted(tx, { liveId: active.id, hostUserId: host.id });
+      return active;
     });
 
     await this.event("live.started", {
