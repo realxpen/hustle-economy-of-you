@@ -112,5 +112,5 @@ Also review permissions (Client, Hustler, Agent, Admin), responsive screen hiera
 
 **Current acceptance:** design-token/nav implementation and CI are build evidence. Monday owner-facing UI/runtime acceptance is intentionally deferred. No claim that the entire MVP has passed pilot activation yet.
 
-## 10. UX-004 harmonization (candidate; October 10)
+## 10. UX-004 harmonization (merged PR #85; October 10; runtime acceptance pending)
 Messaging, Activity, Wallet, Live, content authoring and Agent workspace now extend the same mobile-first interaction, error-state and permission/financial-status language. See ADR-0057 and UX-004 QA acceptance for exact code boundaries and pending Monday visual/runtime evidence. Live remains intentionally immersive rather than forced into an ordinary card dashboard. Client filters on already-loaded messages/notifications must never be misrepresented as server-wide search or historical backfill. No role switcher or frontend financial authority was added.
