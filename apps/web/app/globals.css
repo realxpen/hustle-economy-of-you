@@ -227,3 +227,17 @@ html[data-hustle-theme="dark"] main.h-adaptive {
     padding-bottom:calc(103px + env(safe-area-inset-bottom));
   }
 }
+
+/* QA correction: dark app pages must extend the appearance to the document
+   canvas. Scope via :has to avoid changing legacy finance/admin flows. */
+html:has(main.h-adaptive),
+body:has(main.h-adaptive),
+body:has(main.h-adaptive) #hustle-page-content {
+  background-color:#f5f5f5;
+}
+html[data-hustle-theme="dark"]:has(main.h-adaptive),
+html[data-hustle-theme="dark"] body:has(main.h-adaptive),
+html[data-hustle-theme="dark"] body:has(main.h-adaptive) #hustle-page-content {
+  background-color:#0d0d0f;
+}
+body:has(main.h-adaptive) {min-height:100dvh}

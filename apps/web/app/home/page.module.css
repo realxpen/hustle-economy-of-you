@@ -52,3 +52,21 @@
 @media(max-width:760px){.shell .hero{grid-template-columns:1fr;border-radius:25px;padding:23px 18px;gap:16px}.hero h1{font-size:clamp(38px,10vw,53px)}.heroCopy>span{margin:14px 0 20px}.heroAside{grid-template-columns:1fr}.skillLinks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.skillLinks a{min-width:0;padding:12px 3px}.heroSearch{min-height:53px}.feedIntro{margin-top:25px}.card{border-radius:22px}.media{height:75vw;min-height:260px}.tabContext{padding:0 4px}}
 @media(max-width:360px){.skillLinks{grid-template-columns:repeat(3,minmax(0,1fr))}.hero .locationBadge{padding:13px}.skillLinks a{border-radius:15px}}
 @media(prefers-reduced-motion:reduce){.skillLinks a{transition:none}.skillLinks a:hover{transform:none}}
+
+/* When the real feed has one published post, avoid a lopsided grid. */
+@media(min-width:1100px){
+ .feed:has(> .card:only-child){grid-template-columns:minmax(0,760px);justify-content:center}
+ .feed:has(> .card:only-child) .media{height:min(58vw,510px)}
+}
+@media(min-width:761px){
+ .heroCopy>span{font-size:17px}
+ .heroSearch strong{font-size:15px}
+ .skillLinks span{font-size:12px}
+ .feedIntro,.tabContext{font-size:13px}
+ .tabs button{font-size:13px}
+ .creator strong{font-size:16px}
+ .creator span,.contextLine{font-size:12px}
+ .actions button,.actions a{font-size:13px;min-height:44px;padding:10px 15px}
+ .opportunityGrid strong{font-size:16px}
+ .opportunityQuickView{min-height:44px;font-size:12px}
+}
