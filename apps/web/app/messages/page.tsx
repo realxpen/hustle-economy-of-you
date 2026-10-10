@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { ExperienceState } from "../../components/experience/experience-state";
-import { useEffect, useRef, useState } from "react";
+import { ExperienceHeader } from "../../components/navigation/experience-header";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   listConversations,
@@ -41,6 +42,16 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const visibleItems = useMemo(() => items.filter((conversation) => {
+    if (unreadOnly && conversation.viewer.unreadCount === 0) return false;
+    const needle = query.trim().toLocaleLowerCase();
+    if (!needle) return true;
+    const other = conversation.otherParticipant;
+    return [other?.displayName, other?.username, other?.professionalProfile?.primarySkill]
+      .some((value) => value?.toLocaleLowerCase().includes(needle));
+  }), [items, query, unreadOnly]);
 
   async function load(cursor: string | null = null, append = false, silent = false) {
     if (silent && backgroundRefreshInFlight.current) return;
@@ -101,16 +112,7 @@ export default function MessagesPage() {
   }, []);
 
   return <main className={styles.shell}>
-    <header className={styles.header}>
-      <Link href="/" className={styles.brand}>HUSTLE↗</Link>
-      <nav className={styles.nav}>
-        <Link href="/home">Home</Link>
-        <Link href="/search">Search</Link>
-        <Link href="/marketplace">Marketplace</Link>
-        <Link href="/notifications">Notifications</Link>
-        <Link href="/account">Your identity</Link>
-      </nav>
-    </header>
+    <ExperienceHeader section="Messages" secondaryLinks={[{ href: "/notifications", label: "Activity" }, { href: "/account", label: "Your identity" }]} />
 
     <section className={styles.hero}>
       <p className={styles.eyebrow}>DIRECT MESSAGING</p>
@@ -118,12 +120,19 @@ export default function MessagesPage() {
       <p>Messages belong to the same Hustle identity. A client can move from discovery into a direct thread without creating a separate buyer or seller inbox.</p>
     </section>
 
+    <div className={styles.inboxTools} aria-label="Conversation filters">
+      <label className={styles.searchLabel}>Find a conversation
+        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, username or skill" />
+      </label>
+      <button className={styles.filterButton} type="button" aria-pressed={unreadOnly} onClick={() => setUnreadOnly((value) => !value)}>{unreadOnly ? "Showing unread" : "Unread only"}</button>
+    </div>
     {error && <ExperienceState kind="error" title="Inbox unavailable." description={error} action={{ label: "Retry inbox", onClick: () => void load() }} />}
     {!error && loading && <ExperienceState kind="loading" title="Loading conversations…" description="Fetching your messages and recent replies." />}
     {!error && !loading && items.length === 0 && <ExperienceState kind="empty" title="No conversations yet." description="Open a Hustler profile, Service or Product and tap Message to get started." action={{ label: "Discover Hustlers", href: "/home" }} />}
 
-    {items.length > 0 && <section className={styles.inbox} aria-label="Your conversations">
-      {items.map((conversation) => {
+    {!loading && !error && items.length > 0 && visibleItems.length === 0 && <ExperienceState kind="empty" compact title="No conversations match." description="Try a different name or turn off the unread filter." action={{ label: "Clear filters", onClick: () => { setQuery(""); setUnreadOnly(false); } }} />}
+    {visibleItems.length > 0 && <section className={styles.inbox} aria-label="Your conversations">
+      {visibleItems.map((conversation) => {
         const other = conversation.otherParticipant;
         const initial = (other?.displayName ?? other?.username ?? "H").charAt(0).toUpperCase();
         const unread = conversation.viewer.unreadCount > 0;
