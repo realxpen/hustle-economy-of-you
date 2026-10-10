@@ -1,6 +1,6 @@
 # ADR-0050 — Phase 20C1: Meaningful Social Activity Alerts
 
-Status: Implemented in feature branch; CI and Monday owner acceptance pending
+Status: PR #78 MERGED (`330da33ca24c36d207dc60322608c53ddc7c4fc8`), full Foundation CI passed (`38040547196`) and isolated payment regression passed (`38040547157`) on 2026-10-10. Owner production deployment/manual acceptance deferred to Monday.
 Date: 2026-10-10
 
 ## Intent
