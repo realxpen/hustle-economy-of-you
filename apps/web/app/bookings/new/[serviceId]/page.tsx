@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { ExperienceHeader } from "../../../../components/navigation/experience-header";
+import { ExperienceState } from "../../../../components/experience/experience-state";
 import { useParams, useRouter } from "next/navigation";
 import { checkBookingAvailability, createBooking } from "../../../../lib/booking";
 import { openDirectConversation } from "../../../../lib/messaging";
@@ -40,7 +42,7 @@ export default function NewBookingPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!data) return;
+    if (!data || submitting) return;
     const start = toIso(requestedStartAt);
     const end = toIso(requestedEndAt);
     if (!start) {
@@ -49,6 +51,14 @@ export default function NewBookingPage() {
     }
     if (requestedEndAt && !end) {
       setError("Choose a valid requested end date and time.");
+      return;
+    }
+    if (end && start && new Date(end).getTime() <= new Date(start).getTime()) {
+      setError("The requested end must be later than the requested start.");
+      return;
+    }
+    if (!requirements.trim()) {
+      setError("Describe what you need before sending this request.");
       return;
     }
 
@@ -83,16 +93,15 @@ export default function NewBookingPage() {
     }
   }
 
-  if (error && !data) return <main className={styles.shell}><div className={styles.formWrap}><div className={styles.error}>{error}</div><p><a href="/marketplace">← Back to Marketplace</a></p></div></main>;
-  if (!data) return <main className={styles.shell}><p className={styles.loading}>Loading Service…</p></main>;
+  if (error && !data) return <main className={styles.shell}><ExperienceState kind="error" title="Service details unavailable." description={error} action={{ label: "Explore Services", href: "/marketplace" }} /></main>;
+  if (!data) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Service and schedule…" /></main>;
 
   const { service, owner } = data;
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <a className={styles.brand} href="/">HUSTLE↗</a>
-      <nav><a href={`/services/${service.id}`}>Service</a><a href="/bookings">Bookings</a><a href="/messages">Messages</a></nav>
-    </header>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader section="Request a Booking"
+      trail={[{ href: "/marketplace", label: "Marketplace" }, { href: `/services/${service.id}`, label: "Service" }]}
+      secondaryLinks={[{ href: "/bookings", label: "Your bookings" }, { href: "/messages", label: "Messages" }]} />
 
     <div className={styles.formWrap}>
       <section className={styles.formHero}>
@@ -101,32 +110,34 @@ export default function NewBookingPage() {
           <h1>{service.title}</h1>
           <p className={styles.price}>{formatServicePrice(service)}</p>
           <p>By {owner.displayName ?? `@${owner.username}`} · {service.deliveryMode}</p>
-          <p>This request preserves the Service, price basis and schedule as transaction history. Payment is not collected in this phase.</p>
+          <p>This request preserves the Service, price basis and schedule as transaction history. You will review payment only if the Hustler accepts a paid Booking; submitting this request does not charge you.</p>
         </article>
         <aside className={styles.offerCard}>
           <p className={styles.eyebrow}>HOW IT WORKS</p>
           <p>1. Choose a requested time. Hustle checks it against already confirmed work.</p>
           <p>2. Describe what you need.</p>
           <p>3. The Hustler accepts, adjusts the confirmed time, or declines.</p>
-          <p>4. Paid bookings stop at PAYMENT PENDING until Phase 13 funding confirmation.</p>
+          <p>4. Any paid Booking stays payment pending until the payment provider confirms funding.</p>
         </aside>
       </section>
 
-      <form className={styles.formCard} onSubmit={submit}>
+      <form className={styles.formCard} onSubmit={submit} aria-busy={submitting} aria-describedby="booking-form-help">
+        <p id="booking-form-help" className="h-ui-subtitle">Only the requested start and project description are required. We check availability before sending the request.</p>
         <div className={styles.grid2}>
           <div className={styles.field}>
             <label htmlFor="start">REQUESTED START</label>
-            <input id="start" type="datetime-local" required value={requestedStartAt} onChange={(event) => setRequestedStartAt(event.target.value)} />
+            <input id="start" type="datetime-local" required aria-invalid={Boolean(error && error.includes("start"))} value={requestedStartAt} onChange={(event) => setRequestedStartAt(event.target.value)} />
           </div>
           <div className={styles.field}>
             <label htmlFor="end">REQUESTED END · OPTIONAL</label>
-            <input id="end" type="datetime-local" value={requestedEndAt} onChange={(event) => setRequestedEndAt(event.target.value)} />
+            <input id="end" type="datetime-local" aria-invalid={Boolean(error && error.includes("end"))} value={requestedEndAt} onChange={(event) => setRequestedEndAt(event.target.value)} />
           </div>
         </div>
 
         <div className={styles.field}>
           <label htmlFor="requirements">WHAT DO YOU NEED?</label>
-          <textarea id="requirements" required maxLength={4000} value={requirements} onChange={(event) => setRequirements(event.target.value)} placeholder="Describe the project, expected outcome, important features, constraints and deadline." />
+          <textarea id="requirements" required maxLength={4000} aria-describedby="requirements-hint" value={requirements} onChange={(event) => setRequirements(event.target.value)} placeholder="Describe the project, expected outcome, important features, constraints and deadline." />
+          <small id="requirements-hint">Explain the outcome you need. {requirements.length}/4000 characters.</small>
         </div>
 
         <div className={styles.grid2}>
@@ -140,8 +151,8 @@ export default function NewBookingPage() {
           </div>
         </div>
 
-        {error && <div className={styles.error}>{error}</div>}
-        <button className={styles.primary} disabled={submitting || !requirements.trim()}>{submitting ? "Checking schedule…" : "Submit booking request →"}</button>
+        {error && <div className={styles.error} role="alert" id="booking-form-error">{error}</div>}
+        <button className={styles.primary} type="submit" aria-busy={submitting} disabled={submitting || !requirements.trim()}>{submitting ? "Checking schedule…" : "Submit booking request →"}</button>
       </form>
     </div>
   </main>;
