@@ -19,6 +19,7 @@ import {
 } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 export interface CreateReviewInput {
@@ -89,7 +90,7 @@ type ReviewRow = Prisma.ReviewGetPayload<{ select: typeof reviewSelect }>;
 
 @Injectable()
 export class ReviewService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
 
   async create(identity: AuthIdentity, input: CreateReviewInput) {
     const subjectType = this.subjectType(input.subjectType);
@@ -163,6 +164,14 @@ export class ReviewService {
                 orderReviewCount: { increment: subjectType === ReviewSubjectType.ORDER ? 1 : 0 },
                 lastReviewAt: now
               }
+            });
+
+            await this.notifications.recordVerifiedReview(tx, {
+              id: review.id,
+              revieweeUserId: authority.revieweeUserId,
+              reviewerUserId: authority.reviewerUserId,
+              subjectType,
+              subjectId
             });
 
             await tx.systemEvent.create({

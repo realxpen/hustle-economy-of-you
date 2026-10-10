@@ -28,14 +28,18 @@ const { Module } = require("@nestjs/common");
 const { NestFactory } = require("@nestjs/core");
 const { DatabaseModule } = require("../../apps/api/dist/database/database.module.js");
 const { PaymentModule } = require("../../apps/api/dist/payment/payment.module.js");
+const { LiveModule } = require("../../apps/api/dist/live/live.module.js");
+const { TrustModule } = require("../../apps/api/dist/trust/trust.module.js");
 const { PrismaService } = require("../../apps/api/dist/database/prisma.service.js");
 const { CommerceService } = require("../../apps/api/dist/commerce/commerce.service.js");
 const { FulfillmentService } = require("../../apps/api/dist/commerce/fulfillment.service.js");
 const { PaymentService } = require("../../apps/api/dist/payment/payment.service.js");
 const { NotificationsService } = require("../../apps/api/dist/notifications/notifications.service.js");
+const { LiveService } = require("../../apps/api/dist/live/live.service.js");
+const { ReviewService } = require("../../apps/api/dist/trust/review.service.js");
 
 class SandboxTestModule {}
-Module({ imports: [DatabaseModule, PaymentModule] })(SandboxTestModule);
+Module({ imports: [DatabaseModule, PaymentModule, LiveModule, TrustModule] })(SandboxTestModule);
 
 function identity(subject) {
   return { subject, emailVerified: false, phoneVerified: false };
@@ -58,6 +62,8 @@ async function main() {
   const fulfillment = app.get(FulfillmentService);
   const payments = app.get(PaymentService);
   const notifications = app.get(NotificationsService);
+  const live = app.get(LiveService);
+  const reviews = app.get(ReviewService);
 
   try {
     assert.equal((await prisma.$queryRawUnsafe("SELECT current_database() AS db"))[0].db, "hustle_payment_sandbox");
@@ -203,6 +209,60 @@ async function main() {
     await expectRejected(() => notifications.markRead(se, firstBuyerAlert.id), "Other recipient cannot mark notification read");
     await notifications.markRead(by, firstBuyerAlert.id);
     assert.equal((await notifications.unreadCount(by)).count, 2);
+
+    // A verified review may only be created by the completed, paid Order buyer.
+    await expectRejected(
+      () => reviews.create(se, { subjectType: "ORDER", subjectId: orderId, rating: 5, body: "Invalid seller self-review" }),
+      "Seller cannot author their own provider review"
+    );
+    const reviewResult = await reviews.create(by, {
+      subjectType: "ORDER", subjectId: orderId, rating: 5,
+      body: "Excellent service provided and delivered on time"
+    });
+    assert.ok(reviewResult.review.id);
+    assert.equal(await prisma.notification.count({
+      where: { recipientUserId: seller.id, eventKey: `review:verified:${reviewResult.review.id}`, kind: "REVIEW" }
+    }), 1);
+    assert.equal(await prisma.notification.count({
+      where: { recipientUserId: buyer.id, eventKey: `review:verified:${reviewResult.review.id}` }
+    }), 0);
+    await expectRejected(
+      () => reviews.create(by, { subjectType: "ORDER", subjectId: orderId, rating: 5, body: "Duplicate" }),
+      "Buyer cannot publish a duplicate verified review"
+    );
+    assert.equal(await prisma.notification.count({ where: { kind: "REVIEW" } }), 1);
+
+    // Followed-host Live alerts are emitted only on first valid DRAFT→LIVE.
+    // Existing bilateral UserBlock edges prevent one party from getting alerted.
+    const blocked = await prisma.user.create({
+      data: { authSubject: `sandbox-blocked-${testId}`, displayName: "Blocked Sandbox Follower" }
+    });
+    await prisma.userFollow.createMany({
+      data: [
+        { followerId: buyer.id, followingId: seller.id },
+        { followerId: blocked.id, followingId: seller.id }
+      ]
+    });
+    await prisma.userBlock.create({
+      data: { blockerUserId: blocked.id, blockedUserId: seller.id }
+    });
+    const plannedLive = await live.create(se, { title: "Disposable Seller Live" });
+    await expectRejected(() => live.start(by, plannedLive.id), "Buyer cannot start seller Live");
+    assert.equal(await prisma.notification.count({ where: { kind: "LIVE" } }), 0);
+    await live.start(se, plannedLive.id);
+    await expectRejected(() => live.start(se, plannedLive.id), "Live cannot start twice");
+    assert.equal(await prisma.notification.count({
+      where: { recipientUserId: buyer.id, kind: "LIVE", eventKey: `live:started:${plannedLive.id}` }
+    }), 1);
+    assert.equal(await prisma.notification.count({
+      where: { recipientUserId: blocked.id, kind: "LIVE", eventKey: `live:started:${plannedLive.id}` }
+    }), 0);
+    assert.equal(await prisma.notification.count({
+      where: { recipientUserId: seller.id, kind: "LIVE" }
+    }), 0);
+
+    console.log("PASS: verified review alerts only after paid completion, no self-review or duplicate");
+    console.log("PASS: Live started alert fans out once to eligible followers; blocked follower excluded");
 
     console.log("PASS: isolated paid Order PENDING→PAID→PROCESSING→SHIPPED→DELIVERED→COMPLETED");
     console.log("PASS: HMAC authorization, buyer/seller guards, unique notifications, retries, ledger and inventory");
