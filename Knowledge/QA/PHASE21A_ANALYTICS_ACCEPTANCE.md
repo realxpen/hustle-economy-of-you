@@ -1,16 +1,16 @@
 # Phase 21A Analytics — Consolidated Acceptance
 
-Status: implementation branch; automatic CI and Monday owner acceptance pending.
+Status: PR #81 MERGED as `bddc64123096eb33c9481c23b73d517bc004f011`, Foundation CI `38042917665` SUCCESS and isolated disposable Postgres/Nest Analytics+financial CI `38042917663` SUCCESS 2026-10-10. No deployment. Monday owner browser acceptance pending.
 
 ## Automated isolated fixture validation
-- [ ] Admin Analytics endpoint returns 401 without token; existing AuthGuard and AdminGuard enforce identity and Admin whitelist.
-- [ ] Exactly one disposable, completed and verified paid Order is counted once in placed/paid/completed and 1 applied payment.
-- [ ] Only transaction-backed published Review increments verified Review, not denied seller self-review or duplicate.
-- [ ] Seven-day daily-series totals match the known Order paid and published Review timestamps.
-- [ ] Zero Message count with no Message records; observed feed.view is separate from canonical Orders/Reviews.
-- [ ] Invalid days value rejected, 7/30/90 accepted.
-- [ ] Reading Analytics does not create SystemEvents or mutate any financial/canonical records.
-- [ ] Foundation CI for Web, Admin, Mobile, API typecheck and builds green; isolated Postgres CI green.
+- [x] Admin Analytics endpoint returns 401 without token; existing AuthGuard and AdminGuard enforce identity and Admin whitelist.
+- [x] Exactly one disposable, completed and verified paid Order is counted once in placed/paid/completed and 1 applied payment.
+- [x] Only transaction-backed published Review increments verified Review, not denied seller self-review or duplicate.
+- [x] Seven-day daily-series totals match the known Order paid and published Review timestamps.
+- [x] Zero Message count with no Message records; observed feed.view is separate from canonical Orders/Reviews.
+- [x] Invalid days value rejected, 7/30/90 accepted.
+- [x] Reading Analytics does not create SystemEvents or mutate any financial/canonical records.
+- [x] Foundation CI for Web, Admin, Mobile, API typecheck and builds green; isolated Postgres CI green.
 
 ## Monday owner review (paused until Oct 12)
 - [ ] Owner manually authorizes release of **API and Admin** from merged main; verify deployed SHA.
