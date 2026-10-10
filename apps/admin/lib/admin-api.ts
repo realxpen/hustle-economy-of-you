@@ -1025,6 +1025,21 @@ export type AnalyticsSnapshot = {
     appliedPayments: number;
     verifiedReviews: number;
   };
+  attribution: {
+    trustLevel: "CONSENTED_ASSOCIATION";
+    lookbackDays: number;
+    note: string;
+    bookings: {
+      consentingOutcomes: number;
+      linkedOutcomes: number;
+      byLastEligibleClick: { feed: number; search: number; marketplace: number };
+    };
+    orders: {
+      consentingOutcomes: number;
+      linkedOutcomes: number;
+      byLastEligibleClick: { feed: number; search: number; marketplace: number };
+    };
+  };
   timeline: Array<{
     day: string;
     bookingsRequested: number;

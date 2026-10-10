@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { Prisma } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
+import { AttributionConsentService } from "../analytics/attribution-consent.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 export type SearchObservationEventName =
@@ -42,7 +43,7 @@ const resultTypes = new Set(["person", "post", "service", "product"]);
 
 @Injectable()
 export class SearchObservationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly consent: AttributionConsentService) {}
 
   recordSearch(identity: AuthIdentity, input: SearchObservationInput) {
     const name = this.requireEventName(input.name, searchEvents, "search");
@@ -87,8 +88,21 @@ export class SearchObservationService {
       }
     }
 
+    // Only offer-result clicks are eligible; report metadata is verified by the server.
+    // These remain observational taps, not authoritative conversions.
+    const offerClick = (name === "search.result_clicked" || name === "marketplace.result_clicked")
+      && (resultType === "service" || resultType === "product") && resultId !== null;
+    if (offerClick) {
+      const exists = resultType === "service"
+        ? await this.prisma.service.count({ where: { id: resultId!, status: "PUBLISHED" } })
+        : await this.prisma.product.count({ where: { id: resultId!, status: "PUBLISHED" } });
+      if (!exists) throw new BadRequestException("Clicked offer is no longer published");
+    }
+    const attributionMetadata = offerClick ? await this.consent.clickMetadata(viewer.id, name) : {};
+
     const payload: Prisma.InputJsonObject = {
       viewerUserId: viewer.id,
+      ...attributionMetadata,
       ...(query !== null ? { query } : {}),
       ...(tab !== null ? { tab } : {}),
       ...(sessionId !== null ? { sessionId } : {}),

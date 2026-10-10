@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
+import { AttributionConsentService } from "../analytics/attribution-consent.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 export type FeedTab = "for-you" | "nearby" | "connections";
@@ -99,7 +100,7 @@ const sources = new Set(["web", "mobile"]);
 
 @Injectable()
 export class FeedService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly consent: AttributionConsentService) {}
 
   async list(
     identity: AuthIdentity,
@@ -244,6 +245,7 @@ export class FeedService {
       }
     }
 
+    const attributionMetadata = await this.consent.clickMetadata(viewer.id, name);
     const event = await this.prisma.systemEvent.create({
       data: {
         name,
@@ -252,6 +254,7 @@ export class FeedService {
           viewerUserId: viewer.id,
           postId,
           targetUserId: post.ownerUserId,
+          ...attributionMetadata,
           ...(feedTab !== undefined ? { feedTab } : {}),
           ...(position !== undefined ? { position } : {}),
           ...(sessionId !== undefined ? { sessionId } : {}),
