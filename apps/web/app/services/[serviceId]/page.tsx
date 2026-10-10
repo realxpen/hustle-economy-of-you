@@ -41,7 +41,7 @@ export default function PublicServicePage() {
           <a className={styles.messageButton} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`}>Message first</a>
         </div>
       </div>
-      <aside className={[styles.ownerCard, "h-experience-surface"].join(" ")}>
+      <aside className={styles.ownerCard}>
         <div className={styles.avatar}>{owner.avatarUrl ? <img src={owner.avatarUrl} alt="" /> : initial}</div>
         <small>SERVICE BY</small>
         <h2>{owner.displayName ?? `@${owner.username}`}</h2>
