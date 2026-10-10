@@ -122,9 +122,9 @@ export default function MarketplacePage() {
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Marketplace" />
 
-    <section className={styles.hero}>
+    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
       <div className={styles.browseIntro}>
-        <div><p className={styles.eyebrow}>MARKETPLACE</p><h1>Browse current economic opportunities.</h1></div>
+        <div><p className={styles.eyebrow}>MARKETPLACE</p><h1 className="h-experience-heading">Browse current economic opportunities.</h1></div>
         <a href="/search">Need something specific? Search →</a>
       </div>
       <p>Services and Products stay attached to the same professional identities and proof that created them.</p>
