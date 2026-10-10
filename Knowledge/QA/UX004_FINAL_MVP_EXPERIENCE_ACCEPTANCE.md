@@ -1,10 +1,10 @@
 # UX-004 — Final MVP experience refinement acceptance
 
-Status: Implementation candidate; CI and PR merge verification pending. No manual acceptance or deployment performed 2026-10-10.
+Status: PR #85 MERGED `7c80e8963c278d0685eddcf4be47c19471e3b271`. Final head `5d5ebab389b5bd8fbceac800a3439393e74747f0` Foundation CI `38077085748` SUCCESS. No payment sandbox triggered on UX-004 Web-only changes. No manual acceptance or deployment performed 2026-10-10.
 
 ## Automated gate
-- [ ] Final GitHub Foundation CI green on UX-004 PR head: Web, Admin, Mobile, API typecheck/build.
-- [ ] PR merged only after required checks pass.
+- [x] Final GitHub Foundation CI `38077085748` green on UX-004 PR head `5d5ebab`: Web/Admin/Mobile/API typechecks and Web/Admin/API builds.
+- [x] PR #85 merged only after required checks passed (`7c80e896`).
 - [x] No changes to API authorization, database, payment/ledger or existing notification delivery paths in the UX-004 diff.
 - [x] UX-004 uses existing ExperienceHeader/ExperienceState and semantic design tokens without adding another role/account model.
 
