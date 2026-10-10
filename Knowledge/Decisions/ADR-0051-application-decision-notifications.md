@@ -1,6 +1,6 @@
 # ADR-0051 — Phase 20C2: Capability Application Status Notifications
 
-Status: In feature branch; CI and Monday owner acceptance pending
+Status: PR #79 MERGED (`c247df7b34ed4d8ce3feb456710a35b34819052b`), Foundation CI `38040867586` passed and isolated payment regression `38040867609` passed. Owner deployment/manual acceptance deferred until Monday 2026-10-12.
 Date: 2026-10-10
 
 ## Purpose
