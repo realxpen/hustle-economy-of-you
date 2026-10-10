@@ -1,6 +1,6 @@
 # ADR-0053 — Phase 21A: Trustworthy Marketplace Outcome Analytics
 
-Status: Implementation branch, isolated CI and Monday manual review pending
+Status: MERGED PR #81 (`bddc64123096eb33c9481c23b73d517bc004f011`); Foundation CI `38042917665` and isolated Analytics/financial regression CI `38042917663` PASSED. Owner-controlled API/Admin deployment and Monday manual acceptance pending.
 Date: 2026-10-10
 
 ## Why
