@@ -1,6 +1,7 @@
 "use client";
 
 import { ExperienceHeader } from "../../../components/navigation/experience-header";
+import { ExperienceState } from "../../../components/experience/experience-state";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
@@ -84,11 +85,11 @@ export default function PublicProfilePage() {
   }
 
   if (error) {
-    return <main className={styles.shell}><section className={styles.notFound}><p>HUSTLE · STOREFRONT</p><h1>Storefront unavailable.</h1><span>{error}</span><a href="/">← Hustle</a></section></main>;
+    return <main className={styles.shell}><ExperienceState kind="error" title="Storefront unavailable." description={error} action={{ label: "Explore Hustlers", href: "/search" }} /></main>;
   }
 
   if (!data) {
-    return <main className={styles.shell}><p className={styles.loading}>Loading Hustle storefront…</p></main>;
+    return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Hustler storefront…" /></main>;
   }
 
   const { user, profile, trust } = data;

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ExperienceState } from "../../components/experience/experience-state";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -117,15 +118,11 @@ export default function MessagesPage() {
       <p>Messages belong to the same Hustle identity. A client can move from discovery into a direct thread without creating a separate buyer or seller inbox.</p>
     </section>
 
-    {error && <section className={styles.error}><strong>Inbox unavailable.</strong><p>{error}</p></section>}
-    {!error && loading && <section className={styles.loading}>Loading your conversations…</section>}
-    {!error && !loading && items.length === 0 && <section className={styles.empty}>
-      <strong>No conversations yet.</strong>
-      <p>Open a professional profile, Post, Service or Product and choose Message to start a direct thread.</p>
-      <Link href="/home">Discover people on Hustle →</Link>
-    </section>}
+    {error && <ExperienceState kind="error" title="Inbox unavailable." description={error} action={{ label: "Retry inbox", onClick: () => void load() }} />}
+    {!error && loading && <ExperienceState kind="loading" title="Loading conversations…" description="Fetching your messages and recent replies." />}
+    {!error && !loading && items.length === 0 && <ExperienceState kind="empty" title="No conversations yet." description="Open a Hustler profile, Service or Product and tap Message to get started." action={{ label: "Discover Hustlers", href: "/home" }} />}
 
-    {items.length > 0 && <section className={styles.inbox}>
+    {items.length > 0 && <section className={styles.inbox} aria-label="Your conversations">
       {items.map((conversation) => {
         const other = conversation.otherParticipant;
         const initial = (other?.displayName ?? other?.username ?? "H").charAt(0).toUpperCase();

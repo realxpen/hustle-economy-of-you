@@ -1,7 +1,8 @@
 "use client";
 
 import { ExperienceHeader } from "../../components/navigation/experience-header";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ExperienceState } from "../../components/experience/experience-state";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   captureSearchObservation,
   getSearchPage,
@@ -55,6 +56,7 @@ export default function SearchPageScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestVersion = useRef(0);
 
   useEffect(() => {
     setSessionId(createSessionId());
@@ -63,17 +65,28 @@ export default function SearchPageScreen() {
     if (initial) setQuery(initial);
   }, []);
 
-  async function runSearch(nextTab: SearchTab, cursor: string | null = null, append = false) {
+  // A shared search link may open /search?q=... from another Hustle page.
+  // Run that initial intent once, after session + URL state have hydrated.
+  useEffect(() => {
+    if (!sessionId || !query.trim()) return;
+    void runSearch("top");
+    // Do not auto-search on every keystroke: explicit submit and Apply control it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  async function runSearch(nextTab: SearchTab, cursor: string | null = null, append = false, appliedFilters: SearchFilters = filters) {
     const normalized = query.trim();
     if (!normalized) {
       setError("Enter what you need to find on Hustle.");
       return;
     }
 
+    const version = append ? requestVersion.current : ++requestVersion.current;
     append ? setLoadingMore(true) : setLoading(true);
     setError(null);
     try {
-      const page = await getSearchPage(nextTab, { q: normalized, cursor, limit: 12, filters });
+      const page = await getSearchPage(nextTab, { q: normalized, cursor, limit: 12, filters: appliedFilters });
+      if (version !== requestVersion.current) return;
       setItems((current) => append ? [...current, ...page.items] : page.items);
       setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore, zeroResults: page.zeroResults });
       setSearchedQuery(normalized);
@@ -104,12 +117,15 @@ export default function SearchPageScreen() {
         }
       }
     } catch (reason) {
+      if (version !== requestVersion.current) return;
       const message = reason instanceof Error ? reason.message : "Search failed";
       setError(message);
       if (message.toLowerCase().includes("sign in")) setTimeout(() => window.location.assign("/auth"), 900);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (version === requestVersion.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }
 
@@ -154,35 +170,36 @@ export default function SearchPageScreen() {
     </section>
 
     <form className={[styles.searchForm, "h-experience-content"].join(" ")} onSubmit={submit}>
-      <div className={styles.searchBar}>
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try: full stack developer Lagos" aria-label="Search Hustle" />
-        <button type="submit" disabled={loading}>{loading ? "Searching…" : "Search Hustle"}</button>
+      <div className={styles.searchBar} role="search">
+        <input type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(null); }} placeholder="Try: full stack developer Lagos" aria-label="Search Hustle" />
+        <button type="submit" disabled={loading || !query.trim()} aria-busy={loading}>{loading ? "Searching…" : "Search Hustle"}</button>
       </div>
     </form>
 
     <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>
 
     <section className={styles.filters} aria-label="Search filters">
-      <input placeholder="Category" value={filters.category ?? ""} onChange={(event) => setFilters({ ...filters, category: event.target.value })} />
-      <input placeholder="Skill" value={filters.skill ?? ""} onChange={(event) => setFilters({ ...filters, skill: event.target.value })} />
-      <input placeholder="Location" value={filters.location ?? ""} onChange={(event) => setFilters({ ...filters, location: event.target.value })} />
-      <input placeholder="Min price ₦" inputMode="numeric" value={filters.minPrice ?? ""} onChange={(event) => setFilters({ ...filters, minPrice: event.target.value })} />
-      <input placeholder="Max price ₦" inputMode="numeric" value={filters.maxPrice ?? ""} onChange={(event) => setFilters({ ...filters, maxPrice: event.target.value })} />
-      <select value={filters.verified ?? ""} onChange={(event) => setFilters({ ...filters, verified: event.target.value })}><option value="">Any verification</option><option value="true">Verified only</option><option value="false">Unverified only</option></select>
-      <select value={filters.deliveryMode ?? ""} onChange={(event) => setFilters({ ...filters, deliveryMode: event.target.value })}><option value="">Any service delivery</option><option value="REMOTE">Remote</option><option value="PHYSICAL">Physical</option><option value="BOTH">Both</option></select>
-      <select value={filters.productType ?? ""} onChange={(event) => setFilters({ ...filters, productType: event.target.value })}><option value="">Any product type</option><option value="PHYSICAL">Physical product</option><option value="DIGITAL">Digital product</option></select>
+      <input aria-label="Filter by category" placeholder="Category" value={filters.category ?? ""} onChange={(event) => setFilters({ ...filters, category: event.target.value })} />
+      <input aria-label="Filter by skill" placeholder="Skill" value={filters.skill ?? ""} onChange={(event) => setFilters({ ...filters, skill: event.target.value })} />
+      <input aria-label="Filter by location" placeholder="Location" value={filters.location ?? ""} onChange={(event) => setFilters({ ...filters, location: event.target.value })} />
+      <input aria-label="Minimum price in naira" placeholder="Min price ₦" inputMode="numeric" value={filters.minPrice ?? ""} onChange={(event) => setFilters({ ...filters, minPrice: event.target.value })} />
+      <input aria-label="Maximum price in naira" placeholder="Max price ₦" inputMode="numeric" value={filters.maxPrice ?? ""} onChange={(event) => setFilters({ ...filters, maxPrice: event.target.value })} />
+      <select aria-label="Filter by verification" value={filters.verified ?? ""} onChange={(event) => setFilters({ ...filters, verified: event.target.value })}><option value="">Any verification</option><option value="true">Verified only</option><option value="false">Unverified only</option></select>
+      <select aria-label="Filter by service delivery" value={filters.deliveryMode ?? ""} onChange={(event) => setFilters({ ...filters, deliveryMode: event.target.value })}><option value="">Any service delivery</option><option value="REMOTE">Remote</option><option value="PHYSICAL">Physical</option><option value="BOTH">Both</option></select>
+      <select aria-label="Filter by product type" value={filters.productType ?? ""} onChange={(event) => setFilters({ ...filters, productType: event.target.value })}><option value="">Any product type</option><option value="PHYSICAL">Physical product</option><option value="DIGITAL">Digital product</option></select>
       <label className={styles.checkField}><input type="checkbox" checked={Boolean(filters.nearby)} onChange={(event) => setFilters({ ...filters, nearby: event.target.checked })} /> Nearby me</label>
       <button className={styles.primaryButton} type="button" onClick={() => void runSearch(tab)} disabled={loading || !query.trim()}>Apply filters</button>
+      <button className={styles.resetButton} type="button" disabled={loading} onClick={() => { setFilters(emptyFilters); setError(null); if (query.trim()) void runSearch(tab, null, false, emptyFilters); }}>Clear filters</button>
     </section>
 
     <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
-      <div className={styles.resultMeta}><strong>{resultLabel}</strong><span>{items.length} loaded · {tab}</span></div>
-      {error && <div className={styles.error}>{error}</div>}
-      {!error && loading && <div className={styles.loading}>Matching intent to current public capability…</div>}
-      {!error && !loading && meta.zeroResults && <div className={styles.empty}><strong>No useful match yet.</strong><span>Try a broader skill, category or location. Hustle will not silently substitute unrelated results.</span></div>}
-      {!error && !loading && !meta.zeroResults && items.length === 0 && <div className={styles.empty}><strong>What do you need?</strong><span>Search for a professional, capability, Service, Product or demonstrated work.</span></div>}
-      {items.length > 0 && <div className={styles.grid}>{items.map((item, index) => <ResultCard key={`${item.kind}-${item.id}`} item={item} onOpen={() => openResult(item, index)} />)}</div>}
-      {meta.hasMore && <div className={styles.loadMore}><button className={styles.primaryButton} type="button" disabled={loadingMore} onClick={() => void runSearch(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more"}</button></div>}
+      <div className={styles.resultMeta} role="status" aria-live="polite"><strong>{resultLabel}</strong><span>{loading ? "Searching…" : `${items.length} loaded · ${tab}`}</span></div>
+      {error && <ExperienceState kind="error" title="Search isn't available right now." description={error} action={{ label: "Retry search", onClick: () => void runSearch(tab), disabled: loading || !query.trim() }} />}
+      {!error && loading && <ExperienceState kind="loading" title="Finding people, work and offers…" description="Checking currently published Hustle results." />}
+      {!error && !loading && meta.zeroResults && <ExperienceState kind="empty" title="No useful match yet." description="Try a broader skill, category or location. Hustle won't silently substitute unrelated results." action={{label:"Clear filters",onClick:()=>{setFilters(emptyFilters);setError(null);if(query.trim())void runSearch(tab,null,false,emptyFilters);}}} />}
+      {!error && !loading && !meta.zeroResults && items.length === 0 && <ExperienceState kind="empty" title="What do you need?" description="Search for a professional, capability, Service, Product or demonstrated work." />}
+      {!loading && items.length > 0 && <div className={styles.grid}>{items.map((item, index) => <ResultCard key={`${item.kind}-${item.id}`} item={item} onOpen={() => openResult(item, index)} />)}</div>}
+      {!loading && !error && meta.hasMore && <div className={styles.loadMore}><button className={styles.primaryButton} type="button" disabled={loadingMore} onClick={() => void runSearch(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more"}</button></div>}
     </section>
   </main>;
 }

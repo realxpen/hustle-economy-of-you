@@ -1,6 +1,7 @@
 "use client";
 
 import { ExperienceStatus } from "../../components/navigation/experience-status";
+import { ExperienceState } from "../../components/experience/experience-state";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -45,7 +46,9 @@ function BookingSection({
   page,
   error,
   onLoadMore,
-  loadingMore
+  loadingMore,
+  onRetry,
+  noCapability = false
 }: {
   title: string;
   eyebrow: string;
@@ -53,15 +56,17 @@ function BookingSection({
   error: string | null;
   onLoadMore: () => void;
   loadingMore: boolean;
+  onRetry: () => void;
+  noCapability?: boolean;
 }) {
   return <section className={[styles.panel, "h-experience-surface"].join(" ")}>
     <div className={styles.panelHead}>
       <div><small>{eyebrow}</small><h2>{title}</h2></div>
       {page && <small>{page.items.length} loaded</small>}
     </div>
-    {error && <div className={styles.empty}>{error}</div>}
-    {!error && !page && <div className={styles.empty}>Loading bookings…</div>}
-    {!error && page && page.items.length === 0 && <div className={styles.empty}>Nothing here yet.</div>}
+    {error && <ExperienceState compact kind={noCapability ? "empty" : "error"} title={noCapability ? "Hustler tools are not active yet." : "Could not load bookings."} description={error} action={noCapability ? { label: "View your profile", href: "/account" } : { label: "Retry", onClick: onRetry }} />}
+    {!error && !page && <ExperienceState compact kind="loading" title="Getting your bookings…" />}
+    {!error && page && page.items.length === 0 && <ExperienceState compact kind="empty" title="No bookings in this view yet." description={eyebrow === "AS CLIENT" ? "Find a Service and request a time when you're ready." : "Requests for your published Services will appear here."} action={eyebrow === "AS CLIENT" ? { label: "Explore Services", href: "/marketplace" } : undefined} />}
     {page && page.items.length > 0 && <div className={styles.list}>{page.items.map((booking) => <BookingCard key={booking.id} booking={booking} />)}</div>}
     {page?.hasMore && <button className={styles.loadMore} onClick={onLoadMore} disabled={loadingMore}>{loadingMore ? "Loading…" : "Load more"}</button>}
   </section>;
@@ -81,10 +86,10 @@ export default function BookingsPage() {
       listHustlerBookings({ limit: 20 })
     ]);
 
-    if (client.status === "fulfilled") setClientPage(client.value);
+    if (client.status === "fulfilled") { setClientPage(client.value); setClientError(null); }
     else setClientError(client.reason instanceof Error ? client.reason.message : "Could not load client bookings");
 
-    if (hustler.status === "fulfilled") setHustlerPage(hustler.value);
+    if (hustler.status === "fulfilled") { setHustlerPage(hustler.value); setHustlerError(null); }
     else {
       const message = hustler.reason instanceof Error ? hustler.reason.message : "Could not load Hustler bookings";
       if (/ACTIVE HUSTLER/i.test(message)) setHustlerError("Hustler requests appear here once this account has an active Hustler capability.");
@@ -100,6 +105,8 @@ export default function BookingsPage() {
     try {
       const next = await listClientBookings({ cursor: clientPage.nextCursor, limit: 20 });
       setClientPage({ ...next, items: [...clientPage.items, ...next.items] });
+    } catch (reason) {
+      setClientError(reason instanceof Error ? reason.message : "Could not load more bookings");
     } finally { setLoadingMoreClient(false); }
   }
 
@@ -109,6 +116,8 @@ export default function BookingsPage() {
     try {
       const next = await listHustlerBookings({ cursor: hustlerPage.nextCursor, limit: 20 });
       setHustlerPage({ ...next, items: [...hustlerPage.items, ...next.items] });
+    } catch (reason) {
+      setHustlerError(reason instanceof Error ? reason.message : "Could not load more requests");
     } finally { setLoadingMoreHustler(false); }
   }
 
@@ -121,8 +130,8 @@ export default function BookingsPage() {
     </section>
 
     <div className={styles.sections}>
-      <BookingSection title="Your bookings" eyebrow="AS CLIENT" page={clientPage} error={clientError} onLoadMore={loadMoreClient} loadingMore={loadingMoreClient} />
-      <BookingSection title="Requests for your services" eyebrow="AS HUSTLER" page={hustlerPage} error={hustlerError} onLoadMore={loadMoreHustler} loadingMore={loadingMoreHustler} />
+      <BookingSection title="Your bookings" eyebrow="AS CLIENT" page={clientPage} error={clientError} onLoadMore={loadMoreClient} loadingMore={loadingMoreClient} onRetry={() => void loadInitial()} />
+      <BookingSection title="Requests for your services" eyebrow="AS HUSTLER" page={hustlerPage} error={hustlerError} onLoadMore={loadMoreHustler} loadingMore={loadingMoreHustler} onRetry={() => void loadInitial()} noCapability={Boolean(hustlerError?.includes("active Hustler capability"))} />
     </div>
 
     <footer className={styles.footer}><span>Booking status is server-authoritative.</span><strong>Funding and settlement reflect the payment system’s confirmed state.</strong></footer>

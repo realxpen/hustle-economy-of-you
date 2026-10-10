@@ -1,6 +1,7 @@
 "use client";
 
 import { ExperienceHeader } from "../../../components/navigation/experience-header";
+import { ExperienceState } from "../../../components/experience/experience-state";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { formatProductPrice, getPublicProduct, type PublicProduct } from "../../../lib/product";
@@ -19,8 +20,8 @@ export default function PublicProductPage() {
       .catch((reason: Error) => setError(reason.message));
   }, [params?.productId]);
 
-  if (error) return <main className={styles.shell}><section className={styles.notFound}><p>HUSTLE · PRODUCT</p><h1>Product unavailable.</h1><span>{error}</span><a href="/">← Hustle</a></section></main>;
-  if (!data) return <main className={styles.shell}><p className={styles.loading}>Loading product…</p></main>;
+  if (error) return <main className={styles.shell}><ExperienceState kind="error" title="Product unavailable." description={error} action={{ label: "Explore Products", href: "/marketplace" }} /></main>;
+  if (!data) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Product details…" /></main>;
 
   const { product, owner } = data;
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();

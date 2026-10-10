@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ExperienceState } from "../../components/experience/experience-state";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -139,13 +140,9 @@ export default function NotificationsPage() {
           </button>
         </div>
       </section>
-      {error && <div role="alert" className={styles.error}>{error}</div>}
-      {initialLoad && <div className={styles.loading}>Loading your activity…</div>}
-      {!initialLoad && !error && items.length === 0 && <div className={styles.empty}>
-        <strong>Nothing needs your attention yet.</strong>
-        <p>Messages, booking and order changes, new followers, and comments on your work will show up here.</p>
-        <Link href="/home">Explore Hustle →</Link>
-      </div>}
+      {error && <ExperienceState kind="error" compact title="Could not update Activity." description={error} action={{label:"Try again",onClick:()=>void refresh(),disabled:busy}} />}
+      {initialLoad && <ExperienceState kind="loading" title="Loading your Activity…" />}
+      {!initialLoad && !error && items.length === 0 && <ExperienceState kind="empty" title="Nothing needs your attention yet." description="Messages, Booking and Order changes, new followers, and discussions about your work will appear here." action={{label:"Explore Hustle",href:"/home"}} />}
       <section aria-label="Notifications" className={styles.list}>
         {items.map(item => <button
           type="button" key={item.id} onClick={() => void open(item)}
