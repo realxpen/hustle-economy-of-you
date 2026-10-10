@@ -1,5 +1,6 @@
 "use client";
 
+import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
@@ -96,20 +97,21 @@ export default function PublicProfilePage() {
   const targetLabel = user.displayName ?? user.username ?? "this Hustler";
   const messageHref = `/messages/start?userId=${encodeURIComponent(user.id)}`;
 
-  return <main className={styles.shell}>
-    <header className={styles.header}>
-      <a href="/" className={styles.brand}>HUSTLE↗</a>
-      <nav className={styles.headerNav} aria-label="Storefront sections">
-        <a href="#services">Services</a>
-        <a href="#work">Work</a>
-        <a href="#shop">Shop</a>
-        <a href="#reviews">Reviews</a>
-      </nav>
-      <div className={styles.shareActions}>
+  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    <ExperienceHeader
+      section={user.displayName ?? user.username ?? "Storefront"}
+      trail={[{ href: "/marketplace", label: "Explore" }]}
+      secondaryLinks={[
+        { href: "#services", label: "Services" },
+        { href: "#work", label: "Work" },
+        { href: "#shop", label: "Shop" },
+        { href: "#reviews", label: "Reviews" }
+      ]}
+      actions={<>
         <button type="button" onClick={() => void copyStorefront()}>Copy link</button>
-        <button type="button" className={styles.sharePrimary} onClick={() => void shareStorefront()}>Share</button>
-      </div>
-    </header>
+        <button type="button" onClick={() => void shareStorefront()}>Share ↗</button>
+      </>}
+    />
     {shareNotice && <div className={styles.shareNotice}>{shareNotice}</div>}
 
     <section className={styles.cover} style={profile.coverUrl ? { backgroundImage: `url(${profile.coverUrl})` } : undefined}>
