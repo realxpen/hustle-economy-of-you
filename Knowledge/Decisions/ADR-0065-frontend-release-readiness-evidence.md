@@ -1,7 +1,7 @@
 # ADR-0065 — Evidence-based frontend stabilization and release gate
 
 Date: 2026-10-11
-Status: Stabilization PR implementation; CI and real-device acceptance pending
+Status: PR #99 merged; Foundation CI 38163216069 successful (45/45 local Chromium checks); real-device/deployed-site acceptance pending
 Scope: Next.js Web, scripts and CI workflows, no backend contract, identity, funds or Agent delegation changes.
 
 ## Problem
