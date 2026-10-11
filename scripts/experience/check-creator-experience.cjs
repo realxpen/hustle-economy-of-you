@@ -17,7 +17,7 @@ const checks = [
   [profile.includes('const contactVerified = Boolean(account?.emailVerified || account?.phoneVerified)'),"Contact badge is backed by account fields"],
   [profile.includes('contactVerified && <span>CONTACT VERIFIED'),"Display verified contact label conditionally"],
   [profile.includes('HUSTLER · ACTIVE'),"Capability status separate from contact status"],
-  [profile.includes('kind="error"'),"Professional profile retry"],
+  [profile.includes('{label:"Try loading again",onClick:()=>setRetry'),"Professional profile retry"],
   [profile.includes('creatorFlow'),"Real creator storefront path"],
   [post.includes('Publish checklist:'),"Clear post readiness"],
   [post.includes('mediaCount === 0'),"No media-free publish claim"],
