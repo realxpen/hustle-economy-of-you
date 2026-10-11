@@ -50,6 +50,13 @@ assert.match(discoverSource,/footerRect\.top\s*-\s*cardRect\.top/,"Action compac
 assert.match(discoverSource,/aria-controls=\{"post-actions-"/,"Compact action disclosure must control the real actions");
 assert.match(discoverCss,/\.actionRail\.railCompact/,"Compact action menu must have a defined bounded layout");
 assert.match(discoverCss,/\.actionRail\.railCompactClosed/,"Collapsed rail must not intercept touches");
+const headerCss=read("apps/web/components/navigation/experience-header.module.css");
+const dockCss=read("apps/web/components/navigation/hustle-mobile-nav.module.css");
+assert.match(discoverCss,/Mobile Discover ships COMPACT by default/,"Mobile Discover must use first-paint compact style");
+assert.match(headerCss,/Mobile-first compact chrome on the very first render/,"Mobile header must use first-paint compact style");
+assert.match(dockCss,/Compact six-destination dock on first paint/,"Six-route dock must use compact style");
+assert.doesNotMatch(discoverCss+headerCss+dockCss,/\b(?:zoom\s*:\s*0\.5|transform\s*:\s*scale\(0\.5\))/i,"Never simulate 50% website zoom with transforms");
+
 
 
 console.log("Adaptive Web contract OK: "+routes.length+" routes and "+modules.length+" style modules.");

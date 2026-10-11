@@ -156,3 +156,25 @@
  .icon svg{width:19px;height:19px}
  .label{font-size:8px}
 }
+
+
+/* Compact six-destination dock on first paint. Do not shrink link targets
+   below 44px; this is appearance density, not a 0.5 browser zoom override. */
+@media(max-width:760px){
+ .dock{
+   left:max(8px,env(safe-area-inset-left));
+   right:max(8px,env(safe-area-inset-right));
+   bottom:calc(7px + env(safe-area-inset-bottom));
+   padding:5px;
+   border-radius:25px;
+ }
+ .inner{grid-template-columns:repeat(6,minmax(0,1fr));gap:1px}
+ .link{min-height:50px;gap:2px;border-radius:19px;padding:4px 1px}
+ .icon{height:23px;width:27px}
+ .icon svg{width:20px;height:20px}
+ .label{font-size:9px;line-height:1.1}
+}
+@media(max-width:355px){
+ .link{min-height:48px}
+ .label{font-size:8px}
+}
