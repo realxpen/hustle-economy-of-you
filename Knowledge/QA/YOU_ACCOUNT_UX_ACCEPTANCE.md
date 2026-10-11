@@ -1,6 +1,6 @@
 # You (/account) Adaptive UX Acceptance — 2026-10-11
 
-Status: FEATURE IMPLEMENTED, CI/runtime/deploy pending.
+Status: PR #100 MERGED 2026-10-11 (51026c92b35452dc6c3fa18152c149030a673942); Foundation CI 38167419625 SUCCESS on final head a3e999c7c3a73c3137896b54a020ec1abf85ba35. Production deploy and signed-in real-device acceptance PENDING.
 
 ## Design acceptance
 - [ ] 320, 360, 375, 390, 430 CSS pixel iPhone Safari, Android Chrome, 768/1024/1440 desktop; no horizontal overflow, text clipping, chip/tag cloud or bottom dock overlap.

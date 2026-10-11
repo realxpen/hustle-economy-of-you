@@ -1,6 +1,6 @@
 # ADR-0066 — You as Hustle's identity and activity home
 
-Status: Implemented in feature branch; CI and signed-in iPhone acceptance pending
+Status: PR #100 merged; Foundation CI 38167419625 passed; owner deployment and signed-in iPhone acceptance pending
 Date: 2026-10-11
 Scope: Next.js Web /account, Trust activity presentation and frontend-only tests. No API/schema, role/capability, finance, consent persistence or Agent authorization changes.
 
