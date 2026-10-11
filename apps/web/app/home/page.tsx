@@ -363,7 +363,7 @@ function FeedCard({
       {notice && <p className={styles.notice} role="status">{notice}</p>}
     </div>
     </div>
-    <div className={styles.actionRail} aria-label="Post actions">
+    <div className={[styles.actionRail, offersOpen ? styles.railBehindOffers : ""].join(" ")} aria-label="Post actions">
       <button className={item.viewer.liked ? styles.activeAction : undefined} type="button"
         aria-label={item.viewer.liked ? "Unlike post" : "Like post"} aria-pressed={item.viewer.liked}
         onClick={toggleLike} disabled={working === "like"}>

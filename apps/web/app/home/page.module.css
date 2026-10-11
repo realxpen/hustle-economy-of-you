@@ -552,3 +552,6 @@
 @media(prefers-reduced-motion:reduce){
   .feed{scroll-behavior:auto}
 }
+/* When attached offers expand on a narrow device, prioritize the actual offer
+   controls rather than placing inactive engagement buttons above the sheet. */
+@media(max-width:760px){.railBehindOffers{display:none}}
