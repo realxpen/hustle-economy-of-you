@@ -22,7 +22,7 @@ assert.match(files.feed,/sourcePostId=\{item\.post\.id\}/,"Feed offers preserve 
 assert.match(files.modal,/withSourcePost\("\/bookings\/new\//,"Service Quick View connects to canonical Booking");
 assert.match(files.modal,/Choose options & add to Cart/,"Product Quick View connects to canonical variant/cart");
 assert.match(files.modal,/aria-modal="true"/,"Offer is a real dialog");
-assert.match(files.modal,/event\.key === "Tab"/,"Offer dialog traps keyboard focus");
+assert.match(files.modal,/event\\.key !== "Tab"/,"Offer dialog traps keyboard focus");
 assert.match(files.modal,/triggerRef\.current\?\.focus\(\)/,"Offer dialog restores focus");
 assert.match(files.source,/\^\[A-Za-z0-9_-\]/,"Post navigation context is validated");
 assert.match(files.source,/path\.split\("#"/,"Source query stays before product anchor");
@@ -36,7 +36,7 @@ for(const name of ["service","product","booking"]){
   assert.match(files[name],/OpportunityContext/,"Opportunity continuity missing: "+name);
 }
 assert.match(files.service,/withSourcePost\(\`\/bookings\/new\//,"Service preserves context to booking");
-assert.match(files.product,/id="add-to-cart"/,"Product must expose an add-to-cart anchor",);
+assert.match(files.product,/<AddToCart key=\\{product\\.id\\}/,"Product connects to current canonical Cart component");
 assert.match(read("apps/web/app/products/[productId]/add-to-cart.tsx"),/id="add-to-cart"/);
 assert.match(files.checkout,/PENDING Order/,"Checkout must not claim a payment happened");
 assert.match(files.cart,/only a payment-provider confirmation/,"Cart must not claim payment success");
