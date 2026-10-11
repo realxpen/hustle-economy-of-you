@@ -109,3 +109,14 @@
   .viewerNext { width: 36px; height: 48px; font-size: 26px; }
   .replyForm { grid-template-columns: 1fr; }
 }
+
+
+/* Story reactions and reply remain reachable at tiny zoomed viewports. */
+.interactionCard,.replyForm,.replyList{min-width:0;max-width:100%}
+@media(max-width:490px){
+ .reactionRow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .replyForm{grid-template-columns:minmax(0,1fr)}
+ .replyForm input{width:100%}
+ .viewerPrev,.viewerNext{width:36px;height:44px}
+ .viewerPrev{left:6px}.viewerNext{right:6px}
+}
