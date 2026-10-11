@@ -46,3 +46,17 @@ Per-area checks, all PENDING runtime acceptance:
 
 ## Scope limitations
 No browser has executed the full matrix yet. Static CSS and typecheck tests do **not** prove real-world layout or all combinations. Native app RN/Expo and Admin require their own platform-specific QA; do not claim this Web change certifies them.
+
+
+## 2026-10-11 — owner iPhone Safari text-size screenshots after PR #92
+Three provided captures at differing browser text sizes confirm an unverified real failure even after the Web-wide adaptive foundation: at larger text scale the engagement rail becomes a horizontal line of buttons over the T-shirt, and the attached-offers control is cut off at the mobile dock. At smaller text size the media and controls are significantly more usable. The appearance selector also truncates “System” to “Syst”.
+
+**Root cause in code:** `@media(max-width:760px) and (max-height:600px)` switches Discover's engagement controls to `flex-direction:row` without checking landscape orientation. Safari's effective CSS viewport height can drop below the breakpoint in portrait when text size/browser chrome changes. Separately the footer had a maximum height but `overflow:visible`, allowing offers to spill out of the portrait stage under the fixed dock. The theme selector retained a 66px max-width although the adaptive input rule increases select font size to 16px.
+
+Resolution candidate: restrict horizontal action dock to **landscape only**, explicitly anchor a vertical portrait rail above the measured footer, make footer a bounded column with captions scrolling and attached offers anchored/scrollable, plus give System selector enough width. Add those conditions to the existing responsive CI contract.
+
+- [ ] iOS portrait Safari/Chrome at small, default and large website text settings: rail stays vertical, Follow and attached-offer CTA accessible, no overlap with six-route dock.
+- [ ] Short portrait height, expanded offers and long caption: visible offer toggle and independently scrollable controls rather than clipped controls.
+- [ ] Landscape retains compact horizontal action rail and native feed gestures.
+- [ ] System/Light/Dark selector text is fully visible, remains keyboard/VoiceOver operable.
+- [ ] Live first post image, pagination, story/create links and attached service/product quick views work after owner-authorized release.

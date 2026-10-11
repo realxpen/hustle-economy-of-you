@@ -346,7 +346,7 @@ function FeedCard({
       {!hasMedia && <span className={styles.mediaCount}>TEXT POST</span>}
     </div>
 
-    <div ref={footerRef} className={styles.cardBody}>
+    <div ref={footerRef} className={[styles.cardBody, offersOpen ? styles.cardBodyOffersOpen : ""].join(" ")}>
       <div className={styles.creatorRow}>
         <Link className={styles.creator} href={creatorHref} onClick={() => void captureFeedEvent({
           name: "feed.profile_clicked", postId: item.post.id, feedTab: tab, position, sessionId
