@@ -796,3 +796,86 @@
  .actionRail.railCompactClosed,.actionRail.railBehindOffers{display:none}
  .actionMenuTrigger:focus-visible{outline:3px solid var(--h-orange);outline-offset:2px}
 }
+
+
+/* Mobile Discover ships COMPACT by default on first paint, without changing
+   Safari website zoom, pinch zoom, or the user's larger-text preferences.
+   These rules trim chrome rather than transform:scale/zoom the application.
+   Interactive targets retain roughly 44 CSS pixels of usable height. */
+@media(max-width:760px) and (orientation:portrait){
+ .shell{padding-bottom:calc(88px + env(safe-area-inset-bottom))!important}
+ .shell>header{padding:0 0 2px;margin-inline:10px}
+ .feedTopBar{
+   height:45px;min-height:45px;
+   padding-inline:7px;gap:4px;
+ }
+ .tabs{gap:0}
+ .tabs button,.tabLink{
+   font-size:11px;
+   font-weight:800;
+   min-height:44px;
+   padding:7px 8px;
+ }
+ .quickLinks{gap:2px}
+ .quickLinks a{
+   width:34px;height:34px;
+   min-width:34px;min-height:34px;
+   font-size:17px;
+ }
+ .postBadge{
+   top:12px;left:12px;
+   font-size:10px;line-height:1.25;
+ }
+ .cardBody{
+   gap:5px;
+   max-height:min(54%,360px);
+   padding:0 12px 11px;
+ }
+ .creatorRow{gap:7px}
+ .avatar{width:34px;height:34px;flex-basis:34px;font-size:14px}
+ .creatorName{gap:2px}
+ .creatorName strong{font-size:13px}
+ .creatorName small{font-size:10px;line-height:1.25}
+ .follow,.following{
+   min-height:44px;
+   padding:6px 10px;
+   font-size:11px;
+   max-width:101px;
+ }
+ .captionWrap{gap:1px}
+ .captionWrap p{
+   font-size:12px;
+   line-height:1.32;
+ }
+ .captionWrap button{font-size:11px}
+ .tags{gap:6px;max-height:19px}
+ .tags span{font-size:10px}
+ .offerToggle{
+   grid-template-columns:30px minmax(0,1fr) 20px;
+   min-height:45px;gap:8px;
+   padding:5px 9px;border-radius:14px;
+ }
+ .offerIcon{width:30px;height:30px;font-size:19px}
+ .offerToggle strong{font-size:12px;line-height:1.2}
+ .offerToggle b{font-size:19px}
+ .actionRail:not(.railCompact){right:7px;gap:1px}
+ .actionRail:not(.railCompact) a,.actionRail:not(.railCompact) button{
+   min-height:47px;
+   gap:1px;
+ }
+ .actionRail:not(.railCompact) .actionDisc{width:39px;height:39px}
+ .actionRail:not(.railCompact) .actionDisc svg{width:20px;height:20px}
+ .actionRail:not(.railCompact) .actionNumber{font-size:10px}
+ .actionMenuTrigger{
+   width:46px;height:46px;
+   min-width:46px;min-height:46px;
+ }
+ .cardBodyOffersOpen{max-height:min(78%,560px)}
+}
+@media(max-width:760px) and (orientation:portrait) and (max-height:640px){
+ .cardBody{gap:3px;padding-bottom:8px}
+ .creatorName small{font-size:9px}
+ .captionWrap p{font-size:11px}
+ .tags{max-height:16px}
+ .offerToggle{min-height:44px}
+}

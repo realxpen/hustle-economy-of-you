@@ -72,3 +72,14 @@ Follow-up correction in PR branch `fix/discover-measured-action-rail`: measure t
 Acceptance remains pending: test on iPhone Safari small/default/large text, short portrait, real Follow/Like/Save/Share, long captions, multi-offer Quick View, rotation, independent post scrolling and dock.
 
 PR #94 merged 2026-10-11 as 1faf0a30f9e0569ddb1a3d77214870ba5c920685. Final Foundation CI 38154544614 SUCCESS on head 1cced0dec4e6f643182503a80f1225a3c57536da. Code/CI acceptance ONLY, no fresh real iPhone screenshots of this release and no completed signed-in browser viewport audit. Owner manual Web release and iOS text-scaling QA pending.
+
+
+## 2026-10-11 — Compact first-visit Discover by design, not Safari zoom
+The owner prefers the **first of two iPhone screenshots**: minimal header/tab chrome, a prominent full post image, smaller caption/creator overlays and a slim six-route dock. They requested that it load that way for any first visit rather than manually setting Safari to 50% website zoom. Websites cannot reliably override Safari's own per-site zoom or OS accessibility controls, and doing so would break text accessibility/responsiveness. Implement compact styling in the Web application itself on first CSS paint; do not set `initial-scale=0.5`, `user-scalable=no`, `zoom:0.5`, or `transform:scale(0.5)`.
+
+Changes under default mobile portrait breakpoint: compact height/gap/typography for shared header and six-route dock, Discover tabs, avatar, creator/caption, attached-offer toggle and action rail. The real post image still owns remaining height. Genuine touch targets preserved. No localStorage preference or login is required; the compact look is the CSS default for first-time/anonymous visitors. Users retain their browser zoom and large-text choice, with compact Actions fallback if accessible actions cannot fit.
+
+- [ ] iPhone Safari new private tab, no prior app storage, default website text: compact proportions match first screenshot without changing Safari page zoom.
+- [ ] iPhone Safari with large website text: no clipped controls, real offers remain reachable and Actions fallback appears as needed.
+- [ ] 320/360/390/430 CSS px, dark/light/System, varied vertical height, content-only and media posts, landscape and reduced motion.
+- [ ] Verify all six dock destinations and full-size tap areas, product/service Quick Views and live engagement calls.

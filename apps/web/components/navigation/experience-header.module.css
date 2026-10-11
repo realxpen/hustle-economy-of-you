@@ -28,3 +28,14 @@
  .actions>a,.actions>button{white-space:normal;text-align:center;overflow-wrap:anywhere}
 }
 @media(max-width:355px){.brand{font-size:16px}.appearance select{max-width:64px}}
+
+
+/* Mobile-first compact chrome on the very first render. Density is authored
+   in CSS, not an attempt to force browser zoom or a saved per-site preference. */
+@media(max-width:760px){
+ .header{padding-bottom:2px}
+ .primaryRow{min-height:44px;gap:7px}
+ .brand{font-size:16px;letter-spacing:-.06em;gap:5px}
+ .mark{width:22px;height:22px;font-size:13px}
+ .appearance{min-width:0}
+}
