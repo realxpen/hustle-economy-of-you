@@ -163,6 +163,7 @@ function FeedCard({
       const available = footerRect.top - cardRect.top - 50; // post badge clearance
       const compact = portrait.matches && available < 225;
       setCompactActions((previous) => previous === compact ? previous : compact);
+      if (!compact) setActionMenuOpen(false);
     };
     const observer = new ResizeObserver(measure);
     observer.observe(card);
