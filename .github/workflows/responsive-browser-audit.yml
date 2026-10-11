@@ -30,4 +30,13 @@ jobs:
         env:
           NODE_PATH: /tmp/hustle-responsive/node_modules
           HUSTLE_BASE_URL: ${{ inputs.base_url }}
+          HUSTLE_AUDIT_REPORT_PATH: /tmp/hustle-browser-audit.json
         run: node scripts/responsive/browser-audit.cjs "$HUSTLE_BASE_URL"
+
+      - name: Preserve viewport result even if incomplete or failed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: responsive-browser-audit-report
+          path: /tmp/hustle-browser-audit.json
+          if-no-files-found: ignore

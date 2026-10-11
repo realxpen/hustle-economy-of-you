@@ -25,7 +25,8 @@ const paths=[...new Set([...routes,...extra])];
     options.storageState=process.env.HUSTLE_STORAGE_STATE;
   }
   const context=await browser.newContext(options);
-  const failures=[],unverified=[];
+  const failures=[],unverified=[],passed=[];
+  const auditStartedAt=new Date().toISOString();
   for(const screen of screens){
     for(const route of paths){
       const page=await context.newPage();
@@ -33,14 +34,23 @@ const paths=[...new Set([...routes,...extra])];
       try{
         const response=await page.goto(new URL(route,base).toString(),{waitUntil:"domcontentloaded",timeout:20000});
         await page.waitForTimeout(350);
+        if(!response || response.status()>=400){
+          failures.push({route,width:screen.width,status:response?.status()??null,reason:"HTTP failure / missing document"});
+          continue;
+        }
         const current=new URL(page.url()).pathname;
-        if(route!=="/auth" && current.startsWith("/auth") && current!==route){
-          unverified.push({route,width:screen.width,reason:"auth redirect"});
+        if(current!==route && !(route==="/" && current==="/home")){
+          unverified.push({route,width:screen.width,landedOn:current,
+            reason:current.startsWith("/auth")?"auth redirect":"unexpected route redirect"});
           continue;
         }
         const result=await page.evaluate(()=>{
           const w=window.innerWidth;
           const documentWidth=Math.max(document.documentElement.scrollWidth,document.body?.scrollWidth||0);
+          const main=document.querySelector("main");
+          const mainVisible=Boolean(main && main.getBoundingClientRect().width>0 &&
+            getComputedStyle(main).visibility!=="hidden");
+          const appError=Boolean(document.querySelector('[role="alert"][data-fatal-error="true"]'));
           const fixed=[...document.querySelectorAll("nav,header,[role='navigation']")]
             .filter(el=>{const s=getComputedStyle(el);return s.position==="fixed"&&s.display!=="none"})
             .map(el=>({label:el.getAttribute("aria-label")||el.tagName,left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right}));
@@ -65,17 +75,30 @@ const paths=[...new Set([...routes,...extra])];
           const offerBottom=offer?.getBoundingClientRect().bottom;
           const dockTop=dock?.getBoundingClientRect().top;
           const offerBehindDock=Boolean(offer && dock && offerBottom > dockTop+3);
-          return {width:w,documentWidth,overflow:documentWidth-w,clippedFixed,smallFields:fields.slice(0,5),
+          return {width:w,documentWidth,overflow:documentWidth-w,mainVisible,appError,clippedFixed,smallFields:fields.slice(0,5),
             hasPost:!!rail,incorrectPortraitRail,offerBehindDock,closedCompact,railOutsidePost,hiddenWithoutTrigger};
         });
-        if(result.overflow>3||result.clippedFixed.length||(screen.width<=760&&result.smallFields.length)||result.incorrectPortraitRail||result.offerBehindDock||result.railOutsidePost||result.hiddenWithoutTrigger){
+        if(!result.mainVisible||result.appError||result.overflow>3||result.clippedFixed.length||(screen.width<=760&&result.smallFields.length)||result.incorrectPortraitRail||result.offerBehindDock||result.railOutsidePost||result.hiddenWithoutTrigger){
           failures.push({route,width:screen.width,result,status:response?.status()});
+        }else{
+          passed.push({route,width:screen.width});
         }
       }catch(error){failures.push({route,width:screen.width,error:String(error.message).slice(0,180)});}
       finally{await page.close();}
     }
   }
   await browser.close();
-  console.log(JSON.stringify({base,screens,routeCount:paths.length,failures,unverifiedCount:unverified.length,unverified:unverified.slice(0,40)},null,2));
+  const status=failures.length?"FAIL":unverified.length?"INCOMPLETE":"PASS";
+  const report={status,base,runAt:auditStartedAt,device:"Chromium desktop viewport emulation (not real Safari)",
+    viewportCount:screens.length,routeCount:paths.length,totalChecks:screens.length*paths.length,
+    passedCount:passed.length,failedCount:failures.length,unverifiedCount:unverified.length,
+    failures,unverified,passed};
+  const json=JSON.stringify(report,null,2);
+  console.log(json);
+  if(process.env.HUSTLE_AUDIT_REPORT_PATH)
+    fs.writeFileSync(process.env.HUSTLE_AUDIT_REPORT_PATH,json+"\\n");
+  // Auth redirects are unverified—not a passed release gate. Never certify a
+  // complete UX audit from unsigned-in redirects or missing backend states.
   if(failures.length)process.exitCode=1;
+  else if(unverified.length)process.exitCode=2;
 })().catch(error=>{console.error(error);process.exitCode=1});

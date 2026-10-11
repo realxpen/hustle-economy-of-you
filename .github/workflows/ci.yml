@@ -27,6 +27,8 @@ jobs:
         run: node scripts/experience/check-transaction-handoffs.cjs
       - name: Creator publishing and Live UX contracts
         run: node scripts/experience/check-creator-experience.cjs
+      - name: Release readiness and async privacy contracts
+        run: node scripts/experience/check-release-readiness.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
@@ -35,3 +37,31 @@ jobs:
       - run: npm run build --workspace=@hustle/web
       - run: npm run build --workspace=@hustle/admin
       - run: npm run build --workspace=@hustle/api
+      - name: Install Chromium for isolated local Web UI smoke
+        run: |
+          npm install --prefix /tmp/hustle-smoke --no-save --no-package-lock playwright@1.56.1
+          /tmp/hustle-smoke/node_modules/.bin/playwright install --with-deps chromium
+      - name: Launch locally built Web (no external transaction access)
+        shell: bash
+        run: |
+          npm run start --workspace=@hustle/web > /tmp/hustle-web-start.log 2>&1 &
+          echo $! > /tmp/hustle-web-start.pid
+          for i in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:3001/ > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/hustle-web-start.log
+          exit 1
+      - name: Smoke test local Web at 320–1440 CSS pixels
+        env:
+          NODE_PATH: /tmp/hustle-smoke/node_modules
+          HUSTLE_SMOKE_REPORT_PATH: /tmp/hustle-local-web-smoke.json
+        run: node scripts/responsive/local-smoke.cjs
+      - name: Upload local UI smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-web-responsive-smoke
+          path: /tmp/hustle-local-web-smoke.json
+          if-no-files-found: ignore
+

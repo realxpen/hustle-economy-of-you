@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import {
@@ -41,6 +41,8 @@ function money(amountMinor: number | null, currency = "NGN") {
 export default function StoryViewerPage() {
   const params = useParams<{ storyId: string }>();
   const router = useRouter();
+  const storyIdRef = useRef(params?.storyId);
+  storyIdRef.current = params?.storyId;
   const [loadedStory, setStory] = useState<StoryRecord | null>(null);
   const story = loadedStory?.id === params?.storyId ? loadedStory : null;
   const [sequence, setSequence] = useState<StoryRecord[]>([]);
@@ -59,6 +61,8 @@ export default function StoryViewerPage() {
     setSequence([]);
     setViewer(null);
     setReplies([]);
+    setReplyBody("");
+    setBusy(null);
     setError(null);
     setNotice(null);
 
@@ -127,23 +131,29 @@ export default function StoryViewerPage() {
       window.location.assign("/auth");
       return;
     }
+    const requestedStoryId = story.id;
     setBusy("reaction");
     setNotice(null);
     try {
       const result = viewer.reaction === reaction
-        ? await removeStoryReaction(story.id)
-        : await reactToStory(story.id, reaction);
+        ? await removeStoryReaction(requestedStoryId)
+        : await reactToStory(requestedStoryId, reaction);
+      // The request may complete after the user has moved to another Story.
+      // Never transplant an old viewer's private interaction onto a new Story.
+      if (storyIdRef.current !== requestedStoryId) return;
       setViewer({
         viewerUserId: result.viewerUserId,
         isOwner: result.isOwner,
         reaction: result.reaction,
         ownReplyCount: result.ownReplyCount
       });
-      setStory((current) => current ? { ...current, interactions: result.summary } : current);
+      setStory((current) => current?.id === requestedStoryId
+        ? { ...current, interactions: result.summary } : current);
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : "Could not update reaction");
+      if (storyIdRef.current === requestedStoryId)
+        setNotice(reason instanceof Error ? reason.message : "Could not update reaction");
     } finally {
-      setBusy(null);
+      if (storyIdRef.current === requestedStoryId) setBusy(null);
     }
   }
 
@@ -154,22 +164,27 @@ export default function StoryViewerPage() {
       window.location.assign("/auth");
       return;
     }
+    const requestedStoryId = story.id;
+    const text = replyBody.trim();
     setBusy("reply");
     setNotice(null);
     try {
-      const reply = await replyToStory(story.id, replyBody.trim());
+      const reply = await replyToStory(requestedStoryId, text);
+      if (storyIdRef.current !== requestedStoryId) return;
       setReplies((current) => [...current, reply]);
       setReplyBody("");
-      setViewer((current) => current ? { ...current, ownReplyCount: current.ownReplyCount + 1 } : current);
-      setStory((current) => current ? {
+      setViewer((current) => current
+        ? { ...current, ownReplyCount: current.ownReplyCount + 1 } : current);
+      setStory((current) => current?.id === requestedStoryId ? {
         ...current,
         interactions: { ...current.interactions, replies: current.interactions.replies + 1 }
       } : current);
       setNotice("Private Story reply sent");
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : "Could not send Story reply");
+      if (storyIdRef.current === requestedStoryId)
+        setNotice(reason instanceof Error ? reason.message : "Could not send Story reply");
     } finally {
-      setBusy(null);
+      if (storyIdRef.current === requestedStoryId) setBusy(null);
     }
   }
 
