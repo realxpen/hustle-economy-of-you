@@ -482,7 +482,7 @@ export default function DiscoveryHomePage() {
   }
 
   return <main className={[styles.shell, "h-experience-shell", "h-adaptive", "h-discover-immersive"].join(" ")}>
-    <ExperienceHeader section="Discover" actions={<Link href="/posts/manage">Create or manage posts ↗</Link>} />
+    <ExperienceHeader section="Discover" />
 
     <section className={styles.discoverLayout} aria-label="Hustle Discovery">
       <div className={styles.playerColumn}>
@@ -498,8 +498,8 @@ export default function DiscoveryHomePage() {
             <Link className={styles.tabLink} href="/live">Live</Link>
           </nav>
           <div className={styles.quickLinks}>
-            <Link href="/stories" aria-label="Explore Stories">◉</Link>
-            <Link href="/search" aria-label="Search people, skills, services and products">⌕</Link>
+            <Link href="/posts/manage" aria-label="Create or manage posts" title="Create or manage posts">+</Link>
+            <Link href="/search" aria-label="Search people, skills, services and products" title="Search Hustle">⌕</Link>
           </div>
         </div>
 
@@ -518,7 +518,21 @@ export default function DiscoveryHomePage() {
             : { label: "Explore Marketplace", href: "/marketplace" }} />}
 
         {!loading && !error && items.length > 0 && <section ref={feedRef} className={styles.feed}
-          aria-label="Immersive discovery posts, scroll vertically for the next post" tabIndex={0}>
+          aria-label="Immersive discovery posts. Swipe vertically or focus and use the arrow keys for the next post."
+          tabIndex={0}
+          onKeyDown={(event) => {
+            // Keep native focus behavior on media, offer and engagement controls.
+            if (event.target !== event.currentTarget) return;
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "PageDown" && event.key !== "PageUp") return;
+            event.preventDefault();
+            const next = event.key === "ArrowDown" || event.key === "PageDown" ? 1 : -1;
+            const stage = event.currentTarget;
+            const itemHeight = stage.clientHeight;
+            const current = Math.round(stage.scrollTop / itemHeight);
+            const target = Math.max(0, current + next);
+            stage.scrollTo({ top: target * itemHeight,
+              behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+          }}>
           {items.map((item, index) => <FeedCard
             key={tab + "-" + item.post.id} item={item} tab={tab} position={index}
             sessionId={sessionId} onChange={replaceItem} onCreatorFollowChange={updateCreatorFollow}
@@ -537,11 +551,6 @@ export default function DiscoveryHomePage() {
       </div>
 
       <aside className={styles.sidePanel} aria-label="More ways to explore Hustle">
-        <div className={styles.sideIntro}>
-          <span className={styles.orangeMark}>H.</span>
-          <h2>Watch what people <em>can do.</em></h2>
-          <p>See the work first. Find the person, then book or buy with context.</p>
-        </div>
         <Link className={styles.searchLink} href="/search"><span>⌕</span> Find a skill or Hustler <b>↗</b></Link>
         <div className={styles.sideSection}>
           <div className={styles.sideHeading}><strong>Stories</strong><Link href="/stories">See all ↗</Link></div>
