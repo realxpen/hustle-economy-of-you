@@ -68,33 +68,56 @@ function FeedGlyph({ name, filled = false }: { name: FeedGlyphName; filled?: boo
   return <svg {...attributes}><path d="m13 4 7 7-7 7M20 11H9a5 5 0 0 0-5 5v4"/></svg>;
 }
 
-function MediaRail({ item }: { item: FeedItem }) {
+function FeedPostImage({ url, alt, eager }: { url: string; alt: string; eager: boolean }) {
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
+
+  return <div className={styles.mediaSlide}>
+    {status !== "error" && <>
+      {status === "ready" && <img className={styles.mediaBackdrop} src={url} alt="" aria-hidden="true" />}
+      <img key={attempt} className={styles.mediaImage} src={url} alt={alt}
+        loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"}
+        decoding="async" onLoad={() => setStatus("ready")} onError={() => setStatus("error")} />
+    </>}
+    {status === "loading" && <div className={styles.mediaLoading} role="status">
+      <span className={styles.loadingOrb} aria-hidden="true" />
+      <span>Loading this work…</span>
+    </div>}
+    {status === "error" && <div className={styles.mediaError} role="alert">
+      <strong>Can't show this image right now.</strong>
+      <span>Other post details are still available.</span>
+      <button type="button" onClick={() => { setStatus("loading"); setAttempt((n) => n + 1); }}>Try again</button>
+    </div>}
+  </div>;
+}
+
+function MediaRail({ item, eager }: { item: FeedItem; eager: boolean }) {
   if (item.post.media.length === 0) {
     return <div className={styles.mediaFallback}>A moment worth discovering.</div>;
   }
 
   return <div className={styles.mediaRail}>
-    {item.post.media.map((media) => {
+    {item.post.media.map((media, index) => {
       if (media.type === "VIDEO") {
         const embed = youtubeEmbedUrl(media.mediaUrl);
         if (embed) {
-          return <iframe
-            className={styles.media}
-            key={media.id}
-            src={embed}
+          return <iframe className={styles.media} key={media.id} src={embed}
             title="Hustle post video"
-            loading="lazy"
+            loading={eager && index === 0 ? "eager" : "lazy"}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />;
+            allowFullScreen />;
         }
-        return <video className={styles.media} key={media.id} src={media.mediaUrl ?? undefined} controls muted loop playsInline preload="metadata" aria-label="Hustle post video, muted by default" />;
+        return media.mediaUrl
+          ? <video className={styles.media} key={media.id} src={media.mediaUrl}
+              controls muted loop playsInline preload={eager && index === 0 ? "auto" : "metadata"}
+              aria-label="Hustle post video, muted by default" />
+          : <div key={media.id} className={styles.mediaFallback}>This video is unavailable.</div>;
       }
-      return media.mediaUrl ? <div key={media.id} className={styles.mediaSlide}>
-        <img className={styles.mediaBackdrop} src={media.mediaUrl} alt="" aria-hidden="true" loading="lazy" />
-        <img className={styles.mediaImage} src={media.mediaUrl}
-          alt={"Work shared by " + (item.creator.displayName ?? item.creator.username ?? "a Hustler")} loading="lazy" />
-      </div> : null;
+      return media.mediaUrl
+        ? <FeedPostImage key={media.id} url={media.mediaUrl}
+            alt={"Work shared by " + (item.creator.displayName ?? item.creator.username ?? "a Hustler")}
+            eager={eager && index === 0} />
+        : <div key={media.id} className={styles.mediaFallback}>This image is unavailable.</div>;
     })}
   </div>;
 }
@@ -115,12 +138,27 @@ function FeedCard({
   onCreatorFollowChange: (creatorId: string, following: boolean) => void;
 }) {
   const cardRef = useRef<HTMLElement | null>(null);
+  const footerRef = useRef<HTMLDivElement | null>(null);
   const viewedRef = useRef(false);
   const visibleSinceRef = useRef<number | null>(null);
   const [working, setWorking] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [offersOpen, setOffersOpen] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
+
+  // Float engagement above the real caption/offer height on each device.
+  useEffect(() => {
+    const card = cardRef.current;
+    const footer = footerRef.current;
+    if (!card || !footer) return;
+    const measure = () => {
+      card.style.setProperty("--post-footer-height", Math.ceil(footer.getBoundingClientRect().height) + "px");
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, [item.post.id]);
 
   useEffect(() => {
     void captureFeedEvent({
@@ -298,7 +336,7 @@ function FeedCard({
 
   return <article ref={cardRef} className={styles.card} aria-label={"Post by " + (item.creator.displayName ?? item.creator.username ?? "a Hustler")}>
     <div className={styles.postCanvas}>
-      <MediaRail item={item} />
+      <MediaRail item={item} eager={position === 0} />
     <div className={styles.mediaShade} aria-hidden="true" />
     <div className={styles.postBadge}>
       <span>HUSTLE</span>
@@ -308,7 +346,7 @@ function FeedCard({
       {!hasMedia && <span className={styles.mediaCount}>TEXT POST</span>}
     </div>
 
-    <div className={styles.cardBody}>
+    <div ref={footerRef} className={styles.cardBody}>
       <div className={styles.creatorRow}>
         <Link className={styles.creator} href={creatorHref} onClick={() => void captureFeedEvent({
           name: "feed.profile_clicked", postId: item.post.id, feedTab: tab, position, sessionId

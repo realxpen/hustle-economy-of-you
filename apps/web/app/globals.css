@@ -257,3 +257,10 @@ body:has(main.h-discover-immersive) #hustle-page-content {
   overflow:hidden;
   padding-bottom:0!important;
 }
+
+/* Stop mobile page panning, but preserve horizontal media swipes. */
+html:has(main.h-discover-immersive),
+body:has(main.h-discover-immersive),
+body:has(main.h-discover-immersive) #hustle-page-content {
+  max-width:100%;overflow-x:clip;
+}

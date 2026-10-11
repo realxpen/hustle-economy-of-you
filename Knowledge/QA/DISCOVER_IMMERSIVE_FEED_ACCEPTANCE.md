@@ -45,3 +45,19 @@ Owner-provided screenshot after PR #89 confirms the document now fits one viewpo
 Follow-up code isolates a clean desktop media canvas from a separate engagement rail, lets creator/caption/offer span the media width, makes attached-offer chip one line, centers the viewer, removes competing desktop secondary pane while retaining Stories via toolbar and Marketplace via primary navigation, and preserves mobile full-bleed presentation. Review 320/360/390px, 1024/1440px and 1366x768 for offer/rail overlap (including expanded caption and multiple offers), keyboard, touch and video before declaring accepted.
 
 PR #90 final result: MERGED 2026-10-11, merge SHA f01082aaf56920af61307821f1820f32a8cb49bd, Foundation CI 38118370353 SUCCESS on final head 7c8f56dc763ea1c8aabd7e459772e79cddfa4da0. No production deployment requested or executed by assistant; owner/browser acceptance still PENDING. Must check desktop one-post stage and mobile rail when offers expand.
+
+
+## 2026-10-11 — iPhone screenshots, black media and clipped controls
+Owner supplied two snapshots after the previous layout release: one post has a fully black media region despite post metadata and actions; the other renders a genuine shirt image but the Search icon, Follow button and engagement controls extend beyond the right edge. The bottom dock itself is visible. This is evidence of real mobile-width/position problems and an incomplete loading/error presentation. It does not prove which external media request or browser condition caused the black media.
+
+New targeted corrections:
+- [x] Explicit 100% mobile stage/toolbar width bounds and no document horizontal panning; tabs can scroll within their own space.
+- [x] ResizeObserver sets post footer height; mobile action rail sits above the real creator/caption/offers rather than using a fixed percentage.
+- [x] Image stage includes priority eager loading for first slide of first post, loading indicator and truthful recoverable error state. Missing image/video URLs render a fallback. Original media URLs preserved.
+- [ ] At 320, 360, 375, 390, 430 CSS px iOS Safari and Chrome: For You/Nearby/Connections/Live, all three toolbar icons, Follow, like/comments/save/share, creator and offer CTA visible without horizontal scrolling.
+- [ ] Check short/tall viewport, browser bottom address bar, rotation, safe-area insets and floating dock overlap.
+- [ ] Confirm working image renders and a genuinely failed image shows recoverable error; review browser Network logs if media remains black.
+- [ ] Check multiple posts/videos: on-snap media state and muted playback, on-scroll pause, horizontal carousels unaffected.
+- [ ] Open 1+ attached service/product offers on phone and verify quick views/book/order actions remain accessible.
+
+These are code-level changes only until CI and real-device acceptance.
