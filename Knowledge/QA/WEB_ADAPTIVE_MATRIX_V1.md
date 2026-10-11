@@ -60,3 +60,5 @@ Resolution candidate: restrict horizontal action dock to **landscape only**, exp
 - [ ] Landscape retains compact horizontal action rail and native feed gestures.
 - [ ] System/Light/Dark selector text is fully visible, remains keyboard/VoiceOver operable.
 - [ ] Live first post image, pagination, story/create links and attached service/product quick views work after owner-authorized release.
+
+Code result: PR #93 MERGED ed91cc699066348deeaaa330153b6dd6f781c0ed, Foundation CI 38122637457 SUCCESS on final head 16f557b5d011b0a68544c5b0e091ad1490079420. Short-portrait and landscape scenarios are present in the manual Playwright audit script but have **not** been executed as a rendered browser test. Owner's manual Web release and iOS Safari text-size/rotation testing remain pending.
