@@ -41,7 +41,8 @@ function money(amountMinor: number | null, currency = "NGN") {
 export default function StoryViewerPage() {
   const params = useParams<{ storyId: string }>();
   const router = useRouter();
-  const [story, setStory] = useState<StoryRecord | null>(null);
+  const [loadedStory, setStory] = useState<StoryRecord | null>(null);
+  const story = loadedStory?.id === params?.storyId ? loadedStory : null;
   const [sequence, setSequence] = useState<StoryRecord[]>([]);
   const [viewer, setViewer] = useState<StoryViewerInteraction | null>(null);
   const [replies, setReplies] = useState<StoryReply[]>([]);
@@ -54,6 +55,12 @@ export default function StoryViewerPage() {
     let active = true;
     const storyId = params?.storyId;
     if (!storyId) return;
+    setStory(null);
+    setSequence([]);
+    setViewer(null);
+    setReplies([]);
+    setError(null);
+    setNotice(null);
 
     Promise.all([
       getPublicStory(storyId),
@@ -67,7 +74,7 @@ export default function StoryViewerPage() {
         setViewer(nextViewer);
         void recordStoryView(storyId).then((result) => {
           if (!active) return;
-          setStory((current) => current ? {
+          setStory((current) => current?.id === storyId ? {
             ...current,
             interactions: { ...current.interactions, views: result.views }
           } : current);
@@ -115,7 +122,7 @@ export default function StoryViewerPage() {
   }
 
   async function chooseReaction(reaction: StoryReaction) {
-    if (!story) return;
+    if (!story || busy) return;
     if (!viewer) {
       window.location.assign("/auth");
       return;
@@ -142,7 +149,7 @@ export default function StoryViewerPage() {
 
   async function sendReply(event: FormEvent) {
     event.preventDefault();
-    if (!story || !replyBody.trim()) return;
+    if (!story || !replyBody.trim() || busy) return;
     if (!viewer) {
       window.location.assign("/auth");
       return;
@@ -218,7 +225,7 @@ export default function StoryViewerPage() {
 
         {!viewer?.isOwner && <form className={experience.replyForm} onSubmit={sendReply}>
           <input value={replyBody} maxLength={1200} onChange={(event) => setReplyBody(event.target.value)} placeholder={viewer ? "Reply privately to this Story…" : "Sign in to reply…"} />
-          <button type="submit" disabled={busy === "reply" || !replyBody.trim()}>{busy === "reply" ? "Sending…" : "Reply"}</button>
+          <button type="submit" disabled={Boolean(busy) || !replyBody.trim()}>{busy === "reply" ? "Sending…" : "Reply"}</button>
         </form>}
 
         {viewer && replies.length > 0 && <div className={experience.replyList}>
