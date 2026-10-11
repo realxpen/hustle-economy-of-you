@@ -64,3 +64,14 @@
  .threadHeader{gap:8px;flex-wrap:wrap}
  .conversationMeta{max-width:70px;overflow-wrap:anywhere}
 }
+
+/* UX Build 2: a conversation may return to one known Booking or Order.
+   The link is navigation only; message text does not confirm money. */
+.transactionHandoff{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:11px 16px;border-bottom:1px solid var(--h-border-subtle,#bbb);background:var(--h-surface,#f9f5ee);color:var(--h-ink,#111)}
+.transactionHandoff a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border-radius:999px;border:1px solid var(--h-orange,#fc822a);font-size:12px;font-weight:850}
+.transactionHandoff span{font-size:11px;line-height:1.4;color:var(--h-muted,#666);flex:1 1 180px}
+.startActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.startActions button,.startActions a,.transactionReturn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border-radius:999px;border:1px solid var(--h-border,#bbb);font-size:12px;font-weight:850}
+.startActions button{background:var(--h-orange,#fc822a);color:#19100b;cursor:pointer}
+.transactionReturn{margin-top:12px}
+@media(max-width:600px){.transactionHandoff a{width:100%}}

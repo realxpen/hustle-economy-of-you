@@ -129,3 +129,8 @@ The owner explicitly rejected the screenshot-rendered traditional card feed: Dis
 ## 13. Proof → Hustler → Offer → Intent — UX integration
 
 Core Web integration (ADR-0062): A genuine published Post can open a canonical Product/Service quick view while preserving a validated **return-to-post navigation link**. Quick view should lead to the best honest next action—Book Request for Service, Product details/variant selection for Cart—without pretending checkout or payment has occurred. The same seller storefront remains one click away. Service/Product and Booking screens use fresh API state on ID changes and retry failure recovery, never old owner/price. Public storefront surfaces a visible path from portfolio proof to actual published Services/Products. Responsive keyboard/focus and pricing authority are acceptance requirements. Browser/real-device checks in Knowledge/QA/CORE_OPPORTUNITY_JOURNEY_ACCEPTANCE.md.
+
+
+## 14. Booking, Orders, Cart, Checkout and conversation continuity
+
+UX Build 2 (ADR-0063): the canonical status, not UI optimism, governs progress. A Service consultation can happen before a Booking request; a Booking request is not a paid Booking. A Cart is mutable, Checkout must revalidate price/stock and creates an **unpaid** Order. Progress indicators are visual summaries of API-proven transitions only; exceptional cancellations/refunds/disputes are not depicted as completed success. Real Buyer/Seller or Client/Hustler transactions link to the relevant authenticated Message thread and can return to the original Booking/Order detail via a strictly validated internal navigation-only `returnTo` URL. Private thread data is cleared on route changes. See Knowledge/QA/TRANSACTION_MESSAGING_UX_BUILD2_ACCEPTANCE.md.

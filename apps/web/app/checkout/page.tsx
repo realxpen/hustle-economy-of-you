@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { ExperienceState } from "../../components/experience/experience-state";
 import { checkout, formatMoney, getCheckoutPreview, type CheckoutInput, type CheckoutPreview } from "../../lib/commerce";
@@ -11,20 +11,27 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [previewBusy, setPreviewBusy] = useState(true);
+  const previewVersion = useRef(0);
   const [form, setForm] = useState<CheckoutInput>({ deliveryCountry: "Nigeria" });
 
   async function reloadPreview() {
+    const version = ++previewVersion.current;
     setPreviewBusy(true);
+    setPreview(null);
     setError(null);
     try {
-      setPreview(await getCheckoutPreview());
+      const next = await getCheckoutPreview();
+      if (version === previewVersion.current) setPreview(next);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not load checkout preview");
+      if (version === previewVersion.current) setError(reason instanceof Error ? reason.message : "Could not load checkout preview");
     } finally {
-      setPreviewBusy(false);
+      if (version === previewVersion.current) setPreviewBusy(false);
     }
   }
-  useEffect(() => { void reloadPreview(); }, []);
+  useEffect(() => {
+    void reloadPreview();
+    return () => { previewVersion.current += 1; };
+  }, []);
 
   const requiresDelivery = useMemo(() => preview?.groups.some((group) => group.requiresDelivery) ?? false, [preview]);
 
@@ -42,11 +49,12 @@ export default function CheckoutPage() {
       if (result.orders.length === 1) {
         window.location.assign(`/orders/${result.orders[0].id}?created=1`);
       } else {
-        window.location.assign("/orders?checkout=success");
+        window.location.assign("/orders?checkout=created");
       }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Checkout failed");
-      try { setPreview(await getCheckoutPreview()); } catch { /* keep original checkout error */ }
+      // Do not leave stale prices/stock actionable after a failed checkout.
+      setPreview(null);
     } finally { setSubmitting(false); }
   }
 
@@ -55,14 +63,18 @@ export default function CheckoutPage() {
       trail={[{ href: "/marketplace", label: "Marketplace" }, { href: "/cart", label: "Cart" }]}
       secondaryLinks={[{ href: "/orders", label: "Orders" }]} />
 
+    <nav className={styles.purchaseFlow} aria-label="Buying journey">
+      <span>1. Choose products</span><a href="/cart">2. Review Cart</a>
+      <strong aria-current="step">3. Check Order</strong><span>4. Track Order</span>
+    </nav>
     <section className={[styles.hero, "h-experience-hero"].join(" ")}>
-      <div><p className={styles.eyebrow}>SECURE ORDER REVIEW</p><h1 className="h-experience-heading">Confirm the transaction.</h1></div>
+      <div><p className={styles.eyebrow}>SECURE ORDER REVIEW</p><h1 className="h-experience-heading">Review before creating an Order.</h1></div>
       <p>Checkout creates a durable PENDING Order. It does not charge you, reserve stock, or claim payment success.</p>
     </section>
 
     {error && preview && <div className={styles.error} role="alert">{error}</div>}
     {!preview && previewBusy && <ExperienceState kind="loading" title="Checking cart and product availability…" />}
-    {!preview && !previewBusy && error && <ExperienceState kind="error" title="Could not prepare Checkout." description="Your cart remains available. Try loading the preview again." action={{label:"Retry checkout preview",onClick:()=>void reloadPreview()}} />}
+    {!preview && !previewBusy && error && <ExperienceState kind="error" title="Could not prepare Checkout." description={error+" Your Cart remains available. Refresh the preview to check current availability."} action={{label:"Refresh checkout preview",onClick:()=>void reloadPreview()}} />}
     {preview && preview.groups.length === 0 && <ExperienceState kind="empty" title="Your cart is empty." description="Add a Product before starting an Order." action={{label:"Explore Products",href:"/marketplace"}} />}
 
     {preview && preview.groups.length > 0 && <form className={styles.grid} onSubmit={submit} aria-busy={submitting}>
@@ -93,7 +105,7 @@ export default function CheckoutPage() {
         <div><small className={styles.eyebrow}>BOUNDARY</small><h2>Payment comes next.</h2></div>
         {preview.groups.map((group) => <div className={styles.summaryLine} key={group.seller.id}><span>{group.seller.displayName ?? group.seller.username}</span><strong>{formatMoney(group.subtotalMinor, group.currency)}</strong></div>)}
         <div className={styles.notice}><strong>PENDING means unpaid.</strong><p>{preview.inventoryPolicy}</p><p>After Order creation, a separate provider-confirmed payment step is required. Checkout never marks an Order PAID.</p></div>
-        <button className={styles.buttonAlt} type="submit" aria-busy={submitting} disabled={submitting || previewBusy}>{submitting ? "Creating Order…" : "Create unpaid Order →"}</button>
+        <button className={styles.buttonAlt} type="submit" aria-busy={submitting} disabled={submitting || previewBusy || Boolean(error)}>{submitting ? "Creating Order…" : "Create unpaid Order →"}</button>
         <a className={styles.button} href="/cart">← Back to Cart</a>
       </aside>
     </form>}

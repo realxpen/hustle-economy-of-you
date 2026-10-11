@@ -2,7 +2,11 @@
 
 import { ExperienceStatus } from "../../../components/navigation/experience-status";
 import { ExperienceHeader } from "../../../components/navigation/experience-header";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ExperienceState } from "../../../components/experience/experience-state";
+import { TransactionJourney } from "../../../components/commerce/transaction-journey";
+import { withTransactionReturnTo } from "../../../lib/transaction-return";
 import { useParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
 import { CounterpartyFeedbackCard } from "../../../components/trust/counterparty-feedback-card";
@@ -46,7 +50,8 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 export default function BookingDetailPage() {
   const params = useParams<{ bookingId: string }>();
-  const [booking, setBooking] = useState<BookingRecord | null>(null);
+  const [storedBooking, setBooking] = useState<BookingRecord | null>(null);
+  const requestVersion = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmedStartAt, setConfirmedStartAt] = useState("");
@@ -63,15 +68,21 @@ export default function BookingDetailPage() {
   const load = useCallback(async () => {
     const id = params?.bookingId;
     if (!id) return;
+    const version = ++requestVersion.current;
     try {
       setError(null);
-      applyBooking(await getBooking(id));
+      const next = await getBooking(id);
+      if (version === requestVersion.current) applyBooking(next);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not load booking");
+      if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : "Could not load booking");
     }
   }, [applyBooking, params?.bookingId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    setBooking(null);
+    void load();
+    return () => { requestVersion.current += 1; };
+  }, [load]);
 
   async function act(action: () => Promise<BookingRecord>) {
     setBusy(true);
@@ -95,8 +106,9 @@ export default function BookingDetailPage() {
     await act(() => acceptBooking(booking.id, { confirmedStartAt: start, ...(end ? { confirmedEndAt: end } : {}) }));
   }
 
-  if (error && !booking) return <main className={styles.shell}><div className={styles.formWrap}><div className={styles.error}>{error}</div><p><a href="/bookings">← Back to bookings</a></p></div></main>;
-  if (!booking) return <main className={styles.shell}><p className={styles.loading}>Loading booking…</p></main>;
+  const booking = storedBooking?.id === params?.bookingId ? storedBooking : null;
+  if (error && !booking) return <main className={styles.shell}><ExperienceState kind="error" title="Booking unavailable." description={error} action={{label:"Retry booking",onClick:()=>void load()}} /></main>;
+  if (!booking) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading booking…" /></main>;
 
   const other = booking.viewerRole === "CLIENT" ? booking.hustler : booking.client;
   const otherLabel = other.displayName ?? other.username ?? "participant";
@@ -104,16 +116,31 @@ export default function BookingDetailPage() {
   const canAccept = booking.viewerRole === "HUSTLER" && booking.status === "REQUESTED";
   const canStart = booking.viewerRole === "HUSTLER" && ["ACCEPTED", "FUNDED"].includes(booking.status);
   const canComplete = booking.viewerRole === "HUSTLER" && booking.status === "IN_PROGRESS";
-  const messageUrl = booking.conversationId ? `/messages/${booking.conversationId}` : `/messages/start?userId=${encodeURIComponent(other.id)}`;
+  const messageUrl = withTransactionReturnTo(
+    booking.conversationId ? `/messages/${encodeURIComponent(booking.conversationId)}`
+      : `/messages/start?userId=${encodeURIComponent(other.id)}&contextType=SERVICE&contextId=${encodeURIComponent(booking.serviceId)}`,
+    `/bookings/${encodeURIComponent(booking.id)}`
+  );
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Booking detail" trail={[{ href: "/bookings", label: "Bookings" }]}
       secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, { href: "/wallet", label: "Wallet" }]} />
 
+    <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />
+    <section className={styles.handoff} aria-label="Booking next steps">
+      <div><strong>Next step</strong><p>{booking.nextAction ?? "Check your booking status or discuss the details in Messages."}</p></div>
+      <div className={styles.handoffLinks}>
+        <Link href={messageUrl}>Message {otherLabel} ↗</Link>
+        <Link href={`/services/${encodeURIComponent(booking.serviceId)}`}>Review service</Link>
+        <Link href="/bookings">All bookings</Link>
+      </div>
+      <small>Messages help you consult; only Hustle's booking and payment records determine confirmed work or funding.</small>
+    </section>
+
     <div className={styles.detailGrid}>
       <section className={styles.detailMain}>
         <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
-          <p className={styles.eyebrow}>{booking.viewerRole} VIEW · BOOKING</p>
+          <p className={styles.eyebrow}>{booking.viewerRole === "CLIENT" ? "YOUR SERVICE REQUEST" : "CUSTOMER SERVICE REQUEST"}</p>
           <h1 className="h-experience-heading">{booking.serviceTitleSnapshot}</h1>
           <div className={styles.meta}><ExperienceStatus kind="booking" value={booking.status} /><span>{formatBookingPrice(booking)}</span><span>with {other.displayName ?? other.username ?? "Hustle user"}</span></div>
           <p className={styles.next}>{booking.nextAction}</p>
@@ -137,7 +164,7 @@ export default function BookingDetailPage() {
           <div className={styles.facts}><Fact label="PRICE" value={formatBookingPrice(booking)} /><Fact label="PRICING" value={booking.pricingTypeSnapshot.replaceAll("_", " ")} /><Fact label="SERVICE" value={booking.service.title ?? booking.serviceTitleSnapshot} /><Fact label="DELIVERY" value={booking.service.deliveryMode} /></div>
         </section>
 
-        {booking.paymentBoundary.required && <div className={booking.paymentBoundary.funded ? styles.success : styles.payment}><strong>{booking.paymentBoundary.funded ? "Funding confirmed" : "Payment boundary"}</strong><p>{booking.paymentBoundary.funded ? "This Booking has authoritative funding evidence." : booking.paymentBoundary.message ?? "Phase 13 owns payment and escrow confirmation."}</p></div>}
+        {booking.paymentBoundary.required && <div className={booking.paymentBoundary.funded ? styles.success : styles.payment}><strong>{booking.paymentBoundary.funded ? "Funding confirmed" : "Payment boundary"}</strong><p>{booking.paymentBoundary.funded ? "This Booking has authoritative funding evidence." : booking.paymentBoundary.message ?? "Funding is confirmed only after authoritative payment evidence is received."}</p></div>}
 
         {booking.paymentBoundary.required && <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>PAYMENT · ESCROW</p>

@@ -2,7 +2,10 @@
 
 import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ExperienceState } from "../../../components/experience/experience-state";
+import { TransactionJourney } from "../../../components/commerce/transaction-journey";
+import { withTransactionReturnTo } from "../../../lib/transaction-return";
 import { useParams, useSearchParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
 import { CounterpartyFeedbackCard } from "../../../components/trust/counterparty-feedback-card";
@@ -29,19 +32,30 @@ function formatDate(value: string | null) {
 export default function OrderDetailPage() {
   const params = useParams<{ orderId: string }>();
   const search = useSearchParams();
-  const [order, setOrder] = useState<OrderRecord | null>(null);
+  const [storedOrder, setOrder] = useState<OrderRecord | null>(null);
+  const requestVersion = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!params?.orderId) return;
-    setOrder(await getOrder(params.orderId));
-  }
+    const version = ++requestVersion.current;
+    try {
+      setError(null);
+      const next = await getOrder(params.orderId);
+      if (version === requestVersion.current) setOrder(next);
+    } catch (reason) {
+      if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : "Could not load Order");
+    }
+  }, [params?.orderId]);
 
   useEffect(() => {
-    load().catch((reason: Error) => setError(reason.message));
-  }, [params?.orderId]);
+    setOrder(null);
+    void load();
+    return () => { requestVersion.current += 1; };
+  }, [load]);
+  const order = storedOrder?.id === params?.orderId ? storedOrder : null;
 
   const hasPhysical = useMemo(() => order?.items.some((item) => item.productTypeSnapshot === "PHYSICAL") ?? false, [order]);
 
@@ -73,12 +87,17 @@ export default function OrderDetailPage() {
     }
   }
 
-  if (error && !order) return <main className={styles.shell}><div className={styles.error}>{error}</div><p><Link className={styles.link} href="/orders">← Orders</Link></p></main>;
-  if (!order) return <main className={styles.shell}><div className={styles.loading}>Loading Order…</div></main>;
+  if (error && !order) return <main className={styles.shell}><ExperienceState kind="error" title="Order unavailable." description={error} action={{label:"Retry Order",onClick:()=>void load()}} /></main>;
+  if (!order) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Order…" /></main>;
 
   const counterpart = order.viewerRole === "BUYER" ? order.seller : order.buyer;
   const counterpartLabel = counterpart.displayName ?? counterpart.username ?? "participant";
-  const messageUrl = `/messages/start?userId=${encodeURIComponent(counterpart.id)}`;
+  const firstProductId = order.items[0]?.productId;
+  const messageUrl = withTransactionReturnTo(
+    `/messages/start?userId=${encodeURIComponent(counterpart.id)}` +
+      (firstProductId ? `&contextType=PRODUCT&contextId=${encodeURIComponent(firstProductId)}` : ""),
+    `/orders/${encodeURIComponent(order.id)}`
+  );
   const created = search.get("created") === "1";
   const canCancel = order.status === "PENDING";
   const canProcess = order.viewerRole === "SELLER" && order.status === "PAID";
@@ -102,7 +121,18 @@ export default function OrderDetailPage() {
 
     <section className={[styles.hero, "h-experience-hero"].join(" ")}><div><p className={styles.eyebrow}>ORDER · {order.viewerRole}</p><h1 className="h-experience-heading">{order.status.replaceAll("_", " ")}</h1></div><p>{derivedNextAction}</p></section>
 
-    {created && order.status === "PENDING" && <div className={styles.success}>Order created successfully. It is PENDING and has not been paid yet.</div>}
+    <TransactionJourney kind="ORDER" status={order.status} paid={order.paymentBoundary.paid} />
+    <section className={styles.handoff} aria-label="Order next steps">
+      <div><strong>Next step</strong><p>{derivedNextAction ?? "Review the authoritative Order status before taking another step."}</p></div>
+      <div className={styles.handoffLinks}>
+        <Link href={messageUrl}>Message {counterpartLabel} ↗</Link>
+        <Link href="/orders">All orders</Link>
+        <Link href="/marketplace">Explore products</Link>
+      </div>
+      <small>Messages help you coordinate fulfillment; they cannot confirm payment, change inventory, or release settlement.</small>
+    </section>
+
+    {created && order.status === "PENDING" && <div className={styles.success}>Unpaid Order created. Review payment options and status below; no payment has been confirmed.</div>}
     {notice && <div className={styles.success}>{notice}</div>}
     {error && <div className={styles.error}>{error}</div>}
 
@@ -146,7 +176,7 @@ export default function OrderDetailPage() {
         {canComplete && <button className={styles.button} disabled={Boolean(busy)} onClick={() => void runAction("Completion", completeOrder, "Confirm that you have received this Order and want to mark it complete?")}>{busy === "Completion" ? "Updating…" : "Confirm completion"}</button>}
         {canCancel && <button className={styles.danger} disabled={Boolean(busy)} onClick={() => void runAction("Cancellation", cancelOrder, "Cancel this unpaid PENDING Order? This does not perform any refund because no payment has been confirmed.")}>{busy === "Cancellation" ? "Cancelling…" : "Cancel unpaid Order"}</button>}
       </div>
-      {order.status === "PENDING" && <div className={styles.notice} style={{ marginTop: 14 }}><strong>Before payment only</strong><p>Cancellation is available while the Order is PENDING. Once provider-confirmed payment is applied, refunds use the Phase 13 financial workflow.</p></div>}
+      {order.status === "PENDING" && <div className={styles.notice} style={{ marginTop: 14 }}><strong>Before payment only</strong><p>Cancellation is available while the Order is PENDING. Once payment is authoritatively confirmed, refunds use the dedicated financial workflow.</p></div>}
     </section>}
 
     <div className={styles.grid} style={{ marginTop: 18 }}>

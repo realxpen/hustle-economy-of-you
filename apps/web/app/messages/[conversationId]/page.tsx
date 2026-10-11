@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { safeTransactionReturnTo, transactionReturnLabel } from "../../../lib/transaction-return";
 import { ConversationSafetyActions } from "../../../components/trust/conversation-safety-actions";
 import { ExperienceState } from "../../../components/experience/experience-state";
 import {
@@ -70,7 +71,11 @@ export default function ConversationPage() {
   const params = useParams<{ conversationId: string }>();
   const router = useRouter();
   const conversationId = params?.conversationId;
-  const [conversation, setConversation] = useState<ConversationSummary | null>(null);
+  const [storedConversation, setConversation] = useState<ConversationSummary | null>(null);
+  const [returnTo, setReturnTo] = useState<string | null>(null);
+  const conversationIdRef = useRef(conversationId);
+  conversationIdRef.current = conversationId;
+  const conversation = storedConversation?.id === conversationId ? storedConversation : null;
   const [messages, setMessages] = useState<MessagingMessage[]>([]);
   const [meta, setMeta] = useState<Pick<MessagePage, "nextCursor" | "hasMore">>({ nextCursor: null, hasMore: false });
   const [text, setText] = useState("");
@@ -105,43 +110,57 @@ export default function ConversationPage() {
 
   useEffect(() => {
     if (!conversationId) return;
-
+    let active = true;
+    let authTimeout: ReturnType<typeof setTimeout> | null = null;
+    setConversation(null);
+    setMessages([]);
+    setAttachmentUrls({});
+    setError(null);
+    setLoading(true);
+    setPendingContext(null);
     const search = new URLSearchParams(window.location.search);
+    const safeReturn = safeTransactionReturnTo(search.get("returnTo"));
+    setReturnTo(safeReturn);
     const rawType = search.get("contextType")?.toUpperCase();
     const contextId = search.get("contextId")?.trim();
     if ((rawType === "POST" || rawType === "SERVICE" || rawType === "PRODUCT") && contextId) {
       setPendingContext({ type: rawType, id: contextId });
     }
 
-    Promise.all([
+    void Promise.all([
       getConversation(conversationId),
       listMessages(conversationId, { limit: 50 })
     ])
       .then(([nextConversation, page]) => {
+        if (!active || conversationIdRef.current !== conversationId) return;
         setConversation(nextConversation);
         setMessages(page.items);
         setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore });
         setLoading(false);
-
-        const last = page.items.at(-1);
-        if (last) {
-          void markConversationRead(conversationId, last.id)
+        const lastMessage = page.items.at(-1);
+        if (lastMessage) {
+          void markConversationRead(conversationId, lastMessage.id)
             .then((read) => {
-              setConversation((current) => current ? {
+              if (!active || conversationIdRef.current !== conversationId) return;
+              setConversation((current) => current && current.id === conversationId ? {
                 ...current,
                 viewer: { ...current.viewer, lastReadAt: read.lastReadAt, unreadCount: read.unreadCount }
               } : current);
-            })
-            .catch(() => undefined);
+            }).catch(() => undefined);
         }
       })
       .catch((reason: Error) => {
+        if (!active || conversationIdRef.current !== conversationId) return;
         setError(reason.message);
         setLoading(false);
         if (reason.message.toLowerCase().includes("sign in")) {
-          setTimeout(() => router.replace("/auth"), 900);
+          authTimeout = setTimeout(() => router.replace("/auth"), 900);
         }
       });
+    return () => {
+      active = false;
+      if (authTimeout) clearTimeout(authTimeout);
+    };
   }, [conversationId, router]);
 
   useEffect(() => {
@@ -350,7 +369,8 @@ export default function ConversationPage() {
     setText("");
     setPendingContext(null);
     setSelectedFile(null);
-    window.history.replaceState(null, "", `/messages/${conversationId}`);
+    window.history.replaceState(null, "", `/messages/${encodeURIComponent(conversationId)}` +
+      (returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""));
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     lastTypingSentRef.current = 0;
     void setConversationTyping(conversationId, false).catch(() => undefined);
@@ -442,7 +462,7 @@ export default function ConversationPage() {
     router.push(message.context.url);
   }
 
-  if (loading) return <main className={styles.start}><ExperienceState kind="loading" title="Opening your conversation…" description="Loading messages and available attachments." /></main>;
+  if (loading || (storedConversation !== null && conversation === null)) return <main className={styles.start}><ExperienceState kind="loading" title="Opening your conversation…" description="Loading messages and available attachments." /></main>;
   if (!conversation) return <main className={styles.start}><ExperienceState kind="error" title="Conversation unavailable." description={error ?? "This thread could not be opened."} action={{ label: "Back to inbox", href: "/messages" }} /></main>;
 
   return <main className={styles.threadShell}>
@@ -458,6 +478,10 @@ export default function ConversationPage() {
       <button className={styles.refresh} type="button" onClick={() => void refresh()}>Refresh</button>
     </header>
 
+    {returnTo && <div className={styles.transactionHandoff}>
+      <a href={returnTo}>← {transactionReturnLabel(returnTo)}</a>
+      <span>This conversation is for coordination. Only the original transaction page confirms status and payment.</span>
+    </div>}
     {conversationId && other && <div style={{ padding: "14px 18px 0" }}>
       <ConversationSafetyActions
         conversationId={conversationId}
@@ -520,7 +544,8 @@ export default function ConversationPage() {
           {otherTyping && <div className={styles.typingIndicator}>{other?.displayName ?? other?.username ?? "Hustle user"} is typing…</div>}
           {pendingContext && <div className={styles.pendingContext}>
             <span><strong>{contextLabel(pendingContext.type)}</strong> will be attached to your next message.</span>
-            <button type="button" onClick={() => { setPendingContext(null); window.history.replaceState(null, "", `/messages/${conversationId}`); }}>Remove</button>
+            <button type="button" onClick={() => { setPendingContext(null); window.history.replaceState(null, "", `/messages/${encodeURIComponent(conversationId)}` +
+      (returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : "")); }}>Remove</button>
           </div>}
           {selectedFile && <div className={styles.pendingFile}>
             <span><strong>{selectedFile.type.startsWith("image/") ? "Image" : "File"}</strong> · {selectedFile.name} · {formatBytes(selectedFile.size)}</span>
