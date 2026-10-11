@@ -1,0 +1,23 @@
+/* Hustle's Web adaptive foundation. CSS viewport widths adapt naturally to zoom.
+   Do not force a fixed viewport scale or suppress zoom. */
+:root{--h-gutter:clamp(12px,3vw,40px);--h-safe-bottom:env(safe-area-inset-bottom,0px);--h-control-min:44px}
+html{min-inline-size:0;scroll-padding-top:1rem}
+body,#hustle-page-content{min-inline-size:0;max-inline-size:100%}
+:where(main,section,article,aside,nav,header,footer,form,fieldset,figure){min-inline-size:0}
+:where(h1,h2,h3,h4,p,blockquote,figcaption,dd,dt,small,strong,span,a,label){overflow-wrap:break-word}
+:where(img,video,canvas,iframe){max-inline-size:100%}
+:where(input,textarea,select,button){min-inline-size:0;max-inline-size:100%}
+:where(textarea){resize:vertical}
+:where(a,button,input,select,textarea,[role="button"]):focus-visible{outline:3px solid var(--h-focus,#e85a16);outline-offset:3px}
+:where([role="dialog"],[aria-modal="true"]){max-inline-size:100vw}
+:where(pre,code){overflow-wrap:anywhere}
+:where(pre){max-inline-size:100%;overflow-x:auto}
+@media(max-width:760px){
+ input:not([type="checkbox"]):not([type="radio"]),textarea,select{font-size:max(16px,1rem)!important}
+ :where([role="dialog"],[aria-modal="true"]){max-block-size:100dvh}
+}
+@media(max-width:480px){
+ :where(h1,h2,h3){overflow-wrap:anywhere}
+ :where(table){display:block;max-inline-size:100%;overflow-x:auto}
+}
+@media(prefers-reduced-motion:reduce){:where(html,* ,*::before,*::after){scroll-behavior:auto}}

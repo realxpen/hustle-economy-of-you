@@ -4,3 +4,21 @@
 .form input,.form select,.form textarea{min-height:48px}
 .form input:focus-visible,.form button:focus-visible,.actions a:focus-visible{outline:3px solid var(--h-orange,#ff5a1f);outline-offset:2px}
 @media(max-width:520px){.page{padding:16px 14px calc(24px + env(safe-area-inset-bottom))}.actions a,.actions button{min-height:44px}.heroPanel,.panel{padding:18px}}
+
+
+/* Live stage scales for short windows and compact devices. */
+.page,.shell,.hero,.controlGrid,.viewerGrid,.stage,.mediaPanel,.panel,.card{min-width:0;max-width:100%}
+.stage iframe,.stage video,.remoteMediaRoot,.remoteVideo,.nativeStage{max-width:100%}
+.commentForm input{min-width:0}
+@media(max-width:680px){
+ .page{padding:clamp(12px,4vw,20px)}
+ .hero,.controlGrid,.viewerGrid,.grid{grid-template-columns:minmax(0,1fr)}
+ .hero h1{font-size:clamp(31px,10vw,48px);line-height:1.04}
+ .heroPanel,.panel,.card,.mediaPanel{padding:clamp(13px,4vw,21px);border-radius:18px}
+ .topbar,.mediaHeader,.commerceCard,.sessionRow{flex-wrap:wrap;gap:10px}
+ .stage,.stage iframe,.stage video,.nativeStage,.localPreview,.localPreview video{min-height:min(330px,48dvh)}
+ .viewerMediaControls{max-width:calc(100% - 22px);right:11px;bottom:11px}
+ .viewerMediaControls button{min-height:44px}
+ .commentForm button{flex-shrink:0;min-height:44px}
+}
+@media(max-height:540px){.stage,.stage iframe,.stage video,.nativeStage{min-height:200px}.comments{height:min(45dvh,310px)}}

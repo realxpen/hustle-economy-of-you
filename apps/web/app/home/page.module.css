@@ -637,3 +637,16 @@
   .captionWrap p{font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){.loadingOrb{animation:none}}
+
+
+/* Short windows (landscape/400% zoom) use a horizontal action dock above
+   a bounded, separately scrollable creator/offer footer. */
+@media(max-width:760px) and (max-height:600px){
+ .cardBody{max-height:min(45%,210px);overflow-y:auto;overscroll-behavior-y:contain}
+ .actionRail{flex-direction:row;width:max-content;max-width:calc(100% - 16px);
+   right:8px;bottom:calc(var(--post-footer-height,120px) + 5px);gap:3px}
+ .actionRail a,.actionRail button{min-width:38px;min-height:42px}
+ .actionDisc{width:34px;height:34px}
+ .actionDisc svg{width:18px;height:18px}
+ .postBadge{top:7px;left:9px;font-size:9px}
+}

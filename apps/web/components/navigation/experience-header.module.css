@@ -10,3 +10,21 @@
  .breadcrumbs{font-size:12px}
  .section{font-weight:850}
 }
+
+
+/* Shared header responds to CSS viewport, including browser zoom. */
+.header,.primaryRow,.primaryNav{min-width:0;max-width:100%}
+@media(max-width:1060px) and (min-width:761px){
+ .primaryRow{flex-wrap:wrap;row-gap:6px}
+ .primaryNav{order:3;flex:1 1 100%;justify-content:flex-start;overflow-x:auto;scrollbar-width:thin}
+ .primaryNav>a{min-height:44px}
+ .appearance{margin-left:auto}
+}
+@media(max-width:760px){
+ .primaryRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}
+ .brand{min-width:0;white-space:nowrap;font-size:clamp(16px,4.8vw,20px)}
+ .appearance{margin-left:0}
+ .actions{grid-column:1/-1;min-width:0;max-width:100%;flex:initial;justify-content:flex-start}
+ .actions>a,.actions>button{white-space:normal;text-align:center;overflow-wrap:anywhere}
+}
+@media(max-width:355px){.brand{font-size:16px}.appearance select{max-width:64px}}
