@@ -10,6 +10,10 @@ import { formatProductPrice, getPublicProduct, type PublicProduct } from "../../
 import { AddToCart } from "./add-to-cart";
 import styles from "./page.module.css";
 
+function isProductVideo(url: string) {
+  return /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url);
+}
+
 export default function PublicProductPage() {
   const params = useParams<{ productId: string }>();
   const [data, setData] = useState<PublicProduct | null>(null);
@@ -43,7 +47,11 @@ export default function PublicProductPage() {
 
     <section className={styles.topGrid}>
       <div className={styles.media}>
-        {heroMedia ? <img className={styles.heroImage} src={heroMedia} alt={product.title ? `Photo of ${product.title}` : "Product photo"} /> : <span>PRODUCT MEDIA</span>}
+        {heroMedia
+          ? isProductVideo(heroMedia)
+            ? <video className={styles.heroImage} src={heroMedia} controls playsInline preload="metadata" aria-label={product.title ? `Video of ${product.title}` : "Product video"} />
+            : <img className={styles.heroImage} src={heroMedia} alt={product.title ? `Photo of ${product.title}` : "Product photo"} />
+          : <span>PRODUCT MEDIA</span>}
       </div>
       <div className={styles.summary}>
         <div className={styles.badges}><span>{product.type}</span><span>{product.inStock ? "AVAILABLE" : "OUT OF STOCK"}</span></div>
@@ -51,7 +59,7 @@ export default function PublicProductPage() {
         <h1 className="h-experience-heading">{product.title}</h1>
         <strong className={styles.price}>{formatProductPrice(product)}</strong>
         <p className={styles.description}>{product.description}</p>
-        <AddToCart data={currentData} />
+        <AddToCart key={product.id} data={currentData} />
         <div className={styles.boundary}><strong>{product.inStock ? "Commerce enabled" : "Currently unavailable"}</strong><span>Cart and checkout revalidate price, variant and inventory before a PENDING Order can be created.</span></div>
       </div>
     </section>

@@ -59,8 +59,8 @@ export default function CartPage() {
     </header>
 
     <section className={styles.hero}>
-      <div><p className={styles.eyebrow}>PHASE 12 · CART</p><h1>Your buying intent.</h1></div>
-      <p>Cart stays mutable until checkout. Stock and price are revalidated on the server, and nothing is treated as paid until Phase 13 confirms it.</p>
+      <div><p className={styles.eyebrow}>YOUR CART</p><h1>Your buying intent.</h1></div>
+      <p>Review your products, quantities and sellers here. Checkout checks price and stock again; creating an Order never means it has been paid.</p>
     </section>
 
     {error && <div className={styles.error}>{error}</div>}
@@ -86,7 +86,7 @@ export default function CartPage() {
       <aside className={`${styles.panel} ${styles.summary}`}>
         <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>SUMMARY</small><h2>Cart total</h2></div></div>
         {cart.totals.map((total) => <div className={styles.summaryLine} key={total.currency}><span>{total.currency}</span><strong>{formatMoney(total.subtotalMinor, total.currency)}</strong></div>)}
-        <div className={styles.notice}><strong>Inventory is not reserved.</strong><p>A Cart and a PENDING Order do not own stock. Phase 13 will revalidate stock when payment is authoritatively confirmed.</p></div>
+        <div className={styles.notice}><strong>Inventory is not reserved.</strong><p>Items can become unavailable before purchase. Checkout validates current price and stock again, and only a payment-provider confirmation can mark an Order paid.</p></div>
         {cart.items.length > 0 && <a className={styles.buttonAlt} href="/checkout">Continue to checkout →</a>}
       </aside>
     </div>}

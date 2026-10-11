@@ -41,6 +41,6 @@ export function AddToCart({ data }: { data: PublicProduct }) {
     <button className={styles.cartButton} disabled={busy || !product.inStock} onClick={() => void add()}>{busy ? "Adding…" : product.inStock ? "Add to Cart →" : "Out of stock"}</button>
     {message && <div className={styles.cartSuccess}>{message} · <a href="/cart">Open Cart →</a></div>}
     {error && <div className={styles.cartError}>{error}</div>}
-    <p className={styles.cartPolicy}>Adding to Cart does not reserve inventory or charge you. Checkout creates a PENDING Order; Phase 13 will own payment.</p>
+    <p className={styles.cartPolicy}>Adding to Cart does not reserve inventory or charge you. Checkout creates an unpaid Order; any payment must be confirmed separately before the Order is marked paid.</p>
   </div>;
 }
