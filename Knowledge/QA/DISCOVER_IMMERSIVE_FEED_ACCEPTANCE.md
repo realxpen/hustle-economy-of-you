@@ -61,3 +61,5 @@ New targeted corrections:
 - [ ] Open 1+ attached service/product offers on phone and verify quick views/book/order actions remain accessible.
 
 These are code-level changes only until CI and real-device acceptance.
+
+PR #91 completion: merged 2026-10-11 (5aadab1f8262d32b2d05d67cfe0af54203d21152). Foundation CI 38119595260 SUCCESS on final head b60221f42e7be61e1eb5be293fe8c3be247cd92a. Manual Web release and iPhone Safari/Chrome runtime check not yet done; unknown cause of original black media remains an open diagnostic item.
