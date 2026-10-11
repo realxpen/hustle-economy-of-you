@@ -194,7 +194,7 @@ export default function ProfessionalProfilePage() {
       <a href="/live/create">6. Live</a>
     </nav>
     <p className={styles.creatorHelp}>Your public storefront connects your profile, demonstrated work, published offers, and Live activity. Your Hustler capability is not a different account.</p>
-    {!published && <p className={styles.creatorHelp}>To publish: add a headline, primary skill, category, professional summary, and years of experience. Saving a draft does not make it public.</p>
+    {!published && <p className={styles.creatorHelp}>To publish: add a headline, primary skill, category, professional summary, and years of experience. Saving a draft does not make it public.</p>}
 
     <section className={styles.layout}>
       <form className={styles.form} onSubmit={save}>
