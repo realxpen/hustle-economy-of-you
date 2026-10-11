@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { validSourcePostId, withSourcePost } from "../../lib/opportunity-source";
 import type { PublicService } from "@hustle/types";
 
 import { formatProductPrice, getPublicProduct, type PublicProduct } from "../../lib/product";
@@ -46,6 +47,7 @@ export function OfferQuickView({
   label = "Quick view",
   className,
   sourceLabel,
+  sourcePostId,
   onOpen
 }: {
   type: OfferQuickViewType;
@@ -53,9 +55,12 @@ export function OfferQuickView({
   label?: string;
   className?: string;
   sourceLabel?: string;
+  sourcePostId?: string;
   onOpen?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
   const [data, setData] = useState<LoadedOffer | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,8 +82,24 @@ export function OfferQuickView({
     document.body.style.overflow = "hidden";
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") { event.preventDefault(); setOpen(false); return; }
+      if (event.key !== "Tab") return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )).filter((element) => element.getClientRects().length > 0);
+      if (focusable.length === 0) { event.preventDefault(); dialog.focus(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
     };
+    // Keep focus inside the canonical offer instead of behind the sheet.
+    dialogRef.current?.querySelector<HTMLButtonElement>('button[aria-label="Close quick view"]')?.focus();
     document.addEventListener("keydown", onKeyDown);
 
     loadOffer(type, id)
@@ -93,6 +114,7 @@ export function OfferQuickView({
       active = false;
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
+      triggerRef.current?.focus();
     };
   }, [id, open, type]);
 
@@ -112,7 +134,9 @@ export function OfferQuickView({
         description: service.description,
         price: formatServicePrice(service),
         mediaUrl: service.mediaUrls[0] ?? null,
-        href: "/services/" + service.id,
+        href: withSourcePost("/services/" + encodeURIComponent(service.id), sourcePostId),
+        nextHref: withSourcePost("/bookings/new/" + encodeURIComponent(service.id), sourcePostId),
+        nextLabel: "Request a booking →",
         owner,
         facts: [
           service.deliveryMode ? service.deliveryMode.replaceAll("_", " ") : null,
@@ -120,7 +144,7 @@ export function OfferQuickView({
           service.location,
           service.availabilityNote
         ].filter(Boolean) as string[],
-        action: "View service details →"
+        action: "Review service details →"
       };
     }
 
@@ -131,21 +155,24 @@ export function OfferQuickView({
       description: product.description,
       price: formatProductPrice(product),
       mediaUrl: product.mediaUrls[0] ?? null,
-      href: "/products/" + product.id,
+      href: withSourcePost("/products/" + encodeURIComponent(product.id), sourcePostId),
+      nextHref: withSourcePost("/products/" + encodeURIComponent(product.id) + "#add-to-cart", sourcePostId),
+      nextLabel: "Choose options & add to Cart →",
       owner,
       facts: [
         product.type === "DIGITAL" ? "Digital product" : "Physical product",
         product.inStock ? "In stock" : "Currently unavailable",
         product.deliveryInformation
       ].filter(Boolean) as string[],
-      action: "View product details →"
+      action: "Review product details →"
     };
-  }, [data]);
+  }, [data, sourcePostId]);
 
   return <>
     <button
       type="button"
       className={className}
+      ref={triggerRef}
       onClick={show}
       onPointerEnter={preload}
       onFocus={preload}
@@ -157,6 +184,8 @@ export function OfferQuickView({
     {open && <div className={styles.backdrop} role="presentation" onMouseDown={() => setOpen(false)}>
       <section
         className={styles.sheet}
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={(type === "SERVICE" ? "Service" : "Product") + " quick view"}
@@ -216,16 +245,22 @@ export function OfferQuickView({
             </div>
 
             <div className={styles.actions}>
-              <Link className={styles.primary} href={model.href} onClick={() => setOpen(false)}>
+              <Link className={styles.primary} href={model.nextHref} onClick={() => setOpen(false)}>
+                {model.nextLabel}
+              </Link>
+              <Link className={styles.secondary} href={model.href} onClick={() => setOpen(false)}>
                 {model.action}
               </Link>
               {model.owner.username && <Link
                 className={styles.secondary}
-                href={"/u/" + model.owner.username}
+                href={"/u/" + encodeURIComponent(model.owner.username)}
                 onClick={() => setOpen(false)}
               >
                 View Hustler
               </Link>}
+              {validSourcePostId(sourcePostId) && <Link className={styles.secondary}
+                href={"/posts/" + encodeURIComponent(sourcePostId!)}
+                onClick={() => setOpen(false)}>Return to post ↗</Link>}
             </div>
           </div>
         </div>}

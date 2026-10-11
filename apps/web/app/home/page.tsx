@@ -402,7 +402,7 @@ function FeedCard({
             {item.services.map((service) => <div className={styles.opportunityCard} key={service.id}>
               <small>SERVICE</small><strong>{service.title ?? "Service"}</strong>
               <span>{formatServicePrice(service)}</span>
-              <OfferQuickView type="SERVICE" id={service.id} label="View service ↗" sourceLabel="POST"
+              <OfferQuickView type="SERVICE" id={service.id} label="View service ↗" sourceLabel="POST" sourcePostId={item.post.id}
                 className={styles.opportunityQuickView} onOpen={() => void captureFeedEvent({
                   name: "feed.service_clicked", postId: item.post.id, feedTab: tab, position, sessionId, serviceId: service.id
                 }).catch(() => undefined)} />
@@ -410,7 +410,7 @@ function FeedCard({
             {item.products.map((product) => <div className={styles.opportunityCard} key={product.id}>
               <small>PRODUCT</small><strong>{product.title ?? "Product"}</strong>
               <span>{formatProductPrice(product)}</span>
-              <OfferQuickView type="PRODUCT" id={product.id} label="View product ↗" sourceLabel="POST"
+              <OfferQuickView type="PRODUCT" id={product.id} label="View product ↗" sourceLabel="POST" sourcePostId={item.post.id}
                 className={styles.opportunityQuickView} onOpen={() => void captureFeedEvent({
                   name: "feed.product_clicked", postId: item.post.id, feedTab: tab, position, sessionId, productId: product.id
                 }).catch(() => undefined)} />

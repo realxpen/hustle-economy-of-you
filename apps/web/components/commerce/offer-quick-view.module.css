@@ -16,3 +16,10 @@
  .media,.media img,.media video{max-height:21dvh;min-height:110px}
  .copy{padding:12px}
 }
+
+/* Core opportunity journey: action is real intent, review and creator remain visible. */
+.actions{flex-wrap:wrap;align-items:stretch}
+.actions a{min-height:44px;text-align:center}
+.primary{background:var(--h-orange,#ff8528);color:#180f0a}
+.secondary{flex:1 1 135px}
+@media(max-width:680px){.actions a{flex:1 1 100%;white-space:normal}}
