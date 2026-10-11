@@ -1,6 +1,6 @@
 # ADR-0061 — Compact-by-default mobile Discovery presentation
 
-Status: Implemented in feature branch, CI and real iPhone acceptance pending
+Status: PR #95 merged; Foundation CI run 38156020264 passed; real iPhone/first-visit appearance acceptance pending
 Date: 2026-10-11
 Scope: Next.js Web display density; no API, payment, role, auth, Agent or content contract changes.
 

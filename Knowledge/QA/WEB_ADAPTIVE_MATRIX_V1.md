@@ -83,3 +83,5 @@ Changes under default mobile portrait breakpoint: compact height/gap/typography 
 - [ ] iPhone Safari with large website text: no clipped controls, real offers remain reachable and Actions fallback appears as needed.
 - [ ] 320/360/390/430 CSS px, dark/light/System, varied vertical height, content-only and media posts, landscape and reduced motion.
 - [ ] Verify all six dock destinations and full-size tap areas, product/service Quick Views and live engagement calls.
+
+PR #95 merged 2026-10-11 as 6a9603f99be48a76107ca1c9030a17234c5daa13. Foundation CI 38156020264 SUCCESS on final head fde6d808ee730c16df3e85006f60fb4ea3a54e8e. CSS-first default compact design implemented; actual iPhone normal-zoom screenshot and browser zoom/first-private-tab visual approval remain pending. Never interpret this as changing actual Safari zoom to 50%.
