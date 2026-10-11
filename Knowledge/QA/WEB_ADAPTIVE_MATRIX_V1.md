@@ -62,3 +62,11 @@ Resolution candidate: restrict horizontal action dock to **landscape only**, exp
 - [ ] Live first post image, pagination, story/create links and attached service/product quick views work after owner-authorized release.
 
 Code result: PR #93 MERGED ed91cc699066348deeaaa330153b6dd6f781c0ed, Foundation CI 38122637457 SUCCESS on final head 16f557b5d011b0a68544c5b0e091ad1490079420. Short-portrait and landscape scenarios are present in the manual Playwright audit script but have **not** been executed as a rendered browser test. Owner's manual Web release and iOS Safari text-size/rotation testing remain pending.
+
+
+## 2026-10-11 17:04 — post PR #93 on-device follow-up
+Owner shared two screenshots from the current confirmed Web deployment (SHA 23028d2). At smaller Safari website text size, image, creator, offer CTA and vertical like/comment/save/share all fit. At larger Safari website text size, the top of the engagement rail disappears above the content stage and its lower actions crowd the Follow area; real offer CTA still appears. The remaining limitation is *insufficient available height*, not orientation misclassification.
+
+Follow-up correction in PR branch `fix/discover-measured-action-rail`: measure the actual post-card and creator/offer footer bounding rectangles via ResizeObserver, visualViewport resize and orientation changes. When the area above footer cannot accommodate four touch controls and top-label clearance, show a compact Actions toggle with `aria-expanded` and a bounded, scrollable two-column panel containing **the unchanged real** like/comment/save/share controls. Keep vertical TikTok-style rail when it fits. Expanded attached offers dismiss/hide actions. Escape closes the panel and returns focus to trigger.
+
+Acceptance remains pending: test on iPhone Safari small/default/large text, short portrait, real Follow/Like/Save/Share, long captions, multi-offer Quick View, rotation, independent post scrolling and dock.

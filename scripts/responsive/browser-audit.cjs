@@ -54,13 +54,21 @@ const paths=[...new Set([...routes,...extra])];
           const dock=document.querySelector('nav[aria-label="Hustle main navigation"]');
           const railVisible=rail && getComputedStyle(rail).display!=="none";
           const incorrectPortraitRail=Boolean(railVisible && matchMedia("(orientation: portrait)").matches && getComputedStyle(rail).flexDirection!=="column");
+          const actionTrigger=document.querySelector('[aria-label="Open post actions"],[aria-label="Close post actions"]');
+          const railRect=rail?.getBoundingClientRect();
+          const postRect=rail?.closest("article")?.getBoundingClientRect();
+          const closedCompact=Boolean(rail && getComputedStyle(rail).display==="none" && actionTrigger);
+          const railOutsidePost=Boolean(railVisible && railRect && postRect &&
+            (railRect.top < postRect.top-3 || railRect.bottom > postRect.bottom+3));
+          const hiddenWithoutTrigger=Boolean(rail && getComputedStyle(rail).display==="none" &&
+            !actionTrigger && !rail.className.includes("railBehindOffers"));
           const offerBottom=offer?.getBoundingClientRect().bottom;
           const dockTop=dock?.getBoundingClientRect().top;
           const offerBehindDock=Boolean(offer && dock && offerBottom > dockTop+3);
           return {width:w,documentWidth,overflow:documentWidth-w,clippedFixed,smallFields:fields.slice(0,5),
-            hasPost:!!rail,incorrectPortraitRail,offerBehindDock};
+            hasPost:!!rail,incorrectPortraitRail,offerBehindDock,closedCompact,railOutsidePost,hiddenWithoutTrigger};
         });
-        if(result.overflow>3||result.clippedFixed.length||(screen.width<=760&&result.smallFields.length)||result.incorrectPortraitRail||result.offerBehindDock){
+        if(result.overflow>3||result.clippedFixed.length||(screen.width<=760&&result.smallFields.length)||result.incorrectPortraitRail||result.offerBehindDock||result.railOutsidePost||result.hiddenWithoutTrigger){
           failures.push({route,width:screen.width,result,status:response?.status()});
         }
       }catch(error){failures.push({route,width:screen.width,error:String(error.message).slice(0,180)});}
