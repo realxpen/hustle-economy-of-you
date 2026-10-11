@@ -115,6 +115,12 @@ export default function NewBookingPage() {
 
     <OpportunityContext sourcePostId={sourcePostId} ownerUsername={owner.username}
       offerHref={`/services/${encodeURIComponent(service.id)}`} offerLabel="Review service" />
+    <div className={styles.bookingConsult}>
+      <div><strong>Want to clarify the job first?</strong><span>Ask questions about scope, timing, or pricing without sending a booking request.</span></div>
+      <a href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`}>
+        Consult {owner.displayName ?? owner.username ?? "Hustler"} ↗
+      </a>
+    </div>
     <div className={styles.formWrap}>
       <section className={styles.formHero}>
         <article className={styles.offerCard}>

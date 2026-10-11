@@ -44,3 +44,10 @@
 .handoffLinks a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 13px;border:1px solid var(--h-border,#cabfaf);border-radius:999px;font-size:12px;font-weight:800}
 .handoffLinks a:first-child{background:var(--h-orange,#fc822a);color:#18100b;border-color:var(--h-orange,#fc822a)}
 @media(max-width:600px){.handoff{padding:13px}.handoffLinks a{flex:1 1 130px}}
+
+/* Core purchase experience stages: from public product through unpaid Order. */
+.purchaseFlow{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:14px 0 10px;padding:7px 9px;max-width:100%;border:1px solid var(--h-border-subtle,#d6cdc1);border-radius:16px;background:var(--h-surface,#faf7f0)}
+.purchaseFlow :is(a,span,strong){font-size:11px;padding:8px 11px;min-height:38px;display:inline-flex;align-items:center;justify-content:center;overflow-wrap:anywhere}
+.purchaseFlow strong{border-radius:999px;background:var(--h-orange,#fc822a);color:#160e09}
+.purchaseFlow a{text-decoration:underline;text-underline-offset:3px}
+@media(max-width:560px){.purchaseFlow{gap:2px}.purchaseFlow :is(a,span,strong){flex:1 1 42%;font-size:10px;padding:6px}}

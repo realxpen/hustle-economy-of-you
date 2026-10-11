@@ -35,6 +35,8 @@ function OrderSection({ title, eyebrow, page, error, onRetry }: { title: string;
 }
 
 export default function OrdersPage() {
+  const [justCreated, setJustCreated] = useState(false);
+  useEffect(() => {setJustCreated(new URLSearchParams(window.location.search).get("checkout") === "created");}, []);
   const [buyer, setBuyer] = useState<OrderPage | null>(null);
   const [seller, setSeller] = useState<OrderPage | null>(null);
   const [buyerError, setBuyerError] = useState<string | null>(null);
@@ -51,6 +53,9 @@ export default function OrdersPage() {
   useEffect(() => { void load(); }, [load]);
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+    {justCreated && <div className={styles.notice} role="status">
+      <strong>Review your new Orders.</strong><p>Checkout creates unpaid Orders. Open each Order to review its current payment and fulfillment state, as confirmed by the server.</p>
+    </div>}
     <ExperienceHeader section="Orders" secondaryLinks={[{ href: "/cart", label: "Your cart ↗" }, { href: "/marketplace", label: "Browse offers" }]} />
 
     <section className={[styles.hero, "h-experience-hero"].join(" ")}>
