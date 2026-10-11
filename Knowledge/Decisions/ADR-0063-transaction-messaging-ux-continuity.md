@@ -1,6 +1,6 @@
 # ADR-0063 — Transaction-first Booking, Commerce and Messaging continuity
 
-Status: Implemented in feature branch, CI and signed-in acceptance pending
+Status: PR #97 merged; Foundation CI run 38159540340 passed; signed-in runtime/device acceptance pending
 Date: 2026-10-11
 Scope: Next.js Web navigation, accessibility and state presentation.
 

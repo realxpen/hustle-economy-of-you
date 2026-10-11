@@ -1,7 +1,7 @@
 # Booking, Cart, Checkout & Messaging — Experience Completion Pass 2
 
 Date: 2026-10-11
-Status: Feature branch implementation; CI, owner release and runtime acceptance PENDING.
+Status: PR #97 MERGED 2026-10-11 (3f76527f10d393a58ae55c761e84ed902d3c4b9a), final Foundation CI run 38159540340 SUCCESS on PR head 387ebbc3ef4e85254483c011e7cb5462c6f8752d. Signed-in real-device browser testing, manual owner Web release and sandbox acceptance remain PENDING.
 Scope: Hustle Next.js Web; no API, schema, payment authority, role/Agent or native Mobile changes.
 
 ## Product intent
