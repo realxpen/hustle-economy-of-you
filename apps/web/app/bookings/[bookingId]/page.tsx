@@ -126,7 +126,7 @@ export default function BookingDetailPage() {
     <ExperienceHeader section="Booking detail" trail={[{ href: "/bookings", label: "Bookings" }]}
       secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, { href: "/wallet", label: "Wallet" }]} />
 
-    <TransactionJourney kind="BOOKING" status={booking.status} />
+    <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />
     <section className={styles.handoff} aria-label="Booking next steps">
       <div><strong>Next step</strong><p>{booking.nextAction ?? "Check your booking status or discuss the details in Messages."}</p></div>
       <div className={styles.handoffLinks}>
