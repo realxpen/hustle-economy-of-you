@@ -29,3 +29,5 @@ See Knowledge/QA/DISCOVER_IMMERSIVE_FEED_ACCEPTANCE.md. Until device/browser tes
 
 ## 2026-10-11 composition refinement
 The first viewport hotfix demonstrated that making the stage smaller does not itself make posts primary. With a 342px wide media area, allocating ~73px right padding *inside* the post left overlays unreadably narrow. Desktop design therefore places the floating interaction rail **outside** the post canvas, retains captions/creator and a single-line offer chip on the content stage, and centers the viewer without the sidebar competing for attention. Mobile remains full-bleed with the rail overlay in an intentionally separated vertical zone; check crowded posts at real viewport sizes. The entry points for Stories, Search, Create, Live, Marketplace, and the canonical attached offers remain available.
+
+Implementation status: the composition refinement merged as PR #90, CI run 38118370353 passed; no claims of real-device visual approval or owner-authorized release.
