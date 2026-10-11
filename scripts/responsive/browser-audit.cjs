@@ -13,7 +13,7 @@ if (!base || !/^https:\/\/[^/]+\/?$/.test(base)) {
 }
 const widths = [320,360,390,430,600,768,1024,1440];
 const screens = widths.map((width) => ({width,height:width<=430?740:width<=768?820:900}));
-const routes = ["/","/auth","/home","/search","/marketplace","/messages","/notifications","/wallet","/bookings","/orders","/cart","/checkout","/live","/stories","/agents","/agent-workspace","/posts/manage"];
+const routes = ["/","/auth","/home","/search","/marketplace","/messages","/notifications","/wallet","/bookings","/orders","/cart","/checkout","/live","/stories","/agent-application","/agent-workspace","/posts/manage"];
 const extra=(process.env.HUSTLE_EXTRA_ROUTES||"").split(",").map(s=>s.trim()).filter(s=>/^\/[a-z0-9/_.%-]+$/i.test(s));
 const paths=[...new Set([...routes,...extra])];
 (async()=>{

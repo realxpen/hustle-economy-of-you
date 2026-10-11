@@ -12,7 +12,7 @@ assert.match(foundation,/max-width:760px/);
 assert.match(foundation,/font-size:\s*(?:max\(16px|16px)/);
 assert.match(foundation,/prefers-reduced-motion:reduce/);
 assert.doesNotMatch(layout+foundation,/user-scalable\s*=\s*no|maximum-scale\s*=\s*1/i);
-const routes=["home","search","marketplace","messages","notifications","wallet","bookings","orders","cart","checkout","live","stories","agents","agent-workspace"];
+const routes=["home","search","marketplace","messages","notifications","wallet","bookings","orders","cart","checkout","live","stories","agent-application","agent-workspace","hustler-application","professional-profile"];
 for(const route of routes)assert.ok(fs.existsSync(path.join(root,"apps/web/app",route,"page.tsx")),"Missing route "+route);
 const modules=[
  "apps/web/app/home/page.module.css","apps/web/app/search/search.module.css",
