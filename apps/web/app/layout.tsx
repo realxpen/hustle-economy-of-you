@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./adaptive-foundation.css";
 import { HustleMobileNav } from "../components/navigation/hustle-mobile-nav";
 
 export const metadata: Metadata = {

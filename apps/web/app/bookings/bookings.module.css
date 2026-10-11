@@ -15,3 +15,22 @@
   .field { min-width:0; }
   .field :is(input,textarea) { max-width:100%; }
 }
+
+
+/* Booking forms, dates, status and payment states remain legible. */
+.shell,.formWrap,.formHero,.sections,.panel,.formCard,.summaryCard,.offerCard,.card{min-width:0;max-width:100%}
+.card h3,.fact strong,.copy,.price{overflow-wrap:anywhere}
+.header nav,.actions{min-width:0;flex-wrap:wrap}
+@media(max-width:680px){
+ .shell{padding:clamp(12px,4vw,21px)}
+ .hero{padding:24px 0 15px}
+ .hero h1{font-size:clamp(34px,10vw,60px);line-height:1}
+ .formHero,.detailGrid,.sections,.grid2,.facts{grid-template-columns:minmax(0,1fr)}
+ .offerCard,.formCard,.summaryCard,.panel{padding:clamp(14px,4vw,23px);border-radius:20px}
+ .offerCard h1,.summaryCard h1{font-size:clamp(30px,9vw,54px);line-height:1.05}
+ .cardTop,.panelHead{flex-wrap:wrap}
+ .status{white-space:normal;overflow-wrap:anywhere}
+ .actions{display:flex;flex-wrap:wrap}
+ .actions>*{min-width:0;flex:1 1 180px}
+ .footer{flex-wrap:wrap;overflow-wrap:anywhere}
+}

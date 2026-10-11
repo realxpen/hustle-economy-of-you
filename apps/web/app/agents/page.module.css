@@ -5,3 +5,19 @@
 .chips a{display:inline-flex;align-items:center;min-height:44px}
 .error button{margin-left:12px;border:1px solid currentColor;background:transparent;border-radius:999px;padding:7px 12px;font-weight:800;cursor:pointer}
 @media(max-width:600px){.scopeButton,.scopeActive{overflow-wrap:anywhere}.chips{flex-wrap:wrap}.chips a{min-height:44px}}
+
+
+/* Consented agent actions must not be clipped by layout overflow. */
+.shell,.panelGrid,.invitePanel,.relationshipPanel,.workspaceSection,.card,.boundary{min-width:0;max-width:100%}
+.party,.party strong,.history>div,.actions>div{min-width:0;overflow-wrap:anywhere}
+@media(max-width:740px){
+ .shell{padding:clamp(12px,4vw,21px)}
+ .hero,.panelGrid{grid-template-columns:minmax(0,1fr)}
+ .hero{padding:27px 0 18px}
+ .hero h1{font-size:clamp(32px,10vw,57px);line-height:1.03}
+ .invitePanel,.relationshipPanel,.workspaceSection,.boundary{padding:clamp(14px,4vw,22px);border-radius:21px}
+ .permissionList,.scopeGrid{grid-template-columns:minmax(0,1fr)}
+ .cardHead,.history>div,.actions{flex-wrap:wrap}
+ .actions>div{width:100%;flex-wrap:wrap}
+ .actions>div>*{min-width:0;flex:1 1 140px}
+}

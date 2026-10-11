@@ -32,3 +32,26 @@
   .filters { grid-template-columns: minmax(0, 1fr); }
   .checkField { padding-block: 10px; }
 }
+
+
+/* Adaptive Search and Marketplace (same real-result grid). */
+.shell{min-width:0;max-width:100%;overflow-x:clip}
+.searchForm,.resultsWrap,.filters,.tabs,.hero{min-width:0;max-width:100%}
+.searchBar{min-width:0;max-width:100%}
+.searchBar input{min-width:0;max-width:100%;width:100%;flex:1 1 auto}
+.filters{grid-template-columns:repeat(auto-fit,minmax(min(100%,155px),1fr))}
+.grid,.card,.cardBody,.owner,.ownerText{min-width:0}
+.card h3,.card p,.ownerText strong,.price{overflow-wrap:anywhere}
+.headerNav{min-width:0;flex-wrap:wrap}
+@media(max-width:520px){
+ .shell{padding-bottom:calc(104px + env(safe-area-inset-bottom))}
+ .header{min-height:60px;height:auto;gap:8px;flex-wrap:wrap;padding-block:10px}
+ .headerNav{gap:9px}
+ .hero h1{font-size:clamp(31px,9vw,57px);line-height:1.03}
+ .hero,.searchForm,.filters,.tabs,.resultsWrap{padding-inline:clamp(12px,4vw,20px)}
+ .filters{grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}
+ .searchBar{padding:7px}
+ .searchBar button{min-height:44px}
+ .grid{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:365px){.filters{grid-template-columns:minmax(0,1fr)}.hero h1{font-size:clamp(30px,10vw,40px)}}

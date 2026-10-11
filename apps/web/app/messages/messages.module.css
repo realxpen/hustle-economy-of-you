@@ -51,3 +51,16 @@
 .button{background:var(--h-ink);color:var(--h-paper)}
 @media(max-width:720px){.shell{padding:18px 14px calc(110px + env(safe-area-inset-bottom))}.hero{padding:26px 0 16px}.hero h1{font-size:45px}.inboxTools{flex-direction:column}.segmented{align-self:flex-start}.conversation{grid-template-columns:auto minmax(0,1fr) auto;gap:10px;padding:12px}.conversationMeta{grid-column:3;grid-row:1;display:flex;flex-direction:column;align-items:flex-end;justify-items:end;gap:5px;font-size:9px}.conversationMain{grid-column:2;grid-row:1}.preview{margin-top:6px}.nameLine strong{font-size:13px}.nameLine{gap:4px}.avatar{width:46px;height:46px}}
 @media(max-width:370px){.conversation{grid-template-columns:auto minmax(0,1fr)}.conversationMeta{grid-column:2;grid-row:2;flex-direction:row;justify-content:space-between}.avatar{width:42px;height:42px}}
+
+
+/* Messages: inbox, participant chips and composer never expand page width. */
+.shell,.inbox,.conversation,.conversationMain,.thread,.threadHeader,.threadIdentity,.composerWrap,.composeRow{min-width:0;max-width:100%}
+.conversationMain .preview,.threadIdentity strong{min-width:0;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:760px){
+ .shell{padding:clamp(12px,4vw,22px) clamp(12px,4vw,22px) calc(104px + env(safe-area-inset-bottom))}
+ .composerWrap{max-width:100%}
+ .composeRow{flex-wrap:wrap}
+ .composeRow textarea,.composeRow input{flex:1 1 150px;min-width:0}
+ .threadHeader{gap:8px;flex-wrap:wrap}
+ .conversationMeta{max-width:70px;overflow-wrap:anywhere}
+}

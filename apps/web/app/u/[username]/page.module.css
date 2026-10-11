@@ -46,3 +46,20 @@
 .shareNotice{background:var(--h-ink);color:var(--h-paper)}
 @media(max-width:850px){.profileTabs{padding-inline:8px}.cover{border-radius:25px}.contentGrid{padding-top:24px}}
 @media(max-width:620px){.cover{height:190px}.storefrontStats>div{padding:16px 11px}.profileTabs{margin-top:8px}.profileTabs a{padding:10px 15px}.offerCard,.productCard,.workCard{border-radius:22px}}
+
+
+/* Public Hustler storefront: scrollable portfolio tabs and fluid offers. */
+.shell,.identity,.nameRow,.contentGrid,.metaCard,.offerCard,.productCard,.workCard{min-width:0;max-width:100%}
+.nameRow h1,.mainStory h2,.offerBody h3,.productBody h3{overflow-wrap:anywhere}
+.profileTabs{max-width:100%;overscroll-behavior-inline:contain}
+@media(max-width:690px){
+ .shell{padding:clamp(12px,4vw,22px) clamp(12px,4vw,22px) calc(100px + env(safe-area-inset-bottom))}
+ .cover{height:clamp(145px,46vw,215px);border-radius:20px}
+ .identity{padding-inline:4px}
+ .nameRow{flex-wrap:wrap;gap:10px}
+ .nameRow h1{font-size:clamp(28px,9vw,48px)}
+ .mainStory h2{font-size:clamp(25px,7vw,43px)}
+ .profileTabs{padding-inline:0}
+ .offerCard,.productCard,.workCard{border-radius:19px}
+ .heroCtas,.closingCta>div{flex-wrap:wrap}
+}
