@@ -24,3 +24,14 @@ Scope: apps/web/app/home; no backend or finance changes.
 
 ## Constraints
 No screenshots or hands-on device/runtime acceptance have been performed by the owner for this PR. A green CI does not establish visual acceptance or authorize deploying to production.
+
+
+## Owner's first post-first production screenshots — 2026-10-11
+The owner manually released PR #88 and supplied two desktop Chrome captures of `/home` with a single genuine image post. The new action rail and attached offer toggle are visible and post content leads the stage, but the whole browser document still scrolls vertically, placing the post's identity/offer area below the fold. The stage remains horizontally too wide for an immersive portrait player and the right-hand promotional/search/stories pane competes for attention. This is visual evidence of layout incompleteness, **not** proof of functional scrolling, video playback, permissions, or booking tests.
+
+Viewport focus correction (PR pending): constrain the Discover document to 100dvh, minimize header to one row, keep the feed in a 9:16 stage with independent vertical snap, simplify the sidebar to useful real navigation, preserve Create via toolbar icon, add keyboard Arrow/Page Up/Down when feed stage is focused, and reserve room for mobile floating dock/safe area. Follow-up browser/device acceptance remains required.
+
+- [ ] Confirm mouse wheel/touch scroll moves posts inside the feed rather than scrolling the document, with multiple actual posts.
+- [ ] Confirm creator, caption and attached offers are all accessible without outer page scrolling at 1366×768 and 1440×900, 100% zoom.
+- [ ] Confirm inner feed vertical stage shows whole real image on desktop (9:16) and fills available mobile screen without docking overlap.
+- [ ] Confirm toolbar Create (+), Search, tabs, Live, original navigation, Stories, direct booking quick view and keyboard Next/Previous.
