@@ -1,6 +1,6 @@
 # ADR-0060 — Web-wide adaptive UI foundation and viewport regression gate
 
-Status: Implemented in feature branch; CI and owner runtime acceptance pending
+Status: PR #92 merged, Foundation CI 38120428789 passed; browser and owner runtime acceptance pending
 Date: 2026-10-11
 Scope: Hustle Next.js Web UX and browser checks; no API, DB, Agent grant, money or production deployment changes.
 

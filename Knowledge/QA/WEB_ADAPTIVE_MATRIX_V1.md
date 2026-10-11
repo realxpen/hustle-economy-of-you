@@ -1,6 +1,6 @@
 # Web Adaptive Layout Matrix V1 — viewport & browser contract
 
-Status: Shared CSS and static checks implemented on feature branch; browser/runtime acceptance pending.
+Status: PR #92 MERGED 2026-10-11 at 589552206f92706e1c847dcf86490140289ee5ae. Foundation CI 38120428789 SUCCESS on final head 8b8c2ac4ef2ea93777fdba66ba5c693aee44a8c3; viewport browser audit and signed-in runtime/device acceptance still PENDING.
 Date: 2026-10-11
 Scope: Next.js Web app. React Native/Expo Mobile and Admin are separate interfaces and cannot be certified by Web CI.
 
@@ -14,7 +14,7 @@ Repeated owner screenshots at different resolutions and on iPhone Safari showed 
 - Targeted responsive CSS for Search + Marketplace, Cart/Checkout/Orders + Wallet-adjacent shared commerce, Bookings, Messages, Activity, Services, Products, Live, Agent permissions, public Hustler storefront, shared header/dock.
 - Additional guards for Post details and comment threads, Service/Product editors and management, professional profile, Hustler application, Stories and reactions, authoritative attached-offer modal.
 - A short-height fallback for the Discover action rail to avoid collisions with an authentic long caption/offer panel.
-- CI static contract script checks 14 core routes, 13 core CSS modules, shared import, six canonical mobile nav links and baseline responsive rules.
+- CI static contract script checks 16 real core routes, 13 core CSS modules, shared import, six canonical mobile nav links and baseline responsive rules.
 - Manually dispatchable **Hustle Responsive Browser Audit** in GitHub Actions: read-only Chromium checks at 320, 360, 390, 430, 600, 768, 1024, 1440 CSS px; reports horizontal overflow, offscreen fixed navigation, and small iOS form field fonts. It does not log in, submit, or deploy. Protected routes redirected to /auth are reported UNVERIFIED, never silently counted as passing. Detailed signed-in testing requires a secure **local** browser session state, not production credentials in GitHub.
 
 ## Visual/runtime acceptance matrix — not yet completed
