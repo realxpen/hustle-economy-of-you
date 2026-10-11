@@ -1,6 +1,6 @@
 # ADR-0062 — Connected proof-to-opportunity frontend navigation
 
-Status: Implemented in branch; automated CI and owner runtime acceptance pending
+Status: PR #96 merged; Foundation CI 38158161163 passed; signed-in owner runtime acceptance pending
 Date: 2026-10-11
 Scope: Web presentation/navigation and static QA. No backend contract, auth, financial or Agent delegation change.
 

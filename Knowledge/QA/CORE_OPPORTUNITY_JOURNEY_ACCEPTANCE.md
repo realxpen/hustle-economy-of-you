@@ -1,6 +1,6 @@
 # Core Opportunity Journey — MVP Frontend Acceptance
 
-Status: Feature branch implemented; CI, real browsers, and owner release acceptance pending.
+Status: PR #96 MERGED 2026-10-11 (9913e67cfc9e6c166fcbf312e37373467f8b1e31); Foundation CI 38158161163 SUCCESS on final head abceb5f22d901d609c972bcdde3280100c6d0fdb. Real browsers, owner's Web release and signed-in acceptance PENDING.
 Date: 2026-10-11
 Scope: Next.js Web Discover → Hustler Storefront → canonical Service/Product → Booking/Cart. No backend, finance, schema, or Agent permission changes.
 
