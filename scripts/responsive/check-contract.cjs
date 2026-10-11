@@ -44,5 +44,12 @@ assert.match(discoverCss,/\.cardBodyOffersOpen/,"Expanded offer footer needs bou
 assert.match(discoverCss,/\.cardBodyOffersOpen[\s\S]*?\.opportunityBlock/,"Offer list must scroll within footer");
 const themeCss=read("apps/web/components/navigation/experience-theme-control.module.css");
 assert.match(themeCss,/max-width:none!important/,"Theme selection must not clip System at iOS font scale");
+const discoverSource=read("apps/web/app/home/page.tsx");
+assert.match(discoverSource,/compactActions/,"Post needs measured-space action fallback");
+assert.match(discoverSource,/footerRect\.top\s*-\s*cardRect\.top/,"Action compactness must depend on real footer placement");
+assert.match(discoverSource,/aria-controls=\{"post-actions-"/,"Compact action disclosure must control the real actions");
+assert.match(discoverCss,/\.actionRail\.railCompact/,"Compact action menu must have a defined bounded layout");
+assert.match(discoverCss,/\.actionRail\.railCompactClosed/,"Collapsed rail must not intercept touches");
+
 
 console.log("Adaptive Web contract OK: "+routes.length+" routes and "+modules.length+" style modules.");
