@@ -241,3 +241,19 @@ html[data-hustle-theme="dark"] body:has(main.h-adaptive) #hustle-page-content {
   background-color:#0d0d0f;
 }
 body:has(main.h-adaptive) {min-height:100dvh}
+
+
+/* Post-first Discover is a viewer, not a long landing page.
+   Keep the main document out of the swipe/scroll path on that route only. */
+html:has(main.h-discover-immersive),
+body:has(main.h-discover-immersive) {
+  height:100%;
+  overflow:hidden;
+  overscroll-behavior:none;
+}
+body:has(main.h-discover-immersive) #hustle-page-content {
+  height:100dvh;
+  min-height:0;
+  overflow:hidden;
+  padding-bottom:0!important;
+}

@@ -531,7 +531,7 @@ export default function DiscoveryHomePage() {
             const current = Math.round(stage.scrollTop / itemHeight);
             const target = Math.max(0, current + next);
             stage.scrollTo({ top: target * itemHeight,
-              behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+              behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
           }}>
           {items.map((item, index) => <FeedCard
             key={tab + "-" + item.post.id} item={item} tab={tab} position={index}
