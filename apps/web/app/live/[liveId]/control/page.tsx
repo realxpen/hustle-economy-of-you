@@ -32,7 +32,8 @@ function mergeComments(current: LiveCommentRecord[], incoming: LiveCommentRecord
 export default function LiveControlRoomPage() {
   const params = useParams<{ liveId: string }>();
   const liveId = params?.liveId;
-  const [session, setSession] = useState<LiveSessionRecord | null>(null);
+  const [loadedSession, setSession] = useState<LiveSessionRecord | null>(null);
+  const session = loadedSession?.id === liveId ? loadedSession : null;
   const [services, setServices] = useState<Service[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [comments, setComments] = useState<LiveCommentRecord[]>([]);
@@ -50,9 +51,15 @@ export default function LiveControlRoomPage() {
   useEffect(() => {
     if (!liveId) return;
     let active = true;
+    setSession(null);
+    setComments([]);
+    latestCommentRef.current = null;
+    setMediaConnected(false);
+    setError(null);
+    setNotice(null);
     Promise.all([getMyLiveSession(liveId), getMyServices(), getMyProducts()])
       .then(([item, serviceItems, productItems]) => {
-        if (!active) return;
+        if (!active || item.id !== liveId) return;
         setSession(item);
         setTitle(item.title);
         setCategory(item.category ?? "");
@@ -153,7 +160,7 @@ export default function LiveControlRoomPage() {
 
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (!liveId) return;
+    if (!liveId || busy) return;
     setBusy("save"); setError(null);
     try {
       const next = await updateLiveSession(liveId, { title, category: category || null, playbackUrl: playbackUrl || null });
@@ -163,11 +170,17 @@ export default function LiveControlRoomPage() {
   }
 
   async function start() {
-    if (!liveId || !session) return;
+    if (!liveId || !session || busy || session.status !== "DRAFT") return;
     setError(null);
 
-    if (session.media.nativeTransportAvailable && !mediaConnected && !session.playbackUrl) {
-      setError("Connect camera + microphone first, or add a legitimate external playback URL before going Live.");
+    if (!mediaConnected && !session.playbackUrl) {
+      setError(session.media.nativeTransportAvailable
+        ? "Connect camera and microphone, or save a legitimate external playback URL, before going Live."
+        : "No media is available. Save a real external playback source first; a blank room cannot go Live.");
+      return;
+    }
+    if (playbackUrl.trim() !== (session.playbackUrl ?? "")) {
+      setError("Save the changed playback URL before starting, so viewers receive the saved source.");
       return;
     }
 
@@ -183,7 +196,7 @@ export default function LiveControlRoomPage() {
   }
 
   async function end() {
-    if (!liveId || !window.confirm("End this Live session?")) return;
+    if (!liveId || busy || !window.confirm("End this Live session? Viewers will leave the active broadcast.")) return;
     setBusy("end"); setError(null);
     try { setSession(await endLiveSession(liveId)); setNotice("Live ended"); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Could not end Live"); }
@@ -191,7 +204,7 @@ export default function LiveControlRoomPage() {
   }
 
   async function changePin(value: string) {
-    if (!liveId) return;
+    if (!liveId || busy) return;
     setBusy("pin"); setError(null);
     try {
       if (value === "NONE") setSession(await pinLiveOffer(liveId, "NONE"));
@@ -206,7 +219,7 @@ export default function LiveControlRoomPage() {
 
   async function sendComment(event: FormEvent) {
     event.preventDefault();
-    if (!liveId || !commentBody.trim()) return;
+    if (!liveId || !commentBody.trim() || busy) return;
     setBusy("comment");
     try {
       const created = await createLiveComment(liveId, commentBody);
@@ -240,6 +253,12 @@ export default function LiveControlRoomPage() {
             <div className={styles.hint}>Session ID: <code>{session.id}</code></div>
           </div>
           <div className={styles.stats}><span>{session.interactions.viewers} watching</span><span>{session.interactions.comments} comments</span></div>
+          <div className={styles.hostChecklist} role="status">
+            <strong>{session.status === "DRAFT" ? "Prepare before broadcasting" : session.status === "LIVE" ? "Live session active" : "This broadcast has ended"}</strong>
+            <span>{session.media.nativeTransportAvailable ? (mediaConnected ? "Native camera/microphone connected" : "Native stream not connected") : "Native stream unavailable"}</span>
+            <span>{session.playbackUrl ? "External playback source saved" : "No external playback source saved"}</span>
+            <span>{session.status === "LIVE" ? "Live viewers may now join" : session.status === "DRAFT" ? "Nothing is broadcasting until you start" : "Session is read-only"}</span>
+          </div>
         </section>
 
         {liveId && <NativeLiveBroadcaster
