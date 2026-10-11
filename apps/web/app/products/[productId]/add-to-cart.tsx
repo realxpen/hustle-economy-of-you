@@ -34,7 +34,7 @@ export function AddToCart({ data }: { data: PublicProduct }) {
     } finally { setBusy(false); }
   }
 
-  return <div className={styles.cartBox}>
+  return <div id="add-to-cart" className={styles.cartBox}>
     <div className={styles.cartHeading}><small>BUY ON HUSTLE</small><strong>Add to Cart</strong></div>
     {activeVariants.length > 0 && <label className={styles.cartField}>Variant<select value={variantId} onChange={(event) => setVariantId(event.target.value)}><option value="">Choose a variant</option>{activeVariants.map((variant) => <option key={variant.id} value={variant.id}>{variant.name}</option>)}</select></label>}
     <label className={styles.cartField}>Quantity<input type="number" min={1} max={99} value={quantity} onChange={(event) => { const value = Number(event.target.value); if (Number.isInteger(value) && value >= 1) setQuantity(value); }} /></label>

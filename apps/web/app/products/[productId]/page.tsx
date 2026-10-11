@@ -3,6 +3,8 @@
 import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import { ExperienceState } from "../../../components/experience/experience-state";
 import { useEffect, useState } from "react";
+import { OpportunityContext } from "../../../components/commerce/opportunity-context";
+import { useSourcePost } from "../../../lib/opportunity-source";
 import { useParams } from "next/navigation";
 import { formatProductPrice, getPublicProduct, type PublicProduct } from "../../../lib/product";
 import { AddToCart } from "./add-to-cart";
@@ -12,33 +14,44 @@ export default function PublicProductPage() {
   const params = useParams<{ productId: string }>();
   const [data, setData] = useState<PublicProduct | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const sourcePostId = useSourcePost();
 
   useEffect(() => {
-    if (!params?.productId) return;
-    getPublicProduct(params.productId)
-      .then(setData)
-      .catch((reason: Error) => setError(reason.message));
-  }, [params?.productId]);
+    const productId = params?.productId;
+    if (!productId) return;
+    let active = true;
+    setData(null);
+    setError(null);
+    void getPublicProduct(productId)
+      .then((next) => { if (active) setData(next); })
+      .catch((reason: Error) => { if (active) setError(reason.message); });
+    return () => { active = false; };
+  }, [params?.productId, retryVersion]);
 
-  if (error) return <main className={styles.shell}><ExperienceState kind="error" title="Product unavailable." description={error} action={{ label: "Explore Products", href: "/marketplace" }} /></main>;
-  if (!data) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Product details…" /></main>;
+  const currentData = data?.product.id === params?.productId ? data : null;
+  if (error && !currentData) return <main className={styles.shell}><ExperienceState kind="error" title="Product unavailable." description={error} action={{ label: "Try loading again", onClick: () => setRetryVersion((n) => n + 1) }} /></main>;
+  if (!currentData) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Product details…" /></main>;
 
-  const { product, owner } = data;
+  const { product, owner } = currentData;
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
   const heroMedia = product.mediaUrls[0];
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Product" trail={[{ href: "/marketplace", label: "Marketplace" }]} secondaryLinks={[{ href: "/cart", label: "Cart" }, { href: "/orders", label: "Orders" }]} />
+    <OpportunityContext sourcePostId={sourcePostId} ownerUsername={owner.username} />
 
     <section className={styles.topGrid}>
-      <div className={styles.media} style={heroMedia ? { backgroundImage: `url(${heroMedia})` } : undefined}>{!heroMedia && <span>PRODUCT MEDIA</span>}</div>
+      <div className={styles.media}>
+        {heroMedia ? <img className={styles.heroImage} src={heroMedia} alt={product.title ? `Photo of ${product.title}` : "Product photo"} /> : <span>PRODUCT MEDIA</span>}
+      </div>
       <div className={styles.summary}>
         <div className={styles.badges}><span>{product.type}</span><span>{product.inStock ? "AVAILABLE" : "OUT OF STOCK"}</span></div>
         <p className={styles.kicker}>{product.category}</p>
         <h1 className="h-experience-heading">{product.title}</h1>
         <strong className={styles.price}>{formatProductPrice(product)}</strong>
         <p className={styles.description}>{product.description}</p>
-        <AddToCart data={data} />
+        <AddToCart data={currentData} />
         <div className={styles.boundary}><strong>{product.inStock ? "Commerce enabled" : "Currently unavailable"}</strong><span>Cart and checkout revalidate price, variant and inventory before a PENDING Order can be created.</span></div>
       </div>
     </section>

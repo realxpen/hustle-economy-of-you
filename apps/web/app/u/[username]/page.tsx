@@ -146,6 +146,13 @@ export default function PublicProfilePage() {
       </div>
     </section>
 
+    <nav className={styles.journeyBar} aria-label="From work to opportunity">
+      <span>DISCOVER THE WORK</span>
+      <a href="#work">See portfolio ↗</a>
+      {data.services.length > 0 && <a href="#services">Explore services ↗</a>}
+      {data.products.length > 0 && <a href="#shop">Shop products ↗</a>}
+    </nav>
+
     <section className={styles.storefrontStats} aria-label="Storefront activity">
       <div><strong>{data.counts.services}</strong><span>Services</span></div>
       <div><strong>{data.counts.products}</strong><span>Products</span></div>

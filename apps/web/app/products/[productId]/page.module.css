@@ -18,3 +18,8 @@
  .variantGrid{grid-template-columns:minmax(0,1fr)}
  .sectionHeading h2{font-size:clamp(25px,7vw,36px)}
 }
+
+/* Work-first merchandising: show original photo instead of cover-cropping. */
+.media{overflow:hidden;background:var(--h-sand,#ece6da)}
+.heroImage{display:block;width:100%;height:100%;max-height:70dvh;min-height:260px;object-fit:contain}
+@media(max-width:680px){.heroImage{min-height:205px;max-height:54dvh}}

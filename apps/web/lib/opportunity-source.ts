@@ -13,7 +13,9 @@ export function validSourcePostId(candidate: string | null | undefined): string 
 export function withSourcePost(path: string, sourcePostId?: string | null): string {
   const safe = validSourcePostId(sourcePostId);
   if (!safe) return path;
-  return path + (path.includes("?") ? "&" : "?") + "sourcePost=" + encodeURIComponent(safe);
+  const [pathnameAndQuery, hash] = path.split("#", 2);
+  return pathnameAndQuery + (pathnameAndQuery.includes("?") ? "&" : "?") +
+    "sourcePost=" + encodeURIComponent(safe) + (hash ? "#" + hash : "");
 }
 
 export function useSourcePost(): string | null {
