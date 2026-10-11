@@ -641,7 +641,7 @@
 
 /* Short windows (landscape/400% zoom) use a horizontal action dock above
    a bounded, separately scrollable creator/offer footer. */
-@media(max-width:760px) and (max-height:600px){
+@media(max-width:760px) and (max-height:600px) and (orientation:landscape){
  .cardBody{max-height:min(45%,210px);overflow-y:auto;overscroll-behavior-y:contain}
  .actionRail{flex-direction:row;width:max-content;max-width:calc(100% - 16px);
    right:8px;bottom:calc(var(--post-footer-height,120px) + 5px);gap:3px}
@@ -649,4 +649,94 @@
  .actionDisc{width:34px;height:34px}
  .actionDisc svg{width:18px;height:18px}
  .postBadge{top:7px;left:9px;font-size:9px}
+}
+
+
+/* iOS Safari 100% / larger text: portrait must remain a VERTICAL action rail.
+   An earlier short-height media query unintentionally classified portrait
+   text-zoom states as landscape and spread controls across the post artwork. */
+@media(max-width:760px) and (orientation:portrait){
+ .cardBody{
+   display:flex;
+   flex-direction:column;
+   gap:clamp(4px,0.8dvh,8px);
+   bottom:0;
+   min-height:0;
+   max-height:min(54%,410px);
+   overflow:hidden;
+   padding:0 clamp(10px,3vw,16px) clamp(10px,1.5dvh,16px);
+ }
+ .creatorRow,.tags{flex:0 0 auto}
+ .captionWrap{
+   min-height:0;
+   flex:0 1 auto;
+   overflow-y:auto;
+   overscroll-behavior-y:contain;
+ }
+ .captionWrap p{font-size:clamp(12px,3.35vw,15px);line-height:1.35}
+ .opportunityDock{flex:0 0 auto;min-width:0}
+ .offerToggle{min-height:48px;max-width:100%}
+ .offerToggle strong{font-size:clamp(12px,3.6vw,15px)}
+ .cardBodyOffersOpen{max-height:min(76%,560px)}
+ .cardBodyOffersOpen .opportunityDock{
+   display:flex;
+   flex-direction:column;
+   min-height:0;
+   flex:1 1 auto;
+ }
+ .cardBodyOffersOpen .offerToggle{flex:0 0 auto}
+ .cardBodyOffersOpen .opportunityBlock{
+   min-height:0;
+   flex:1 1 auto;
+   max-height:min(34dvh,220px);
+   overflow-y:auto;
+ }
+ .actionRail{
+   flex-direction:column;
+   align-items:center;
+   width:47px;
+   max-width:47px;
+   gap:3px;
+   right:max(6px,env(safe-area-inset-right));
+   bottom:calc(var(--post-footer-height,160px) + 10px);
+ }
+ .actionRail a,.actionRail button{
+   width:46px;min-width:42px;min-height:46px;flex:0 0 auto;
+   color:#fff;
+ }
+ .actionDisc{
+   width:40px;height:40px;
+   background:rgba(14,14,17,.55);
+   border-color:rgba(255,255,255,.42);
+   color:#fff;
+ }
+ .actionNumber{color:#fff;text-shadow:0 1px 5px #000}
+ .railBehindOffers{display:none}
+}
+@media(max-width:760px) and (orientation:portrait) and (max-height:700px){
+ .cardBody{max-height:min(57%,305px);gap:4px;padding-bottom:8px}
+ .cardBodyOffersOpen{max-height:78%}
+ .cardBodyOffersOpen .opportunityBlock{max-height:25dvh}
+ .actionRail{gap:0;bottom:calc(var(--post-footer-height,135px) + 5px)}
+ .actionRail a,.actionRail button{min-height:40px}
+ .actionDisc{width:36px;height:36px}
+ .actionDisc svg{width:19px;height:19px}
+ .actionNumber{font-size:10px}
+ .avatar{width:35px;height:35px;flex-basis:35px}
+ .creatorName strong{font-size:13px}
+ .tags{max-height:17px}
+}
+/* Extreme portrait text zoom leaves too little vertical space for four
+   overlaid buttons: the rail can scroll independently without hiding the
+   offer and creator controls or changing to a horizontal row. */
+@media(max-width:760px) and (orientation:portrait) and (max-height:480px){
+ .cardBody{max-height:58%}
+ .cardBodyOffersOpen{max-height:80%}
+ .actionRail{
+   max-height:max(90px,calc(100% - var(--post-footer-height,135px) - 22px));
+   overflow-y:auto;
+   overscroll-behavior:contain;
+   scrollbar-width:thin;
+   border-radius:30px;
+ }
 }

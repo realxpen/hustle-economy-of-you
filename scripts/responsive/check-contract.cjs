@@ -37,4 +37,12 @@ for(const href of ["/home","/search","/marketplace","/messages","/notifications"
 assert.match(read("apps/web/components/navigation/hustle-mobile-nav.module.css"),/grid-template-columns:\s*repeat\(6,\s*minmax\(0,\s*1fr\)\)/);
 assert.match(read("apps/web/app/home/page.module.css"),/scroll-snap-type:\s*y mandatory/);
 assert.match(read("apps/web/app/home/page.module.css"),/var\(--post-footer-height/);
+const discoverCss=read("apps/web/app/home/page.module.css");
+assert.match(discoverCss,/@media\(max-width:760px\) and \(max-height:600px\) and \(orientation:landscape\)/,"Short-height horizontal rail must be landscape only");
+assert.match(discoverCss,/orientation:portrait/,"Portrait rail layout must be explicit");
+assert.match(discoverCss,/\.cardBodyOffersOpen/,"Expanded offer footer needs bounded layout");
+assert.match(discoverCss,/\.cardBodyOffersOpen[\s\S]*?\.opportunityBlock/,"Offer list must scroll within footer");
+const themeCss=read("apps/web/components/navigation/experience-theme-control.module.css");
+assert.match(themeCss,/max-width:none!important/,"Theme selection must not clip System at iOS font scale");
+
 console.log("Adaptive Web contract OK: "+routes.length+" routes and "+modules.length+" style modules.");
