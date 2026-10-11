@@ -18,7 +18,6 @@ import {
 } from "../../lib/post";
 import { formatProductPrice } from "../../lib/product";
 import { formatServicePrice } from "../../lib/service";
-import { HomeStoriesRow } from "./home-stories-row";
 import styles from "./page.module.css";
 
 const tabs: Array<{ id: FeedTab; label: string; note: string }> = [
@@ -298,7 +297,8 @@ function FeedCard({
   const hasMedia = item.post.media.length > 0;
 
   return <article ref={cardRef} className={styles.card} aria-label={"Post by " + (item.creator.displayName ?? item.creator.username ?? "a Hustler")}>
-    <MediaRail item={item} />
+    <div className={styles.postCanvas}>
+      <MediaRail item={item} />
     <div className={styles.mediaShade} aria-hidden="true" />
     <div className={styles.postBadge}>
       <span>HUSTLE</span>
@@ -306,29 +306,6 @@ function FeedCard({
       <span>{skill ?? item.post.category ?? "CREATOR"}</span>
       {item.post.media.length > 1 && <span className={styles.mediaCount}>{item.post.media.length} media · swipe sideways</span>}
       {!hasMedia && <span className={styles.mediaCount}>TEXT POST</span>}
-    </div>
-
-    <div className={styles.actionRail} aria-label="Post actions">
-      <button className={item.viewer.liked ? styles.activeAction : undefined} type="button"
-        aria-label={item.viewer.liked ? "Unlike post" : "Like post"} aria-pressed={item.viewer.liked}
-        onClick={toggleLike} disabled={working === "like"}>
-        <span className={styles.actionDisc}><FeedGlyph name="like" filled={item.viewer.liked} /></span>
-        <span className={styles.actionNumber}>{item.engagement.likes}</span>
-      </button>
-      <Link href={"/posts/" + item.post.id} aria-label={"View " + item.engagement.comments + " comments"}>
-        <span className={styles.actionDisc}><FeedGlyph name="comment" /></span>
-        <span className={styles.actionNumber}>{item.engagement.comments}</span>
-      </Link>
-      <button className={item.viewer.saved ? styles.activeAction : undefined} type="button"
-        aria-label={item.viewer.saved ? "Remove saved post" : "Save post"} aria-pressed={item.viewer.saved}
-        onClick={toggleSave} disabled={working === "save"}>
-        <span className={styles.actionDisc}><FeedGlyph name="save" filled={item.viewer.saved} /></span>
-        <span className={styles.actionNumber}>{item.engagement.saves}</span>
-      </button>
-      <button type="button" aria-label="Share post" onClick={share} disabled={working === "share"}>
-        <span className={styles.actionDisc}><FeedGlyph name="share" /></span>
-        <span className={styles.actionNumber}>Share</span>
-      </button>
     </div>
 
     <div className={styles.cardBody}>
@@ -359,7 +336,7 @@ function FeedCard({
         <button className={styles.offerToggle} type="button" aria-expanded={offersOpen}
           onClick={() => setOffersOpen((previous) => !previous)}>
           <span className={styles.offerIcon} aria-hidden="true">↗</span>
-          <span><strong>View attached {offerCount === 1 ? "offer" : offerCount + " offers"}</strong><small>Services & products from this post</small></span>
+          <span><strong>{offerCount} attached {offerCount === 1 ? "offer" : "offers"}</strong></span>
           <b aria-hidden="true">{offersOpen ? "−" : "+"}</b>
         </button>
         {offersOpen && <div className={styles.opportunityBlock}>
@@ -385,6 +362,30 @@ function FeedCard({
       </section>}
       {notice && <p className={styles.notice} role="status">{notice}</p>}
     </div>
+    </div>
+    <div className={[styles.actionRail, offersOpen ? styles.railBehindOffers : ""].join(" ")} aria-label="Post actions">
+      <button className={item.viewer.liked ? styles.activeAction : undefined} type="button"
+        aria-label={item.viewer.liked ? "Unlike post" : "Like post"} aria-pressed={item.viewer.liked}
+        onClick={toggleLike} disabled={working === "like"}>
+        <span className={styles.actionDisc}><FeedGlyph name="like" filled={item.viewer.liked} /></span>
+        <span className={styles.actionNumber}>{item.engagement.likes}</span>
+      </button>
+      <Link href={"/posts/" + item.post.id} aria-label={"View " + item.engagement.comments + " comments"}>
+        <span className={styles.actionDisc}><FeedGlyph name="comment" /></span>
+        <span className={styles.actionNumber}>{item.engagement.comments}</span>
+      </Link>
+      <button className={item.viewer.saved ? styles.activeAction : undefined} type="button"
+        aria-label={item.viewer.saved ? "Remove saved post" : "Save post"} aria-pressed={item.viewer.saved}
+        onClick={toggleSave} disabled={working === "save"}>
+        <span className={styles.actionDisc}><FeedGlyph name="save" filled={item.viewer.saved} /></span>
+        <span className={styles.actionNumber}>{item.engagement.saves}</span>
+      </button>
+      <button type="button" aria-label="Share post" onClick={share} disabled={working === "share"}>
+        <span className={styles.actionDisc}><FeedGlyph name="share" /></span>
+        <span className={styles.actionNumber}>Share</span>
+      </button>
+    </div>
+
   </article>;
 }
 
@@ -498,6 +499,7 @@ export default function DiscoveryHomePage() {
             <Link className={styles.tabLink} href="/live">Live</Link>
           </nav>
           <div className={styles.quickLinks}>
+            <Link href="/stories" aria-label="View Hustle Stories" title="Stories">◉</Link>
             <Link href="/posts/manage" aria-label="Create or manage posts" title="Create or manage posts">+</Link>
             <Link href="/search" aria-label="Search people, skills, services and products" title="Search Hustle">⌕</Link>
           </div>
@@ -550,18 +552,7 @@ export default function DiscoveryHomePage() {
         </div>
       </div>
 
-      <aside className={styles.sidePanel} aria-label="More ways to explore Hustle">
-        <Link className={styles.searchLink} href="/search"><span>⌕</span> Find a skill or Hustler <b>↗</b></Link>
-        <div className={styles.sideSection}>
-          <div className={styles.sideHeading}><strong>Stories</strong><Link href="/stories">See all ↗</Link></div>
-          <HomeStoriesRow />
-        </div>
-        <div className={styles.locationPanel}><span>YOUR DISCOVERY LOCATION</span><strong>{meta.viewerLocation ?? "Location not set"}</strong><Link href="/search">Search other locations ↗</Link></div>
-        <div className={styles.sideShortcuts}>
-          <Link href="/marketplace">Browse the marketplace <span>↗</span></Link>
-          <Link href="/posts/manage">Show your work <span>↗</span></Link>
-        </div>
-      </aside>
+
     </section>
   </main>;
 }

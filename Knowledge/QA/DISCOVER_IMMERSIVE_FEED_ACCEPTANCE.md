@@ -37,3 +37,9 @@ Viewport focus correction (PR pending): constrain the Discover document to 100dv
 - [ ] Confirm toolbar Create (+), Search, tabs, Live, original navigation, Stories, direct booking quick view and keyboard Next/Previous.
 
 Code result: PR #89 merged 2026-10-11, Foundation CI 38117637370 SUCCESS (Web/Admin/Mobile/API type checks, Prisma generation, Web/Admin/API production builds). Owner's follow-up Web deployment and hands-on screen/video/swipe verification are still required; no browser acceptance claimed.
+
+
+## Second production screenshot — 2026-10-11
+Owner-provided screenshot after PR #89 confirms the document now fits one viewport and an authentic post is present. However the 9:16 stage is only ~342px wide, the four action controls occupy the image's right edge and the caption/creator/offer share an inner space constrained by 73px padding; the offer chip wraps into multiple lines. The screenshot is evidence of a cramped composition, NOT interaction acceptance.
+
+Follow-up code isolates a clean desktop media canvas from a separate engagement rail, lets creator/caption/offer span the media width, makes attached-offer chip one line, centers the viewer, removes competing desktop secondary pane while retaining Stories via toolbar and Marketplace via primary navigation, and preserves mobile full-bleed presentation. Review 320/360/390px, 1024/1440px and 1366x768 for offer/rail overlap (including expanded caption and multiple offers), keyboard, touch and video before declaring accepted.
