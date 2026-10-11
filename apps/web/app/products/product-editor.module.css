@@ -15,3 +15,10 @@
  .variantActions{flex-wrap:wrap}
  .previewBody h2{font-size:clamp(23px,7vw,32px)}
 }
+
+/* Creator publishing modes share the existing post editor, not a new account. */
+.creatorNav{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:14px 0;padding:10px;background:var(--h-surface,#faf7f0);border:1px solid var(--h-border-subtle,#d0c9b8);border-radius:16px}
+.creatorNav :is(a,span){display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:800}
+.creatorNav span{background:var(--h-orange,#ff8528);color:#17100c}
+.creatorNav a:focus-visible,.creatorNav a:hover{outline:2px solid var(--h-orange,#ff8528);outline-offset:1px}
+@media(max-width:570px){.creatorNav :is(a,span){flex:1 1 122px;font-size:11px}}

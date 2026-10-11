@@ -32,7 +32,8 @@ function mergeComments(current: LiveCommentRecord[], incoming: LiveCommentRecord
 export default function LiveViewerPage() {
   const params = useParams<{ liveId: string }>();
   const liveId = params?.liveId;
-  const [session, setSession] = useState<LiveSessionRecord | null>(null);
+  const [loadedSession, setSession] = useState<LiveSessionRecord | null>(null);
+  const session = loadedSession?.id === liveId ? loadedSession : null;
   const [comments, setComments] = useState<LiveCommentRecord[]>([]);
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -44,12 +45,17 @@ export default function LiveViewerPage() {
   useEffect(() => {
     if (!liveId) return;
     let active = true;
+    setSession(null);
+    setComments([]);
+    latestCommentRef.current = null;
+    setError(null);
+    setNotice(null);
     Promise.all([
       getPublicLiveSession(liveId),
       getLiveComments(liveId, { limit: 100 })
     ])
       .then(([nextSession, nextComments]) => {
-        if (!active) return;
+        if (!active || nextSession.id !== liveId) return;
         setSession(nextSession);
         setComments(nextComments);
         const latest = nextComments.at(-1);

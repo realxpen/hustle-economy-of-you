@@ -38,6 +38,10 @@ export default function CreateLivePage() {
         <div className={styles.actions}><a href="/live">Browse Live</a></div>
       </header>
 
+      <nav className={styles.creatorModes} aria-label="Your creator tools">
+        <a href="/posts/new">Post</a><a href="/stories/create">Story</a>
+        <span aria-current="step">Live</span><a href="/professional-profile">Storefront</a>
+      </nav>
       <section className={styles.controlGrid}>
         <div className={styles.heroPanel}>
           <div className={styles.eyebrow}>HOST A LIVE</div>
@@ -48,6 +52,7 @@ export default function CreateLivePage() {
 
         <section className={styles.panel}>
           <form className={styles.form} onSubmit={submit} aria-busy={busy}>
+            <div className={styles.transportNote}><strong>Step 1 · Prepare the room</strong><p>Creating a room does not start broadcasting. Connect your native camera/microphone or configure a real external playback source in the control room, then explicitly start Live.</p></div>
             {error && <div className={styles.error} role="alert">{error}</div>}
             <div className={styles.field}>
               <label htmlFor="title">Live title</label>

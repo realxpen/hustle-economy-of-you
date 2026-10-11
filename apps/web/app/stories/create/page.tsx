@@ -23,6 +23,7 @@ export default function CreateStoryPage() {
   const [type, setType] = useState<StoryType>("TEXT");
   const [text, setText] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
   const [background, setBackground] = useState("#111111");
   const [serviceId, setServiceId] = useState("");
   const [productId, setProductId] = useState("");
@@ -62,10 +63,31 @@ export default function CreateStoryPage() {
     void loadReferences();
   }, []);
 
+  const mediaValidation = useMemo(() => {
+    if (type === "TEXT" || !mediaFile) return null;
+    const allowed = type === "IMAGE"
+      ? ["image/jpeg","image/png","image/webp","image/gif"]
+      : ["video/mp4","video/webm","video/quicktime"];
+    const limit = type === "IMAGE" ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
+    if (!allowed.includes(mediaFile.type)) return "Choose a supported " + (type === "IMAGE" ? "image" : "video") + " file.";
+    if (mediaFile.size <= 0 || mediaFile.size > limit) return "File must be larger than zero and at most " + (type === "IMAGE" ? "10 MB." : "50 MB.");
+    return null;
+  }, [mediaFile, type]);
+
+  useEffect(() => {
+    if (!mediaFile || type === "TEXT" || mediaValidation) {
+      setMediaPreviewUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(mediaFile);
+    setMediaPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [mediaFile, type, mediaValidation]);
+
   const canSubmit = useMemo(() => {
     if (type === "TEXT") return text.trim().length > 0;
-    return Boolean(mediaFile);
-  }, [mediaFile, text, type]);
+    return Boolean(mediaFile && !mediaValidation);
+  }, [mediaFile, mediaValidation, text, type]);
 
   function chooseType(next: StoryType) {
     setType(next);
@@ -77,11 +99,12 @@ export default function CreateStoryPage() {
     const file = event.target.files?.[0] ?? null;
     setMediaFile(file);
     setError(null);
+    event.target.value = "";
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || submitting) return;
     setSubmitting(true);
     setError(null);
 
@@ -122,6 +145,12 @@ export default function CreateStoryPage() {
       <div className={styles.headerActions}><a href="/home">Discovery</a></div>
     </header>
 
+    <nav className={styles.creatorModes} aria-label="Choose a content format">
+      <a href="/posts/new">Post · feed</a>
+      <span aria-current="step">Story · 24 hours</span>
+      <a href="/live/create">Live · real time</a>
+      <a href="/professional-profile">Your storefront</a>
+    </nav>
     <section className={styles.formShell}>
       <div className={styles.formHeader}>
         <p className={styles.eyebrow}>CREATE · EXPIRES IN 24 HOURS</p>
@@ -134,11 +163,24 @@ export default function CreateStoryPage() {
           key={storyType}
           type="button"
           className={type === storyType ? styles.activeType : undefined}
+          aria-pressed={type === storyType}
           onClick={() => chooseType(storyType)}
         >{storyType === "TEXT" ? "Text" : storyType === "IMAGE" ? "Photo" : "Video"}</button>)}
       </div>
 
-      <form className={styles.form} onSubmit={submit}>
+      <form className={styles.form} onSubmit={submit} aria-busy={submitting}>
+        <section className={styles.storyPreview} aria-label="Story preview">
+          <div className={styles.storyPreviewStage} style={type === "TEXT" ? { background } : undefined}>
+            {type === "TEXT" && <p>{text.trim() || "Your Story will appear here…"}</p>}
+            {type === "IMAGE" && (mediaPreviewUrl
+              ? <img src={mediaPreviewUrl} alt="Selected Story photo preview" />
+              : <p>Select a photo to preview</p>)}
+            {type === "VIDEO" && (mediaPreviewUrl
+              ? <video src={mediaPreviewUrl} controls playsInline preload="metadata" aria-label="Selected Story video preview" />
+              : <p>Select a video to preview</p>)}
+          </div>
+          <p className={styles.hint}>Preview only. Nothing is posted until you choose Publish Story. Stories expire after 24 hours.</p>
+        </section>
         <div className={styles.field}>
           <label htmlFor="story-text">{type === "TEXT" ? "STORY TEXT" : "CAPTION · OPTIONAL"}</label>
           <textarea id="story-text" maxLength={700} value={text} onChange={(event) => setText(event.target.value)} placeholder={type === "TEXT" ? "Share an update, review or recommendation. Use @username to reference someone…" : "Add context or @mention someone…"} />
@@ -149,11 +191,13 @@ export default function CreateStoryPage() {
           <label htmlFor="story-media">{type === "IMAGE" ? "UPLOAD PHOTO" : "UPLOAD VIDEO"}</label>
           <input
             id="story-media"
+            key={type}
             type="file"
             accept={type === "IMAGE" ? "image/jpeg,image/png,image/webp,image/gif" : "video/mp4,video/webm,video/quicktime"}
             onChange={chooseMedia}
             required
           />
+          {mediaValidation && <span className={styles.mediaError} role="alert">{mediaValidation}</span>}
           <span className={styles.hint}>
             {mediaFile ? `${mediaFile.name} · ${(mediaFile.size / 1024 / 1024).toFixed(1)} MB` : type === "IMAGE" ? "JPEG, PNG, WebP or GIF · up to 10 MB" : "MP4, WebM or QuickTime · up to 50 MB"}
           </span>
@@ -191,8 +235,8 @@ export default function CreateStoryPage() {
         </div>
 
         <div className={styles.notice}>Story opinions remain community content. Verified reputation still requires an eligible completed Booking/Order and the separate verified Review flow.</div>
-        {error && <div className={styles.notice}>{error}</div>}
-        <button className={styles.submit} type="submit" disabled={!canSubmit || submitting}>{submitting ? "Uploading & publishing…" : "Publish Story for 24 hours →"}</button>
+        {error && <div className={styles.mediaError} role="alert">{error}</div>}
+        <button className={styles.submit} type="submit" disabled={!canSubmit || submitting} aria-disabled={!canSubmit || submitting}>{submitting ? "Uploading & publishing…" : "Publish Story for 24 hours →"}</button>
       </form>
     </section>
   </main>;

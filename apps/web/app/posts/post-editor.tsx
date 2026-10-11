@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ExperienceState } from "../../components/experience/experience-state";
 import { useRouter } from "next/navigation";
 import { getMarketplacePage } from "../../lib/search";
 import {
@@ -58,6 +59,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
   const [mediaType, setMediaType] = useState<PostMediaType>("IMAGE");
   const [mediaUrl, setMediaUrl] = useState("");
   const [loading, setLoading] = useState(Boolean(postId));
+  const [retry, setRetry] = useState(0);
   const [loadingReferences, setLoadingReferences] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +91,8 @@ export default function PostEditor({ postId }: { postId?: string }) {
 
   useEffect(() => {
     let active = true;
+    setLoading(Boolean(postId));
+    setError(null);
     Promise.all([
       postId ? getMyPost(postId) : Promise.resolve(null),
       getMarketplacePage("services", { limit: 12 }),
@@ -111,12 +115,12 @@ export default function PostEditor({ postId }: { postId?: string }) {
           owner: item.owner.displayName ?? item.owner.username ?? "Hustle user"
         }] : []));
       })
-      .catch((reason: Error) => setError(reason.message))
+      .catch((reason: Error) => { if (active) setError(reason.message); })
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
     };
-  }, [postId]);
+  }, [postId, retry]);
 
   const currentId = post?.id ?? postId;
   const published = post?.status === "PUBLISHED";
@@ -144,6 +148,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
 
   async function persist(event?: FormEvent) {
     event?.preventDefault();
+    if (busy) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -158,7 +163,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
   }
 
   async function addMedia() {
-    if (!mediaUrl.trim()) return;
+    if (busy || !mediaUrl.trim()) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -223,6 +228,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
   }
 
   async function publish() {
+    if (busy || !form.caption.trim() || !form.category.trim() || mediaCount === 0) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -253,7 +259,11 @@ export default function PostEditor({ postId }: { postId?: string }) {
     }
   }
 
-  if (loading) return <main className={styles.shell}><p className={styles.loading}>Loading post…</p></main>;
+  if (loading) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading your post…" /></main>;
+  if (error && postId && !post) return <main className={styles.shell}>
+    <ExperienceState kind="error" title="Could not open this draft." description={error}
+      action={{ label: "Try again", onClick:()=>setRetry((count)=>count+1) }} />
+  </main>;
 
   return <main className={styles.shell}>
     <header className={styles.header}><a href="/posts/manage">← Posts</a><span>CONTENT · EVERY HUSTLE IDENTITY</span></header>
@@ -262,8 +272,15 @@ export default function PostEditor({ postId }: { postId?: string }) {
       <div><p>CONTENT · {post?.status ?? "NEW DRAFT"}</p><h1>Share the experience. <em>Reference the opportunity.</em></h1></div>
       <div className={styles.status}><strong>{readiness}%</strong><span>draft checklist</span></div>
     </section>
-    <div className={styles.progress}><span style={{ width: `${readiness}%` }} /></div>
+    <div className={styles.progress} aria-hidden="true"><span style={{ width: `${readiness}%` }} /></div>
+    <p className={styles.muted} role="status">Publish checklist: {form.caption.trim() ? "Caption ✓" : "Caption needed"} · {form.category.trim() ? "Category ✓" : "Category needed"} · {mediaCount > 0 ? "Media ✓" : "Media needed"}. Saving a draft is separate from publishing.</p>
 
+    <nav className={styles.creatorNav} aria-label="Choose how to share your work">
+      <span aria-current="step">Post</span>
+      <a href="/stories/create">Story · 24 hours</a>
+      <a href="/live/create">Host a Live</a>
+      <a href="/professional-profile">Professional storefront</a>
+    </nav>
     <section className={styles.layout}>
       <form className={styles.form} onSubmit={persist} aria-busy={busy}>
         <div className={styles.sectionTitle}><span>01</span><div><strong>What do you want to share?</strong><p>Posts belong to the Hustle user identity. You do not need to be a Hustler to publish.</p></div></div>

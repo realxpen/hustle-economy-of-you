@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ExperienceState } from "../../components/experience/experience-state";
 import type { HustleAccount, ProfessionalProfile } from "@hustle/types";
 import { getMyAccount } from "../../lib/auth/hustle-account";
 import {
@@ -49,20 +50,26 @@ export default function ProfessionalProfilePage() {
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [loading, setLoading] = useState(true);
+  const [retry, setRetry] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([getMyAccount(), getMyProfessionalProfile()])
+    let active = true;
+    setLoading(true);
+    setError(null);
+    void Promise.all([getMyAccount(), getMyProfessionalProfile()])
       .then(([nextAccount, nextProfile]) => {
+        if (!active) return;
         setAccount(nextAccount);
         setProfile(nextProfile);
         setForm(toForm(nextProfile));
       })
-      .catch((reason: Error) => setError(reason.message))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((reason: Error) => { if (active) setError(reason.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [retry]);
 
   const completedFields = useMemo(() => [
     form.headline.trim(),
@@ -74,6 +81,7 @@ export default function ProfessionalProfilePage() {
 
   const readiness = Math.round((completedFields / 5) * 100);
   const published = profile?.status === "PUBLISHED";
+  const contactVerified = Boolean(account?.emailVerified || account?.phoneVerified);
   const initial = (account?.displayName ?? account?.username ?? "H").charAt(0).toUpperCase();
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -146,17 +154,21 @@ export default function ProfessionalProfilePage() {
   }
 
   if (loading) {
-    return <main className={styles.shell}><p className={styles.loading}>Building your professional identity…</p></main>;
+    return <main className={styles.shell}><ExperienceState kind="loading" title="Loading professional profile…" /></main>;
   }
 
   if (!account || !profile) {
-    return <main className={styles.shell}><section className={styles.errorCard}><h1>Professional profile unavailable.</h1><p>{error ?? "HUSTLER ACTIVE is required."}</p><a href="/account">← Back to your identity</a></section></main>;
+    return <main className={styles.shell}>
+      <ExperienceState kind={error ? "error" : "empty"} title="Professional profile unavailable."
+        description={error ?? "An active Hustler capability is required to publish a professional storefront."}
+        action={error ? {label:"Try loading again",onClick:()=>setRetry((current)=>current+1)} : {label:"Your identity",href:"/account"}} />
+    </main>;
   }
 
   return <main className={styles.shell}>
     <header className={styles.header}>
       <a href="/account">← Your identity</a>
-      <span>PHASE 4 · PROFESSIONAL IDENTITY</span>
+      <span>YOUR PROFESSIONAL STOREFRONT</span>
     </header>
 
     <section className={styles.hero}>
@@ -172,7 +184,17 @@ export default function ProfessionalProfilePage() {
       </div>
     </section>
 
-    <div className={styles.progress}><span style={{ width: `${readiness}%` }} /></div>
+    <div className={styles.progress} aria-hidden="true"><span style={{ width: `${readiness}%` }} /></div>
+    <nav className={styles.creatorFlow} aria-label="Build your Hustler presence">
+      <span aria-current="step">1. Professional identity</span>
+      <a href="/services/manage">2. Services</a>
+      <a href="/products/manage">3. Products</a>
+      <a href="/posts/manage">4. Proof of work</a>
+      <a href="/stories/create">5. Stories</a>
+      <a href="/live/create">6. Live</a>
+    </nav>
+    <p className={styles.creatorHelp}>Your public storefront connects your profile, demonstrated work, published offers, and Live activity. Your Hustler capability is not a different account.</p>
+    {!published && <p className={styles.creatorHelp}>To publish: add a headline, primary skill, category, professional summary, and years of experience. Saving a draft does not make it public.</p>}
 
     <section className={styles.layout}>
       <form className={styles.form} onSubmit={save}>
@@ -196,8 +218,8 @@ export default function ProfessionalProfilePage() {
           <label><span>Cover image URL</span><input type="url" value={form.coverUrl} onChange={(event) => setField("coverUrl", event.target.value)} placeholder="https://…" /></label>
         </div>
 
-        {error && <p className={styles.error}>{error}</p>}
-        {notice && <p className={styles.notice}>{notice}</p>}
+        {error && <p className={styles.error} role="alert">{error}</p>}
+        {notice && <p className={styles.notice} role="status">{notice}</p>}
 
         <div className={styles.actions}>
           <button className={styles.secondaryButton} type="submit" disabled={busy}>{busy ? "Working…" : "Save profile"}</button>
@@ -206,11 +228,11 @@ export default function ProfessionalProfilePage() {
       </form>
 
       <aside className={styles.preview}>
-        <p className={styles.previewLabel}>LIVE PREVIEW</p>
+        <p className={styles.previewLabel}>PROFILE PREVIEW · NOT A VERIFICATION BADGE</p>
         <div className={styles.cover} style={form.coverUrl ? { backgroundImage: `url(${form.coverUrl})` } : undefined} />
         <div className={styles.previewBody}>
           <div className={styles.previewAvatar}>{account.avatarUrl ? <img src={account.avatarUrl} alt="" /> : initial}</div>
-          <div className={styles.verifiedRow}><strong>{account.displayName ?? "Your name"}</strong><span>HUSTLER · VERIFIED</span></div>
+          <div className={styles.verifiedRow}><strong>{account.displayName ?? "Your name"}</strong><span>HUSTLER · ACTIVE</span>{contactVerified && <span>CONTACT VERIFIED</span>}</div>
           <p className={styles.handle}>@{account.username ?? "username"} · {account.location ?? "Location"}</p>
           <h2>{form.headline || "Your professional headline"}</h2>
           <div className={styles.skillPills}>{[form.primarySkill, ...form.secondarySkills.split(",")].map((skill) => skill.trim()).filter(Boolean).slice(0, 6).map((skill) => <span key={skill}>{skill}</span>)}</div>

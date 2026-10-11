@@ -22,3 +22,12 @@
  .commentForm button{flex-shrink:0;min-height:44px}
 }
 @media(max-height:540px){.stage,.stage iframe,.stage video,.nativeStage{min-height:200px}.comments{height:min(45dvh,310px)}}
+
+/* UX Build 3: creator navigation and truthful stream readiness. */
+.creatorModes{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:14px 0 20px;padding:9px;border:1px solid #4a4a4a;border-radius:17px;background:#19191b}
+.creatorModes :is(span,a){display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 13px;border-radius:999px;font-weight:800;font-size:12px;text-decoration:none;color:#f3f3f3}
+.creatorModes span{background:var(--h-orange,#ff8528);color:#190f08}
+.hostChecklist{display:flex;align-items:center;flex-wrap:wrap;gap:7px 10px;padding:11px 13px;border:1px solid #555;border-radius:16px;background:#1b1b1d;margin:13px 0;color:#eee}
+.hostChecklist strong{flex:1 1 100%;font-size:13px;color:#fff}
+.hostChecklist span{font-size:11px;padding:6px 9px;border:1px solid #555;border-radius:999px;overflow-wrap:anywhere}
+@media(max-width:600px){.creatorModes :is(span,a){flex:1 1 40%}.hostChecklist{gap:6px}.hostChecklist span{flex:1 1 100%}}
