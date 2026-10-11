@@ -1,6 +1,6 @@
 # ADR-0064 — Creator publishing surfaces and honest Live/profile state
 
-Status: Implemented in feature branch; full CI, deployment and signed-in browser acceptance pending
+Status: PR #98 merged; Foundation CI 38160837071 succeeded; manual Web release and signed-in owner/browser acceptance pending
 Date: 2026-10-11
 Scope: Next.js Web only; existing publishing APIs, identity, trust, payments and Live media transports unchanged.
 
