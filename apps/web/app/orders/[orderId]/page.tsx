@@ -121,7 +121,7 @@ export default function OrderDetailPage() {
 
     <section className={[styles.hero, "h-experience-hero"].join(" ")}><div><p className={styles.eyebrow}>ORDER · {order.viewerRole}</p><h1 className="h-experience-heading">{order.status.replaceAll("_", " ")}</h1></div><p>{derivedNextAction}</p></section>
 
-    <TransactionJourney kind="ORDER" status={order.status} />
+    <TransactionJourney kind="ORDER" status={order.status} paid={order.paymentBoundary.paid} />
     <section className={styles.handoff} aria-label="Order next steps">
       <div><strong>Next step</strong><p>{derivedNextAction ?? "Review the authoritative Order status before taking another step."}</p></div>
       <div className={styles.handoffLinks}>
