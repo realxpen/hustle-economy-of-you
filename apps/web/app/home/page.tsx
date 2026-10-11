@@ -139,25 +139,44 @@ function FeedCard({
 }) {
   const cardRef = useRef<HTMLElement | null>(null);
   const footerRef = useRef<HTMLDivElement | null>(null);
+  const actionTriggerRef = useRef<HTMLButtonElement | null>(null);
   const viewedRef = useRef(false);
   const visibleSinceRef = useRef<number | null>(null);
   const [working, setWorking] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [offersOpen, setOffersOpen] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
+  const [compactActions, setCompactActions] = useState(false);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
 
-  // Float engagement above the real caption/offer height on each device.
+  // Measure actual free space above the footer. Larger Safari website text
+  // and browser chrome can change available height without changing width.
   useEffect(() => {
     const card = cardRef.current;
     const footer = footerRef.current;
     if (!card || !footer) return;
+    const portrait = window.matchMedia("(max-width: 760px) and (orientation: portrait)");
     const measure = () => {
-      card.style.setProperty("--post-footer-height", Math.ceil(footer.getBoundingClientRect().height) + "px");
+      const cardRect = card.getBoundingClientRect();
+      const footerRect = footer.getBoundingClientRect();
+      card.style.setProperty("--post-footer-height", Math.ceil(footerRect.height) + "px");
+      const available = footerRect.top - cardRect.top - 50; // post badge clearance
+      const compact = portrait.matches && available < 225;
+      setCompactActions((previous) => previous === compact ? previous : compact);
     };
-    measure();
     const observer = new ResizeObserver(measure);
+    observer.observe(card);
     observer.observe(footer);
-    return () => observer.disconnect();
+    window.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("resize", measure);
+    portrait.addEventListener("change", measure);
+    measure();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+      portrait.removeEventListener("change", measure);
+    };
   }, [item.post.id]);
 
   useEffect(() => {
@@ -372,7 +391,7 @@ function FeedCard({
 
       {offerCount > 0 && <section className={styles.opportunityDock} aria-label="Services and products attached to this post">
         <button className={styles.offerToggle} type="button" aria-expanded={offersOpen}
-          onClick={() => setOffersOpen((previous) => !previous)}>
+          onClick={() => { setActionMenuOpen(false); setOffersOpen((previous) => !previous); }}>
           <span className={styles.offerIcon} aria-hidden="true">↗</span>
           <span><strong>{offerCount} attached {offerCount === 1 ? "offer" : "offers"}</strong></span>
           <b aria-hidden="true">{offersOpen ? "−" : "+"}</b>
@@ -401,7 +420,30 @@ function FeedCard({
       {notice && <p className={styles.notice} role="status">{notice}</p>}
     </div>
     </div>
-    <div className={[styles.actionRail, offersOpen ? styles.railBehindOffers : ""].join(" ")} aria-label="Post actions">
+    {compactActions && !offersOpen && <button
+      ref={actionTriggerRef}
+      type="button"
+      className={styles.actionMenuTrigger}
+      aria-label={actionMenuOpen ? "Close post actions" : "Open post actions"}
+      aria-controls={"post-actions-" + item.post.id}
+      aria-expanded={actionMenuOpen}
+      onClick={() => setActionMenuOpen((previous) => !previous)}>
+      <span aria-hidden="true">{actionMenuOpen ? "×" : "···"}</span>
+      <small>Actions</small>
+    </button>}
+    <div id={"post-actions-" + item.post.id}
+      className={[styles.actionRail,
+        offersOpen ? styles.railBehindOffers : "",
+        compactActions ? styles.railCompact : "",
+        compactActions && !actionMenuOpen ? styles.railCompactClosed : ""].join(" ")}
+      aria-label="Post actions"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && compactActions) {
+          event.stopPropagation();
+          setActionMenuOpen(false);
+          actionTriggerRef.current?.focus();
+        }
+      }}>
       <button className={item.viewer.liked ? styles.activeAction : undefined} type="button"
         aria-label={item.viewer.liked ? "Unlike post" : "Like post"} aria-pressed={item.viewer.liked}
         onClick={toggleLike} disabled={working === "like"}>

@@ -740,3 +740,59 @@
    border-radius:30px;
  }
 }
+
+
+/* Content-space adaptive post actions. Safari text scaling can leave too little
+   room for four vertically stacked buttons even while in portrait orientation. */
+@media(max-width:760px) and (orientation:portrait) {
+ .actionRail:not(.railCompact){
+   top:clamp(45px,8%,65px);
+   bottom:calc(var(--post-footer-height,160px) + 8px);
+   height:auto;
+   min-height:0;
+   max-height:none;
+   overflow-y:auto;
+   overscroll-behavior-y:contain;
+   scrollbar-width:none;
+   justify-content:flex-end;
+ }
+ .actionRail:not(.railCompact)::-webkit-scrollbar{display:none}
+ .actionMenuTrigger{
+   position:absolute;z-index:7;
+   display:flex;flex-direction:column;align-items:center;justify-content:center;
+   right:max(7px,env(safe-area-inset-right));
+   bottom:calc(var(--post-footer-height,160px) + 10px);
+   width:49px;height:49px;min-height:49px;min-width:49px;
+   padding:3px;border:1px solid rgba(255,255,255,.65);
+   border-radius:999px;background:rgba(16,16,19,.74);color:#fff;
+   -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+   box-shadow:0 6px 20px rgba(0,0,0,.22);cursor:pointer;
+ }
+ .actionMenuTrigger span{font-size:24px;line-height:18px;font-weight:850}
+ .actionMenuTrigger small{font-size:9px;line-height:13px;font-weight:750}
+ .actionRail.railCompact{
+   position:absolute;z-index:7;
+   top:clamp(38px,7%,57px);
+   bottom:calc(var(--post-footer-height,160px) + 10px);
+   right:clamp(61px,17vw,74px);
+   width:min(178px,calc(100% - 86px));max-width:178px;
+   height:auto;min-height:0;padding:8px 6px;
+   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+   grid-auto-rows:minmax(54px,max-content);
+   justify-items:center;align-content:start;gap:3px 5px;
+   overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:thin;
+   border:1px solid rgba(255,255,255,.33);
+   border-radius:18px;background:rgba(14,14,17,.88);
+   -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+   box-shadow:0 10px 28px rgba(0,0,0,.32);
+ }
+ .actionRail.railCompact a,.actionRail.railCompact button{
+   min-width:0;max-width:100%;width:100%;min-height:54px;
+   padding:1px;color:#fff;gap:1px;
+ }
+ .actionRail.railCompact .actionDisc{width:33px;height:33px}
+ .actionRail.railCompact .actionDisc svg{width:17px;height:17px}
+ .actionRail.railCompact .actionNumber{font-size:10px;color:#fff}
+ .actionRail.railCompactClosed,.actionRail.railBehindOffers{display:none}
+ .actionMenuTrigger:focus-visible{outline:3px solid var(--h-orange);outline-offset:2px}
+}
