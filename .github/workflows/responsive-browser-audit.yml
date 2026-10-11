@@ -1,0 +1,33 @@
+name: Hustle Responsive Browser Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Read-only Web URL (HTTPS root)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  browser-viewport-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate adaptive source contract
+        run: node scripts/responsive/check-contract.cjs
+      - name: Install isolated browser test runtime
+        run: |
+          npm install --prefix /tmp/hustle-responsive --no-save --no-package-lock playwright@1.56.1
+          /tmp/hustle-responsive/node_modules/.bin/playwright install --with-deps chromium
+      - name: Read-only multi-viewport browser audit
+        env:
+          NODE_PATH: /tmp/hustle-responsive/node_modules
+          HUSTLE_BASE_URL: ${{ inputs.base_url }}
+        run: node scripts/responsive/browser-audit.cjs "$HUSTLE_BASE_URL"
