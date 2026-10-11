@@ -25,6 +25,8 @@ jobs:
         run: node scripts/experience/check-opportunity-journey.cjs
       - name: Transaction and conversation UX contracts
         run: node scripts/experience/check-transaction-handoffs.cjs
+      - name: Creator publishing and Live UX contracts
+        run: node scripts/experience/check-creator-experience.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
