@@ -13,10 +13,11 @@ if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(base)) {
 }
 const routes=["/","/auth","/home","/search","/marketplace","/live","/stories","/stories/create","/live/create"];
 const viewports=[
-  {width:320,height:640},
-  {width:390,height:844},
-  {width:768,height:1024},
-  {width:1440,height:900}
+  {width:320,height:640,theme:"dark"},
+  {width:390,height:844,theme:"light"},
+  {width:390,height:475,theme:"dark"},
+  {width:768,height:1024,theme:"light"},
+  {width:1440,height:900,theme:"dark"}
 ];
 (async()=>{
   const browser=await chromium.launch({headless:true});
@@ -25,9 +26,10 @@ const viewports=[
     const context=await browser.newContext({reducedMotion:"reduce",colorScheme:"light"});
     for(const viewport of viewports) {
       for(const route of routes) {
-        const page=await context.newPage({viewport});
+        const page=await context.newPage();
         try {
-          await page.setViewportSize(viewport);
+          await page.setViewportSize({width:viewport.width,height:viewport.height});
+          await page.emulateMedia({colorScheme:viewport.theme});
           const response=await page.goto(base+route,{waitUntil:"domcontentloaded",timeout:25000});
           await page.waitForTimeout(220);
           const result=await page.evaluate(()=>{
