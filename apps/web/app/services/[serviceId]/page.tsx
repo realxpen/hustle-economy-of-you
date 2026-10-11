@@ -3,6 +3,8 @@
 import { ExperienceHeader } from "../../../components/navigation/experience-header";
 import { ExperienceState } from "../../../components/experience/experience-state";
 import { useEffect, useState } from "react";
+import { OpportunityContext } from "../../../components/commerce/opportunity-context";
+import { useSourcePost, withSourcePost } from "../../../lib/opportunity-source";
 import { useParams } from "next/navigation";
 import type { PublicService } from "@hustle/types";
 import { formatServicePrice, getPublicService } from "../../../lib/service";
@@ -16,21 +18,31 @@ export default function PublicServicePage() {
   const params = useParams<{ serviceId: string }>();
   const [data, setData] = useState<PublicService | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const sourcePostId = useSourcePost();
 
   useEffect(() => {
     const serviceId = params?.serviceId;
     if (!serviceId) return;
-    getPublicService(serviceId).then(setData).catch((reason: Error) => setError(reason.message));
-  }, [params?.serviceId]);
+    let active = true;
+    setData(null);
+    setError(null);
+    void getPublicService(serviceId)
+      .then((next) => { if (active) setData(next); })
+      .catch((reason: Error) => { if (active) setError(reason.message); });
+    return () => { active = false; };
+  }, [params?.serviceId, retryVersion]);
 
-  if (error) return <main className={styles.shell}><ExperienceState kind="error" title="Service unavailable." description={error} action={{ label: "Explore Services", href: "/marketplace" }} /></main>;
-  if (!data) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Service details…" /></main>;
+  const currentData = data?.service.id === params?.serviceId ? data : null;
+  if (error && !currentData) return <main className={styles.shell}><ExperienceState kind="error" title="Service unavailable." description={error} action={{ label: "Try loading again", onClick: () => setRetryVersion((n) => n + 1) }} /></main>;
+  if (!currentData) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Service details…" /></main>;
 
-  const { service, owner } = data;
+  const { service, owner } = currentData;
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Service" trail={[{ href: "/marketplace", label: "Marketplace" }]} />
+    <OpportunityContext sourcePostId={sourcePostId} ownerUsername={owner.username} />
 
     <section className={styles.hero}>
       <div className={styles.offer}>
@@ -38,7 +50,7 @@ export default function PublicServicePage() {
         <h1 className="h-experience-heading">{service.title}</h1>
         <strong>{formatServicePrice(service)}</strong>
         <div className={styles.offerActions}>
-          <a className={styles.bookButton} href={`/bookings/new/${service.id}`}>Book this service →</a>
+          <a className={styles.bookButton} href={withSourcePost(`/bookings/new/${encodeURIComponent(service.id)}`, sourcePostId)}>Book this service →</a>
           <a className={styles.messageButton} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`}>Message first</a>
         </div>
       </div>

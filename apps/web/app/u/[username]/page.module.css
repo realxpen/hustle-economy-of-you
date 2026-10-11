@@ -63,3 +63,14 @@
  .offerCard,.productCard,.workCard{border-radius:19px}
  .heroCtas,.closingCta>div{flex-wrap:wrap}
 }
+
+/* Small, proof-first decision path on a real public storefront. */
+.journeyBar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;
+  margin:18px 24px 0;padding:11px 13px;background:var(--h-surface);
+  border:1px solid var(--h-border-subtle);border-radius:18px}
+.journeyBar>span{font-size:10px;font-weight:850;letter-spacing:.08em;color:var(--h-orange);margin-right:auto}
+.journeyBar a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  padding:8px 12px;border:1px solid var(--h-border-subtle);border-radius:99px;
+  font-size:12px;font-weight:800}
+@media(max-width:680px){.journeyBar{margin:14px 4px 0;padding:9px}
+ .journeyBar>span{flex-basis:100%}.journeyBar a{flex:1 1 125px;font-size:11px}}

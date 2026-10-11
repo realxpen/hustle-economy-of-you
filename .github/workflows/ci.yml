@@ -21,6 +21,8 @@ jobs:
         run: npm ci
       - name: Responsive UI contract checks
         run: node scripts/responsive/check-contract.cjs
+      - name: Core opportunity journey contracts
+        run: node scripts/experience/check-opportunity-journey.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile

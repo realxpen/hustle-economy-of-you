@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { ExperienceHeader } from "../../../../components/navigation/experience-header";
 import { ExperienceState } from "../../../../components/experience/experience-state";
 import { useParams, useRouter } from "next/navigation";
+import { OpportunityContext } from "../../../../components/commerce/opportunity-context";
+import { useSourcePost } from "../../../../lib/opportunity-source";
 import { checkBookingAvailability, createBooking } from "../../../../lib/booking";
 import { openDirectConversation } from "../../../../lib/messaging";
 import { formatServicePrice, getPublicService } from "../../../../lib/service";
@@ -28,17 +30,24 @@ export default function NewBookingPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const sourcePostId = useSourcePost();
 
   useEffect(() => {
     const serviceId = params?.serviceId;
     if (!serviceId) return;
-    getPublicService(serviceId)
+    let active = true;
+    setData(null);
+    setError(null);
+    void getPublicService(serviceId)
       .then((service) => {
+        if (!active) return;
         setData(service);
         setLocation(service.service.location ?? service.owner.location ?? "");
       })
-      .catch((reason: Error) => setError(reason.message));
-  }, [params?.serviceId]);
+      .catch((reason: Error) => { if (active) setError(reason.message); });
+    return () => { active = false; };
+  }, [params?.serviceId, retryVersion]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -93,16 +102,19 @@ export default function NewBookingPage() {
     }
   }
 
-  if (error && !data) return <main className={styles.shell}><ExperienceState kind="error" title="Service details unavailable." description={error} action={{ label: "Explore Services", href: "/marketplace" }} /></main>;
-  if (!data) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Service and schedule…" /></main>;
+  const currentData = data?.service.id === params?.serviceId ? data : null;
+  if (error && !currentData) return <main className={styles.shell}><ExperienceState kind="error" title="Service details unavailable." description={error} action={{ label: "Try loading again", onClick: () => setRetryVersion((n) => n + 1) }} /></main>;
+  if (!currentData) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Service and schedule…" /></main>;
 
-  const { service, owner } = data;
+  const { service, owner } = currentData;
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Request a Booking"
       trail={[{ href: "/marketplace", label: "Marketplace" }, { href: `/services/${service.id}`, label: "Service" }]}
       secondaryLinks={[{ href: "/bookings", label: "Your bookings" }, { href: "/messages", label: "Messages" }]} />
 
+    <OpportunityContext sourcePostId={sourcePostId} ownerUsername={owner.username}
+      offerHref={`/services/${encodeURIComponent(service.id)}`} offerLabel="Review service" />
     <div className={styles.formWrap}>
       <section className={styles.formHero}>
         <article className={styles.offerCard}>
