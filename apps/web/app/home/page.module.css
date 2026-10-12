@@ -894,3 +894,107 @@
 @media(prefers-reduced-transparency:reduce){
  .quickLinks a,.actionDisc{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--h-surface,#fff)}
 }
+
+
+/* Desktop Discover workbench — use desktop width for ONE authentic post,
+   its engagement controls and its existing creator/offer context.  The
+   short-height and mobile viewers keep the original immersive composition. */
+.desktopContextLabel{display:none}
+@media (min-width:761px) and (max-width:1119px){
+  .discoverLayout,.playerColumn{max-width:760px}
+  .feedTopBar{max-width:650px}
+  .feed{width:min(100%,575px)}
+  .feedFootnote{max-width:620px}
+}
+@media (min-width:1120px) and (min-height:650px){
+  .discoverLayout,.playerColumn{
+    width:100%;
+    max-width:990px;
+  }
+  .feedTopBar,.feedFootnote{
+    width:100%;
+    max-width:990px;
+    padding-inline:12px;
+  }
+  .feed{width:100%;max-width:100%}
+  .card{
+    --desktop-context-width:clamp(310px,29vw,370px);
+    --desktop-rail-width:68px;
+    --desktop-context-gap:20px;
+  }
+  .postCanvas{
+    inset:0 auto 0 0;
+    width:calc(100% - var(--desktop-context-width) - var(--desktop-rail-width) - var(--desktop-context-gap));
+    max-width:100%;
+  }
+  .actionRail{
+    right:calc(var(--desktop-context-width) + var(--desktop-context-gap));
+    width:var(--desktop-rail-width);
+    bottom:clamp(70px,19%,148px);
+  }
+  .cardBody{
+    top:0;
+    bottom:0;
+    left:auto;
+    right:0;
+    width:var(--desktop-context-width);
+    max-width:var(--desktop-context-width);
+    max-height:none;
+    box-sizing:border-box;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    padding:25px 21px;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+    scrollbar-width:thin;
+    border:1px solid var(--h-glass-outline);
+    border-radius:25px;
+    background:var(--h-glass-raised);
+    box-shadow:var(--h-glass-shadow);
+    color:var(--h-ink);
+    text-shadow:none;
+    -webkit-backdrop-filter:var(--h-glass-blur);
+    backdrop-filter:var(--h-glass-blur);
+  }
+  .desktopContextLabel{
+    display:flex;
+    flex:0 0 auto;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--h-border-subtle);
+    color:var(--h-muted);
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.035em;
+  }
+  .desktopContextLabel span:first-child{
+    color:var(--h-orange);
+    text-transform:uppercase;
+    letter-spacing:.09em;
+  }
+  .creatorRow{flex-wrap:wrap;gap:12px}
+  .creator,.creatorName strong,.captionWrap p{color:var(--h-ink)}
+  .creatorName strong{white-space:normal;line-height:1.3}
+  .creatorName small{color:var(--h-muted)}
+  .captionWrap{gap:5px}
+  .captionWrap p{font-size:14px;line-height:1.55}
+  .caption{-webkit-line-clamp:4}
+  .expandedCaption{max-height:none;overflow:visible}
+  .captionWrap button{color:var(--h-orange)}
+  .follow{background:var(--h-orange);color:#17100a;border-color:var(--h-orange)}
+  .following{background:var(--h-surface);color:var(--h-ink);border-color:var(--h-border)}
+  .tags{max-height:none}
+  .tags span{color:var(--h-orange)}
+  .opportunityDock{margin-top:auto}
+  .opportunityBlock{max-height:min(36dvh,310px)}
+}
+@media (min-width:1120px) and (min-height:650px) and (prefers-reduced-transparency:reduce){
+  .cardBody{
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    background:var(--h-surface);
+  }
+}
