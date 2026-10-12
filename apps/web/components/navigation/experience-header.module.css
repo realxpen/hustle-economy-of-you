@@ -53,3 +53,15 @@
  .contextRow:not(:has(.crumb)):not(:has(.localNav)){display:none}
 }
 @media(prefers-reduced-transparency:reduce){.header{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--h-paper,#fff)}}
+
+/* One primary navigation source; remove empty header real estate on mobile. */
+@media(max-width:760px){
+ .primaryRow{grid-template-columns:minmax(0,1fr) auto}
+ .contextRow:not(:has(.crumb)):not(:has(.localNav)){display:none}
+ .actions{grid-column:auto;justify-content:flex-end}
+ .appearance{justify-self:end}
+}
+.header{border-radius:0 0 18px 18px}
+@media(prefers-reduced-transparency:reduce){
+ .header{background:var(--h-paper);box-shadow:none}
+}
