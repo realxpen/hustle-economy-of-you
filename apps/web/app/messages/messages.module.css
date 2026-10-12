@@ -86,3 +86,8 @@
 @media(prefers-reduced-transparency:reduce){
  .inbox,.conversation,.threadShell,.composerWrap,.transactionHandoff{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+/* Unread is still distinguishable; glass must not erase notification priority. */
+.conversationUnread{background:var(--h-glass-raised,#fff);border:2px solid var(--h-ink,#111)}
+.conversationUnread .nameLine strong{color:var(--h-ink,#111)}
+.conversationUnread .preview{color:var(--h-ink,#111)}

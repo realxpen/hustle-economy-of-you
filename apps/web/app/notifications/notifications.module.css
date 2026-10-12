@@ -56,3 +56,6 @@
 @media(prefers-reduced-transparency:reduce){
  .item,.filters{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+/* New alerts retain explicit visual priority over ordinary glass items. */
+.newItem{background:var(--h-glass-raised,#fff);border:2px solid var(--h-ink,#111)}
