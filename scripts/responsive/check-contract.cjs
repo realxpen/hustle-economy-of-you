@@ -57,6 +57,21 @@ assert.match(headerCss,/Mobile-first compact chrome on the very first render/,"M
 assert.match(dockCss,/Compact six-destination dock on first paint/,"Six-route dock must use compact style");
 assert.doesNotMatch(discoverCss+headerCss+dockCss,/\b(?:zoom\s*:\s*0\.5|transform\s*:\s*scale\(0\.5\))/i,"Never simulate 50% website zoom with transforms");
 
+assert.match(discoverCss,/Desktop Discover workbench/,"Wide-screen Discover workbench must be defined");
+assert.match(discoverCss,/@media \(min-width:1120px\) and \(min-height:650px\)/,"Wide desktop layout needs an explicit breakpoint");
+assert.match(discoverCss,/--desktop-context-width:clamp\(/,"Live post context must have bounded width");
+assert.match(discoverCss,/\.postCanvas\{\s*inset:0 auto 0 0;/,"Media must occupy the left desktop stage");
+assert.match(discoverCss,/\.cardBody\{\s*top:0;\s*bottom:0;\s*left:auto;/,"Existing creator and attached-offer details must use the right pane");
+assert.match(discoverCss,/\.desktopContextLabel\{display:none\}/,"Mobile must not inherit desktop detail heading");
+assert.match(discoverCss,/@media \(min-width:761px\) and \(max-width:1119px\)/,"Tablet/zoom layout must remain single-stage");
+assert.match(discoverCss,/prefers-reduced-transparency:reduce/,"Desktop glass must have opaque fallback");
+assert.match(discoverSource,/<div className=\{styles.postCanvas\}>[\s\S]*?<\/div>\s*<\/div>\s*<div ref=\{footerRef\}/,
+  "One existing post body must be a sibling of the media canvas, allowing desktop context without duplication");
+assert.match(discoverSource,/<div className=\{styles.desktopContextLabel\} aria-hidden="true">/);
+assert.match(discoverSource,/OfferQuickView type="SERVICE"/);
+assert.match(discoverSource,/OfferQuickView type="PRODUCT"/);
+
+
 
 
 console.log("Adaptive Web contract OK: "+routes.length+" routes and "+modules.length+" style modules.");
