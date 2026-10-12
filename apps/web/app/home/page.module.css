@@ -988,8 +988,42 @@
   .following{background:var(--h-surface);color:var(--h-ink);border-color:var(--h-border)}
   .tags{max-height:none}
   .tags span{color:var(--h-orange)}
-  .opportunityDock{margin-top:auto}
-  .opportunityBlock{max-height:min(36dvh,310px)}
+  /* Keep the genuine commercial opportunities immediately below post proof,
+     instead of pushing a collapsed dock to the far bottom of the glass panel. */
+  .opportunityDock{
+    margin-top:0;
+    padding-top:14px;
+    border-top:1px solid var(--h-border-subtle);
+  }
+  .offerToggle{
+    min-height:48px;
+    background:var(--h-glass-fill);
+    border-color:var(--h-glass-outline);
+    color:var(--h-ink);
+  }
+  .offerToggle strong{font-size:13px}
+  /* One natural scroll area (the context panel) handles long captions and
+     arbitrarily many real offers: no nested offer-list scroller. */
+  .opportunityBlock{
+    margin-top:10px;
+    padding:0;
+    max-height:none;
+    overflow:visible;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+  }
+  .opportunityGrid{gap:10px}
+  .opportunityCard{
+    padding:12px;
+    background:var(--h-glass-fill);
+    border-color:var(--h-glass-outline);
+    color:var(--h-ink);
+  }
+  .opportunityCard strong{overflow-wrap:anywhere}
+  .opportunityCard>span{color:var(--h-ink)}
+  .opportunityQuickView{min-height:44px;max-width:100%}
 }
 @media (min-width:1120px) and (min-height:650px) and (prefers-reduced-transparency:reduce){
   .cardBody{
