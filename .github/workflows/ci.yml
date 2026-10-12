@@ -31,6 +31,8 @@ jobs:
         run: node scripts/experience/check-release-readiness.cjs
       - name: You identity and account UX contracts
         run: node scripts/experience/check-you-account.cjs
+      - name: Frictionless navigation and glass UI contracts
+        run: node scripts/experience/check-frictionless-glass.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
