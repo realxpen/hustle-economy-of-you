@@ -1,7 +1,7 @@
 # Discover Desktop Workspace — Acceptance Checklist
 
 Date: 2026-10-12
-Status: Source implementation prepared; CI and production/runtime acceptance pending.
+Status: PR #103 merged and owner-deployed to Web; screenshot reviewed. New contextual-density refinement CI/runtime acceptance pending.
 
 ## Visual matrix
 - [ ] Desktop signed-in 1120×700: full-size authentic post media + adjacent external action rail + legible context panel; no horizontal overflow.
@@ -25,3 +25,12 @@ Status: Source implementation prepared; CI and production/runtime acceptance pen
 
 ## Evidence rules
 CI + local read-only Chromium smoke verify source/build/public shell only. Signed-in feed visual and interaction acceptance is **not** covered by those checks; owner release and desktop/Safari real-device verification are required.
+
+## Owner-requested density follow-up — unverified until deployment
+- [ ] Wide desktop (>=1120px, >=650px high): attached real service/product cards initially visible directly after caption/tags, with no long empty gap above the dock.
+- [ ] Desktop toggle can collapse and re-expand those cards without duplicates or changed prices; accessible `aria-expanded` stays correct.
+- [ ] Desktop context with a long caption and 3+ genuine offers scrolls as **one panel**; no nested scrollbar, inaccessible lower CTA or overflow under panel border.
+- [ ] Tablet/phone / 200% browser zoom: offers start collapsed, existing overlay behavior and compact rail are unchanged.
+- [ ] Resize from desktop to phone and back: offer disclosure resets appropriately, without obstructing media or restoring Search duplication.
+- [ ] Light/dark/reduced transparency: price, offer titles and buttons retain contrast.
+- [ ] No synthetic offer cards, mock amounts, API changes or transaction-state changes.
