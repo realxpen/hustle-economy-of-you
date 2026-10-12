@@ -29,8 +29,10 @@ main:is(.h-adaptive,.h-experience-shell):not(.h-discover-immersive){
     radial-gradient(ellipse 65% 34% at 97% 0%,color-mix(in srgb,var(--h-orange) 6%,transparent),transparent 88%),
     radial-gradient(ellipse 59% 48% at -12% 87%,color-mix(in srgb,var(--h-ink) 3%,transparent),transparent 92%);
 }
-:where(main.h-adaptive,main.h-experience-shell) .h-ui-card,
-:where(main.h-adaptive,main.h-experience-shell) .h-experience-surface{
+main.h-adaptive .h-ui-card,
+main.h-adaptive .h-experience-surface,
+main.h-experience-shell .h-ui-card,
+main.h-experience-shell .h-experience-surface{
   background:var(--h-glass-fill);
   border-color:var(--h-glass-outline);
   box-shadow:var(--h-glass-shadow);
@@ -56,9 +58,9 @@ main:is(.h-adaptive,.h-experience-shell):not(.h-discover-immersive){
   }
 }
 @media(prefers-reduced-transparency:reduce){
-  :root{--h-glass-fill:var(--h-surface);--h-glass-raised:var(--h-surface);--h-glass-blur:none}
-  :where(main.h-adaptive,main.h-experience-shell) .h-ui-card,
-  :where(main.h-adaptive,main.h-experience-shell) .h-experience-surface{
+  :root,:is(main.h-adaptive,main.h-experience-shell){--h-glass-fill:var(--h-surface);--h-glass-raised:var(--h-surface);--h-glass-blur:none}
+  main.h-adaptive .h-ui-card, main.h-adaptive .h-experience-surface,
+  main.h-experience-shell .h-ui-card, main.h-experience-shell .h-experience-surface{
     -webkit-backdrop-filter:none;backdrop-filter:none;
   }
 }
