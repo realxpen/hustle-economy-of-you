@@ -39,3 +39,17 @@
  .mark{width:22px;height:22px;font-size:13px}
  .appearance{min-width:0}
 }
+
+/* Shared navigation: one destination per primary action, with frosted chrome. */
+.header{
+ background:color-mix(in srgb,var(--h-paper,#f3f0e8) 86%,transparent);
+ border-color:var(--h-glass-outline,var(--h-border-subtle,#ddd));
+ -webkit-backdrop-filter:blur(16px) saturate(128%);
+ backdrop-filter:blur(16px) saturate(128%);
+}
+.localNav>a,.primaryNav>.current{background:var(--h-glass-raised,var(--h-surface,#fff));border-color:var(--h-glass-outline,var(--h-border-subtle,#ddd))}
+@media(max-width:760px){
+ /* Destination is already visible in page content and mobile dock. */
+ .contextRow:not(:has(.crumb)):not(:has(.localNav)){display:none}
+}
+@media(prefers-reduced-transparency:reduce){.header{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--h-paper,#fff)}}

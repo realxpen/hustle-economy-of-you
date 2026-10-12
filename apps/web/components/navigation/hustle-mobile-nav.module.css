@@ -178,3 +178,20 @@
  .link{min-height:48px}
  .label{font-size:8px}
 }
+
+/* Floating mobile dock uses the same glass treatment as page actions. */
+@media(max-width:760px){
+ .dock{
+  background:color-mix(in srgb,var(--h-surface,#fff) 91%,transparent);
+  border-color:var(--h-glass-outline,rgba(140,135,127,.30));
+  -webkit-backdrop-filter:blur(24px) saturate(140%);
+  backdrop-filter:blur(24px) saturate(140%);
+ }
+ :global(html[data-hustle-theme="dark"]) .dock{
+  background:rgba(23,23,27,.92);
+  border-color:rgba(255,255,255,.20);
+ }
+}
+@media(max-width:760px) and (prefers-reduced-transparency:reduce){
+ .dock{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--h-surface,#fff)}
+}

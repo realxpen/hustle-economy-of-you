@@ -879,3 +879,18 @@
  .tags{max-height:16px}
  .offerToggle{min-height:44px}
 }
+
+/* Discover chrome floats over real post media without muting the work. */
+.quickLinks a,.actionDisc{
+ background:color-mix(in srgb,var(--h-surface,#fff) 84%,transparent);
+ border-color:var(--h-glass-outline,rgba(255,255,255,.32));
+ -webkit-backdrop-filter:blur(20px) saturate(130%);
+ backdrop-filter:blur(20px) saturate(130%);
+}
+.quickLinks a:last-child{color:var(--h-orange)}
+@media(max-width:760px){
+ .quickLinks a{width:clamp(35px,9vw,40px);height:clamp(35px,9vw,40px);font-size:20px}
+}
+@media(prefers-reduced-transparency:reduce){
+ .quickLinks a,.actionDisc{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--h-surface,#fff)}
+}
