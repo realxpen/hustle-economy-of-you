@@ -49,3 +49,14 @@
 .bookingConsult>div{display:grid;gap:4px;flex:1 1 200px}.bookingConsult strong{font-size:14px}.bookingConsult span{font-size:12px;color:var(--h-muted,#666)}
 .bookingConsult>a{border-radius:999px;background:var(--h-orange,#fc822a);padding:12px 15px;min-height:44px;display:inline-flex;align-items:center;font-size:12px;font-weight:850}
 @media(max-width:600px){.bookingConsult>a{width:100%;justify-content:center}}
+
+/* Hustle Glass Experience: calm frosted containers, opaque readable copy. */
+.panel,.card,.formCard,.summaryCard,.detailMain,.detailSide,.handoff,.bookingConsult{
+ background:var(--h-glass-fill,rgba(251,249,246,.91));
+ border-color:var(--h-glass-outline,rgba(145,140,134,.27));
+ -webkit-backdrop-filter:var(--h-glass-blur,blur(16px) saturate(125%));
+ backdrop-filter:var(--h-glass-blur,blur(16px) saturate(125%));
+}
+@media(prefers-reduced-transparency:reduce){
+ .panel,.card,.formCard,.summaryCard,.detailMain,.detailSide,.handoff,.bookingConsult{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
+}

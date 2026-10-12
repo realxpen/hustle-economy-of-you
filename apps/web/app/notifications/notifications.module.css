@@ -45,3 +45,14 @@
  .item time{white-space:normal}
  .actions>*{min-height:44px}
 }
+
+/* Hustle Glass Experience: calm frosted containers, opaque readable copy. */
+.item,.filters{
+ background:var(--h-glass-fill,rgba(251,249,246,.91));
+ border-color:var(--h-glass-outline,rgba(145,140,134,.27));
+ -webkit-backdrop-filter:var(--h-glass-blur,blur(16px) saturate(125%));
+ backdrop-filter:var(--h-glass-blur,blur(16px) saturate(125%));
+}
+@media(prefers-reduced-transparency:reduce){
+ .item,.filters{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
