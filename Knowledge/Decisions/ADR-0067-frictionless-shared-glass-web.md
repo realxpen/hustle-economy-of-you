@@ -1,6 +1,6 @@
 # ADR-0067 — Frictionless navigation and shared glass visual system
 
-Status: Implemented in feature branch; CI/real-device acceptance pending
+Status: PR #101 merged; final Foundation CI 38252018659 successful; manual deployment and signed-in physical-device acceptance pending
 Date: 2026-10-12
 Scope: Hustle Next.js Web styles, shared header, Discover navigation, tests and docs. No API, DB, identity, Agent permissions, payment status or deployment changes.
 

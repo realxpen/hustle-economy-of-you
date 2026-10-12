@@ -1,7 +1,7 @@
 # Shared Glass & Frictionless Navigation — Web Acceptance
 
 Date: 2026-10-12
-Status: Feature branch implemented; final CI, owner release and signed-in cross-device acceptance PENDING.
+Status: PR #101 MERGED 2026-10-12 (a9331761963c6f578891dc81dd4009349070dd24); Foundation CI 38252018659 SUCCESS on final head ae995301a74c0e3f4592f04451e7d685068053db. Owner Web release and signed-in cross-device acceptance PENDING.
 
 ## Intended UX
 - Search has ONE persistent mobile entry point in the dock, not another magnifier at Discover top-right. Desktop header Search remains discoverable. Two top Discover actions: Stories and Create; Create goes DIRECTLY to Post composer.
