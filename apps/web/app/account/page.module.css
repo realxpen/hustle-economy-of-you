@@ -203,3 +203,17 @@
 }
 @media(hover:none){.actionTile:hover{transform:none;box-shadow:none}}
 @media(prefers-reduced-motion:reduce){.actionTile,.chevron,.disclosureArrow{transition:none}}
+
+/* Hustle Glass Experience: accessible high-opacity surfaces. */
+.capabilities,.actionTile,.studioLinks,.settingsCard,.disclosure,.editProfile{
+ background:var(--h-glass-fill,rgba(251,249,246,.91));
+ border-color:var(--h-glass-outline,rgba(145,140,134,.27));
+ -webkit-backdrop-filter:var(--h-glass-blur,blur(16px) saturate(125%));
+ backdrop-filter:var(--h-glass-blur,blur(16px) saturate(125%));
+}
+@media(prefers-reduced-transparency:reduce){
+ .capabilities,.actionTile,.studioLinks,.settingsCard,.disclosure,.editProfile{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+
+/* Keep the identity hero cinematic while applying frosted chrome. */
+.profileHero{background:linear-gradient(125deg,rgba(18,18,22,.97),rgba(23,20,19,.89));-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}

@@ -31,3 +31,17 @@
 .hostChecklist strong{flex:1 1 100%;font-size:13px;color:#fff}
 .hostChecklist span{font-size:11px;padding:6px 9px;border:1px solid #555;border-radius:999px;overflow-wrap:anywhere}
 @media(max-width:600px){.creatorModes :is(span,a){flex:1 1 40%}.hostChecklist{gap:6px}.hostChecklist span{flex:1 1 100%}}
+
+/* Cinematic dark glass for Live shells, keeping video and moderation solid. */
+.heroPanel,.panel,.card,.statusCard,.sessionRow,.transportNote,.mediaPanel{
+ background:rgba(24,24,27,.90);
+ border-color:rgba(255,255,255,.18);
+ -webkit-backdrop-filter:blur(19px) saturate(130%);
+ backdrop-filter:blur(19px) saturate(130%);
+}
+.actions a,.actions button,.button:not(.primary):not(.danger){
+ background:rgba(35,35,38,.88);border-color:rgba(255,255,255,.22);
+}
+@media(prefers-reduced-transparency:reduce){
+ .heroPanel,.panel,.card,.statusCard,.sessionRow,.transportNote,.mediaPanel{background:#18181b;-webkit-backdrop-filter:none;backdrop-filter:none}
+}

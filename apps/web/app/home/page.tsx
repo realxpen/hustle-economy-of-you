@@ -581,8 +581,7 @@ export default function DiscoveryHomePage() {
           </nav>
           <div className={styles.quickLinks}>
             <Link href="/stories" aria-label="View Hustle Stories" title="Stories">◉</Link>
-            <Link href="/posts/manage" aria-label="Create or manage posts" title="Create or manage posts">+</Link>
-            <Link href="/search" aria-label="Search people, skills, services and products" title="Search Hustle">⌕</Link>
+            <Link href="/posts/new" aria-label="Create a post" title="Create a post">+</Link>
           </div>
         </div>
 

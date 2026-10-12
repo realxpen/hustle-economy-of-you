@@ -1,0 +1,66 @@
+/*
+ Hustle / glass experience foundation.
+ Frost the CHROME and panel surface, never user media or financial evidence.
+ High-alpha surfaces ensure labels, forms, status and prices remain readable.
+ This is visual glass; payment and identity state stay API authoritative.
+*/
+:root{
+  --h-glass-fill:color-mix(in srgb,var(--h-surface,#fbf9f4) 87%, transparent);
+  --h-glass-raised:color-mix(in srgb,var(--h-surface,#fbf9f4) 94%, transparent);
+  --h-glass-outline:color-mix(in srgb,var(--h-border,#bcb5a8) 57%, transparent);
+  --h-glass-shadow:0 14px 35px rgba(20,19,17,.085), inset 0 1px rgba(255,255,255,.42);
+  --h-glass-blur:blur(18px) saturate(132%);
+}
+:is(main.h-adaptive,main.h-experience-shell){
+  --h-glass-fill:color-mix(in srgb,var(--h-surface,#fbf9f4) 87%, transparent);
+  --h-glass-raised:color-mix(in srgb,var(--h-surface,#fbf9f4) 95%, transparent);
+  --h-glass-outline:color-mix(in srgb,var(--h-border,#bcb5a8) 56%, transparent);
+}
+html[data-hustle-theme="dark"] main.h-adaptive{
+  --h-glass-fill:color-mix(in srgb,var(--h-surface,#19191d) 86%,transparent);
+  --h-glass-raised:color-mix(in srgb,var(--h-surface,#19191d) 95%,transparent);
+  --h-glass-outline:rgba(255,255,255,.20);
+  --h-glass-shadow:0 19px 42px rgba(0,0,0,.27),inset 0 1px rgba(255,255,255,.09);
+}
+/* Ambient color is subtle and does not bleed into the immersive post viewer. */
+main:is(.h-adaptive,.h-experience-shell):not(.h-discover-immersive){
+  background-color:var(--h-paper);
+  background-image:
+    radial-gradient(ellipse 65% 34% at 97% 0%,color-mix(in srgb,var(--h-orange) 6%,transparent),transparent 88%),
+    radial-gradient(ellipse 59% 48% at -12% 87%,color-mix(in srgb,var(--h-ink) 3%,transparent),transparent 92%);
+}
+main.h-adaptive .h-ui-card,
+main.h-adaptive .h-experience-surface,
+main.h-experience-shell .h-ui-card,
+main.h-experience-shell .h-experience-surface{
+  background:var(--h-glass-fill);
+  border-color:var(--h-glass-outline);
+  box-shadow:var(--h-glass-shadow);
+  -webkit-backdrop-filter:var(--h-glass-blur);
+  backdrop-filter:var(--h-glass-blur);
+}
+/* Auth and onboarding are separate visual journeys. Frost their panels,
+   but do not alter input focus, contrast, or login state. */
+:where(.authCard,.profileForm,.simpleCard){
+  border:1px solid var(--h-glass-outline);
+  box-shadow:var(--h-glass-shadow);
+  -webkit-backdrop-filter:var(--h-glass-blur);
+  backdrop-filter:var(--h-glass-blur);
+}
+/* Preserve high readability for data-entry areas and important actions. */
+:where(main.h-adaptive,main.h-experience-shell) :is(input,textarea,select){
+  background-color:var(--h-glass-raised);
+  color:var(--h-ink);
+}
+@media(max-width:760px){
+  :where(main.h-adaptive,main.h-experience-shell):not(.h-discover-immersive){
+    background-image:radial-gradient(ellipse 110% 35% at 100% -8%,color-mix(in srgb,var(--h-orange) 4%,transparent),transparent 90%);
+  }
+}
+@media(prefers-reduced-transparency:reduce){
+  :root,:is(main.h-adaptive,main.h-experience-shell){--h-glass-fill:var(--h-surface);--h-glass-raised:var(--h-surface);--h-glass-blur:none}
+  main.h-adaptive .h-ui-card, main.h-adaptive .h-experience-surface,
+  main.h-experience-shell .h-ui-card, main.h-experience-shell .h-experience-surface{
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+  }
+}

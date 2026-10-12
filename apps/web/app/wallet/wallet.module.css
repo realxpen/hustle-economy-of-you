@@ -9,3 +9,12 @@
 .historyHeading span{font-size:13px;color:#656259}
 .transactionAmount{font-size:clamp(16px,2vw,24px);overflow-wrap:anywhere;text-align:right}
 @media(max-width:600px){.transactionAmount{font-size:17px}.historyHeading{align-items:start}.walletTools{align-items:start}}
+
+/* Wallet data remains readable, with glass limited to the tool surface. */
+.walletTools{
+ background:var(--h-glass-raised,var(--h-surface,#fff));
+ border-color:var(--h-glass-outline,var(--h-border-subtle,#ddd));
+ -webkit-backdrop-filter:var(--h-glass-blur,blur(14px));
+ backdrop-filter:var(--h-glass-blur,blur(14px));
+}
+@media(prefers-reduced-transparency:reduce){.walletTools{-webkit-backdrop-filter:none;backdrop-filter:none}}

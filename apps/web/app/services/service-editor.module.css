@@ -14,3 +14,14 @@
  .previewBody h2{font-size:clamp(23px,7vw,32px);overflow-wrap:anywhere}
  .preview{position:static}
 }
+
+/* Hustle Glass Experience: accessible high-opacity surfaces. */
+.form,.preview{
+ background:var(--h-glass-fill,rgba(251,249,246,.91));
+ border-color:var(--h-glass-outline,rgba(145,140,134,.27));
+ -webkit-backdrop-filter:var(--h-glass-blur,blur(16px) saturate(125%));
+ backdrop-filter:var(--h-glass-blur,blur(16px) saturate(125%));
+}
+@media(prefers-reduced-transparency:reduce){
+ .form,.preview{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
