@@ -264,3 +264,30 @@ body:has(main.h-discover-immersive),
 body:has(main.h-discover-immersive) #hustle-page-content {
   max-width:100%;overflow-x:clip;
 }
+
+/* Shared frosted material across adaptive experience pages. Readability wins
+   over transparency; sensitive inputs and transactional content stay opaque. */
+:root{
+ --h-glass-panel:color-mix(in srgb,var(--h-surface,#fff) 88%,transparent);
+ --h-glass-outline:color-mix(in srgb,var(--h-border-subtle,#d7d0c5) 78%,transparent);
+ --h-glass-depth:0 16px 46px rgba(21,19,18,.09),inset 0 1px rgba(255,255,255,.38);
+}
+.h-adaptive :where(.h-ui-card),
+.h-adaptive :where(article[class*="Card"],section[class*="Card"],div[class*="settingsCard"],div[class*="actionTile"],div[class*="capabilities"],div[class*="studioLinks"],details[class*="disclosure"]){
+ background:var(--h-glass-panel);
+ border-color:var(--h-glass-outline);
+ box-shadow:var(--h-glass-depth);
+ -webkit-backdrop-filter:blur(15px) saturate(120%);
+ backdrop-filter:blur(15px) saturate(120%);
+}
+.h-adaptive :where(input,textarea,select,[role="dialog"],[aria-modal="true"]){
+ background:var(--h-surface);
+}
+@media(prefers-reduced-transparency:reduce){
+ .h-adaptive :where(.h-ui-card,article[class*="Card"],section[class*="Card"],div[class*="settingsCard"],div[class*="actionTile"],div[class*="capabilities"],div[class*="studioLinks"],details[class*="disclosure"]){
+ background:var(--h-surface);-webkit-backdrop-filter:none;backdrop-filter:none;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .h-adaptive :where(a,button){transition:none!important}
+}
