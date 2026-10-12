@@ -18,3 +18,11 @@
  .signInPrompt{flex-wrap:wrap}
  .notFound h1{font-size:clamp(31px,9vw,58px)}
 }
+
+/* Public post proof remains sharp, with gentle glass support for metadata. */
+.ownerCard,.offerCard,.commentCard,.signInPrompt{
+ background:rgba(251,249,245,.92);
+ border-color:rgba(130,124,113,.27);
+ -webkit-backdrop-filter:blur(16px) saturate(128%);backdrop-filter:blur(16px) saturate(128%);
+}
+@media(prefers-reduced-transparency:reduce){.ownerCard,.offerCard,.commentCard,.signInPrompt{background:#f9f7f2;-webkit-backdrop-filter:none;backdrop-filter:none}}

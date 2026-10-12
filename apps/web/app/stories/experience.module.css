@@ -120,3 +120,8 @@
  .viewerPrev,.viewerNext{width:36px;height:44px}
  .viewerPrev{left:6px}.viewerNext{right:6px}
 }
+
+/* Story reactions overlay the media, not the reply content. */
+.interactionCard{background:rgba(255,255,255,.95);border-color:rgba(24,24,26,.18);
+ -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+@media(prefers-reduced-transparency:reduce){.interactionCard{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}}
