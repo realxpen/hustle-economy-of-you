@@ -10,3 +10,14 @@
 .bar a:hover,.bar a:focus-visible{border-color:var(--h-orange,#fc7622)}
 @media(max-width:520px){.bar{padding:9px;gap:5px}.eyebrow{flex:0 0 100%}
   .bar a{flex:1 1 auto;justify-content:center;font-size:11px}}
+
+/* Glass system: decorative framing only; status and consent stay authoritative. */
+.bar{
+ background:var(--h-glass-raised,rgba(250,249,246,.94));
+ border-color:var(--h-glass-outline,rgba(140,134,128,.28));
+ -webkit-backdrop-filter:var(--h-glass-blur,blur(15px));
+ backdrop-filter:var(--h-glass-blur,blur(15px));
+}
+@media(prefers-reduced-transparency:reduce){
+ .bar{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
+}

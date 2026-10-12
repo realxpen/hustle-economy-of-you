@@ -14,3 +14,14 @@
  .proofList>div,.emptyProof,.actions{flex-wrap:wrap}
  .uploadPanel{min-width:0}
 }
+
+/* Glass system: decorative framing only; status and consent stay authoritative. */
+.form,.proofCard,.reviewCard,.uploadPanel{
+ background:var(--h-glass-raised,rgba(250,249,246,.94));
+ border-color:var(--h-glass-outline,rgba(140,134,128,.28));
+ -webkit-backdrop-filter:var(--h-glass-blur,blur(15px));
+ backdrop-filter:var(--h-glass-blur,blur(15px));
+}
+@media(prefers-reduced-transparency:reduce){
+ .form,.proofCard,.reviewCard,.uploadPanel{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
