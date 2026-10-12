@@ -149,6 +149,20 @@ function FeedCard({
   const [compactActions, setCompactActions] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
 
+  // A wide desktop has room to reveal genuine attached offers immediately.
+  // Keep phones/tablets collapsed: their offer sheet sits over the immersive post.
+  // Users can still close/reopen the section; resize only resets at the breakpoint.
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1120px) and (min-height: 650px)");
+    const syncOfferVisibility = () => {
+      setOffersOpen(desktop.matches && (item.services.length + item.products.length) > 0);
+      setActionMenuOpen(false);
+    };
+    syncOfferVisibility();
+    desktop.addEventListener("change", syncOfferVisibility);
+    return () => desktop.removeEventListener("change", syncOfferVisibility);
+  }, [item.post.id, item.services.length, item.products.length]);
+
   // Measure actual free space above the footer. Larger Safari website text
   // and browser chrome can change available height without changing width.
   useEffect(() => {
