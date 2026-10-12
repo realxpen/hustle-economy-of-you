@@ -365,8 +365,12 @@ function FeedCard({
       {item.post.media.length > 1 && <span className={styles.mediaCount}>{item.post.media.length} media · swipe sideways</span>}
       {!hasMedia && <span className={styles.mediaCount}>TEXT POST</span>}
     </div>
+    </div>
 
     <div ref={footerRef} className={[styles.cardBody, offersOpen ? styles.cardBodyOffersOpen : ""].join(" ")}>
+      <div className={styles.desktopContextLabel} aria-hidden="true">
+        <span>Behind the work</span><span>Discover · Connect</span>
+      </div>
       <div className={styles.creatorRow}>
         <Link className={styles.creator} href={creatorHref} onClick={() => void captureFeedEvent({
           name: "feed.profile_clicked", postId: item.post.id, feedTab: tab, position, sessionId
@@ -419,7 +423,6 @@ function FeedCard({
         </div>}
       </section>}
       {notice && <p className={styles.notice} role="status">{notice}</p>}
-    </div>
     </div>
     {compactActions && !offersOpen && <button
       ref={actionTriggerRef}
