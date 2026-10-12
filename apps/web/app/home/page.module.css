@@ -889,7 +889,7 @@
 }
 .quickLinks a:last-child{color:var(--h-orange)}
 @media(max-width:760px){
- .quickLinks a{width:clamp(35px,9vw,40px);height:clamp(35px,9vw,40px);font-size:20px}
+ .quickLinks a{width:44px;height:44px;min-width:44px;min-height:44px;font-size:20px}
 }
 @media(prefers-reduced-transparency:reduce){
  .quickLinks a,.actionDisc{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--h-surface,#fff)}
