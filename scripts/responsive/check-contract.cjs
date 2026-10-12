@@ -71,6 +71,20 @@ assert.match(discoverSource,/<div className=\{styles.desktopContextLabel\} aria-
 assert.match(discoverSource,/OfferQuickView type="SERVICE"/);
 assert.match(discoverSource,/OfferQuickView type="PRODUCT"/);
 
+assert.match(discoverSource,/window\.matchMedia\("\(min-width: 1120px\) and \(min-height: 650px\)"\)/,
+  "Desktop offer expansion should only activate in the wide context layout");
+assert.match(discoverSource,/setOffersOpen\(desktop\.matches && \(item\.services\.length \+ item\.products\.length\) > 0\)/,
+  "Only actual API-backed offers should auto-expand on desktop");
+assert.match(discoverSource,/desktop\.addEventListener\("change", syncOfferVisibility\)/,
+  "Desktop-to-mobile transitions must restore collapsed mobile offer behavior");
+assert.match(discoverCss,/\.opportunityDock\{\s*margin-top:0;\s*padding-top:14px;/,
+  "Desktop offer section belongs directly below caption and tags");
+assert.match(discoverCss,/\.opportunityBlock\{\s*margin-top:10px;\s*padding:0;\s*max-height:none;\s*overflow:visible;/,
+  "Long desktop offer lists must use the context panel scroll instead of a nested scroller");
+assert.match(discoverCss,/\.opportunityCard>span\{color:var\(--h-ink\)\}/,
+  "Actual price labels need readable desktop glass colors");
+
+
 
 
 
