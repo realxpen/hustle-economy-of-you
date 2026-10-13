@@ -155,12 +155,58 @@ async function main() {
       assert.equal(initializedReceipt.duplicate,false);
       assert.equal(initializedReceipt.realFundsMoved,false);
       assert.equal(initializedReceipt.executionStarted,false);
+      if (process.env.MONIFLOW_SANDBOX_INBOX_ENABLED==="true") {
+        const {deliverOneSandboxReceipt}=await import(
+          "../../_moniflow/apps/api/dist/services/partner/receipt-delivery.js"
+        );
+        const targetUrl=`http://127.0.0.1:${address.port}/api/v1/payments/partner-sandbox/received`;
+        const dbUrl=process.env.MONIFLOW_SANDBOX_DATABASE_URL;
+        assert.ok(dbUrl?.startsWith("file:"));
+        const before=await prisma.ledgerTransaction.count();
+        // First attempt has a valid MONIFlow command but wrong signing key.
+        // The Hustle server must reject it and the queue must persist retry.
+        const rejected=await deliverOneSandboxReceipt({
+          databaseUrl:dbUrl,targetUrl,
+          secret:"wrong-sandbox-secret-with-sufficient-length"
+        });
+        assert.equal(rejected.state,"RETRY_PENDING");
+        assert.equal(await prisma.moniflowSandboxReceiptObservation.count({
+          where:{operationId:recorded.id}
+        }),0,"Unauthenticated pushed receipt never reaches the inbox");
+        const delivered=await deliverOneSandboxReceipt({
+          databaseUrl:dbUrl,targetUrl,secret:config.secret,now:Date.now()+2500
+        });
+        assert.deepEqual(delivered,{
+          state:"DELIVERED",operationId:recorded.id
+        });
+        assert.equal(await prisma.moniflowSandboxReceiptObservation.count({
+          where:{operationId:recorded.id}
+        }),1,"Signed inbox persists exactly one collection observation");
+        assert.equal(await prisma.ledgerTransaction.count(),before,
+          "Pushed receipt must never write a financial ledger");
+        const noMore=await deliverOneSandboxReceipt({
+          databaseUrl:dbUrl,targetUrl,secret:config.secret,now:Date.now()+4000
+        });
+        assert.equal(noMore.state,"EMPTY",
+          "Delivered event must not resend automatically");
+        const forged=await fetch(targetUrl,{
+          method:"POST",headers:{
+            "content-type":"application/json",
+            "x-moniflow-receipt-signature":"sha256="+ "a".repeat(64)
+          },body:JSON.stringify({operationId:recorded.id,status:"SUCCEEDED",realFundsMoved:true})
+        });
+        assert.equal(forged.status,403);
+        assert.equal(await prisma.moniflowSandboxReceiptObservation.count({
+          where:{operationId:recorded.id}
+        }),1);
+        console.log("PASS: persisted MONIFlow outbox -> signed Hustle inbox; wrong-key retry, dedup and unchanged ledger");
+      }
       const noLedgerBeforeReceipt=await prisma.ledgerTransaction.count();
       const observedCollection=await observeSignedMoniflowSandboxReceipt(
         prisma,"COLLECTION",recorded.id,config
       );
       assert.equal(observedCollection.status,"RECEIVED");
-      assert.equal(observedCollection.duplicate,false);
+      assert.equal(observedCollection.duplicate,process.env.MONIFLOW_SANDBOX_INBOX_ENABLED==="true");
       const collectionRepeat=await observeSignedMoniflowSandboxReceipt(
         prisma,"COLLECTION",recorded.id,config
       );
