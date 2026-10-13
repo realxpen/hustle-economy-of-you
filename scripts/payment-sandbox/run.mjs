@@ -66,7 +66,7 @@ async function expectRejected(fn, label) {
 }
 
 async function main() {
-  const app = await NestFactory.create(SandboxTestModule, { logger: ["error"] });
+  const app = await NestFactory.create(SandboxTestModule, { logger: ["error"], rawBody: true });
   app.setGlobalPrefix("api/v1");
   await app.listen(0, "127.0.0.1");
   const address = app.getHttpServer().address();
