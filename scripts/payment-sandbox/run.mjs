@@ -41,6 +41,7 @@ const { PaymentService } = require("../../apps/api/dist/payment/payment.service.
 const { sendSandboxCollectionToMoniflow, sendPersistedSandboxFinancialCommandToMoniflow, observeSignedMoniflowSandboxReceipt, toMoniflowSandboxCollection, signedMoniflowSandboxRequest, requireLocalMoniflowSandbox } = require("../../apps/api/dist/payment/moniflow-sandbox-partner.client.js");
 const { FinancialOperationsService } = require("../../apps/api/dist/payment/financial-operations.service.js");
 const { describeFinancialDispatch } = require("../../apps/api/dist/payment/financial-dispatch-reconciliation.js");
+const { classifyProviderEvidenceReadiness } = require("../../apps/api/dist/payment/provider-evidence-readiness.js");
 const { WalletService } = require("../../apps/api/dist/payment/wallet.service.js");
 const { SandboxFinancialOperationGateway } = require("../../apps/api/dist/payment/sandbox-financial-operation.gateway.js");
 const { NotificationsService } = require("../../apps/api/dist/notifications/notifications.service.js");
@@ -95,6 +96,17 @@ async function main() {
     const by = identity(buyerSubject);
     const se = identity(sellerSubject);
 
+    const absentEvidence=classifyProviderEvidenceReadiness("PAYOUT",5000,"NGN",null);
+    assert.equal(absentEvidence.providerEvidenceStatus,"NOT_VERIFIED");
+    assert.equal(absentEvidence.providerSettlementConfirmed,false);
+    assert.equal(absentEvidence.moneyMovementAllowedByThisEvidence,false);
+    const mismatchedEvidence=classifyProviderEvidenceReadiness("REFUND",5000,"NGN",{
+      kind:"COLLECTION",amountMinor:5000,currency:"NGN",
+      commandDigest:"a".repeat(64),observedAt:new Date()
+    });
+    assert.equal(mismatchedEvidence.partnerReceiptStatus,"OBSERVATION_CONFLICT");
+    assert.equal(mismatchedEvidence.reconciliationAction,"INVESTIGATE_RECEIPT_INTEGRITY");
+    assert.equal(mismatchedEvidence.moneyMovementAllowedByThisEvidence,false);
     const buyer = await prisma.user.create({
       data: { authSubject: buyerSubject, displayName: "Disposable Sandbox Buyer" }
     });
@@ -216,6 +228,17 @@ async function main() {
         where:{operationId:recorded.id}
       }),1,"Only one durable signed collection observation");
       assert.equal(await prisma.ledgerTransaction.count(),noLedgerBeforeReceipt);
+      const beforeEvidenceRead=await prisma.ledgerTransaction.count();
+      const collectionRead=await operations.reconciliation(by);
+      const collectionIssue=collectionRead.issues.find(
+        issue=>issue.code==="PARTNER_COLLECTION_RECEIPT_AWAITING_PROVIDER_PROOF"&&issue.id===recorded.id
+      );
+      assert.equal(collectionIssue?.partnerReceiptStatus,"COMMAND_RECEIVED_ONLY");
+      assert.equal(collectionIssue?.providerEvidenceStatus,"NOT_VERIFIED");
+      assert.equal(collectionIssue?.providerSettlementConfirmed,false);
+      assert.equal(collectionIssue?.moneyMovementAllowedByThisEvidence,false);
+      assert.equal((await prisma.paymentAttempt.findUniqueOrThrow({where:{id:recorded.id}})).status,"PENDING");
+      assert.equal(await prisma.ledgerTransaction.count(),beforeEvidenceRead,"Evidence report is read only");
       const duplicateReceipt=await sendSandboxCollectionToMoniflow(recorded,config);
       assert.equal(duplicateReceipt.duplicate,true);
 
@@ -630,6 +653,18 @@ async function main() {
       assert.equal(await prisma.moniflowSandboxReceiptObservation.count({
         where:{operationId:ambiguousPayout.id}
       }),1);
+      const evidenceReport=await operations.reconciliation(se);
+      const evidenceIssue=evidenceReport.issues.find(
+        issue=>issue.code==="PAYOUT_AWAITING_PROVIDER"&&issue.id===ambiguousPayout.id
+      );
+      assert.equal(evidenceIssue?.partnerReceiptStatus,"COMMAND_RECEIVED_ONLY");
+      assert.equal(evidenceIssue?.providerEvidenceStatus,"NOT_VERIFIED");
+      assert.equal(evidenceIssue?.providerSettlementConfirmed,false);
+      assert.equal(evidenceIssue?.moneyMovementAllowedByThisEvidence,false);
+      assert.equal(evidenceIssue?.dispatchState,"OUTCOME_UNKNOWN");
+      assert.ok(!(await operations.reconciliation(by)).issues.some(
+        issue=>issue.id===ambiguousPayout.id
+      ),"Buyer cannot inspect seller payout evidence");
       const second=await sendPersistedSandboxFinancialCommandToMoniflow(
         prisma,"PAYOUT",ambiguousPayout.id,config
       );
@@ -777,6 +812,14 @@ async function main() {
       assert.equal((await observeSignedMoniflowSandboxReceipt(
         prisma,"REFUND",uncertainRefund.id,config
       )).duplicate,true);
+      const evidenceReport=await operations.reconciliation(by);
+      const evidenceIssue=evidenceReport.issues.find(
+        issue=>issue.code==="REFUND_AWAITING_PROVIDER"&&issue.id===uncertainRefund.id
+      );
+      assert.equal(evidenceIssue?.partnerReceiptStatus,"COMMAND_RECEIVED_ONLY");
+      assert.equal(evidenceIssue?.providerEvidenceStatus,"NOT_VERIFIED");
+      assert.equal(evidenceIssue?.moneyMovementAllowedByThisEvidence,false);
+      assert.equal(evidenceIssue?.dispatchState,"OUTCOME_UNKNOWN");
       const second=await sendPersistedSandboxFinancialCommandToMoniflow(
         prisma,"REFUND",uncertainRefund.id,config
       );
@@ -792,6 +835,7 @@ async function main() {
       assert.equal(await prisma.moniflowSandboxReceiptObservation.count({
         where:{operationId:uncertainRefund.id}
       }),1,"A signed refund receipt must have one durable inbox observation");
+      console.log("PASS: provider-evidence readiness reports command receipts without marking collection, payout or refund settled");
       console.log("PASS: signed MONIFlow collection/payout/refund receipt evidence verified against Hustle records; immutable inbox dedup, zero finance mutations");
       console.log("PASS: applied paid Order + persisted refund hold -> signed MONIFlow RECEIVED-only command; no double refund");
     }
