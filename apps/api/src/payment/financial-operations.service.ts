@@ -332,7 +332,7 @@ export class FinancialOperationsService {
           });
         });
       } else {
-        const refund = await this.prisma.refund.findUniqueOrThrow({ where: { id: operationId, paymentAttempt: { isNot: null } }, include: { paymentAttempt: true } });
+        const refund = await this.prisma.refund.findUniqueOrThrow({ where: { id: operationId }, include: { paymentAttempt: true } });
         const accepted = await this.gateway.createRefund({
           operationId,
           paymentReference: refund.paymentAttempt.providerReference,
