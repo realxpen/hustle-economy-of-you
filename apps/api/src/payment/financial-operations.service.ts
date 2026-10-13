@@ -25,6 +25,7 @@ import { randomUUID } from "node:crypto";
 
 import { assertPreparedReference } from "./financial-dispatch-policy";
 import { describeFinancialDispatch } from "./financial-dispatch-reconciliation";
+import { classifyProviderEvidenceReadiness } from "./provider-evidence-readiness";
 
 import { BookingFinancialService } from "../booking/booking-financial.service";
 import { CommerceFinancialService } from "../commerce/commerce-financial.service";
@@ -379,7 +380,7 @@ export class FinancialOperationsService {
 
   async reconciliation(identity: AuthIdentity) {
     const user = await this.requireUser(identity);
-    const [payments, payouts, refunds, accounts, webhookFailures, ledgerTransactions] = await Promise.all([
+    const [payments, payouts, refunds, accounts, webhookFailures, ledgerTransactions, pendingCollections] = await Promise.all([
       this.prisma.paymentAttempt.findMany({
         where: {
           OR: [{ payerUserId: user.id }, { beneficiaryUserId: user.id }],
@@ -415,6 +416,16 @@ export class FinancialOperationsService {
         include: { postings: { select: { direction: true, amountMinor: true } } },
         orderBy: { createdAt: "desc" },
         take: 200
+      }),
+      this.prisma.paymentAttempt.findMany({
+        where: {
+          OR: [{ payerUserId: user.id }, { beneficiaryUserId: user.id }],
+          status: PaymentAttemptStatus.PENDING,
+          provider: "HUSTLE_SANDBOX"
+        },
+        select: { id: true, amountMinor: true, currency: true },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 100
       })
     ]);
 
@@ -430,14 +441,42 @@ export class FinancialOperationsService {
       : [];
     const dispatchByOperation = new Map(dispatches.map((dispatch) => [dispatch.operationId, dispatch]));
 
+    // Query only observations associated with operations authorized for this user.
+    const scopedIds = [...new Set([...operationIds, ...pendingCollections.map(p => p.id)])];
+    const observations = scopedIds.length
+      ? await this.prisma.moniflowSandboxReceiptObservation.findMany({
+        where: { operationId: { in: scopedIds } },
+        select: {
+          operationId: true, kind: true, amountMinor: true, currency: true,
+          observedAt: true, commandDigest: true
+        }
+      })
+      : [];
+    const receiptByOperation = new Map(observations.map(r => [r.operationId, r]));
+
     const issues: Array<Record<string, unknown>> = [];
     for (const payment of payments) issues.push({ code: "PAYMENT_DOMAIN_NOT_APPLIED", ...payment });
+    for (const attempt of pendingCollections) {
+      const observed = receiptByOperation.get(attempt.id);
+      if (!observed) continue;
+      issues.push({
+        code: "PARTNER_COLLECTION_RECEIPT_AWAITING_PROVIDER_PROOF",
+        id: attempt.id,
+        amountMinor: attempt.amountMinor,
+        currency: attempt.currency,
+        ...classifyProviderEvidenceReadiness("COLLECTION", attempt.amountMinor, attempt.currency, observed)
+      });
+    }
     for (const payout of payouts) {
       const dispatch = dispatchByOperation.get(payout.id);
       issues.push({
         code: "PAYOUT_AWAITING_PROVIDER",
         ...payout,
         ...describeFinancialDispatch(dispatch?.state ?? null),
+        ...classifyProviderEvidenceReadiness(
+          "PAYOUT", payout.amountMinor, payout.currency,
+          receiptByOperation.get(payout.id) ?? null
+        ),
         dispatchAttemptedAt: dispatch?.attemptedAt ?? null,
         dispatchSubmittedAt: dispatch?.submittedAt ?? null
       });
@@ -448,6 +487,10 @@ export class FinancialOperationsService {
         code: "REFUND_AWAITING_PROVIDER",
         ...refund,
         ...describeFinancialDispatch(dispatch?.state ?? null),
+        ...classifyProviderEvidenceReadiness(
+          "REFUND", refund.amountMinor, refund.currency,
+          receiptByOperation.get(refund.id) ?? null
+        ),
         dispatchAttemptedAt: dispatch?.attemptedAt ?? null,
         dispatchSubmittedAt: dispatch?.submittedAt ?? null
       });
