@@ -192,7 +192,7 @@ export async function sendPersistedSandboxFinancialCommandToMoniflow(
   const dispatch = await prisma.financialDispatchCommand.findUnique({ where: { operationId } });
   if (!dispatch ||
       dispatch.kind !== (kind === "PAYOUT" ? FinancialDispatchKind.PAYOUT : FinancialDispatchKind.REFUND) ||
-      ![FinancialDispatchState.SUBMITTED, FinancialDispatchState.OUTCOME_UNKNOWN].includes(dispatch.state)) {
+      !(dispatch.state === FinancialDispatchState.SUBMITTED || dispatch.state === FinancialDispatchState.OUTCOME_UNKNOWN)) {
     throw new Error("HUSTLE_COMMITTED_FINANCIAL_DISPATCH_REQUIRED");
   }
 
@@ -203,7 +203,7 @@ export async function sendPersistedSandboxFinancialCommandToMoniflow(
     const payout = await prisma.payout.findUniqueOrThrow({ where: { id: operationId } });
     if (payout.provider !== "HUSTLE_SANDBOX" ||
         payout.providerReference !== `hsbx_payout_${payout.id}` ||
-        ![FinancialOperationStatus.REQUESTED, FinancialOperationStatus.PROCESSING].includes(payout.status) ||
+        !(payout.status === FinancialOperationStatus.REQUESTED || payout.status === FinancialOperationStatus.PROCESSING) ||
         payout.currency !== "NGN" ||
         !Number.isSafeInteger(payout.amountMinor) || payout.amountMinor <= 0) {
       throw new Error("HUSTLE_NONTERMINAL_SANDBOX_PAYOUT_REQUIRED");
@@ -244,7 +244,7 @@ export async function sendPersistedSandboxFinancialCommandToMoniflow(
         attempt.provider !== "HUSTLE_SANDBOX" ||
         attempt.status !== PaymentAttemptStatus.SUCCEEDED ||
         !attempt.domainAppliedAt ||
-        ![FinancialOperationStatus.REQUESTED, FinancialOperationStatus.PROCESSING].includes(refund.status) ||
+        !(refund.status === FinancialOperationStatus.REQUESTED || refund.status === FinancialOperationStatus.PROCESSING) ||
         refund.subjectId !== attempt.subjectId ||
         refund.subjectType !== attempt.subjectType ||
         refund.currency !== "NGN" || attempt.currency !== "NGN" ||
