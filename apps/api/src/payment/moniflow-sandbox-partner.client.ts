@@ -182,13 +182,11 @@ export async function sendSandboxCollectionToMoniflow(
  * `sandbox:UNVERIFIED:*` marker intentionally documents that NO real
  * destination verification or payment authorization has happened.
  */
-export async function sendPersistedSandboxFinancialCommandToMoniflow(
+export async function preparePersistedSandboxFinancialCommand(
   prisma: PrismaClient,
   kind: "PAYOUT" | "REFUND",
-  operationId: string,
-  config: { baseUrl: string; secret: string }
-): Promise<MoniflowSandboxCollectionReceipt> {
-  const base = requireLocalMoniflowSandbox(config.baseUrl, config.secret);
+  operationId: string
+) {
   const dispatch = await prisma.financialDispatchCommand.findUnique({ where: { operationId } });
   if (!dispatch ||
       dispatch.kind !== (kind === "PAYOUT" ? FinancialDispatchKind.PAYOUT : FinancialDispatchKind.REFUND) ||
@@ -272,6 +270,18 @@ export async function sendPersistedSandboxFinancialCommandToMoniflow(
     }
     command = makeRefundCommand(refund, attempt.providerReference);
   }
+
+  return command;
+}
+
+export async function sendPersistedSandboxFinancialCommandToMoniflow(
+  prisma: PrismaClient,
+  kind: "PAYOUT" | "REFUND",
+  operationId: string,
+  config: { baseUrl: string; secret: string }
+): Promise<MoniflowSandboxCollectionReceipt> {
+  const base = requireLocalMoniflowSandbox(config.baseUrl, config.secret);
+  const command = await preparePersistedSandboxFinancialCommand(prisma, kind, operationId);
 
   const route = kind === "PAYOUT" ? "/internal/v1/payouts" : "/internal/v1/refunds";
   const { status, payload } = await signedMoniflowSandboxRequest(
