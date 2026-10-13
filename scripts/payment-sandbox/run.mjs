@@ -38,6 +38,7 @@ const { PrismaService } = require("../../apps/api/dist/database/prisma.service.j
 const { CommerceService } = require("../../apps/api/dist/commerce/commerce.service.js");
 const { FulfillmentService } = require("../../apps/api/dist/commerce/fulfillment.service.js");
 const { PaymentService } = require("../../apps/api/dist/payment/payment.service.js");
+const { sendSandboxCollectionToMoniflow, toMoniflowSandboxCollection, signedMoniflowSandboxRequest, requireLocalMoniflowSandbox } = require("../../apps/api/dist/payment/moniflow-sandbox-partner.client.js");
 const { FinancialOperationsService } = require("../../apps/api/dist/payment/financial-operations.service.js");
 const { describeFinancialDispatch } = require("../../apps/api/dist/payment/financial-dispatch-reconciliation.js");
 const { WalletService } = require("../../apps/api/dist/payment/wallet.service.js");
@@ -135,6 +136,68 @@ async function main() {
     assert.equal(attempt.status, "PENDING");
     assert.equal(attempt.amountMinor, 250000);
     assert.equal(await prisma.notification.count({ where: { eventKey: `order:${orderId}:PAID` } }), 0);
+
+
+    if (process.env.MONIFLOW_SANDBOX_TEST_URL) {
+      const config={
+        baseUrl:process.env.MONIFLOW_SANDBOX_TEST_URL,
+        secret:process.env.MONIFLOW_PARTNER_HMAC_SECRET
+      };
+      const base=requireLocalMoniflowSandbox(config.baseUrl,config.secret);
+      await expectRejected(
+        () => Promise.resolve(requireLocalMoniflowSandbox("https://example.com",config.secret)),
+        "Sandbox bridge must refuse any non-loopback provider URL"
+      );
+      const recorded=await prisma.paymentAttempt.findUniqueOrThrow({where:{id:attempt.id}});
+      const initialLedger=await prisma.ledgerTransaction.count({where:{paymentAttemptId:attempt.id}});
+      const initializedReceipt=await sendSandboxCollectionToMoniflow(recorded,config);
+      assert.equal(initializedReceipt.status,"RECEIVED");
+      assert.equal(initializedReceipt.duplicate,false);
+      assert.equal(initializedReceipt.realFundsMoved,false);
+      assert.equal(initializedReceipt.executionStarted,false);
+      const duplicateReceipt=await sendSandboxCollectionToMoniflow(recorded,config);
+      assert.equal(duplicateReceipt.duplicate,true);
+
+      // Replays, changed terms and invalid HMAC must not alter the accepted command.
+      const command=toMoniflowSandboxCollection(recorded);
+      const wrongMoney=await signedMoniflowSandboxRequest(base,config.secret,
+        "POST","/internal/v1/collections",{...command,amountMinor:recorded.amountMinor+100});
+      assert.equal(wrongMoney.status,409,"Same operation with a new amount must conflict");
+      const forbiddenCurrency=await signedMoniflowSandboxRequest(base,config.secret,
+        "POST","/internal/v1/collections",{...command,currency:"USD"});
+      assert.equal(forbiddenCurrency.status,400,"Unsupported currency must fail closed");
+      const forged=await signedMoniflowSandboxRequest(base,config.secret,
+        "POST","/internal/v1/collections",command,{signSecret:"incorrect-key-with-32-characters-minimum"});
+      assert.equal(forged.status,401,"Forged signature must fail authentication");
+      const stale=await signedMoniflowSandboxRequest(base,config.secret,
+        "POST","/internal/v1/collections",command,{timestamp:String(Date.now()-600000)});
+      assert.equal(stale.status,401,"Stale signed request must be refused");
+      const nonce=randomUUID();
+      const signedOnce=await signedMoniflowSandboxRequest(base,config.secret,
+        "GET","/internal/v1/operations/"+recorded.id,undefined,{nonce});
+      assert.equal(signedOnce.status,200);
+      const replay=await signedMoniflowSandboxRequest(base,config.secret,
+        "GET","/internal/v1/operations/"+recorded.id,undefined,{nonce});
+      assert.equal(replay.status,409,"Repeated signed nonce must not be processed");
+      assert.equal(signedOnce.payload.status,"RECEIVED");
+      assert.equal(signedOnce.payload.realFundsMoved,false);
+      const caps=await signedMoniflowSandboxRequest(base,config.secret,
+        "GET","/internal/v1/provider-capabilities");
+      assert.equal(caps.status,200);
+      assert.equal(caps.payload.providerExecutionEnabled,false);
+      assert.equal(caps.payload.merchantCollectionsEnabled,false);
+      assert.equal(caps.payload.payoutsEnabled,false);
+      assert.equal(caps.payload.refundsEnabled,false);
+      assert.equal(caps.payload.custodyEnabled,false);
+
+      assert.equal((await prisma.paymentAttempt.findUniqueOrThrow({where:{id:attempt.id}})).status,"PENDING");
+      assert.equal((await prisma.order.findUniqueOrThrow({where:{id:orderId}})).status,"PENDING");
+      assert.equal(await prisma.ledgerTransaction.count({where:{paymentAttemptId:attempt.id}}),initialLedger,
+        "MONIFlow receipt must not generate a Hustle paid ledger posting");
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:product.id}})).inventoryQuantity,3,
+        "MONIFlow receipt must not reserve or deduct inventory");
+      console.log("PASS: genuine Hustle PENDING Order/PaymentAttempt -> signed MONIFlow RECEIVED-only sandbox; duplicate/tampering/replay denied; no financial change");
+    }
 
     await expectRejected(
       () => payments.initialize(se, { subjectType: "ORDER", subjectId: orderId }, `sandbox-not-buyer-${testId}`),

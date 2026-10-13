@@ -1,0 +1,128 @@
+name: Hustle x MONIFlow Isolated Sandbox Handshake
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/moniflow-sandbox-handshake.yml"
+      - "scripts/payment-sandbox/**"
+      - "apps/api/src/payment/moniflow-sandbox-partner.client.ts"
+      - "apps/api/prisma/**"
+      - "apps/api/package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+jobs:
+  handshake:
+    name: Real Hustle Order to MONIFlow receipt-only sandbox
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: sandbox_only
+          POSTGRES_DB: hustle_payment_sandbox
+        ports:
+          - 127.0.0.1:55439:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hustle_payment_sandbox"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:sandbox_only@127.0.0.1:55439/hustle_payment_sandbox?schema=public
+      MONIFLOW_SANDBOX_TEST_URL: http://127.0.0.1:4093
+
+    steps:
+      - name: Checkout Hustle
+        uses: actions/checkout@v4
+      - name: Checkout pinned MONIFlow sandbox partner implementation
+        uses: actions/checkout@v4
+        with:
+          repository: realxpen/moniflow
+          # Reviewed MONIFlow mainline merge of partner API + CUID fix, immutable SHA.
+          # No MONIFlow mainline deployment or real provider access.
+          ref: 88a2b33e6520fa3b49314962467abc587f8d5657
+          path: _moniflow
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Enable Corepack for MONIFlow pnpm
+        run: corepack enable
+
+      - name: Install Hustle locked dependencies
+        run: npm ci
+      - name: Install and compile MONIFlow sandbox API
+        working-directory: _moniflow
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm --filter @moniflow/api build
+
+      - name: Mint separate throwaway local-only HMAC secrets
+        shell: bash
+        run: |
+          webhook_secret="$(openssl rand -hex 32)"
+          partner_secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$webhook_secret"
+          echo "::add-mask::$partner_secret"
+          echo "HUSTLE_SANDBOX_WEBHOOK_SECRET=$webhook_secret" >> "$GITHUB_ENV"
+          echo "MONIFLOW_PARTNER_HMAC_SECRET=$partner_secret" >> "$GITHUB_ENV"
+
+      - name: Bootstrap disposable Hustle database roles
+        shell: bash
+        run: |
+          PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -f scripts/payment-sandbox/supabase-compat.sql
+
+      - name: Resolve historical duplicate Story policy in isolated DB
+        run: |
+          npx prisma migrate resolve --applied 20260917130500_phase16b_story_rls_hardening --schema=apps/api/prisma/schema.prisma
+      - name: Apply Hustle migrations to isolated database
+        run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+      - name: Build actual Hustle NestJS API
+        run: npm run build --workspace=@hustle/api
+
+      - name: Start MONIFlow only on local simulated partner endpoint
+        shell: bash
+        run: |
+          (
+            cd _moniflow
+            NODE_ENV=test \
+            API_HOST=127.0.0.1 \
+            API_PORT=4093 \
+            DATABASE_URL="file:$RUNNER_TEMP/moniflow_partner_sandbox.db" \
+            FINANCIAL_PROVIDER=moniflow-sandbox \
+            PARTNER_HUSTLE_SANDBOX_ENABLED=true \
+            PARTNER_HUSTLE_HMAC_SECRET="$MONIFLOW_PARTNER_HMAC_SECRET" \
+              pnpm --filter @moniflow/api start \
+              > "$RUNNER_TEMP/moniflow-partner.log" 2>&1
+          ) &
+          for attempt in $(seq 1 40); do
+            if curl -fsS --max-time 2 http://127.0.0.1:4093/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MONIFlow sandbox API did not become ready"
+          tail -n 70 "$RUNNER_TEMP/moniflow-partner.log" || true
+          exit 1
+
+      - name: Run genuine Hustle Order to MONIFlow signed RECEIVED-only handshake
+        run: node scripts/payment-sandbox/run.mjs
+
+      - name: Stop test-only processes
+        if: always()
+        shell: bash
+        run: |
+          # Worker and service containers are ephemeral; do not promote or
+          # deploy any running app, secrets, wallet, database or test data.
+          pkill -f "node --import tsx src/server.ts" || true
