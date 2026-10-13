@@ -1,5 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { Capability, CapabilityStatus, OrderStatus, ProductType } from "@prisma/client";
+import { Capability, CapabilityStatus, FinancialOperationStatus, FinancialSubjectType, OrderStatus, ProductType } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -41,6 +41,22 @@ export class FulfillmentService {
         data: { status: OrderStatus.PROCESSING, processingAt: now }
       });
       if (updated.count !== 1) throw new ConflictException("Order changed before processing could start. Refresh and try again");
+      // Refund authorization writes this same Order row first, serializing
+      // against the PAID -> PROCESSING transition. A pending/successful
+      // refund must not race into merchant fulfillment.
+      const refundHold = await tx.refund.findFirst({
+        where: {
+          subjectType: FinancialSubjectType.ORDER,
+          subjectId: order.id,
+          status: { in: [
+            FinancialOperationStatus.REQUESTED,
+            FinancialOperationStatus.PROCESSING,
+            FinancialOperationStatus.SUCCEEDED
+          ] }
+        },
+        select: { id: true }
+      });
+      if (refundHold) throw new ConflictException("This Order has an active financial refund; fulfillment is paused");
       await this.notifications.recordOrderStatus(tx, order, OrderStatus.PROCESSING, userId);
       await tx.systemEvent.create({
         data: {
