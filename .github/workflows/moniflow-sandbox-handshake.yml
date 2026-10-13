@@ -45,9 +45,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: realxpen/moniflow
-          # Audited partner branch revision; do NOT use a moving branch name.
+          # Reviewed MONIFlow mainline merge of partner API + CUID fix, immutable SHA.
           # No MONIFlow mainline deployment or real provider access.
-          ref: d8b8d85431cccd20e266368b0c0280392f07ca96
+          ref: 88a2b33e6520fa3b49314962467abc587f8d5657
           path: _moniflow
 
       - name: Set up Node
