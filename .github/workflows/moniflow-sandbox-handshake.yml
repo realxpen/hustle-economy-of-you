@@ -37,6 +37,7 @@ jobs:
       NODE_ENV: test
       DATABASE_URL: postgresql://postgres:sandbox_only@127.0.0.1:55439/hustle_payment_sandbox?schema=public
       MONIFLOW_SANDBOX_TEST_URL: http://127.0.0.1:4093
+      MONIFLOW_SANDBOX_INBOX_ENABLED: "true"
 
     steps:
       - name: Checkout Hustle
@@ -75,6 +76,7 @@ jobs:
           echo "::add-mask::$partner_secret"
           echo "HUSTLE_SANDBOX_WEBHOOK_SECRET=$webhook_secret" >> "$GITHUB_ENV"
           echo "MONIFLOW_PARTNER_HMAC_SECRET=$partner_secret" >> "$GITHUB_ENV"
+          echo "MONIFLOW_SANDBOX_DATABASE_URL=file:$RUNNER_TEMP/moniflow_partner_sandbox.db" >> "$GITHUB_ENV"
 
       - name: Bootstrap disposable Hustle database roles
         shell: bash
