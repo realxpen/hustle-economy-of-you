@@ -24,6 +24,7 @@ import {
 import { randomUUID } from "node:crypto";
 
 import { assertPreparedReference } from "./financial-dispatch-policy";
+import { describeFinancialDispatch } from "./financial-dispatch-reconciliation";
 
 import { BookingFinancialService } from "../booking/booking-financial.service";
 import { CommerceFinancialService } from "../commerce/commerce-financial.service";
@@ -417,10 +418,40 @@ export class FinancialOperationsService {
       })
     ]);
 
+    // Read only the dispatch commands associated with financial operations
+    // visible to this authenticated user. FinancialDispatchCommand is not a
+    // client-owned table and its raw records must never be globally listed.
+    const operationIds = [...payouts.map((p) => p.id), ...refunds.map((r) => r.id)];
+    const dispatches = operationIds.length
+      ? await this.prisma.financialDispatchCommand.findMany({
+        where: { operationId: { in: operationIds } },
+        select: { operationId: true, state: true, attemptedAt: true, submittedAt: true }
+      })
+      : [];
+    const dispatchByOperation = new Map(dispatches.map((dispatch) => [dispatch.operationId, dispatch]));
+
     const issues: Array<Record<string, unknown>> = [];
     for (const payment of payments) issues.push({ code: "PAYMENT_DOMAIN_NOT_APPLIED", ...payment });
-    for (const payout of payouts) issues.push({ code: "PAYOUT_AWAITING_PROVIDER", ...payout });
-    for (const refund of refunds) issues.push({ code: "REFUND_AWAITING_PROVIDER", ...refund });
+    for (const payout of payouts) {
+      const dispatch = dispatchByOperation.get(payout.id);
+      issues.push({
+        code: "PAYOUT_AWAITING_PROVIDER",
+        ...payout,
+        ...describeFinancialDispatch(dispatch?.state ?? null),
+        dispatchAttemptedAt: dispatch?.attemptedAt ?? null,
+        dispatchSubmittedAt: dispatch?.submittedAt ?? null
+      });
+    }
+    for (const refund of refunds) {
+      const dispatch = dispatchByOperation.get(refund.id);
+      issues.push({
+        code: "REFUND_AWAITING_PROVIDER",
+        ...refund,
+        ...describeFinancialDispatch(dispatch?.state ?? null),
+        dispatchAttemptedAt: dispatch?.attemptedAt ?? null,
+        dispatchSubmittedAt: dispatch?.submittedAt ?? null
+      });
+    }
     for (const event of webhookFailures) issues.push({ code: "WEBHOOK_FAILED", ...event });
 
     for (const account of accounts) {
