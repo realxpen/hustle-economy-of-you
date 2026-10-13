@@ -25,3 +25,10 @@ CREATE UNIQUE INDEX "Refund_one_active_per_payment_idx" ON "Refund"("paymentAtte
 
 -- The migration must fail (rather than silently remove records) if any existing
 -- refund state violates this invariant; never erase production financial history.
+
+-- Server role only; unauthenticated/client database sessions cannot access
+-- dispatch commands, which describe consequential financial operations.
+ALTER TABLE "FinancialDispatchCommand" ENABLE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT, UPDATE ON TABLE "FinancialDispatchCommand" TO hustle_api;
+CREATE POLICY "financial_dispatch_api_role" ON "FinancialDispatchCommand"
+  FOR ALL TO hustle_api USING (true) WITH CHECK (true);
