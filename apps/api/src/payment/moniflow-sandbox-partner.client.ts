@@ -1,6 +1,18 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
 
-import { FinancialSubjectType, PaymentAttemptStatus, type PaymentAttempt } from "@prisma/client";
+import {
+  EscrowStatus,
+  FinancialDispatchKind,
+  FinancialDispatchState,
+  FinancialOperationStatus,
+  FinancialSubjectType,
+  LedgerTransactionType,
+  LedgerPostingDirection,
+  OrderStatus,
+  PaymentAttemptStatus,
+  type PaymentAttempt,
+  type PrismaClient
+} from "@prisma/client";
 
 /**
  * TEST-ONLY bridge from a REAL persisted Hustle PaymentAttempt to the
@@ -14,10 +26,11 @@ export type HustleSandboxCollection = Pick<PaymentAttempt,
   "amountMinor" | "currency" | "provider" | "status"
 >;
 
+export type MoniflowSandboxCommandKind = "COLLECTION" | "PAYOUT" | "REFUND";
 export type MoniflowSandboxCollectionReceipt = {
   operationId: string;
   partner: "HUSTLE";
-  kind: "COLLECTION";
+  kind: MoniflowSandboxCommandKind;
   status: "RECEIVED";
   environment: "sandbox";
   duplicate: boolean;
@@ -124,14 +137,14 @@ export async function signedMoniflowSandboxRequest(
   return { status: response.status, payload };
 }
 
-function assertReceipt(payload: unknown, operationId: string, duplicate: boolean):
+function assertReceipt(payload: unknown, operationId: string, duplicate: boolean, kind: MoniflowSandboxCommandKind):
   asserts payload is MoniflowSandboxCollectionReceipt {
   if (!payload || typeof payload !== "object") throw new Error("UNTRUSTED_MONIFLOW_RECEIPT");
   const r = payload as Record<string, unknown>;
   if (
     r.operationId !== operationId ||
     r.partner !== "HUSTLE" ||
-    r.kind !== "COLLECTION" ||
+    r.kind !== kind ||
     r.status !== "RECEIVED" ||
     r.environment !== "sandbox" ||
     r.duplicate !== duplicate ||
@@ -154,6 +167,6 @@ export async function sendSandboxCollectionToMoniflow(
     base, config.secret, "POST", "/internal/v1/collections", command
   );
   if (status !== 202 && status !== 200) throw new Error(`MONIFLOW_SANDBOX_COMMAND_REJECTED_${status}`);
-  assertReceipt(payload, attempt.id, status === 200);
+  assertReceipt(payload, attempt.id, status === 200, "COLLECTION");
   return payload;
 }
