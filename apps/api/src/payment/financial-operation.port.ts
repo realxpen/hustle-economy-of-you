@@ -52,6 +52,14 @@ export interface VerifiedFinancialOperationWebhook {
 }
 
 export interface FinancialOperationPort {
+  /**
+   * PURE and SYNCHRONOUS local reference preparation. No provider network
+   * requests and no external effects are allowed before the Hustle transaction
+   * commits. This v1 contract is sandbox only; real providers need a reviewed
+   * stable-reference/callback protocol before they can implement it.
+   */
+  preparePayout(input: SandboxPayoutRequest): SandboxOperationReference;
+  prepareRefund(input: SandboxRefundRequest): SandboxOperationReference;
   createPayout(input: SandboxPayoutRequest): Promise<SandboxOperationReference>;
   createRefund(input: SandboxRefundRequest): Promise<SandboxOperationReference>;
   verifyWebhook(
