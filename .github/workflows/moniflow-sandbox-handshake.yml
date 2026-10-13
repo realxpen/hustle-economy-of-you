@@ -47,7 +47,7 @@ jobs:
           repository: realxpen/moniflow
           # Reviewed MONIFlow signed RECEIVED-only receipt PR #6 SHA, immutable isolated-test pin.
           # No MONIFlow mainline deployment or real provider access.
-          ref: ab56682f8ff84424174d6f5be579403709caa392
+          ref: 030c1e50ef0a1522772da5d55dede598a62c0b4d
           path: _moniflow
 
       - name: Set up Node
