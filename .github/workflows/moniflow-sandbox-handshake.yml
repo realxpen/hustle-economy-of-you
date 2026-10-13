@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   handshake:
-    name: Real Hustle Order to MONIFlow receipt-only sandbox
+    name: Real Hustle collection, payout and refund to MONIFlow receipts
     runs-on: ubuntu-latest
     timeout-minutes: 22
     services:
@@ -116,7 +116,7 @@ jobs:
           tail -n 70 "$RUNNER_TEMP/moniflow-partner.log" || true
           exit 1
 
-      - name: Run genuine Hustle Order to MONIFlow signed RECEIVED-only handshake
+      - name: Test Hustle collection payout and refund signed RECEIVED-only handshakes
         run: node scripts/payment-sandbox/run.mjs
 
       - name: Stop test-only processes
