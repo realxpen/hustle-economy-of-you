@@ -14,18 +14,20 @@ const PROVIDER = "HUSTLE_SANDBOX";
 
 @Injectable()
 export class SandboxFinancialOperationGateway implements FinancialOperationPort {
+  preparePayout(input: SandboxPayoutRequest): SandboxOperationReference {
+    return { provider: PROVIDER, reference: `hsbx_payout_${input.operationId}` };
+  }
+
+  prepareRefund(input: SandboxRefundRequest): SandboxOperationReference {
+    return { provider: PROVIDER, reference: `hsbx_refund_${input.operationId}` };
+  }
+
   async createPayout(input: SandboxPayoutRequest): Promise<SandboxOperationReference> {
-    return {
-      provider: PROVIDER,
-      reference: `hsbx_payout_${input.operationId}`
-    };
+    return this.preparePayout(input);
   }
 
   async createRefund(input: SandboxRefundRequest): Promise<SandboxOperationReference> {
-    return {
-      provider: PROVIDER,
-      reference: `hsbx_refund_${input.operationId}`
-    };
+    return this.prepareRefund(input);
   }
 
   async verifyWebhook(

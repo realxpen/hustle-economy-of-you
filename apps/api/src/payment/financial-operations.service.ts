@@ -8,6 +8,8 @@ import {
 } from "@nestjs/common";
 import {
   EscrowStatus,
+  FinancialDispatchKind,
+  FinancialDispatchState,
   FinancialAccountType,
   FinancialOperationStatus,
   FinancialSubjectType,
@@ -20,6 +22,8 @@ import {
   WebhookEventStatus
 } from "@prisma/client";
 import { randomUUID } from "node:crypto";
+
+import { assertPreparedReference } from "./financial-dispatch-policy";
 
 import { BookingFinancialService } from "../booking/booking-financial.service";
 import { CommerceFinancialService } from "../commerce/commerce-financial.service";
@@ -50,6 +54,11 @@ export class FinancialOperationsService {
     @Inject(FINANCIAL_OPERATION_GATEWAY) private readonly gateway: FinancialOperationPort
   ) {}
 
+  /**
+   * First commits a serializable AVAILABLE -> PAYOUT_RESERVED ledger movement
+   * and a QUEUED outbox command. The provider is NEVER invoked before commit.
+   * A remotely uncertain operation remains reserved and must be reconciled.
+   */
   async requestPayout(identity: AuthIdentity, input: RequestPayoutInput, idempotencyHeader?: string) {
     const user = await this.requireUser(identity);
     const amountMinor = this.positiveAmount(input.amountMinor);
@@ -61,19 +70,20 @@ export class FinancialOperationsService {
       if (existing.userId !== user.id || existing.amountMinor !== amountMinor || existing.currency !== currency) {
         throw new ConflictException("Idempotency-Key is already associated with another withdrawal");
       }
-      return this.serializePayout(existing);
+      // Safe only when the durable command is still QUEUED, meaning no attempt
+      // to contact a provider has started. DISPATCHING/UNKNOWN is not retried.
+      await this.dispatchQueuedFinancialOperation(FinancialDispatchKind.PAYOUT, existing.id);
+      return this.serializePayout(await this.prisma.payout.findUniqueOrThrow({ where: { id: existing.id } }));
     }
 
     const payoutId = randomUUID();
-    const provider = await this.gateway.createPayout({
-      operationId: payoutId,
-      userId: user.id,
-      amountMinor,
-      currency
-    });
+    const request = { operationId: payoutId, userId: user.id, amountMinor, currency };
+    // MUST be a pure synchronous local computation with zero provider effects.
+    const prepared = this.gateway.preparePayout(request);
 
+    let payout;
     try {
-      const payout = await this.prisma.$transaction(async (tx) => {
+      payout = await this.prisma.$transaction(async (tx) => {
         const raced = await tx.payout.findUnique({ where: { idempotencyKey } });
         if (raced) return raced;
 
@@ -90,9 +100,9 @@ export class FinancialOperationsService {
             userId: user.id,
             currency,
             amountMinor,
-            status: FinancialOperationStatus.PROCESSING,
-            provider: provider.provider,
-            providerReference: provider.reference,
+            status: FinancialOperationStatus.REQUESTED,
+            provider: prepared.provider,
+            providerReference: prepared.reference,
             idempotencyKey
           }
         });
@@ -102,7 +112,7 @@ export class FinancialOperationsService {
             subjectType: FinancialSubjectType.PAYOUT,
             subjectId: created.id,
             type: LedgerTransactionType.PAYOUT_RESERVED,
-            reference: provider.reference,
+            reference: prepared.reference,
             idempotencyKey: `payout:${created.id}:reserved`,
             postings: {
               create: [
@@ -113,6 +123,9 @@ export class FinancialOperationsService {
           }
         });
 
+        await tx.financialDispatchCommand.create({
+          data: { kind: FinancialDispatchKind.PAYOUT, operationId: created.id, state: FinancialDispatchState.QUEUED }
+        });
         await tx.systemEvent.create({
           data: {
             name: "payout.requested",
@@ -127,23 +140,33 @@ export class FinancialOperationsService {
             }
           }
         });
-
         return created;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-
-      return this.serializePayout(payout);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
         throw new ConflictException("Wallet changed during withdrawal reservation. Retry with the same Idempotency-Key");
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         const raced = await this.prisma.payout.findUnique({ where: { idempotencyKey } });
-        if (raced) return this.serializePayout(raced);
+        if (raced) {
+          if (raced.userId !== user.id || raced.amountMinor !== amountMinor || raced.currency !== currency) {
+            throw new ConflictException("Idempotency-Key belongs to a different withdrawal");
+          }
+          await this.dispatchQueuedFinancialOperation(FinancialDispatchKind.PAYOUT, raced.id);
+          return this.serializePayout(await this.prisma.payout.findUniqueOrThrow({ where: { id: raced.id } }));
+        }
       }
       throw error;
     }
+
+    await this.dispatchQueuedFinancialOperation(FinancialDispatchKind.PAYOUT, payout.id);
+    return this.serializePayout(await this.prisma.payout.findUniqueOrThrow({ where: { id: payout.id } }));
   }
 
+  /**
+   * A refund must reserve its domain eligibility and durable command before
+   * execution. A PAID Order is row-locked to serialize against PROCESSING.
+   */
   async requestRefund(identity: AuthIdentity, input: RequestRefundInput, idempotencyHeader?: string) {
     const user = await this.requireUser(identity);
     const subjectType = this.subjectType(input.subjectType);
@@ -155,7 +178,8 @@ export class FinancialOperationsService {
       if (existing.requestedByUserId !== user.id || existing.subjectType !== subjectType || existing.subjectId !== subjectId) {
         throw new ConflictException("Idempotency-Key is already associated with another refund");
       }
-      return this.serializeRefund(existing);
+      await this.dispatchQueuedFinancialOperation(FinancialDispatchKind.REFUND, existing.id);
+      return this.serializeRefund(await this.prisma.refund.findUniqueOrThrow({ where: { id: existing.id } }));
     }
 
     const attempt = await this.prisma.paymentAttempt.findFirst({
@@ -170,8 +194,6 @@ export class FinancialOperationsService {
     });
     if (!attempt) throw new ForbiddenException("Only the payer of an applied successful payment can request its refund");
 
-    await this.assertRefundableDomainState(subjectType, subjectId, attempt.id);
-
     const active = await this.prisma.refund.findFirst({
       where: {
         paymentAttemptId: attempt.id,
@@ -182,65 +204,170 @@ export class FinancialOperationsService {
     if (active) return this.serializeRefund(active);
 
     const refundId = randomUUID();
-    const provider = await this.gateway.createRefund({
+    const request = {
       operationId: refundId,
       paymentReference: attempt.providerReference,
       subjectType,
       subjectId,
       amountMinor: attempt.amountMinor,
       currency: attempt.currency
-    });
+    };
+    // Pure and synchronous: just reserves the correlation reference.
+    const prepared = this.gateway.prepareRefund(request);
 
-    const refund = await this.prisma.$transaction(async (tx) => {
-      if (subjectType === FinancialSubjectType.BOOKING) {
-        const moved = await tx.escrowRecord.updateMany({
+    let refund;
+    try {
+      refund = await this.prisma.$transaction(async (tx) => {
+        // Check transaction truth again inside the serializable transaction.
+        await this.assertRefundableDomainState(subjectType, subjectId, attempt.id, tx);
+        const raced = await tx.refund.findFirst({
           where: {
-            subjectType,
-            subjectId,
             paymentAttemptId: attempt.id,
-            status: EscrowStatus.HELD
-          },
-          data: { status: EscrowStatus.REFUND_PENDING }
-        });
-        if (moved.count !== 1) throw new ConflictException("Booking escrow is not available for refund");
-      }
-
-      const created = await tx.refund.create({
-        data: {
-          id: refundId,
-          subjectType,
-          subjectId,
-          paymentAttemptId: attempt.id,
-          requestedByUserId: user.id,
-          currency: attempt.currency,
-          amountMinor: attempt.amountMinor,
-          status: FinancialOperationStatus.PROCESSING,
-          providerReference: provider.reference,
-          idempotencyKey
-        }
-      });
-
-      await tx.systemEvent.create({
-        data: {
-          name: "refund.requested",
-          source: "payment",
-          payload: {
-            refundId: created.id,
-            paymentAttemptId: attempt.id,
-            subjectType,
-            subjectId,
-            requestedByUserId: user.id,
-            amountMinor: attempt.amountMinor,
-            currency: attempt.currency,
-            status: created.status
+            status: { in: [FinancialOperationStatus.REQUESTED, FinancialOperationStatus.PROCESSING, FinancialOperationStatus.SUCCEEDED] }
           }
+        });
+        if (raced) return raced;
+
+        if (subjectType === FinancialSubjectType.BOOKING) {
+          const moved = await tx.escrowRecord.updateMany({
+            where: { subjectType, subjectId, paymentAttemptId: attempt.id, status: EscrowStatus.HELD },
+            data: { status: EscrowStatus.REFUND_PENDING }
+          });
+          if (moved.count !== 1) throw new ConflictException("Booking escrow is not available for refund");
+        } else {
+          // Serialized Order row write; fulfillment checks the committed
+          // active Refund before moving PAID -> PROCESSING under the same lock.
+          const locked = await tx.order.updateMany({
+            where: { id: subjectId, status: OrderStatus.PAID },
+            data: { updatedAt: new Date() }
+          });
+          if (locked.count !== 1) throw new ConflictException("Order changed before refund authorization");
+        }
+
+        const created = await tx.refund.create({
+          data: {
+            id: refundId,
+            subjectType,
+            subjectId,
+            paymentAttemptId: attempt.id,
+            requestedByUserId: user.id,
+            currency: attempt.currency,
+            amountMinor: attempt.amountMinor,
+            status: FinancialOperationStatus.REQUESTED,
+            providerReference: prepared.reference,
+            idempotencyKey
+          }
+        });
+        await tx.financialDispatchCommand.create({
+          data: { kind: FinancialDispatchKind.REFUND, operationId: created.id, state: FinancialDispatchState.QUEUED }
+        });
+        await tx.systemEvent.create({
+          data: {
+            name: "refund.requested",
+            source: "payment",
+            payload: {
+              refundId: created.id,
+              paymentAttemptId: attempt.id,
+              subjectType,
+              subjectId,
+              requestedByUserId: user.id,
+              amountMinor: attempt.amountMinor,
+              currency: attempt.currency,
+              status: created.status
+            }
+          }
+        });
+        return created;
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+        throw new ConflictException("Refund or fulfillment changed concurrently. Refresh and retry with the same key");
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const raced = await this.prisma.refund.findFirst({
+          where: {
+            paymentAttemptId: attempt.id,
+            status: { in: [FinancialOperationStatus.REQUESTED, FinancialOperationStatus.PROCESSING, FinancialOperationStatus.SUCCEEDED] }
+          }
+        });
+        if (raced) return this.serializeRefund(raced);
+      }
+      throw error;
+    }
+
+    await this.dispatchQueuedFinancialOperation(FinancialDispatchKind.REFUND, refund.id);
+    return this.serializeRefund(await this.prisma.refund.findUniqueOrThrow({ where: { id: refund.id } }));
+  }
+
+  /**
+   * Internal dispatch, NEVER an anonymous/controller endpoint. QUEUED is the
+   * only dispatchable state. DISPATCHING or OUTCOME_UNKNOWN never auto-retries:
+   * a provider could have executed despite an interrupted response.
+   */
+  async dispatchQueuedFinancialOperation(kind: FinancialDispatchKind, operationId: string) {
+    const claimed = await this.prisma.financialDispatchCommand.updateMany({
+      where: { operationId, kind, state: FinancialDispatchState.QUEUED },
+      data: { state: FinancialDispatchState.DISPATCHING, attemptedAt: new Date() }
+    });
+    if (claimed.count !== 1) return;
+
+    try {
+      if (kind === FinancialDispatchKind.PAYOUT) {
+        const payout = await this.prisma.payout.findUniqueOrThrow({ where: { id: operationId } });
+        const accepted = await this.gateway.createPayout({
+          operationId,
+          userId: payout.userId,
+          amountMinor: payout.amountMinor,
+          currency: payout.currency
+        });
+        assertPreparedReference({ provider: payout.provider, reference: payout.providerReference! }, accepted);
+        await this.prisma.$transaction(async (tx) => {
+          await tx.payout.updateMany({
+            where: { id: payout.id, status: FinancialOperationStatus.REQUESTED },
+            data: { status: FinancialOperationStatus.PROCESSING }
+          });
+          await tx.financialDispatchCommand.updateMany({
+            where: { operationId, state: FinancialDispatchState.DISPATCHING },
+            data: { state: FinancialDispatchState.SUBMITTED, submittedAt: new Date(), failureCode: null }
+          });
+        });
+      } else {
+        const refund = await this.prisma.refund.findUniqueOrThrow({ where: { id: operationId }, include: { paymentAttempt: true } });
+        const accepted = await this.gateway.createRefund({
+          operationId,
+          paymentReference: refund.paymentAttempt.providerReference,
+          subjectType: refund.subjectType,
+          subjectId: refund.subjectId,
+          amountMinor: refund.amountMinor,
+          currency: refund.currency
+        });
+        assertPreparedReference({ provider: refund.paymentAttempt.provider, reference: refund.providerReference! }, accepted);
+        await this.prisma.$transaction(async (tx) => {
+          await tx.refund.updateMany({
+            where: { id: refund.id, status: FinancialOperationStatus.REQUESTED },
+            data: { status: FinancialOperationStatus.PROCESSING }
+          });
+          await tx.financialDispatchCommand.updateMany({
+            where: { operationId, state: FinancialDispatchState.DISPATCHING },
+            data: { state: FinancialDispatchState.SUBMITTED, submittedAt: new Date(), failureCode: null }
+          });
+        });
+      }
+    } catch {
+      // A provider exception could be a lost response after a successful
+      // external operation. HOLD funds / refund freeze for reconciliation.
+      await this.prisma.financialDispatchCommand.updateMany({
+        where: { operationId, state: FinancialDispatchState.DISPATCHING },
+        data: { state: FinancialDispatchState.OUTCOME_UNKNOWN, failureCode: "RECONCILIATION_REQUIRED" }
+      });
+      await this.prisma.systemEvent.create({
+        data: {
+          name: "financial.dispatch.unknown",
+          source: "payment",
+          payload: { operationId, kind, reason: "PROVIDER_OR_PERSISTENCE_OUTCOME_UNCERTAIN" }
         }
       });
-
-      return created;
-    });
-
-    return this.serializeRefund(refund);
+    }
   }
 
   async handleWebhook(payload: unknown, signature?: string) {
@@ -261,13 +388,13 @@ export class FinancialOperationsService {
         select: { id: true, subjectType: true, subjectId: true, providerReference: true, confirmedAt: true }
       }),
       this.prisma.payout.findMany({
-        where: { userId: user.id, status: FinancialOperationStatus.PROCESSING },
+        where: { userId: user.id, status: { in: [FinancialOperationStatus.REQUESTED, FinancialOperationStatus.PROCESSING] } },
         select: { id: true, providerReference: true, amountMinor: true, currency: true, requestedAt: true }
       }),
       this.prisma.refund.findMany({
         where: {
           paymentAttempt: { OR: [{ payerUserId: user.id }, { beneficiaryUserId: user.id }] },
-          status: FinancialOperationStatus.PROCESSING
+          status: { in: [FinancialOperationStatus.REQUESTED, FinancialOperationStatus.PROCESSING] }
         },
         select: { id: true, subjectType: true, subjectId: true, providerReference: true, amountMinor: true, currency: true, requestedAt: true }
       }),
@@ -583,11 +710,12 @@ export class FinancialOperationsService {
     return { accepted: true, eventId: webhook.eventId, refundId: refund.id, status: "SUCCEEDED" };
   }
 
-  private async assertRefundableDomainState(subjectType: FinancialSubjectType, subjectId: string, attemptId: string) {
+  private async assertRefundableDomainState(subjectType: FinancialSubjectType, subjectId: string, attemptId: string, tx?: Prisma.TransactionClient) {
+    const db = tx ?? this.prisma;
     if (subjectType === FinancialSubjectType.BOOKING) {
       const [booking, escrow] = await Promise.all([
-        this.prisma.booking.findUnique({ where: { id: subjectId }, select: { status: true } }),
-        this.prisma.escrowRecord.findUnique({
+        db.booking.findUnique({ where: { id: subjectId }, select: { status: true } }),
+        db.escrowRecord.findUnique({
           where: { subjectType_subjectId: { subjectType, subjectId } },
           select: { status: true, paymentAttemptId: true }
         })
@@ -602,7 +730,7 @@ export class FinancialOperationsService {
       return;
     }
 
-    const order = await this.prisma.order.findUnique({ where: { id: subjectId }, select: { status: true } });
+    const order = await db.order.findUnique({ where: { id: subjectId }, select: { status: true } });
     if (!order) throw new NotFoundException("Order not found");
     if (order.status !== OrderStatus.PAID) {
       throw new ConflictException(`Order refund can only start before fulfillment, from PAID; current status is ${order.status}`);

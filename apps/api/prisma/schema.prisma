@@ -269,6 +269,18 @@ enum FinancialOperationStatus {
   CANCELLED
 }
 
+enum FinancialDispatchKind {
+  PAYOUT
+  REFUND
+}
+
+enum FinancialDispatchState {
+  QUEUED
+  DISPATCHING
+  SUBMITTED
+  OUTCOME_UNKNOWN
+}
+
 enum WebhookEventStatus {
   RECEIVED
   PROCESSED
@@ -1185,6 +1197,21 @@ model Refund {
   @@index([subjectType, subjectId, createdAt])
   @@index([paymentAttemptId, status])
   @@index([status, createdAt])
+}
+
+
+model FinancialDispatchCommand {
+  id          String                 @id @default(cuid())
+  kind        FinancialDispatchKind
+  operationId String                 @unique
+  state       FinancialDispatchState @default(QUEUED)
+  attemptedAt DateTime?
+  submittedAt DateTime?
+  failureCode String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@index([state, createdAt])
 }
 
 model WebhookEvent {
