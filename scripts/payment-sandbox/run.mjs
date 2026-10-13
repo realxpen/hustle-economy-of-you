@@ -38,7 +38,7 @@ const { PrismaService } = require("../../apps/api/dist/database/prisma.service.j
 const { CommerceService } = require("../../apps/api/dist/commerce/commerce.service.js");
 const { FulfillmentService } = require("../../apps/api/dist/commerce/fulfillment.service.js");
 const { PaymentService } = require("../../apps/api/dist/payment/payment.service.js");
-const { sendSandboxCollectionToMoniflow, sendPersistedSandboxFinancialCommandToMoniflow, toMoniflowSandboxCollection, signedMoniflowSandboxRequest, requireLocalMoniflowSandbox } = require("../../apps/api/dist/payment/moniflow-sandbox-partner.client.js");
+const { sendSandboxCollectionToMoniflow, sendPersistedSandboxFinancialCommandToMoniflow, observeSignedMoniflowSandboxReceipt, toMoniflowSandboxCollection, signedMoniflowSandboxRequest, requireLocalMoniflowSandbox } = require("../../apps/api/dist/payment/moniflow-sandbox-partner.client.js");
 const { FinancialOperationsService } = require("../../apps/api/dist/payment/financial-operations.service.js");
 const { describeFinancialDispatch } = require("../../apps/api/dist/payment/financial-dispatch-reconciliation.js");
 const { WalletService } = require("../../apps/api/dist/payment/wallet.service.js");
@@ -155,6 +155,21 @@ async function main() {
       assert.equal(initializedReceipt.duplicate,false);
       assert.equal(initializedReceipt.realFundsMoved,false);
       assert.equal(initializedReceipt.executionStarted,false);
+      const noLedgerBeforeReceipt=await prisma.ledgerTransaction.count();
+      const observedCollection=await observeSignedMoniflowSandboxReceipt(
+        prisma,"COLLECTION",recorded.id,config
+      );
+      assert.equal(observedCollection.status,"RECEIVED");
+      assert.equal(observedCollection.duplicate,false);
+      const collectionRepeat=await observeSignedMoniflowSandboxReceipt(
+        prisma,"COLLECTION",recorded.id,config
+      );
+      assert.equal(collectionRepeat.duplicate,true);
+      assert.equal(collectionRepeat.receiptDigest,observedCollection.receiptDigest);
+      assert.equal(await prisma.moniflowSandboxReceiptObservation.count({
+        where:{operationId:recorded.id}
+      }),1,"Only one durable signed collection observation");
+      assert.equal(await prisma.ledgerTransaction.count(),noLedgerBeforeReceipt);
       const duplicateReceipt=await sendSandboxCollectionToMoniflow(recorded,config);
       assert.equal(duplicateReceipt.duplicate,true);
 
@@ -558,6 +573,17 @@ async function main() {
       assert.equal(first.realFundsMoved,false);
       assert.equal(first.executionStarted,false);
       assert.equal(first.providerEvidenceReference,null);
+      const observed=await observeSignedMoniflowSandboxReceipt(
+        prisma,"PAYOUT",ambiguousPayout.id,config
+      );
+      assert.equal(observed.duplicate,false);
+      assert.equal(observed.kind,"PAYOUT");
+      assert.equal((await observeSignedMoniflowSandboxReceipt(
+        prisma,"PAYOUT",ambiguousPayout.id,config
+      )).duplicate,true);
+      assert.equal(await prisma.moniflowSandboxReceiptObservation.count({
+        where:{operationId:ambiguousPayout.id}
+      }),1);
       const second=await sendPersistedSandboxFinancialCommandToMoniflow(
         prisma,"PAYOUT",ambiguousPayout.id,config
       );
@@ -604,6 +630,11 @@ async function main() {
       assert.equal(first.status,"RECEIVED");
       assert.equal(first.kind,"PAYOUT");
       assert.equal(first.realFundsMoved,false);
+      const observed=await observeSignedMoniflowSandboxReceipt(
+        prisma,"PAYOUT",acceptedPayout.id,config
+      );
+      assert.equal(observed.status,"RECEIVED");
+      assert.equal(observed.duplicate,false);
       assert.equal((await prisma.payout.findUniqueOrThrow({where:{id:acceptedPayout.id}})).status,"PROCESSING");
     }
     const overspends=await Promise.allSettled([
@@ -692,6 +723,14 @@ async function main() {
       assert.equal(first.duplicate,false);
       assert.equal(first.realFundsMoved,false);
       assert.equal(first.providerEvidenceReference,null);
+      const observed=await observeSignedMoniflowSandboxReceipt(
+        prisma,"REFUND",uncertainRefund.id,config
+      );
+      assert.equal(observed.status,"RECEIVED");
+      assert.equal(observed.duplicate,false);
+      assert.equal((await observeSignedMoniflowSandboxReceipt(
+        prisma,"REFUND",uncertainRefund.id,config
+      )).duplicate,true);
       const second=await sendPersistedSandboxFinancialCommandToMoniflow(
         prisma,"REFUND",uncertainRefund.id,config
       );
@@ -704,6 +743,10 @@ async function main() {
         where:{operationId:uncertainRefund.id}
       })).state,"OUTCOME_UNKNOWN");
       assert.equal(calledRefund,1,"Partner receipt must not reissue original refund");
+      assert.equal(await prisma.moniflowSandboxReceiptObservation.count({
+        where:{operationId:uncertainRefund.id}
+      }),1,"A signed refund receipt must have one durable inbox observation");
+      console.log("PASS: signed MONIFlow collection/payout/refund receipt evidence verified against Hustle records; immutable inbox dedup, zero finance mutations");
       console.log("PASS: applied paid Order + persisted refund hold -> signed MONIFlow RECEIVED-only command; no double refund");
     }
     const repeatedRefund=await operations.requestRefund(
