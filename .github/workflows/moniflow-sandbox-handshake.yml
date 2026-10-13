@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   handshake:
-    name: Real Hustle collection, payout and refund to MONIFlow receipts
+    name: Hustle commands and signed MONIFlow receipt reconciliation
     runs-on: ubuntu-latest
     timeout-minutes: 22
     services:
@@ -45,9 +45,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: realxpen/moniflow
-          # Reviewed MONIFlow mainline merge of partner API + CUID fix, immutable SHA.
+          # Reviewed MONIFlow signed RECEIVED-only receipt PR #6 SHA, immutable isolated-test pin.
           # No MONIFlow mainline deployment or real provider access.
-          ref: 88a2b33e6520fa3b49314962467abc587f8d5657
+          ref: ab56682f8ff84424174d6f5be579403709caa392
           path: _moniflow
 
       - name: Set up Node
@@ -116,7 +116,7 @@ jobs:
           tail -n 70 "$RUNNER_TEMP/moniflow-partner.log" || true
           exit 1
 
-      - name: Test Hustle collection payout and refund signed RECEIVED-only handshakes
+      - name: Test Hustle collection payout refund commands and signed receipt reconciliation
         run: node scripts/payment-sandbox/run.mjs
 
       - name: Stop test-only processes
