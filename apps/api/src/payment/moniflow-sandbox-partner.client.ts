@@ -308,9 +308,9 @@ function makePayoutCommand(
     payoutId: payout.id,
     beneficiaryReference: payout.userId,
     destinationReference: `sandbox:UNVERIFIED:no-bank-transfer:${payout.id}`,
-    hustleReservationReference: reservationId,
     amountMinor: payout.amountMinor,
-    currency: "NGN" as const
+    currency: "NGN" as const,
+    hustleReservationReference: reservationId
   };
 }
 
