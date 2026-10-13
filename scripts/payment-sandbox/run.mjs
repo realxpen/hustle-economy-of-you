@@ -38,7 +38,7 @@ const { PrismaService } = require("../../apps/api/dist/database/prisma.service.j
 const { CommerceService } = require("../../apps/api/dist/commerce/commerce.service.js");
 const { FulfillmentService } = require("../../apps/api/dist/commerce/fulfillment.service.js");
 const { PaymentService } = require("../../apps/api/dist/payment/payment.service.js");
-const { sendSandboxCollectionToMoniflow, toMoniflowSandboxCollection, signedMoniflowSandboxRequest, requireLocalMoniflowSandbox } = require("../../apps/api/dist/payment/moniflow-sandbox-partner.client.js");
+const { sendSandboxCollectionToMoniflow, sendPersistedSandboxFinancialCommandToMoniflow, toMoniflowSandboxCollection, signedMoniflowSandboxRequest, requireLocalMoniflowSandbox } = require("../../apps/api/dist/payment/moniflow-sandbox-partner.client.js");
 const { FinancialOperationsService } = require("../../apps/api/dist/payment/financial-operations.service.js");
 const { describeFinancialDispatch } = require("../../apps/api/dist/payment/financial-dispatch-reconciliation.js");
 const { WalletService } = require("../../apps/api/dist/payment/wallet.service.js");
@@ -543,6 +543,37 @@ async function main() {
     const otherUsersReport=await operations.reconciliation(by);
     assert.ok(!otherUsersReport.issues.some(issue=>issue.id===ambiguousPayout.id),
       "Read-only reconciliation cannot expose another user's payout dispatch");
+    if (process.env.MONIFLOW_SANDBOX_TEST_URL) {
+      const config={
+        baseUrl:process.env.MONIFLOW_SANDBOX_TEST_URL,
+        secret:process.env.MONIFLOW_PARTNER_HMAC_SECRET
+      };
+      const before=await prisma.ledgerTransaction.count();
+      const first=await sendPersistedSandboxFinancialCommandToMoniflow(
+        prisma,"PAYOUT",ambiguousPayout.id,config
+      );
+      assert.equal(first.kind,"PAYOUT");
+      assert.equal(first.status,"RECEIVED");
+      assert.equal(first.duplicate,false);
+      assert.equal(first.realFundsMoved,false);
+      assert.equal(first.executionStarted,false);
+      assert.equal(first.providerEvidenceReference,null);
+      const second=await sendPersistedSandboxFinancialCommandToMoniflow(
+        prisma,"PAYOUT",ambiguousPayout.id,config
+      );
+      assert.equal(second.duplicate,true,"Repeated authorized payout is only an idempotent receipt");
+      assert.equal(await prisma.ledgerTransaction.count(),before,
+        "MONIFlow payout receipt must not change Hustle's ledger");
+      assert.equal((await prisma.financialDispatchCommand.findUniqueOrThrow({
+        where:{operationId:ambiguousPayout.id}
+      })).state,"OUTCOME_UNKNOWN","A receipt must not clear uncertain provider status");
+      assert.equal(calledPayout,1,"Partner intake must not retry original sandbox provider payout");
+      await expectRejected(
+        ()=>sendPersistedSandboxFinancialCommandToMoniflow(prisma,"REFUND",ambiguousPayout.id,config),
+        "Payout record cannot impersonate a refund command"
+      );
+      console.log("PASS: committed ambiguous payout -> signed MONIFlow RECEIVED-only command; no retry, funds movement or ledger posting");
+    }
     const repeatedUnknown=await operations.requestPayout(
       se,{amountMinor:120000,currency:"NGN"},"sandbox-payout-unknown-"+testId
     );
@@ -565,6 +596,16 @@ async function main() {
     );
     assert.equal(submittedIssue?.dispatchState,"SUBMITTED");
     assert.equal(submittedIssue?.recoveryAction,"AWAIT_VERIFIED_PROVIDER_SETTLEMENT");
+    if (process.env.MONIFLOW_SANDBOX_TEST_URL) {
+      const config={baseUrl:process.env.MONIFLOW_SANDBOX_TEST_URL,secret:process.env.MONIFLOW_PARTNER_HMAC_SECRET};
+      const first=await sendPersistedSandboxFinancialCommandToMoniflow(
+        prisma,"PAYOUT",acceptedPayout.id,config
+      );
+      assert.equal(first.status,"RECEIVED");
+      assert.equal(first.kind,"PAYOUT");
+      assert.equal(first.realFundsMoved,false);
+      assert.equal((await prisma.payout.findUniqueOrThrow({where:{id:acceptedPayout.id}})).status,"PROCESSING");
+    }
     const overspends=await Promise.allSettled([
       operations.requestPayout(se,{amountMinor:10000,currency:"NGN"},"sandbox-overspend-one-"+testId),
       operations.requestPayout(se,{amountMinor:10000,currency:"NGN"},"sandbox-overspend-two-"+testId)
@@ -580,6 +621,14 @@ async function main() {
     assert.equal(await prisma.ledgerTransaction.count({
       where:{subjectType:"PAYOUT",subjectId:acceptedPayout.id,type:"PAYOUT_REVERSED"}
     }),1,"Failure must restore reserved funds once");
+    if (process.env.MONIFLOW_SANDBOX_TEST_URL) {
+      await expectRejected(
+        ()=>sendPersistedSandboxFinancialCommandToMoniflow(prisma,"PAYOUT",acceptedPayout.id,{
+          baseUrl:process.env.MONIFLOW_SANDBOX_TEST_URL,secret:process.env.MONIFLOW_PARTNER_HMAC_SECRET
+        }),
+        "Failed terminal payout cannot emit a new partner command"
+      );
+    }
     const recoveredPayout={
       eventId:"sandbox-payout-recovered-"+testId,type:"payout.succeeded",
       reference:ambiguousPayout.providerReference,amountMinor:ambiguousPayout.amountMinor,currency:"NGN"
@@ -632,6 +681,31 @@ async function main() {
     assert.ok(!(await operations.reconciliation(identity("sandbox-blocked-"+testId))).issues.some(
       issue=>issue.id===uncertainRefund.id
     ),"Unrelated user cannot inspect refund dispatch metadata");
+    if (process.env.MONIFLOW_SANDBOX_TEST_URL) {
+      const config={baseUrl:process.env.MONIFLOW_SANDBOX_TEST_URL,secret:process.env.MONIFLOW_PARTNER_HMAC_SECRET};
+      const before=await prisma.ledgerTransaction.count();
+      const first=await sendPersistedSandboxFinancialCommandToMoniflow(
+        prisma,"REFUND",uncertainRefund.id,config
+      );
+      assert.equal(first.kind,"REFUND");
+      assert.equal(first.status,"RECEIVED");
+      assert.equal(first.duplicate,false);
+      assert.equal(first.realFundsMoved,false);
+      assert.equal(first.providerEvidenceReference,null);
+      const second=await sendPersistedSandboxFinancialCommandToMoniflow(
+        prisma,"REFUND",uncertainRefund.id,config
+      );
+      assert.equal(second.duplicate,true);
+      assert.equal(await prisma.ledgerTransaction.count(),before,
+        "MONIFlow refund receipt must not perform a refund posting");
+      assert.equal((await prisma.order.findUniqueOrThrow({where:{id:refundOrderId}})).status,"PAID",
+        "MONIFlow command receipt must not prematurely mark Order refunded");
+      assert.equal((await prisma.financialDispatchCommand.findUniqueOrThrow({
+        where:{operationId:uncertainRefund.id}
+      })).state,"OUTCOME_UNKNOWN");
+      assert.equal(calledRefund,1,"Partner receipt must not reissue original refund");
+      console.log("PASS: applied paid Order + persisted refund hold -> signed MONIFlow RECEIVED-only command; no double refund");
+    }
     const repeatedRefund=await operations.requestRefund(
       by,{subjectType:"ORDER",subjectId:refundOrderId},"sandbox-refund-unknown-"+testId
     );
@@ -648,6 +722,14 @@ async function main() {
     assert.equal(await prisma.ledgerTransaction.count({
       where:{subjectType:"ORDER",subjectId:refundOrderId,type:"REFUND"}
     }),1,"No double refund ledger posting");
+    if (process.env.MONIFLOW_SANDBOX_TEST_URL) {
+      await expectRejected(
+        ()=>sendPersistedSandboxFinancialCommandToMoniflow(prisma,"REFUND",uncertainRefund.id,{
+          baseUrl:process.env.MONIFLOW_SANDBOX_TEST_URL,secret:process.env.MONIFLOW_PARTNER_HMAC_SECRET
+        }),
+        "Terminal refunded Order must never resubmit a financial command"
+      );
+    }
     assert.ok(!(await operations.reconciliation(by)).issues.some(
       issue=>issue.id===uncertainRefund.id
     ),"Finalized refund no longer requires pending-provider reconciliation");
