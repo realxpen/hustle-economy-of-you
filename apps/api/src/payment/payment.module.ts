@@ -24,6 +24,7 @@ import { WalletService } from "./wallet.service";
     PaymentReadController,
     PaymentWebhookController,
     FinancialOperationsWebhookController,
+    MoniflowSandboxReceiptController,
     WalletController,
     FinancialHistoryController
   ],
