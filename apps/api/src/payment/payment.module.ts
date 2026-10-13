@@ -14,6 +14,7 @@ import { PaymentService } from "./payment.service";
 import { SandboxFinancialOperationGateway } from "./sandbox-financial-operation.gateway";
 import { SandboxPaymentGateway } from "./sandbox-payment.gateway";
 import { WalletController } from "./wallet.controller";
+import { MoniflowSandboxReceiptController } from "./moniflow-sandbox-receipt.controller";
 import { WalletService } from "./wallet.service";
 
 @Module({
@@ -23,6 +24,7 @@ import { WalletService } from "./wallet.service";
     PaymentReadController,
     PaymentWebhookController,
     FinancialOperationsWebhookController,
+    MoniflowSandboxReceiptController,
     WalletController,
     FinancialHistoryController
   ],
