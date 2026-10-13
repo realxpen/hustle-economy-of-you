@@ -12,7 +12,7 @@ async function bootstrap() {
     }
   }
 
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   app.setGlobalPrefix("api/v1");
 
   const configuredOrigins = [process.env.WEB_ORIGIN, process.env.ADMIN_ORIGIN]
