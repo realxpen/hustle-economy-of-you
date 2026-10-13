@@ -38,6 +38,9 @@ const { PrismaService } = require("../../apps/api/dist/database/prisma.service.j
 const { CommerceService } = require("../../apps/api/dist/commerce/commerce.service.js");
 const { FulfillmentService } = require("../../apps/api/dist/commerce/fulfillment.service.js");
 const { PaymentService } = require("../../apps/api/dist/payment/payment.service.js");
+const { FinancialOperationsService } = require("../../apps/api/dist/payment/financial-operations.service.js");
+const { WalletService } = require("../../apps/api/dist/payment/wallet.service.js");
+const { SandboxFinancialOperationGateway } = require("../../apps/api/dist/payment/sandbox-financial-operation.gateway.js");
 const { NotificationsService } = require("../../apps/api/dist/notifications/notifications.service.js");
 const { LiveService } = require("../../apps/api/dist/live/live.service.js");
 const { ReviewService } = require("../../apps/api/dist/trust/review.service.js");
@@ -70,6 +73,9 @@ async function main() {
   const commerce = app.get(CommerceService);
   const fulfillment = app.get(FulfillmentService);
   const payments = app.get(PaymentService);
+  const operations = app.get(FinancialOperationsService);
+  const wallet = app.get(WalletService);
+  const operationGateway = app.get(SandboxFinancialOperationGateway);
   const notifications = app.get(NotificationsService);
   const live = app.get(LiveService);
   const reviews = app.get(ReviewService);
@@ -415,6 +421,130 @@ async function main() {
     assert.equal(currentOverview.attribution.bookings.consentingOutcomes, 1);
     assert.equal(currentOverview.attribution.bookings.linkedOutcomes, 1);
     assert.equal(currentOverview.attribution.orders.linkedOutcomes, 0);
+
+
+    // P0 reserve-before-dispatch. Dedicated disposable localhost PostgreSQL,
+    // deterministic HUSTLE_SANDBOX provider; zero external money operations.
+    await wallet.releaseOrderSettlement(by,orderId);
+    assert.equal((await wallet.getWallet(se)).balances.find(x=>x.currency==="NGN").availableMinor,250000);
+    function operationSignature(event) {
+      return createHmac("sha256",process.env.HUSTLE_SANDBOX_WEBHOOK_SECRET)
+        .update([event.eventId,event.type,event.reference,String(event.amountMinor),
+          event.currency.toUpperCase(),event.failureCode??"",event.failureReason??""].join("|"))
+        .digest("hex");
+    }
+    const originalPayout=operationGateway.createPayout.bind(operationGateway);
+    let calledPayout=0;
+    operationGateway.createPayout=async(command)=>{
+      calledPayout++;
+      assert.equal((await prisma.payout.findUniqueOrThrow({where:{id:command.operationId}})).status,"REQUESTED");
+      assert.equal((await prisma.financialDispatchCommand.findUniqueOrThrow({where:{operationId:command.operationId}})).state,"DISPATCHING");
+      assert.equal(await prisma.ledgerTransaction.count({
+        where:{subjectType:"PAYOUT",subjectId:command.operationId,type:"PAYOUT_RESERVED"}
+      }),1,"Provider call must follow committed reservation");
+      throw Error("Simulated lost payout response");
+    };
+    const ambiguousPayout=await operations.requestPayout(
+      se,{amountMinor:120000,currency:"NGN"},"sandbox-payout-unknown-"+testId
+    );
+    assert.equal(ambiguousPayout.status,"REQUESTED");
+    assert.equal(calledPayout,1);
+    assert.equal((await prisma.financialDispatchCommand.findUniqueOrThrow({
+      where:{operationId:ambiguousPayout.id}
+    })).state,"OUTCOME_UNKNOWN");
+    const reservedBalance=(await wallet.getWallet(se)).balances.find(x=>x.currency==="NGN");
+    assert.equal(reservedBalance.availableMinor,130000);
+    assert.equal(reservedBalance.payoutReservedMinor,120000);
+    const repeatedUnknown=await operations.requestPayout(
+      se,{amountMinor:120000,currency:"NGN"},"sandbox-payout-unknown-"+testId
+    );
+    assert.equal(repeatedUnknown.id,ambiguousPayout.id);
+    assert.equal(calledPayout,1,"Ambiguous payout must not retry");
+    operationGateway.createPayout=originalPayout;
+    await expectRejected(
+      ()=>operations.requestPayout(by,{amountMinor:50000,currency:"NGN"},"sandbox-wrong-wallet-"+testId),
+      "Buyer cannot spend seller balance"
+    );
+    const acceptedPayout=await operations.requestPayout(
+      se,{amountMinor:130000,currency:"NGN"},"sandbox-payout-accepted-"+testId
+    );
+    assert.equal(acceptedPayout.status,"PROCESSING");
+    assert.equal((await prisma.financialDispatchCommand.findUniqueOrThrow({where:{operationId:acceptedPayout.id}})).state,"SUBMITTED");
+    assert.equal((await wallet.getWallet(se)).balances.find(x=>x.currency==="NGN").availableMinor,0);
+    const overspends=await Promise.allSettled([
+      operations.requestPayout(se,{amountMinor:10000,currency:"NGN"},"sandbox-overspend-one-"+testId),
+      operations.requestPayout(se,{amountMinor:10000,currency:"NGN"},"sandbox-overspend-two-"+testId)
+    ]);
+    assert.ok(overspends.every(x=>x.status==="rejected"),"Must deny overspending");
+    const failedPayout={
+      eventId:"sandbox-payout-failed-"+testId,type:"payout.failed",
+      reference:acceptedPayout.providerReference,amountMinor:acceptedPayout.amountMinor,currency:"NGN"
+    };
+    await operations.handleWebhook(failedPayout,operationSignature(failedPayout));
+    await operations.handleWebhook(failedPayout,operationSignature(failedPayout));
+    assert.equal((await wallet.getWallet(se)).balances.find(x=>x.currency==="NGN").availableMinor,130000);
+    assert.equal(await prisma.ledgerTransaction.count({
+      where:{subjectType:"PAYOUT",subjectId:acceptedPayout.id,type:"PAYOUT_REVERSED"}
+    }),1,"Failure must restore reserved funds once");
+    const recoveredPayout={
+      eventId:"sandbox-payout-recovered-"+testId,type:"payout.succeeded",
+      reference:ambiguousPayout.providerReference,amountMinor:ambiguousPayout.amountMinor,currency:"NGN"
+    };
+    await operations.handleWebhook(recoveredPayout,operationSignature(recoveredPayout));
+    await operations.handleWebhook(recoveredPayout,operationSignature(recoveredPayout));
+    assert.equal((await prisma.payout.findUniqueOrThrow({where:{id:ambiguousPayout.id}})).status,"SUCCEEDED");
+    assert.equal(await prisma.ledgerTransaction.count({
+      where:{subjectType:"PAYOUT",subjectId:ambiguousPayout.id,type:"PAYOUT_SENT"}
+    }),1,"Late success must settle once");
+
+    // Refund provider cannot run until the PAID Order has a committed refund
+    // record/command; active refund blocks the seller's fulfillment transition.
+    await commerce.addCartItem(by,{productId:product.id,quantity:1});
+    const refundCheckout=await commerce.checkout(by,{
+      deliveryName:"Disposable Refund Buyer",deliveryPhone:"00000000000",
+      deliveryAddress:"Sandbox refund only",deliveryCity:"Local",deliveryCountry:"Nigeria"
+    });
+    const refundOrderId=refundCheckout.orders[0].id;
+    const refundPayment=await payments.initialize(
+      by,{subjectType:"ORDER",subjectId:refundOrderId},"sandbox-refund-payment-"+testId
+    );
+    const paidForRefund={
+      eventId:"sandbox-refund-paid-"+testId,type:"payment.succeeded",
+      reference:refundPayment.providerReference,amountMinor:refundPayment.amountMinor,currency:"NGN"
+    };
+    await payments.handleVerifiedWebhook(paidForRefund,operationSignature(paidForRefund));
+    assert.equal((await prisma.order.findUniqueOrThrow({where:{id:refundOrderId}})).status,"PAID");
+    const originalRefund=operationGateway.createRefund.bind(operationGateway);
+    let calledRefund=0;
+    operationGateway.createRefund=async(command)=>{
+      calledRefund++;
+      assert.equal((await prisma.refund.findUniqueOrThrow({where:{id:command.operationId}})).status,"REQUESTED");
+      assert.equal((await prisma.financialDispatchCommand.findUniqueOrThrow({where:{operationId:command.operationId}})).state,"DISPATCHING");
+      throw Error("Simulated lost refund response");
+    };
+    const uncertainRefund=await operations.requestRefund(
+      by,{subjectType:"ORDER",subjectId:refundOrderId},"sandbox-refund-unknown-"+testId
+    );
+    assert.equal(uncertainRefund.status,"REQUESTED");
+    assert.equal(calledRefund,1);
+    await expectRejected(()=>fulfillment.process(se,refundOrderId),"Refund hold must pause fulfillment");
+    const repeatedRefund=await operations.requestRefund(
+      by,{subjectType:"ORDER",subjectId:refundOrderId},"sandbox-refund-unknown-"+testId
+    );
+    assert.equal(repeatedRefund.id,uncertainRefund.id);
+    assert.equal(calledRefund,1,"Unknown refund must not retry");
+    operationGateway.createRefund=originalRefund;
+    const confirmedRefund={
+      eventId:"sandbox-refund-confirmed-"+testId,type:"refund.succeeded",
+      reference:uncertainRefund.providerReference,amountMinor:uncertainRefund.amountMinor,currency:"NGN"
+    };
+    await operations.handleWebhook(confirmedRefund,operationSignature(confirmedRefund));
+    await operations.handleWebhook(confirmedRefund,operationSignature(confirmedRefund));
+    assert.equal((await prisma.order.findUniqueOrThrow({where:{id:refundOrderId}})).status,"REFUNDED");
+    assert.equal(await prisma.ledgerTransaction.count({
+      where:{subjectType:"ORDER",subjectId:refundOrderId,type:"REFUND"}
+    }),1,"No double refund ledger posting");
+    console.log("PASS: P0 durable reserve-before-provider, unknown-outcome, payout reversal, refund hold and signed webhook replay");
 
     console.log("PASS: Phase21B off-by-default consent, authentic offer-click stamping, matching Service/Product associations, opt-out exclusion and fresh opt-in");
 
