@@ -39,6 +39,7 @@ const { CommerceService } = require("../../apps/api/dist/commerce/commerce.servi
 const { FulfillmentService } = require("../../apps/api/dist/commerce/fulfillment.service.js");
 const { PaymentService } = require("../../apps/api/dist/payment/payment.service.js");
 const { FinancialOperationsService } = require("../../apps/api/dist/payment/financial-operations.service.js");
+const { describeFinancialDispatch } = require("../../apps/api/dist/payment/financial-dispatch-reconciliation.js");
 const { WalletService } = require("../../apps/api/dist/payment/wallet.service.js");
 const { SandboxFinancialOperationGateway } = require("../../apps/api/dist/payment/sandbox-financial-operation.gateway.js");
 const { NotificationsService } = require("../../apps/api/dist/notifications/notifications.service.js");
@@ -444,6 +445,17 @@ async function main() {
       }),1,"Provider call must follow committed reservation");
       throw Error("Simulated lost payout response");
     };
+    for (const [state, expected] of [
+      ["QUEUED","CONTROLLED_QUEUED_REVIEW"],
+      ["DISPATCHING","VERIFY_PROVIDER_STATUS_NO_RETRY"],
+      ["SUBMITTED","AWAIT_VERIFIED_PROVIDER_SETTLEMENT"],
+      ["OUTCOME_UNKNOWN","VERIFY_PROVIDER_STATUS_NO_RETRY"],
+      [null,"INVESTIGATE_MISSING_DISPATCH_COMMAND"]
+    ]) {
+      const described=describeFinancialDispatch(state);
+      assert.equal(described.recoveryAction,expected);
+      assert.equal(described.automaticRetryAllowed,false);
+    }
     const ambiguousPayout=await operations.requestPayout(
       se,{amountMinor:120000,currency:"NGN"},"sandbox-payout-unknown-"+testId
     );
@@ -455,6 +467,19 @@ async function main() {
     const reservedBalance=(await wallet.getWallet(se)).balances.find(x=>x.currency==="NGN");
     assert.equal(reservedBalance.availableMinor,130000);
     assert.equal(reservedBalance.payoutReservedMinor,120000);
+    const ledgerBeforeRead=await prisma.ledgerTransaction.count();
+    const unknownPayoutReport=await operations.reconciliation(se);
+    const unknownPayoutIssue=unknownPayoutReport.issues.find(
+      item=>item.code==="PAYOUT_AWAITING_PROVIDER"&&item.id===ambiguousPayout.id
+    );
+    assert.equal(unknownPayoutIssue?.dispatchState,"OUTCOME_UNKNOWN");
+    assert.equal(unknownPayoutIssue?.recoveryAction,"VERIFY_PROVIDER_STATUS_NO_RETRY");
+    assert.equal(unknownPayoutIssue?.automaticRetryAllowed,false);
+    assert.ok(unknownPayoutIssue?.dispatchAttemptedAt);
+    assert.equal(await prisma.ledgerTransaction.count(),ledgerBeforeRead,"Reconciliation must be read only");
+    const otherUsersReport=await operations.reconciliation(by);
+    assert.ok(!otherUsersReport.issues.some(issue=>issue.id===ambiguousPayout.id),
+      "Read-only reconciliation cannot expose another user's payout dispatch");
     const repeatedUnknown=await operations.requestPayout(
       se,{amountMinor:120000,currency:"NGN"},"sandbox-payout-unknown-"+testId
     );
@@ -471,6 +496,12 @@ async function main() {
     assert.equal(acceptedPayout.status,"PROCESSING");
     assert.equal((await prisma.financialDispatchCommand.findUniqueOrThrow({where:{operationId:acceptedPayout.id}})).state,"SUBMITTED");
     assert.equal((await wallet.getWallet(se)).balances.find(x=>x.currency==="NGN").availableMinor,0);
+    const submittedReport=await operations.reconciliation(se);
+    const submittedIssue=submittedReport.issues.find(
+      issue=>issue.code==="PAYOUT_AWAITING_PROVIDER"&&issue.id===acceptedPayout.id
+    );
+    assert.equal(submittedIssue?.dispatchState,"SUBMITTED");
+    assert.equal(submittedIssue?.recoveryAction,"AWAIT_VERIFIED_PROVIDER_SETTLEMENT");
     const overspends=await Promise.allSettled([
       operations.requestPayout(se,{amountMinor:10000,currency:"NGN"},"sandbox-overspend-one-"+testId),
       operations.requestPayout(se,{amountMinor:10000,currency:"NGN"},"sandbox-overspend-two-"+testId)
@@ -528,6 +559,16 @@ async function main() {
     assert.equal(uncertainRefund.status,"REQUESTED");
     assert.equal(calledRefund,1);
     await expectRejected(()=>fulfillment.process(se,refundOrderId),"Refund hold must pause fulfillment");
+    const refundReport=await operations.reconciliation(by);
+    const refundIssue=refundReport.issues.find(
+      issue=>issue.code==="REFUND_AWAITING_PROVIDER"&&issue.id===uncertainRefund.id
+    );
+    assert.equal(refundIssue?.dispatchState,"OUTCOME_UNKNOWN");
+    assert.equal(refundIssue?.recoveryAction,"VERIFY_PROVIDER_STATUS_NO_RETRY");
+    assert.equal(refundIssue?.automaticRetryAllowed,false);
+    assert.ok(!(await operations.reconciliation(se)).issues.some(
+      issue=>issue.id===uncertainRefund.id
+    ),"Seller cannot read buyer-only refund operation");
     const repeatedRefund=await operations.requestRefund(
       by,{subjectType:"ORDER",subjectId:refundOrderId},"sandbox-refund-unknown-"+testId
     );
@@ -544,6 +585,13 @@ async function main() {
     assert.equal(await prisma.ledgerTransaction.count({
       where:{subjectType:"ORDER",subjectId:refundOrderId,type:"REFUND"}
     }),1,"No double refund ledger posting");
+    assert.ok(!(await operations.reconciliation(by)).issues.some(
+      issue=>issue.id===uncertainRefund.id
+    ),"Finalized refund no longer requires pending-provider reconciliation");
+    assert.ok(!(await operations.reconciliation(se)).issues.some(
+      issue=>issue.id===ambiguousPayout.id
+    ),"Confirmed payout no longer appears unresolved");
+    console.log("PASS: scoped, read-only financial reconciliation and no-automatic-retry recovery labels");
     console.log("PASS: P0 durable reserve-before-provider, unknown-outcome, payout reversal, refund hold and signed webhook replay");
 
     console.log("PASS: Phase21B off-by-default consent, authentic offer-click stamping, matching Service/Product associations, opt-out exclusion and fresh opt-in");
