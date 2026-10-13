@@ -1200,6 +1200,21 @@ model Refund {
 }
 
 
+model MoniflowSandboxReceiptObservation {
+  id                String   @id @default(cuid())
+  eventId           String   @unique
+  operationId       String   @unique
+  kind              String
+  amountMinor       Int
+  currency          String
+  commandDigest     String
+  receiptDigest     String
+  occurredAt        DateTime
+  observedAt        DateTime @default(now())
+
+  @@index([kind, observedAt])
+}
+
 model FinancialDispatchCommand {
   id          String                 @id @default(cuid())
   kind        FinancialDispatchKind
