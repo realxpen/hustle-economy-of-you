@@ -566,9 +566,9 @@ async function main() {
     assert.equal(refundIssue?.dispatchState,"OUTCOME_UNKNOWN");
     assert.equal(refundIssue?.recoveryAction,"VERIFY_PROVIDER_STATUS_NO_RETRY");
     assert.equal(refundIssue?.automaticRetryAllowed,false);
-    assert.ok(!(await operations.reconciliation(se)).issues.some(
+    assert.ok(!(await operations.reconciliation(identity("sandbox-blocked-"+testId))).issues.some(
       issue=>issue.id===uncertainRefund.id
-    ),"Seller cannot read buyer-only refund operation");
+    ),"Unrelated user cannot inspect refund dispatch metadata");
     const repeatedRefund=await operations.requestRefund(
       by,{subjectType:"ORDER",subjectId:refundOrderId},"sandbox-refund-unknown-"+testId
     );
