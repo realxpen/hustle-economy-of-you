@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 import {
   EscrowStatus,
@@ -333,4 +333,102 @@ function makeRefundCommand(
     currency: "NGN" as const,
     hustleRefundAuthorizationReference: `sandbox:UNVERIFIED:held-refund:${refund.id}`
   };
+}
+
+/**
+ * Read-only, signed return-receipt reconciliation in isolated tests.
+ * A MONIFlow operation.received acknowledgement is NEVER provider settlement.
+ * Stable receipt event ID + SHA-256 body digest are stored idempotently only
+ * after HMAC and authoritative Hustle command terms are independently checked.
+ */
+export async function observeSignedMoniflowSandboxReceipt(
+  prisma: PrismaClient,
+  kind: MoniflowSandboxCommandKind,
+  operationId: string,
+  config: { baseUrl: string; secret: string }
+) {
+  const base = requireLocalMoniflowSandbox(config.baseUrl, config.secret);
+  if (!/^(?:c[a-z0-9]{20,34}|[a-f0-9-]{36})$/.test(operationId)) {
+    throw new Error("INVALID_MONIFLOW_OPERATION_REFERENCE");
+  }
+  const command = kind === "COLLECTION"
+    ? toMoniflowSandboxCollection(await prisma.paymentAttempt.findUniqueOrThrow({where:{id:operationId}}))
+    : await preparePersistedSandboxFinancialCommand(prisma, kind, operationId);
+  const expectedDigest = createHash("sha256").update(JSON.stringify(command)).digest("hex");
+
+  const path = "/internal/v1/operations/" + encodeURIComponent(operationId) + "/receipt-evidence";
+  const timestamp = String(Date.now());
+  const nonce = randomUUID();
+  const signature = signMoniflowSandboxRequest(config.secret, "GET", path,
+    timestamp, nonce, Buffer.alloc(0));
+  const result = await fetch(new URL(path,base),{
+    method:"GET",
+    redirect:"error",
+    signal:AbortSignal.timeout(5000),
+    headers:{
+      "x-moniflow-partner":"HUSTLE",
+      "x-moniflow-timestamp":timestamp,
+      "x-moniflow-nonce":nonce,
+      "x-moniflow-signature":signature
+    }
+  });
+  if (result.status !== 200) throw new Error(`MONIFLOW_RECEIPT_UNAVAILABLE_${result.status}`);
+  const raw=Buffer.from(await result.arrayBuffer());
+  if (raw.length===0 || raw.length>4096) throw new Error("UNTRUSTED_MONIFLOW_RECEIPT_SIZE");
+  const remoteSignature=result.headers.get("x-moniflow-receipt-signature") ?? "";
+  if (!/^sha256=[a-f0-9]{64}$/.test(remoteSignature)) throw new Error("UNTRUSTED_MONIFLOW_RECEIPT_SIGNATURE");
+  const expectedSignature="sha256="+createHmac("sha256",config.secret)
+    .update("MONIFLOW_SANDBOX_RECEIPT_V1\n").update(raw).digest("hex");
+  const given=Buffer.from(remoteSignature);
+  const known=Buffer.from(expectedSignature);
+  if (given.length!==known.length || !timingSafeEqual(given,known)) {
+    throw new Error("UNTRUSTED_MONIFLOW_RECEIPT_SIGNATURE");
+  }
+
+  let parsed:unknown;
+  try {parsed=JSON.parse(raw.toString("utf8")) as unknown;}
+  catch {throw new Error("UNTRUSTED_MONIFLOW_RECEIPT_BODY");}
+  if (!parsed || typeof parsed!=="object" || Array.isArray(parsed)) {
+    throw new Error("UNTRUSTED_MONIFLOW_RECEIPT_BODY");
+  }
+  const event=parsed as Record<string,unknown>;
+  const requiredKeys=[
+    "version","source","partner","environment","eventType","eventId",
+    "operationId","kind","amountMinor","currency","commandDigest","status",
+    "simulated","executionStarted","realFundsMoved","providerEvidenceReference","occurredAt"
+  ];
+  if (Object.keys(event).length!==requiredKeys.length ||
+      !requiredKeys.every(key=>Object.hasOwn(event,key)) ||
+      event.version!=="1" || event.source!=="MONIFLOW" || event.partner!=="HUSTLE" ||
+      event.environment!=="sandbox" || event.eventType!=="operation.received" ||
+      event.eventId!==`moniflow.received:${operationId}` ||
+      event.operationId!==operationId || event.kind!==kind ||
+      event.amountMinor!==command.amountMinor || event.currency!=="NGN" ||
+      event.commandDigest!==expectedDigest || event.status!=="RECEIVED" ||
+      event.simulated!==true || event.executionStarted!==false ||
+      event.realFundsMoved!==false || event.providerEvidenceReference!==null ||
+      typeof event.occurredAt!=="string" ||
+      !Number.isFinite(Date.parse(event.occurredAt))) {
+    throw new Error("UNTRUSTED_MONIFLOW_RECEIPT_TERMS");
+  }
+  const receiptDigest=createHash("sha256").update(raw).digest("hex");
+  const eventId=event.eventId as string;
+  const occurredAt=new Date(event.occurredAt);
+  const write=await prisma.moniflowSandboxReceiptObservation.createMany({
+    data:[{eventId,operationId,kind,amountMinor:command.amountMinor,
+      currency:"NGN",commandDigest:expectedDigest,receiptDigest,occurredAt}],
+    skipDuplicates:true
+  });
+  const saved=await prisma.moniflowSandboxReceiptObservation.findUniqueOrThrow({
+    where:{operationId}
+  });
+  if (saved.eventId!==eventId || saved.kind!==kind ||
+      saved.amountMinor!==command.amountMinor || saved.currency!=="NGN" ||
+      saved.commandDigest!==expectedDigest || saved.receiptDigest!==receiptDigest ||
+      saved.occurredAt.getTime()!==occurredAt.getTime()) {
+    throw new Error("MONIFLOW_RECEIPT_DUPLICATE_CONFLICT");
+  }
+  return {eventId,operationId,kind,status:"RECEIVED" as const,
+    simulated:true as const,financialStateUnchanged:true as const,
+    duplicate:write.count===0,receiptDigest};
 }
