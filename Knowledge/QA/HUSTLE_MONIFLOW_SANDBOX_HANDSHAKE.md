@@ -1,7 +1,7 @@
 # Hustle × MONIFlow — Isolated Payment Receipt Handshake
 
 Date: 2026-10-13
-Status: feature branch validation pending. No production integration or actual payment execution.
+Status: first cross-repository handshake PASSED in GitHub Actions run 38385133200; final pinned-main retest pending. No production integration or actual payment execution.
 
 ## Motivation
 Hustle's real database models (`User`, `Booking`, `Order`, `PaymentAttempt`) use Prisma **CUID** identifiers. MONIFlow's initial partner v1 schemas assumed UUIDs. Before test integration, the MONIFlow mainline-correction branch updates command IDs to validated CUID **or** UUID and changes its proposed PostgreSQL operation ID column to `text`. This must be on MONIFlow main before broader integration.
@@ -14,15 +14,15 @@ The test creates a **genuine Order through Hustle CommerceService** and a **real
 The HMAC matches MONIFlow's exact method, request path, timestamp, nonce and SHA-256 raw body canonicalization. Test verifies MONIFlow returns only `status=RECEIVED`, `simulated=true`, `executionStarted=false`, `realFundsMoved=false`, and no provider settlement evidence.
 
 ## Acceptance
-- [ ] MONIFlow mainline PR #5 (correct merge target) passes CI; owner reviews before merge.
-- [ ] Real Hustle Order and PaymentAttempt CUID fields accepted as signed partner command.
-- [ ] Duplicate operation is acknowledged without duplicating a partner command.
-- [ ] Replay nonce is rejected; wrong secret and stale request are rejected.
-- [ ] Divergent amount under same idempotency key returns conflict; USD and unknown injected execution fields fail closed.
-- [ ] GET operation returns RECEIVED only; provider capabilities explicitly disable live collections/refunds/payouts/custody.
-- [ ] PaymentAttempt and Order stay PENDING; ledger posting count and inventory do not change.
-- [ ] Existing separate Hustle signed sandbox payment webhook proceeds through its ordinary post-confirmation tests unchanged.
-- [ ] Independent Foundation CI and existing Isolated Payment Sandbox remain green; new cross-repo test workflow is green on exact commit.
+- [x] MONIFlow PR #5 passed CI and was merged to main at 88a2b33e6520fa3b49314962467abc587f8d5657.
+- [x] Real Hustle Order and PaymentAttempt CUID fields accepted as signed partner command.
+- [x] Duplicate operation is acknowledged without duplicating a partner command.
+- [x] Replay nonce is rejected; wrong secret and stale request are rejected.
+- [x] Divergent amount under same idempotency key returns conflict; USD and unknown injected execution fields fail closed.
+- [x] GET operation returns RECEIVED only; provider capabilities explicitly disable live collections/refunds/payouts/custody.
+- [x] PaymentAttempt and Order stay PENDING; ledger posting count and inventory do not change.
+- [x] Existing separate Hustle signed sandbox payment webhook proceeds through its ordinary post-confirmation tests unchanged.
+- [ ] Final pinned-main-head Hustle Foundation CI, Isolated Payment Sandbox and dedicated cross-repo workflow are all green; initial branch validation on 4c8e720 passed all three.
 
 ## Boundaries and future work
 This is an **integration transport/security smoke**, *not* a verified financial checkout, bank collection, escrow provider, charge, refund, payout, or MONIFlow operational execution. MONIFlow receipts must NEVER turn Hustle Bookings FUNDED or Orders PAID. Provider-backed fund custody, trust-bound authorization, live BMONI, settlement reconciliation, wallet signing, refunds, real transfers, and proper legal/finance review remain NO-GO.
