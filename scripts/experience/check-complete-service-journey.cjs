@@ -19,7 +19,7 @@ const APIPayment=read("apps/api/src/payment/payment.service.ts");
 const paymentModule=read("apps/api/src/payment/payment.module.ts");
 const checks=[
   [feed.includes("OfferQuickView"),"Discover offers launch canonical Quick View"],
-  [quick.includes("Request Booking"),"Service quick view offers Booking"],
+  [quick.includes('withSourcePost("/bookings/new/"'),"Service quick view offers canonical Booking route"],
   [service.includes("/bookings/new/"),"Public Service links to Booking"],
   [form.includes("checkBookingAvailability("),"Scheduling checks server availability"],
   [form.includes("openDirectConversation("),"Booking reuses direct consultation"],
