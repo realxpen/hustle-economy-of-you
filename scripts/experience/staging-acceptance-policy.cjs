@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-function nonProductionOrigin(raw, approved) {
+function nonProductionOrigin(raw, approved, trustedDomain) {
   if (!raw || !approved || raw !== approved) throw Error("Staging origin must exactly match explicitly approved origin");
   let parsed;
   try { parsed = new URL(raw); } catch { throw Error("Invalid staging URL"); }
@@ -12,6 +12,11 @@ function nonProductionOrigin(raw, approved) {
     throw Error("Staging origin must be a canonical HTTPS origin, without credentials, port, path or query");
   }
   const host = parsed.hostname.toLowerCase();
+  const suffix = String(trustedDomain || "").toLowerCase().trim();
+  if (!/^[a-z0-9-]+(?:\.[a-z0-9-]+){1,5}$/.test(suffix) ||
+      !host.endsWith("." + suffix) || host === suffix) {
+    throw Error("REFUSED: staging hostname is not a subdomain of the trusted project domain");
+  }
   const parts = host.split(".");
   if (!parts.some((segment) => /^(staging|stage|qa|sandbox|preview)(?:-[a-z0-9-]+)?$/.test(segment))) {
     throw Error("REFUSED: host must explicitly identify a nonproduction staging/qa/preview environment");
@@ -41,7 +46,10 @@ function privateStateFile(raw, repositoryRoot = process.cwd()) {
 
 function prepare(env, root = process.cwd()) {
   if (env.HUSTLE_QA_CONFIRM !== "NONPRODUCTION_READ_ONLY") throw Error("Set HUSTLE_QA_CONFIRM=NONPRODUCTION_READ_ONLY");
-  const origin = nonProductionOrigin(env.HUSTLE_QA_WEB_ORIGIN, env.HUSTLE_QA_APPROVED_ORIGIN);
+  const origin = nonProductionOrigin(
+    env.HUSTLE_QA_WEB_ORIGIN, env.HUSTLE_QA_APPROVED_ORIGIN,
+    env.HUSTLE_QA_ALLOWED_DOMAIN
+  );
   const serviceId = env.HUSTLE_QA_SERVICE_ID || "";
   if (!/^[a-zA-Z0-9_-]{6,128}$/.test(serviceId)) throw Error("Require a published staging Service ID");
   const clientHandle = env.HUSTLE_QA_CLIENT_HANDLE || "";
