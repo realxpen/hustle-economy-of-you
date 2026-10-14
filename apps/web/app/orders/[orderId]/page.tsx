@@ -139,6 +139,7 @@ export default function OrderDetailPage() {
     <section className={[styles.panel, "h-experience-surface"].join(" ")} style={{ marginTop: 18 }}>
       <div className={styles.sectionTitle}><div><small className={styles.eyebrow}>PAYMENT · SETTLEMENT</small><h2>Financial state</h2></div></div>
       <TransactionFinanceActions
+        key={`ORDER:${order.id}`}
         subjectType="ORDER"
         subjectId={order.id}
         canInitialize={order.viewerRole === "BUYER" && order.status === "PENDING"}

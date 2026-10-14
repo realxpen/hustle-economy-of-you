@@ -25,6 +25,8 @@ jobs:
         run: node scripts/experience/check-opportunity-journey.cjs
       - name: Transaction and conversation UX contracts
         run: node scripts/experience/check-transaction-handoffs.cjs
+      - name: Complete Service journey source contracts
+        run: node scripts/experience/check-complete-service-journey.cjs
       - name: Creator publishing and Live UX contracts
         run: node scripts/experience/check-creator-experience.cjs
       - name: Release readiness and async privacy contracts

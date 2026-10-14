@@ -82,9 +82,11 @@ export function TransactionFinanceActions({
       setPayment(attempt);
       window.sessionStorage.removeItem(storageKey);
       setNotice(
-        attempt.checkoutUrl
-          ? "Payment initialized. Continue through the provider checkout."
-          : "Payment initialized. Hustle is waiting for authoritative provider confirmation."
+        attempt.provider === "HUSTLE_SANDBOX"
+          ? "Sandbox payment attempt created. No real money moved; only an authorized test webhook can confirm simulation."
+          : attempt.checkoutUrl
+            ? "Payment initialized. Continue through the provider checkout."
+            : "Payment initialized. Hustle is waiting for authoritative provider confirmation."
       );
       if (attempt.checkoutUrl) window.location.assign(attempt.checkoutUrl);
     } catch (reason) {
@@ -142,6 +144,11 @@ export function TransactionFinanceActions({
     <div style={{ display: "grid", gap: 10 }}>
       <div style={{ border: "1px solid #b7b4aa", borderRadius: 16, padding: 14, background: "#f8f6f0" }}>
         <small style={{ fontWeight: 850, letterSpacing: ".12em" }}>FINANCIAL STATE</small>
+        {payment?.provider === "HUSTLE_SANDBOX" && (
+          <p role="status" style={{ margin: "8px 0", fontSize: 12, fontWeight: 750, color: "#87420b" }}>
+            Sandbox simulation — no real payment or provider settlement. This status is from Hustle's isolated test ledger.
+          </p>
+        )}
         {payment ? (
           <>
             <p style={{ margin: "8px 0 2px", fontWeight: 800 }}>

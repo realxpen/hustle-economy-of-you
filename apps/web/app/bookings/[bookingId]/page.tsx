@@ -168,7 +168,7 @@ export default function BookingDetailPage() {
 
         {booking.paymentBoundary.required && <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>PAYMENT · ESCROW</p>
-          <TransactionFinanceActions subjectType="BOOKING" subjectId={booking.id} canInitialize={booking.viewerRole === "CLIENT" && booking.status === "PAYMENT_PENDING"} canRefund={booking.viewerRole === "CLIENT" && booking.status === "FUNDED"} canRelease={booking.viewerRole === "CLIENT" && booking.status === "COMPLETED"} releaseKind="BOOKING_ESCROW" onFinancialChange={load} />
+          <TransactionFinanceActions key={`BOOKING:${booking.id}`} subjectType="BOOKING" subjectId={booking.id} canInitialize={booking.viewerRole === "CLIENT" && booking.status === "PAYMENT_PENDING"} canRefund={booking.viewerRole === "CLIENT" && booking.status === "FUNDED"} canRelease={booking.viewerRole === "CLIENT" && booking.status === "COMPLETED"} releaseKind="BOOKING_ESCROW" onFinancialChange={load} />
         </section>}
 
         <ReviewEligibilityCard subjectType="BOOKING" subjectId={booking.id} />

@@ -33,6 +33,9 @@ const { AnalyticsModule } = require("../../apps/api/dist/analytics/analytics.mod
 const { FeedModule } = require("../../apps/api/dist/feed/feed.module.js");
 const { SearchModule } = require("../../apps/api/dist/search/search.module.js");
 const { BookingModule } = require("../../apps/api/dist/booking/booking.module.js");
+const { MessagingModule } = require("../../apps/api/dist/messaging/messaging.module.js");
+const { MessagingService } = require("../../apps/api/dist/messaging/messaging.service.js");
+const { SearchService } = require("../../apps/api/dist/search/search.service.js");
 const { TrustModule } = require("../../apps/api/dist/trust/trust.module.js");
 const { PrismaService } = require("../../apps/api/dist/database/prisma.service.js");
 const { CommerceService } = require("../../apps/api/dist/commerce/commerce.service.js");
@@ -54,7 +57,7 @@ const { SearchObservationService } = require("../../apps/api/dist/search/search-
 const { BookingService } = require("../../apps/api/dist/booking/booking.service.js");
 
 class SandboxTestModule {}
-Module({ imports: [DatabaseModule, PaymentModule, LiveModule, TrustModule, AnalyticsModule, FeedModule, SearchModule, BookingModule] })(SandboxTestModule);
+Module({ imports: [DatabaseModule, PaymentModule, LiveModule, TrustModule, AnalyticsModule, FeedModule, SearchModule, BookingModule, MessagingModule] })(SandboxTestModule);
 
 function identity(subject) {
   return { subject, emailVerified: false, phoneVerified: false };
@@ -87,6 +90,8 @@ async function main() {
   const feed = app.get(FeedService);
   const searchObservation = app.get(SearchObservationService);
   const bookingService = app.get(BookingService);
+  const messagingService = app.get(MessagingService);
+  const searchService = app.get(SearchService);
 
   try {
     assert.equal((await prisma.$queryRawUnsafe("SELECT current_database() AS db"))[0].db, "hustle_payment_sandbox");
@@ -869,6 +874,152 @@ async function main() {
     assert.ok(!(await operations.reconciliation(se)).issues.some(
       issue=>issue.id===ambiguousPayout.id
     ),"Confirmed payout no longer appears unresolved");
+
+    // Full SERVICE opportunity lifecycle. This exercises existing customer
+    // features together, NOT separate new product implementations.
+    // Every record and payment event stays in the disposable localhost DB.
+    const serviceJourney = await prisma.service.create({
+      data:{
+        professionalProfileId:profile.id,status:"PUBLISHED",
+        title:"Journey Barber Service "+testId,
+        priceMinor:45000,currency:"NGN",pricingType:"FIXED",
+        publishedAt:new Date()
+      }
+    });
+    const journeyProofPost=await prisma.post.create({
+      data:{
+        professionalProfileId:profile.id,status:"PUBLISHED",
+        caption:"See this Hustler's proof, then book their service",
+        publishedAt:new Date(),
+        serviceAttachments:{create:[{serviceId:serviceJourney.id}]}
+      }
+    });
+    const feedJourney=await feed.list(by,"for-you",undefined,"30");
+    const foundPost=feedJourney.items.find(x=>x.post.id===journeyProofPost.id);
+    assert.ok(foundPost,"Published Hustler proof must reach the actual Discover feed");
+    assert.equal(foundPost.creator.id,seller.id);
+    assert.ok(foundPost.services.some(x=>x.id===serviceJourney.id),
+      "Discover must expose canonical attached Service ID, not a fabricated link");
+    const marketplaceJourney=await searchService.marketplace(by,"services",{
+      q:"Journey Barber",limit:"30"
+    });
+    assert.ok(marketplaceJourney.items.some(x=>x.kind==="service"&&x.id===serviceJourney.id),
+      "Published Service must be reachable in real Marketplace search");
+
+    // Existing direct consultation: only its participants may see it.
+    const directJourney=await messagingService.openDirect(by,{recipientUserId:seller.id});
+    const chatJourney=await messagingService.sendMessage(
+      by,directJourney.conversation.id,{
+        text:"Is the Journey Barber Service available next week?",
+        contextType:"SERVICE",contextId:serviceJourney.id
+      }
+    );
+    assert.equal(chatJourney.context?.id,serviceJourney.id);
+    await expectRejected(
+      ()=>messagingService.sendMessage(identity("not-a-customer-"+testId),
+        directJourney.conversation.id,{text:"Cross-account read/write attempt"}),
+      "Unrelated account cannot send into another customer's consultation"
+    );
+
+    const requestedStartAt=new Date(Date.now()+7*86_400_000).toISOString();
+    const fullBooking=await bookingService.create(by,{
+      serviceId:serviceJourney.id,
+      requestedStartAt,
+      requirements:"A normal test haircut in the disposable sandbox",
+      conversationId:directJourney.conversation.id
+    });
+    assert.equal(fullBooking.status,"REQUESTED");
+    assert.equal(fullBooking.agreedPriceMinor,45000);
+    assert.equal(fullBooking.serviceId,serviceJourney.id);
+    assert.equal(fullBooking.conversationId,directJourney.conversation.id);
+    await expectRejected(()=>bookingService.get(
+      identity("not-a-customer-"+testId),fullBooking.id
+    ),"Unrelated account must never access booking details");
+    await expectRejected(()=>bookingService.accept(by,fullBooking.id,{}),
+      "Client cannot impersonate Hustler acceptance");
+    const acceptedJourney=await bookingService.accept(se,fullBooking.id,{});
+    assert.equal(acceptedJourney.status,"PAYMENT_PENDING");
+    assert.equal(acceptedJourney.paymentBoundary.funded,false);
+    await expectRejected(()=>bookingService.start(se,fullBooking.id),
+      "Paid service cannot start while payment is unconfirmed");
+
+    const sellerWalletBeforeJourney=(await wallet.getWallet(se)).balances
+      .find(x=>x.currency==="NGN")?.availableMinor??0;
+    const journeyAttempt=await payments.initialize(
+      by,{subjectType:"BOOKING",subjectId:fullBooking.id},
+      "full-service-journey-"+testId
+    );
+    assert.equal(journeyAttempt.provider,"HUSTLE_SANDBOX");
+    assert.equal(journeyAttempt.status,"PENDING");
+    assert.equal(journeyAttempt.amountMinor,45000);
+    assert.equal((await bookingService.get(by,fullBooking.id)).status,"PAYMENT_PENDING");
+    assert.equal(await prisma.escrowRecord.count({
+      where:{subjectType:"BOOKING",subjectId:fullBooking.id}
+    }),0,"Starting sandbox checkout must not create a funded escrow");
+    await expectRejected(()=>payments.initialize(
+      se,{subjectType:"BOOKING",subjectId:fullBooking.id},
+      "other-payer-journey-"+testId
+    ),"Hustler cannot initialize a Client's booking payment");
+
+    const journeyEvent={
+      eventId:"full-journey-funded-"+testId,type:"payment.succeeded",
+      reference:journeyAttempt.providerReference,
+      amountMinor:journeyAttempt.amountMinor,currency:journeyAttempt.currency
+    };
+    const journeySign=createHmac("sha256",process.env.HUSTLE_SANDBOX_WEBHOOK_SECRET)
+      .update([journeyEvent.eventId,journeyEvent.type,journeyEvent.reference,
+        String(journeyEvent.amountMinor),journeyEvent.currency.toUpperCase(),"",""].join("|"))
+      .digest("hex");
+    const unsignedJourney=await fetch(webhookUrl,{
+      method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify(journeyEvent)
+    });
+    assert.equal(unsignedJourney.status,401);
+    assert.equal((await bookingService.get(by,fullBooking.id)).status,"PAYMENT_PENDING");
+    const signedJourney=()=>fetch(webhookUrl,{
+      method:"POST",headers:{"content-type":"application/json",
+        "x-hustle-sandbox-signature":journeySign},
+      body:JSON.stringify(journeyEvent)
+    });
+    const authorizedFunding=await signedJourney();
+    assert.equal(authorizedFunding.status,201,
+      "Only locally signed, sandbox-authorized provider webhook may fund a paid Booking");
+    assert.equal((await signedJourney()).status,201);
+    const fundedJourney=await bookingService.get(by,fullBooking.id);
+    assert.equal(fundedJourney.status,"FUNDED");
+    assert.equal(fundedJourney.paymentBoundary.funded,true);
+    const heldJourney=await prisma.escrowRecord.findUniqueOrThrow({
+      where:{subjectType_subjectId:{subjectType:"BOOKING",subjectId:fullBooking.id}}
+    });
+    assert.equal(heldJourney.status,"HELD");
+    assert.equal(heldJourney.amountMinor,45000);
+    assert.equal((await wallet.getWallet(se)).balances
+      .find(x=>x.currency==="NGN")?.availableMinor??0,sellerWalletBeforeJourney,
+      "Funding moves into escrow, never directly into Hustler withdrawable balance");
+    assert.equal(await prisma.ledgerTransaction.count({
+      where:{subjectType:"BOOKING",subjectId:fullBooking.id,type:"PAYMENT_CONFIRMED"}
+    }),1,"Idempotent signed webhook must not duplicate the collection ledger");
+    await expectRejected(()=>wallet.releaseBookingEscrow(by,fullBooking.id),
+      "Client cannot release escrow before the Hustler completes work");
+
+    const workingJourney=await bookingService.start(se,fullBooking.id);
+    assert.equal(workingJourney.status,"IN_PROGRESS");
+    const completedJourney=await bookingService.complete(se,fullBooking.id);
+    assert.equal(completedJourney.status,"COMPLETED");
+    await expectRejected(()=>wallet.releaseBookingEscrow(se,fullBooking.id),
+      "Hustler cannot release Client-controlled Booking escrow");
+    const releasedJourney=await wallet.releaseBookingEscrow(by,fullBooking.id);
+    assert.equal(releasedJourney.released,true);
+    assert.equal((await wallet.releaseBookingEscrow(by,fullBooking.id)).duplicate,true);
+    assert.equal(await prisma.ledgerTransaction.count({
+      where:{subjectType:"BOOKING",subjectId:fullBooking.id,type:"ESCROW_RELEASED"}
+    }),1,"Repeat Client release must not duplicate escrow ledger postings");
+    assert.equal((await wallet.getWallet(se)).balances
+      .find(x=>x.currency==="NGN")?.availableMinor??0,
+      sellerWalletBeforeJourney+45000,
+      "Only completed, Client-authorized sandbox escrow release credits the Hustler");
+    console.log("PASS: proof Discover → Marketplace Service → consulted Message → paid Booking → signed sandbox funding → completed work → one escrow release; ownership/ledger safeguards verified");
+
     console.log("PASS: scoped, read-only financial reconciliation and no-automatic-retry recovery labels");
     console.log("PASS: P0 durable reserve-before-provider, unknown-outcome, payout reversal, refund hold and signed webhook replay");
 
