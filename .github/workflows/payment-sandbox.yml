@@ -10,6 +10,8 @@ on:
       - "apps/api/src/commerce/**"
       - "apps/api/src/notifications/**"
       - "apps/api/prisma/**"
+      - "apps/web/components/finance/**"
+      - "apps/web/app/bookings/**"
       - "apps/api/package.json"
       - "package-lock.json"
 
