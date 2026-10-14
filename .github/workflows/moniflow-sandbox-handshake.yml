@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/moniflow-sandbox-handshake.yml"
       - "scripts/payment-sandbox/**"
+      - "scripts/experience/staging-*"
       - "apps/api/src/payment/moniflow-sandbox-partner.client.ts"
       - "apps/api/prisma/**"
       - "apps/web/components/finance/**"
