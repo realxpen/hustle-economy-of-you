@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { safeTransactionReturnTo, transactionReturnLabel } from "../../../lib/transaction-return";
 import { openDirectConversation, type MessageContextType } from "../../../lib/messaging";
+import { authUrlFor } from "../../../lib/auth/safe-auth-next";
 import styles from "../messages.module.css";
 
 const allowedContextTypes = new Set<MessageContextType>(["POST", "SERVICE", "PRODUCT"]);
@@ -45,7 +46,7 @@ export default function StartMessagePage() {
         if (!active) return;
         setError(reason.message);
         if (reason.message.toLowerCase().includes("sign in")) {
-          authTimeout = setTimeout(() => window.location.assign("/auth"), 900);
+          authTimeout = setTimeout(() => window.location.assign(authUrlFor(window.location.pathname + window.location.search)), 900);
         }
       });
     return () => { active = false; if (authTimeout) clearTimeout(authTimeout); };

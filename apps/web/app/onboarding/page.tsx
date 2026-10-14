@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import type { HustleAccount } from "@hustle/types";
 import { getMyAccount, syncHustleAccount, updateMyProfile } from "../../lib/auth/hustle-account";
+import { authUrlFor, safeAuthNext } from "../../lib/auth/safe-auth-next";
 
 export default function OnboardingPage() {
   const [account, setAccount] = useState<HustleAccount | null>(null);
@@ -17,7 +18,9 @@ export default function OnboardingPage() {
     syncHustleAccount().then((value) => {
       setAccount(value); setDisplayName(value.displayName ?? ""); setUsername(value.username ?? ""); setLocation(value.location ?? ""); setBio(value.bio ?? "");
     }).catch(async () => {
-      try { setAccount(await getMyAccount()); } catch { window.location.assign("/auth"); }
+      try { setAccount(await getMyAccount()); } catch {
+        window.location.assign(authUrlFor(new URLSearchParams(window.location.search).get("next")));
+      }
     });
   }, []);
 
@@ -25,7 +28,9 @@ export default function OnboardingPage() {
     event.preventDefault(); setSaving(true); setError(null);
     try {
       const updated = await updateMyProfile({ displayName, username, location, bio });
-      setAccount(updated); window.location.assign("/account");
+      setAccount(updated);
+      const next = safeAuthNext(new URLSearchParams(window.location.search).get("next"));
+      window.location.assign(next ?? "/account");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not save profile"); }
     finally { setSaving(false); }
   }

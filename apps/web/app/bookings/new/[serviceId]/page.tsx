@@ -8,6 +8,7 @@ import { OpportunityContext } from "../../../../components/commerce/opportunity-
 import { useSourcePost } from "../../../../lib/opportunity-source";
 import { checkBookingAvailability, createBooking } from "../../../../lib/booking";
 import { openDirectConversation } from "../../../../lib/messaging";
+import { authUrlFor } from "../../../../lib/auth/safe-auth-next";
 import { formatServicePrice, getPublicService } from "../../../../lib/service";
 import type { PublicService } from "@hustle/types";
 import styles from "../../bookings.module.css";
@@ -96,7 +97,12 @@ export default function NewBookingPage() {
       });
       router.push(`/bookings/${booking.id}`);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not create booking request");
+      const message = reason instanceof Error ? reason.message : "Could not create booking request";
+      if (/sign in again|need to sign in/i.test(message)) {
+        window.location.assign(authUrlFor(window.location.pathname + window.location.search));
+        return;
+      }
+      setError(message);
     } finally {
       setSubmitting(false);
     }

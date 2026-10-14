@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../../lib/supabase/client";
 import { syncHustleAccount } from "../../lib/auth/hustle-account";
+import { onboardingUrlFor, safeAuthNext } from "../../lib/auth/safe-auth-next";
 
 type Mode = "signin" | "signup" | "phone" | "forgot";
 
@@ -29,9 +30,16 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const configured = isSupabaseConfigured();
 
+  function requestedOpportunity() {
+    return safeAuthNext(new URLSearchParams(window.location.search).get("next"));
+  }
+
   async function finishAuth() {
     const account = await syncHustleAccount();
-    window.location.assign(account.onboardingCompleted ? "/account" : "/onboarding");
+    const next = requestedOpportunity();
+    window.location.assign(account.onboardingCompleted
+      ? next ?? "/account"
+      : onboardingUrlFor(next));
   }
 
   async function submit(event: FormEvent) {
@@ -46,7 +54,10 @@ export default function AuthPage() {
         if (result.error) throw result.error;
         await finishAuth();
       } else if (mode === "signup") {
-        const redirectTo = `${window.location.origin}/auth/callback?next=/onboarding`;
+        const callbackUrl = new URL("/auth/callback", window.location.origin);
+        const next = requestedOpportunity();
+        if (next) callbackUrl.searchParams.set("next", next);
+        const redirectTo = callbackUrl.toString();
         const result = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
         if (result.error) throw result.error;
         if (result.data.session) await finishAuth();
