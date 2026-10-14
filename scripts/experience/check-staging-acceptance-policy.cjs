@@ -7,7 +7,7 @@ const { spawnSync } = require("node:child_process");
 const { nonProductionOrigin, privateStateFile, prepare } = require("./staging-acceptance-policy.cjs");
 
 const valid = "https://staging.hustle.example.com";
-assert.equal(nonProductionOrigin(valid, valid), valid);
+assert.equal(nonProductionOrigin(valid, valid, "hustle.example.com"), valid);
 for (const raw of [
   "https://hustle.example.com", "https://staging.hustle.example.com.evil.com",
   "https://staging.example.com/booking", "http://staging.example.com",
@@ -15,9 +15,9 @@ for (const raw of [
   "https://staging.example.com?next=evil", "https://staging.example.com/#fragment",
   "http://127.0.0.1:3001", "https://qa.localhost"
 ]) {
-  assert.throws(() => nonProductionOrigin(raw, raw), undefined, "Reject unapproved staging URL: " + raw);
+  assert.throws(() => nonProductionOrigin(raw, raw, "hustle.example.com"), undefined, "Reject unapproved staging URL: " + raw);
 }
-assert.throws(() => nonProductionOrigin(valid, "https://qa.other.example.com"));
+assert.throws(() => nonProductionOrigin(valid, "https://qa.other.example.com", "hustle.example.com"));
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hustle-qa-policy-"));
 const alice = path.join(dir, "client.json"), bob = path.join(dir, "hustler.json");
 const stagingState = JSON.stringify({
@@ -34,6 +34,7 @@ try {
     HUSTLE_QA_CONFIRM: "NONPRODUCTION_READ_ONLY",
     HUSTLE_QA_WEB_ORIGIN: valid,
     HUSTLE_QA_APPROVED_ORIGIN: valid,
+    HUSTLE_QA_ALLOWED_DOMAIN: "hustle.example.com",
     HUSTLE_QA_CLIENT_STATE: alice,
     HUSTLE_QA_HUSTLER_STATE: bob,
     HUSTLE_QA_CLIENT_HANDLE: "client-qa",
@@ -44,6 +45,7 @@ try {
   for (const patch of [
     { HUSTLE_QA_CONFIRM: "" },
     { HUSTLE_QA_APPROVED_ORIGIN: "https://qa.attacker.example.com" },
+    { HUSTLE_QA_ALLOWED_DOMAIN: "attacker.example.com" },
     { HUSTLE_QA_HUSTLER_HANDLE: "client-qa" },
     { HUSTLE_QA_CLIENT_STATE: "./test.json" },
     { HUSTLE_QA_SERVICE_ID: "???" }
