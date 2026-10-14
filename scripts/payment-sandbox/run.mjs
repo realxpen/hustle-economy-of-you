@@ -901,7 +901,7 @@ async function main() {
     assert.ok(foundPost.services.some(x=>x.id===serviceJourney.id),
       "Discover must expose canonical attached Service ID, not a fabricated link");
     const marketplaceJourney=await searchService.marketplace(by,"services",{
-      q:"Journey Barber",limit:"50"
+      q:"Journey Barber",limit:"30"
     });
     assert.ok(marketplaceJourney.items.some(x=>x.kind==="service"&&x.id===serviceJourney.id),
       "Published Service must be reachable in real Marketplace search");
