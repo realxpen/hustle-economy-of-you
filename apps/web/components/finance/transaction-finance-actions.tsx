@@ -123,7 +123,9 @@ export function TransactionFinanceActions({
     try {
       if (releaseKind === "BOOKING_ESCROW") {
         await releaseBookingEscrow(subjectId);
-        setNotice("Escrow release recorded. The Hustler available balance is now ledger-backed.");
+        setNotice(payment?.provider === "HUSTLE_SANDBOX"
+          ? "Sandbox escrow release recorded in the isolated test ledger. No real money moved."
+          : "Escrow release recorded in Hustle's ledger. External provider settlement must be verified separately.");
       } else {
         await releaseOrderSettlement(subjectId);
         setNotice("Completed Order settlement moved from pending to available balance.");
@@ -156,7 +158,9 @@ export function TransactionFinanceActions({
             </p>
             <p style={{ margin: 0, fontSize: 12, color: "#66635a" }}>
               {payment.appliedToSubject
-                ? "Verified payment has been applied to this transaction."
+                ? payment.provider === "HUSTLE_SANDBOX"
+                  ? "Signed sandbox fixture applied to this transaction. No actual funds were collected or settled."
+                  : "Verified payment evidence has been applied to this transaction. External settlement may still be pending."
                 : payment.status === "FAILED"
                   ? payment.failureReason ?? "The payment attempt failed. You may retry with a new attempt."
                   : "Provider confirmation is still required before transaction financial state advances."}
@@ -185,7 +189,7 @@ export function TransactionFinanceActions({
         )}
         {releaseAvailable && releaseKind && (
           <button disabled={Boolean(busy)} onClick={() => void release()} style={{ border: 0, borderRadius: 999, padding: "12px 16px", background: "#ff5a1f", color: "#fff", fontWeight: 800, cursor: "pointer" }}>
-            {busy === "release" ? "Releasing…" : releaseKind === "BOOKING_ESCROW" ? "Confirm completion & release escrow" : "Release completed settlement"}
+            {busy === "release" ? "Releasing…" : payment?.provider === "HUSTLE_SANDBOX" ? "Release simulated escrow" : releaseKind === "BOOKING_ESCROW" ? "Confirm completion & release escrow" : "Release completed settlement"}
           </button>
         )}
         <button disabled={Boolean(busy)} onClick={() => void refresh()} style={{ border: 0, background: "transparent", textDecoration: "underline", cursor: "pointer", fontWeight: 700 }}>

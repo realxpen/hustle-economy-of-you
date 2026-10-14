@@ -114,7 +114,12 @@ export default function BookingDetailPage() {
   const otherLabel = other.displayName ?? other.username ?? "participant";
   const canCancel = booking.viewerRole === "CLIENT" ? ["REQUESTED", "ACCEPTED", "PAYMENT_PENDING"].includes(booking.status) : ["ACCEPTED", "PAYMENT_PENDING"].includes(booking.status);
   const canAccept = booking.viewerRole === "HUSTLER" && booking.status === "REQUESTED";
-  const canStart = booking.viewerRole === "HUSTLER" && ["ACCEPTED", "FUNDED"].includes(booking.status);
+  // Match the backend gate: unpaid free bookings may start after acceptance;
+  // paid bookings require server-confirmed funding, never merely an ACCEPTED label.
+  const canStart = booking.viewerRole === "HUSTLER" && (
+    (booking.status === "ACCEPTED" && !booking.paymentBoundary.required) ||
+    (booking.status === "FUNDED" && booking.paymentBoundary.funded)
+  );
   const canComplete = booking.viewerRole === "HUSTLER" && booking.status === "IN_PROGRESS";
   const messageUrl = withTransactionReturnTo(
     booking.conversationId ? `/messages/${encodeURIComponent(booking.conversationId)}`
@@ -164,7 +169,7 @@ export default function BookingDetailPage() {
           <div className={styles.facts}><Fact label="PRICE" value={formatBookingPrice(booking)} /><Fact label="PRICING" value={booking.pricingTypeSnapshot.replaceAll("_", " ")} /><Fact label="SERVICE" value={booking.service.title ?? booking.serviceTitleSnapshot} /><Fact label="DELIVERY" value={booking.service.deliveryMode} /></div>
         </section>
 
-        {booking.paymentBoundary.required && <div className={booking.paymentBoundary.funded ? styles.success : styles.payment}><strong>{booking.paymentBoundary.funded ? "Funding confirmed" : "Payment boundary"}</strong><p>{booking.paymentBoundary.funded ? "This Booking has authoritative funding evidence." : booking.paymentBoundary.message ?? "Funding is confirmed only after authoritative payment evidence is received."}</p></div>}
+        {booking.paymentBoundary.required && <div className={booking.paymentBoundary.funded ? styles.success : styles.payment}><strong>{booking.paymentBoundary.funded ? "Booking funding recorded" : "Payment boundary"}</strong><p>{booking.paymentBoundary.funded ? "This Booking has server-recorded funding evidence. Check Financial State below to distinguish sandbox simulation from external payment settlement." : booking.paymentBoundary.message ?? "Funding is confirmed only after authoritative payment evidence is received."}</p></div>}
 
         {booking.paymentBoundary.required && <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>PAYMENT · ESCROW</p>
