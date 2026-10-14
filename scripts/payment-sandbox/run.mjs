@@ -894,7 +894,7 @@ async function main() {
         serviceAttachments:{create:[{serviceId:serviceJourney.id}]}
       }
     });
-    const feedJourney=await feed.list(by,"for-you",undefined,"50");
+    const feedJourney=await feed.list(by,"for-you",undefined,"30");
     const foundPost=feedJourney.items.find(x=>x.post.id===journeyProofPost.id);
     assert.ok(foundPost,"Published Hustler proof must reach the actual Discover feed");
     assert.equal(foundPost.creator.id,seller.id);
