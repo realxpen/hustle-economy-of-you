@@ -48,6 +48,7 @@ try {
     { HUSTLE_QA_ALLOWED_DOMAIN: "attacker.example.com" },
     { HUSTLE_QA_HUSTLER_HANDLE: "client-qa" },
     { HUSTLE_QA_CLIENT_STATE: "./test.json" },
+    { HUSTLE_QA_HUSTLER_STATE: alice },
     { HUSTLE_QA_SERVICE_ID: "???" }
   ]) assert.throws(() => prepare({ ...good, ...patch }));
   fs.chmodSync(bob, 0o644);
