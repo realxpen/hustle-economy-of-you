@@ -8,6 +8,8 @@ on:
       - "scripts/payment-sandbox/**"
       - "apps/api/src/payment/moniflow-sandbox-partner.client.ts"
       - "apps/api/prisma/**"
+      - "apps/web/components/finance/**"
+      - "apps/web/app/bookings/**"
       - "apps/api/package.json"
       - "package-lock.json"
 
