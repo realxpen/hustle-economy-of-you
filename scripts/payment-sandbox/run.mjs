@@ -914,7 +914,7 @@ async function main() {
         contextType:"SERVICE",contextId:serviceJourney.id
       }
     );
-    assert.equal(chatJourney.contextId,serviceJourney.id);
+    assert.equal(chatJourney.context?.id,serviceJourney.id);
     await expectRejected(
       ()=>messagingService.sendMessage(identity("not-a-customer-"+testId),
         directJourney.conversation.id,{text:"Cross-account read/write attempt"}),
