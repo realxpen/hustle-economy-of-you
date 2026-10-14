@@ -31,6 +31,8 @@ jobs:
         run: node scripts/experience/check-booking-payment-gate.cjs
       - name: Authenticated opportunity return and redirect-safety contracts
         run: node scripts/experience/check-auth-opportunity-return.cjs
+      - name: Staging QA safety policy regression (no credentials or external calls)
+        run: node scripts/experience/check-staging-acceptance-policy.cjs
       - name: Creator publishing and Live UX contracts
         run: node scripts/experience/check-creator-experience.cjs
       - name: Release readiness and async privacy contracts
