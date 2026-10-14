@@ -82,9 +82,11 @@ export function TransactionFinanceActions({
       setPayment(attempt);
       window.sessionStorage.removeItem(storageKey);
       setNotice(
-        attempt.checkoutUrl
-          ? "Payment initialized. Continue through the provider checkout."
-          : "Payment initialized. Hustle is waiting for authoritative provider confirmation."
+        attempt.provider === "HUSTLE_SANDBOX"
+          ? "Sandbox payment attempt created. No real money moved; only an authorized test webhook can confirm simulation."
+          : attempt.checkoutUrl
+            ? "Payment initialized. Continue through the provider checkout."
+            : "Payment initialized. Hustle is waiting for authoritative provider confirmation."
       );
       if (attempt.checkoutUrl) window.location.assign(attempt.checkoutUrl);
     } catch (reason) {
