@@ -89,7 +89,7 @@ function inputLocalDate(value) {
     }));
     mockFailure = true;
     await retryPage.goto(base + "/services/qa-service", { waitUntil: "domcontentloaded" });
-    await retryPage.getByRole("heading", { name: "Service unavailable." }).waitFor({ timeout: 15000 });
+    await retryPage.getByRole("alert").getByText("Service unavailable.").waitFor({ timeout: 15000 });
     mockFailure = false;
     await retryPage.getByRole("button", { name: "Try loading again" }).click();
     await retryPage.getByRole("heading", { name: service.title }).waitFor({ timeout: 15000 });
