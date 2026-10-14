@@ -59,10 +59,9 @@ function prepare(env, root = process.cwd()) {
       clientHandle.toLowerCase() === hustlerHandle.toLowerCase()) {
     throw Error("Require two distinct nonproduction Client and Hustler usernames");
   }
-  return {
-    origin, serviceId, clientHandle, hustlerHandle,
-    clientState: privateStateFile(env.HUSTLE_QA_CLIENT_STATE, root),
-    hustlerState: privateStateFile(env.HUSTLE_QA_HUSTLER_STATE, root)
-  };
+  const clientState = privateStateFile(env.HUSTLE_QA_CLIENT_STATE, root);
+  const hustlerState = privateStateFile(env.HUSTLE_QA_HUSTLER_STATE, root);
+  if (clientState === hustlerState) throw Error("Client and Hustler must use separate private session files");
+  return { origin, serviceId, clientHandle, hustlerHandle, clientState, hustlerState };
 }
 module.exports = { nonProductionOrigin, privateStateFile, prepare };
