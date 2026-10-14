@@ -108,7 +108,15 @@ async function run() {
       limitations: "No real signup confirmation, message send, Booking submission, payment, iOS Safari, Android or launch verification"
     };
     const json = JSON.stringify(report, null, 2);
-    if (process.env.HUSTLE_QA_REPORT_PATH) fs.writeFileSync(process.env.HUSTLE_QA_REPORT_PATH, json + "\n", { mode: 0o600 });
+    if (process.env.HUSTLE_QA_REPORT_PATH) {
+      const target = require("node:path").resolve(process.env.HUSTLE_QA_REPORT_PATH);
+      const root = fs.realpathSync(process.cwd());
+      if (target.startsWith(root + require("node:path").sep) || target === root) {
+        throw Error("REFUSED: QA report must remain outside source checkout");
+      }
+      // Exclusive creation avoids overwriting an old report with unsafe file mode.
+      fs.writeFileSync(target, json + "\n", { mode: 0o600, flag: "wx" });
+    }
     console.log(json);
   } finally {
     await client?.close();
@@ -117,10 +125,9 @@ async function run() {
   }
 }
 
-run().catch((error) => {
-  // Never output credentials, session content, cookie values, URLs with query
-  // strings or exception stacks from the browser.
-  console.error("INCOMPLETE staging authenticated acceptance: " +
-    String(error?.message || "verification failed").replace(/https?:\/\/\S+/g, "[URL REDACTED]").slice(0, 350));
+run().catch(() => {
+  // No error stacks, selectors, usernames, IDs, session paths or provider
+  // output may escape from the opted-in real-session QA process.
+  console.error("INCOMPLETE staging authenticated acceptance; inspect the test accounts and staging environment locally.");
   process.exitCode = 2;
 });
