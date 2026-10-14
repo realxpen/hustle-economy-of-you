@@ -28,6 +28,11 @@ function isAllowedPath(pathname: string): boolean {
 export function safeAuthNext(raw: string | null | undefined): string | null {
   if (!raw || raw.length > 2048 || !raw.startsWith("/") || raw.startsWith("//")) return null;
   if (/[\\\u0000-\u001F\u007F]/.test(raw)) return null;
+  // Check raw path BEFORE URL() normalizes dot-segments or encoded separators.
+  // Query values may legitimately contain encoded slashes (e.g., returnTo).
+  const rawPath = raw.split(/[?#]/, 1)[0];
+  if (/%(?:2f|5c|2e)/i.test(rawPath) ||
+      rawPath.split("/").some((segment) => segment === "." || segment === "..")) return null;
 
   try {
     const parsed = new URL(raw, AUTH_DESTINATION_BASE);
