@@ -27,6 +27,8 @@ jobs:
         run: node scripts/experience/check-transaction-handoffs.cjs
       - name: Complete Service journey source contracts
         run: node scripts/experience/check-complete-service-journey.cjs
+      - name: Booking work-start funding boundary contracts
+        run: node scripts/experience/check-booking-payment-gate.cjs
       - name: Creator publishing and Live UX contracts
         run: node scripts/experience/check-creator-experience.cjs
       - name: Release readiness and async privacy contracts
@@ -63,6 +65,10 @@ jobs:
           NODE_PATH: /tmp/hustle-smoke/node_modules
           HUSTLE_SMOKE_REPORT_PATH: /tmp/hustle-local-web-smoke.json
         run: node scripts/responsive/local-smoke.cjs
+      - name: Interactive local Service to Booking UI regression
+        env:
+          NODE_PATH: /tmp/hustle-smoke/node_modules
+        run: node scripts/experience/local-service-interaction.cjs
       - name: Upload local UI smoke report
         if: always()
         uses: actions/upload-artifact@v4
