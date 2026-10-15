@@ -68,6 +68,7 @@ const identity={subject:"client-auth"};
  const backToBack=await scheduler.checkAvailability(identity,{serviceId:record.id,startAt:later(tomorrow,60).toISOString()});
  assert.equal(backToBack.available,true,"back-to-back exact boundaries should not overlap");
  record={...record,bufferMinutes:15};
+ rows=[booked("one",tomorrow,later(tomorrow,60),record)];
  const buffer=await scheduler.checkAvailability(identity,{serviceId:record.id,startAt:later(tomorrow,60).toISOString()});
  assert.equal(buffer.available,false,"prep/recovery must reserve shared pool time");
  record={...record,bufferMinutes:0,parallelCapacity:2};
