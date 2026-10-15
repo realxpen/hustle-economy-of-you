@@ -96,7 +96,7 @@ function toForm(service: Service): FormState {
     parallelCapacity: service.parallelCapacity,
     overbookingAllowance: service.overbookingAllowance,
     weeklyHours: service.weeklyHours,
-    blackoutDatesText: service.blackoutDates.join("\\n"),
+    blackoutDatesText: service.blackoutDates.join("\n"),
     maxActiveJobs: service.maxActiveJobs,
     turnaroundHours: service.turnaroundHours,
     autoExtensionMinutes: service.autoExtensionMinutes
@@ -163,7 +163,7 @@ export function ServiceEditor({ serviceId }: { serviceId?: string }) {
       parallelCapacity: form.parallelCapacity,
       overbookingAllowance: form.overbookingAllowance,
       weeklyHours: form.weeklyHours,
-      blackoutDates: form.blackoutDatesText.split(/[\\n,]+/).map((d) => d.trim()).filter(Boolean),
+      blackoutDates: form.blackoutDatesText.split(/[\n,]+/).map((d) => d.trim()).filter(Boolean),
       maxActiveJobs: form.maxActiveJobs,
       turnaroundHours: form.turnaroundHours,
       autoExtensionMinutes: form.autoExtensionMinutes
