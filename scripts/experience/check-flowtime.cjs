@@ -17,7 +17,7 @@ assert.match(schema, /enum BookingOperationMode/);
 assert.match(migration, /ALTER TABLE "Service"/);
 assert.match(migration, /CREATE TABLE "BookingScheduleRevision"/);
 assert.match(migration, /flowtime_positive_policy/);
-assert.match(scheduleSource, /pg_advisory_xact_lock\(hashtext/);
+assert.match(scheduleSource, /pg_try_advisory_xact_lock\(hashtext/);
 assert.match(bookingSource, /reserveWithinTransaction\(tx/);
 assert.match(bookingSource, /tx\.booking\.updateMany/);
 assert.match(bookingSource, /booking\.schedule_extended/);
@@ -54,7 +54,7 @@ const prisma = {
  service:{findUnique:async()=>record},
  user:{findUnique:async()=>({id:"client"})},
  booking:{findMany:async()=>rows,findFirst:async()=>null},
- $queryRaw:async()=>{locks+=1;return [{pg_advisory_xact_lock:null}];}
+ $queryRaw:async()=>{locks+=1;return [{acquired:true}];}
 };
 const scheduler=new BookingScheduleService(prisma);
 const identity={subject:"client-auth"};
