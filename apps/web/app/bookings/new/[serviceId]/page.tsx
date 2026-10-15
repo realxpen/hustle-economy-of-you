@@ -9,9 +9,18 @@ import { useSourcePost } from "../../../../lib/opportunity-source";
 import { checkBookingAvailability, createBooking } from "../../../../lib/booking";
 import { openDirectConversation } from "../../../../lib/messaging";
 import { authUrlFor } from "../../../../lib/auth/safe-auth-next";
+import { getSupabaseBrowserClient } from "../../../../lib/supabase/client";
+import {
+  clearBookingDraft, readBookingDraft, saveBookingDraft,
+  type BookingDraftFields
+} from "../../../../lib/booking-draft";
 import { formatServicePrice, getPublicService } from "../../../../lib/service";
 import type { PublicService } from "@hustle/types";
 import styles from "../../bookings.module.css";
+
+function tabStorage(): Storage | null {
+  try { return window.sessionStorage; } catch { return null; }
+}
 
 function toIso(value: string) {
   if (!value) return undefined;
@@ -32,6 +41,8 @@ export default function NewBookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
+  const [draftPresent, setDraftPresent] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
   const sourcePostId = useSourcePost();
 
   useEffect(() => {
@@ -40,15 +51,57 @@ export default function NewBookingPage() {
     let active = true;
     setData(null);
     setError(null);
+    setDraftPresent(false);
+    setDraftRestored(false);
     void getPublicService(serviceId)
       .then((service) => {
         if (!active) return;
         setData(service);
-        setLocation(service.service.location ?? service.owner.location ?? "");
+        const draft = readBookingDraft(tabStorage(), serviceId);
+        if (draft) {
+          setRequestedStartAt(draft.requestedStartAt);
+          setRequestedEndAt(draft.requestedEndAt);
+          setRequirements(draft.requirements);
+          setLocation(draft.location);
+          setNotes(draft.notes);
+          setDraftPresent(true);
+          setDraftRestored(true);
+        } else {
+          setRequestedStartAt("");
+          setRequestedEndAt("");
+          setRequirements("");
+          setLocation(service.service.location ?? service.owner.location ?? "");
+          setNotes("");
+        }
       })
       .catch((reason: Error) => { if (active) setError(reason.message); });
     return () => { active = false; };
   }, [params?.serviceId, retryVersion]);
+
+  function draftFields(): BookingDraftFields {
+    return { requestedStartAt, requestedEndAt, requirements, location, notes };
+  }
+
+  function updateDraft(patch: Partial<BookingDraftFields>) {
+    const serviceId = params?.serviceId;
+    if (!serviceId) return;
+    const saved = saveBookingDraft(tabStorage(), serviceId, { ...draftFields(), ...patch });
+    setDraftPresent(saved);
+    setDraftRestored(false);
+  }
+
+  function discardDraft() {
+    const serviceId = params?.serviceId;
+    if (serviceId) clearBookingDraft(tabStorage(), serviceId);
+    setRequestedStartAt("");
+    setRequestedEndAt("");
+    setRequirements("");
+    setNotes("");
+    setLocation(data?.service.location ?? data?.owner.location ?? "");
+    setDraftPresent(false);
+    setDraftRestored(false);
+    setError(null);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,6 +128,15 @@ export default function NewBookingPage() {
     setSubmitting(true);
     setError(null);
     try {
+      // Preserve the prepared request before an authentication handoff.
+      saveBookingDraft(tabStorage(), data.service.id, draftFields());
+      const { data: { session }, error: authError } = await getSupabaseBrowserClient().auth.getSession();
+      if (authError) throw authError;
+      if (!session?.access_token) {
+        window.location.assign(authUrlFor(window.location.pathname + window.location.search));
+        return;
+      }
+
       const availability = await checkBookingAvailability({
         serviceId: data.service.id,
         startAt: start,
@@ -95,6 +157,8 @@ export default function NewBookingPage() {
         ...(notes.trim() ? { notes: notes.trim() } : {}),
         conversationId: direct.conversation.id
       });
+      clearBookingDraft(tabStorage(), data.service.id);
+      setDraftPresent(false);
       router.push(`/bookings/${booking.id}`);
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Could not create booking request";
@@ -146,32 +210,40 @@ export default function NewBookingPage() {
       </section>
 
       <form className={styles.formCard} onSubmit={submit} aria-busy={submitting} aria-describedby="booking-form-help">
-        <p id="booking-form-help" className="h-ui-subtitle">Only the requested start and project description are required. We check availability before sending the request.</p>
+        <p id="booking-form-help" className="h-ui-subtitle">Only the requested start and project description are required. We check availability before sending the request. If you need to sign in, your draft will still be here when you return.</p>
+        <div className={styles.draftStatus} role="status">
+          <span>{draftRestored
+            ? "Draft restored — finish your request when ready."
+            : draftPresent
+              ? "Draft saved in this tab. Nothing has been sent or charged."
+              : "Your draft is stored only in this browser tab for up to 2 hours as you type."}</span>
+          {draftPresent && <button type="button" onClick={discardDraft} disabled={submitting}>Clear draft</button>}
+        </div>
         <div className={styles.grid2}>
           <div className={styles.field}>
             <label htmlFor="start">REQUESTED START</label>
-            <input id="start" type="datetime-local" required aria-invalid={Boolean(error && error.includes("start"))} value={requestedStartAt} onChange={(event) => { setRequestedStartAt(event.target.value); if (error) setError(null); }} />
+            <input id="start" type="datetime-local" required aria-invalid={Boolean(error && error.includes("start"))} value={requestedStartAt} onChange={(event) => { setRequestedStartAt(event.target.value); updateDraft({ requestedStartAt: event.target.value }); if (error) setError(null); }} />
           </div>
           <div className={styles.field}>
             <label htmlFor="end">REQUESTED END · OPTIONAL</label>
-            <input id="end" type="datetime-local" aria-invalid={Boolean(error && error.includes("end"))} value={requestedEndAt} onChange={(event) => { setRequestedEndAt(event.target.value); if (error) setError(null); }} />
+            <input id="end" type="datetime-local" aria-invalid={Boolean(error && error.includes("end"))} value={requestedEndAt} onChange={(event) => { setRequestedEndAt(event.target.value); updateDraft({ requestedEndAt: event.target.value }); if (error) setError(null); }} />
           </div>
         </div>
 
         <div className={styles.field}>
           <label htmlFor="requirements">WHAT DO YOU NEED?</label>
-          <textarea id="requirements" required maxLength={4000} aria-describedby="requirements-hint" value={requirements} onChange={(event) => { setRequirements(event.target.value); if (error) setError(null); }} placeholder="Describe the project, expected outcome, important features, constraints and deadline." />
+          <textarea id="requirements" required maxLength={4000} aria-describedby="requirements-hint" value={requirements} onChange={(event) => { setRequirements(event.target.value); updateDraft({ requirements: event.target.value }); if (error) setError(null); }} placeholder="Describe the project, expected outcome, important features, constraints and deadline." />
           <small id="requirements-hint">Explain the outcome you need. {requirements.length}/4000 characters.</small>
         </div>
 
         <div className={styles.grid2}>
           <div className={styles.field}>
             <label htmlFor="location">LOCATION · OPTIONAL</label>
-            <input id="location" maxLength={300} value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Lagos, Nigeria" />
+            <input id="location" maxLength={300} value={location} onChange={(event) => { setLocation(event.target.value); updateDraft({ location: event.target.value }); }} placeholder="Lagos, Nigeria" />
           </div>
           <div className={styles.field}>
             <label htmlFor="notes">NOTES · OPTIONAL</label>
-            <input id="notes" maxLength={2000} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Anything else the Hustler should know" />
+            <input id="notes" maxLength={2000} value={notes} onChange={(event) => { setNotes(event.target.value); updateDraft({ notes: event.target.value }); }} placeholder="Anything else the Hustler should know" />
           </div>
         </div>
 

@@ -79,6 +79,22 @@ function inputLocalDate(value) {
     assert.equal(bookingApiWrites, 0, "Invalid booking must not write to API");
     steps.push("Invalid schedule is rejected in real browser before authenticated API calls");
 
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByText("Draft restored — finish your request when ready.").waitFor({ timeout: 15000 });
+    assert.equal(await page.locator("#requirements").inputValue(), "I need a routine synthetic barber appointment.");
+    assert.equal(await page.locator("#start").inputValue(), inputLocalDate(start));
+    assert.equal(await page.locator("#end").inputValue(), inputLocalDate(new Date(start.getTime() - 60_000)));
+    steps.push("Typed Booking schedule and description survive full page reload in the same tab");
+
+    await page.getByRole("button", { name: "Clear draft" }).click();
+    assert.equal(await page.locator("#requirements").inputValue(), "");
+    assert.equal(await page.locator("#start").inputValue(), "");
+    assert.equal(bookingApiWrites, 0, "Saving or clearing a draft must never submit a Booking");
+    const savedDraftCount = await page.evaluate(() => Object.keys(sessionStorage)
+      .filter((key) => key.startsWith("hustle:booking-draft:")).length);
+    assert.equal(savedDraftCount, 0, "Clear draft removes the private tab copy");
+    steps.push("Clear draft removes local copy and form values without backend mutation");
+
     await page.close();
     const retryPage = await browser.newPage({ viewport: { width: 320, height: 640 }, reducedMotion: "reduce" });
     await retryPage.route("**/api/v1/services/qa-service", async (route) => route.fulfill({
