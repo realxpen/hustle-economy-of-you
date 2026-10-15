@@ -83,3 +83,27 @@
 .priorityAction{display:block;margin-top:12px;font-size:12px;font-weight:900;color:#6d2b0f}
 
 .actionNote{font-size:12px;line-height:1.5;color:#645e52;background:#fff7e6;border:1px solid #e1c59a;padding:12px;border-radius:12px;margin:0}
+
+/* FlowTime availability: labelled live slots and clear treatment of full capacity. */
+.flowTimeSlots{display:grid;gap:12px;padding:16px;border:1px solid #d1c6b7;border-radius:18px;background:#fffdf9;min-width:0}
+.flowTimeHead{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px}
+.flowTimeHead strong{font-size:16px}.flowTimeHead p{font-size:12px;line-height:1.5;margin:5px 0;color:#625d55}
+.flowTimeHead span{font-size:11px;font-weight:800;color:#665d4e}
+.flowTimeDate{display:flex;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;font-weight:800}
+.flowTimeDate input{min-width:160px;min-height:44px;padding:8px 12px;background:#fff;border-radius:12px;border:1px solid #cabda8}
+.flowTimeGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;min-width:0}
+.flowTimeGrid button{display:grid;gap:5px;min-height:58px;padding:10px 8px;border:1px solid #cac4b6;border-radius:13px;background:#fff;color:#131313;cursor:pointer}
+.flowTimeGrid button:not(:disabled):hover,.flowTimeGrid button:not(:disabled):focus-visible{border-color:#ec702a;outline:2px solid #ffc19b;outline-offset:1px}
+.flowTimeGrid button:disabled{cursor:not-allowed;color:#74685f;border-style:dashed;background:#f4f1ec}
+.flowTimeGrid button strong{font-size:13px}.flowTimeGrid button small{font-size:11px;color:#655d50}
+.flowTimeAvailable,.flowTimeUnavailable{padding:10px 12px;border-radius:12px;font-size:12px;line-height:1.5;font-weight:650}
+.flowTimeAvailable{background:#e9f5ec;color:#17502c;border:1px solid #a4d5b0}
+.flowTimeUnavailable{background:#fff2e9;color:#822d0c;border:1px solid #efc7ac}
+.flowTimeExtend{display:grid;gap:12px;margin-top:15px;padding:16px;border:1px solid #e2b77d;background:#fffbf4;border-radius:18px}
+.flowTimeExtend label{display:grid;gap:7px;font-size:12px;font-weight:700}
+.flowTimeExtend select,.flowTimeExtend textarea{width:100%;min-height:44px;padding:10px;border:1px solid #bdb9ae;border-radius:12px;font:inherit;background:#fff}
+.flowTimeExtend textarea{min-height:70px}
+.flowTimeExtend p{font-size:12px;line-height:1.5;color:#615748}
+.flowTimeExtend button{min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid #111;background:#111;color:#fff;font-weight:800;cursor:pointer}
+.flowTimeExtend button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:580px){.flowTimeSlots{padding:12px}.flowTimeGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
