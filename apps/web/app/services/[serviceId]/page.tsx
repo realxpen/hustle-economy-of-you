@@ -5,6 +5,7 @@ import { ExperienceState } from "../../../components/experience/experience-state
 import { useEffect, useState } from "react";
 import { OpportunityContext } from "../../../components/commerce/opportunity-context";
 import { useSourcePost, withSourcePost } from "../../../lib/opportunity-source";
+import { withTransactionReturnTo } from "../../../lib/transaction-return";
 import { useParams } from "next/navigation";
 import type { PublicService } from "@hustle/types";
 import { formatServicePrice, getPublicService } from "../../../lib/service";
@@ -39,6 +40,8 @@ export default function PublicServicePage() {
 
   const { service, owner } = currentData;
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
+  const preparedBookingHref = withSourcePost(`/bookings/new/${encodeURIComponent(service.id)}`, sourcePostId);
+  const consultHref = withTransactionReturnTo(`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`, preparedBookingHref);
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Service" trail={[{ href: "/marketplace", label: "Marketplace" }]} />
@@ -50,8 +53,8 @@ export default function PublicServicePage() {
         <h1 className="h-experience-heading">{service.title}</h1>
         <strong>{formatServicePrice(service)}</strong>
         <div className={styles.offerActions}>
-          <a className={styles.bookButton} href={withSourcePost(`/bookings/new/${encodeURIComponent(service.id)}`, sourcePostId)}>Book this service →</a>
-          <a className={styles.messageButton} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`}>Message first</a>
+          <a className={styles.bookButton} href={preparedBookingHref}>Book this service →</a>
+          <a className={styles.messageButton} href={consultHref}>Message first</a>
         </div>
       </div>
       <aside className={styles.ownerCard}>
@@ -60,7 +63,7 @@ export default function PublicServicePage() {
         <h2>{owner.displayName ?? `@${owner.username}`}</h2>
         <p>@{owner.username} · {owner.location ?? "Location not set"}</p>
         <div className={styles.badges}><span>HUSTLER</span>{owner.verified && <span>VERIFIED</span>}</div>
-        <a href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`}>Message about this service →</a>
+        <a href={consultHref}>Message about this service →</a>
         {owner.username && <a href={`/u/${owner.username}`}>View professional identity ↗</a>}
       </aside>
     </section>

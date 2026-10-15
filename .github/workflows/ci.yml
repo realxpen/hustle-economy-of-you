@@ -33,6 +33,8 @@ jobs:
         run: node scripts/experience/check-auth-opportunity-return.cjs
       - name: Private booking draft continuity and privacy contracts
         run: node scripts/experience/check-booking-draft.cjs
+      - name: Consult-first to prepared Booking return contracts
+        run: node scripts/experience/check-consultation-booking-return.cjs
       - name: Staging QA safety policy regression (no credentials or external calls)
         run: node scripts/experience/check-staging-acceptance-policy.cjs
       - name: Creator publishing and Live UX contracts
