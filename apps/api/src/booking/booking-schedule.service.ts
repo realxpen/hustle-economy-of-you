@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable } from "@nestjs/common";
-import { BookingOperationMode, BookingStatus, Prisma } from "@prisma/client";
+import { BookingOperationMode, BookingStatus, Prisma, ServiceStatus } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
@@ -10,7 +10,7 @@ const blockingStatuses: BookingStatus[] = [
 ];
 
 const scheduleSelect = {
-  id: true, professionalProfileId: true, bookingMode: true, bookingTimezone: true,
+  id: true, status: true, professionalProfileId: true, bookingMode: true, bookingTimezone: true,
   resourcePoolKey: true, defaultDurationMinutes: true, prepMinutes: true,
   bufferMinutes: true, parallelCapacity: true, overbookingAllowance: true,
   weeklyHours: true, blackoutDates: true, maxActiveJobs: true,
@@ -215,6 +215,7 @@ export class BookingScheduleService {
     const end = this.optionalDate(input.endAt, "endAt");
     if (end && end <= start) throw new BadRequestException("endAt must be after startAt");
     const service = await this.loadService(this.prisma, input.serviceId.trim());
+    if (service.status !== ServiceStatus.PUBLISHED) throw new BadRequestException("Service is not currently public");
     return this.availabilityForService(this.prisma, service, start, end);
   }
 
@@ -315,6 +316,7 @@ export class BookingScheduleService {
     const dayOffset = (Date.parse(date + "T00:00:00Z") - Date.now()) / 86_400_000;
     if (dayOffset < -1 || dayOffset > 90) throw new BadRequestException("Choose a day within the next 90 days");
     const service = await this.loadService(this.prisma, serviceId);
+    if (service.status !== ServiceStatus.PUBLISHED) throw new BadRequestException("Service is not currently public");
     if (service.bookingMode !== BookingOperationMode.APPOINTMENT) {
       return { mode: service.bookingMode, date, timezone: service.bookingTimezone,
         turnaroundHours: service.turnaroundHours, slots: [] };
