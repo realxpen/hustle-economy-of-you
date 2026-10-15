@@ -5,7 +5,8 @@ import { ExperienceHeader } from "../../../../components/navigation/experience-h
 import { ExperienceState } from "../../../../components/experience/experience-state";
 import { useParams, useRouter } from "next/navigation";
 import { OpportunityContext } from "../../../../components/commerce/opportunity-context";
-import { useSourcePost } from "../../../../lib/opportunity-source";
+import { useSourcePost, withSourcePost } from "../../../../lib/opportunity-source";
+import { withTransactionReturnTo } from "../../../../lib/transaction-return";
 import { checkBookingAvailability, createBooking } from "../../../../lib/booking";
 import { openDirectConversation } from "../../../../lib/messaging";
 import { authUrlFor } from "../../../../lib/auth/safe-auth-next";
@@ -177,6 +178,11 @@ export default function NewBookingPage() {
   if (!currentData) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Service and schedule…" /></main>;
 
   const { service, owner } = currentData;
+  const bookingReturn = withSourcePost(`/bookings/new/${encodeURIComponent(service.id)}`, sourcePostId);
+  const consultHref = withTransactionReturnTo(
+    `/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`,
+    bookingReturn
+  );
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Request a Booking"
@@ -186,8 +192,8 @@ export default function NewBookingPage() {
     <OpportunityContext sourcePostId={sourcePostId} ownerUsername={owner.username}
       offerHref={`/services/${encodeURIComponent(service.id)}`} offerLabel="Review service" />
     <div className={styles.bookingConsult}>
-      <div><strong>Want to clarify the job first?</strong><span>Ask questions about scope, timing, or pricing without sending a booking request.</span></div>
-      <a href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`}>
+      <div><strong>Want to clarify the job first?</strong><span>Ask questions about scope, timing, or pricing, then return to this Booking request. Your draft stays in this tab.</span></div>
+      <a href={consultHref}>
         Consult {owner.displayName ?? owner.username ?? "Hustler"} ↗
       </a>
     </div>
