@@ -345,7 +345,8 @@ export class BookingService {
     const updated = await this.prisma.$transaction(async (tx) => {
       // Serialize extensions with acceptances and other extensions for this Hustler.
       // Load under the lock so concurrent changes are never silently overwritten.
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${viewer.id}), 19477)`;
+      const locks = await tx.$queryRaw<{ acquired: boolean }[]>`SELECT pg_try_advisory_xact_lock(hashtext(${viewer.id}), 19477) AS acquired`;
+      if (!locks[0]?.acquired) throw new ConflictException("Booking schedule is being updated. Retry shortly");
       const existing = await tx.booking.findUnique({ where: { id }, select: bookingSelect });
       if (!existing || existing.hustlerUserId !== viewer.id) throw new NotFoundException("Booking not found");
       if (existing.status !== BookingStatus.IN_PROGRESS ||
