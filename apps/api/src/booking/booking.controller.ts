@@ -52,7 +52,14 @@ export class BookingController {
     return this.bookingScheduleService.checkAvailability(identity, query);
   }
 
-  @Get("duration-insights")
+  @Get("slots")
+  slots(@CurrentIdentity() identity: AuthIdentity,
+        @Query("serviceId") serviceId: string,
+        @Query("date") date: string) {
+    return this.bookingScheduleService.listSlots(identity, serviceId, date);
+  }
+
+    @Get("duration-insights")
   durationInsights(
     @CurrentIdentity() identity: AuthIdentity,
     @Query("serviceId") serviceId: string
