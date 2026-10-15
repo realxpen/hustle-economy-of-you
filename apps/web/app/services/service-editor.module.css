@@ -25,3 +25,19 @@
 @media(prefers-reduced-transparency:reduce){
  .form,.preview{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+/* FlowTime: advanced controls remain usable on narrow screens and mobile devices. */
+.flowtime{display:grid;gap:15px;margin:24px 0;border-top:1px solid var(--h-border,#d3d0c7);padding-top:20px;min-width:0}
+.flowtimeHint{font-size:12px;line-height:1.65;color:var(--h-muted,#5f5c54);margin:0}
+.flowtimeHours{display:grid;gap:9px;padding:15px;border-radius:18px;background:var(--h-surface,#fff);border:1px solid var(--h-border,#d3d0c7)}
+.flowtimeHours>div:first-child>p{font-size:12px;line-height:1.5;color:#5f5c54}
+.flowtimeHours>button{border-radius:999px;min-height:44px;padding:9px 14px;background:#111;color:#fff;cursor:pointer;font-weight:800}
+.flowtimeDay{display:grid;grid-template-columns:minmax(70px,.7fr) minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center;min-width:0}
+.flowtimeDay label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:750}
+.flowtimeDay label input{width:auto;flex:none}
+.flowtimeDay>input{width:100%;min-width:0;border:1px solid #ccc7bb;padding:8px;border-radius:10px}
+.flowtimeDay>span{grid-column:2/4;color:#888;font-size:12px}
+@media(max-width:560px){.flowtime{gap:12px}.flowtimeHours{padding:10px}.flowtimeDay{gap:5px;grid-template-columns:70px minmax(0,1fr) minmax(0,1fr)}.flowtimeDay>input{font-size:12px;padding:6px}}
+
+.flowtimeApply{display:inline-flex;align-items:center;border:1px solid #ed7739;border-radius:999px;margin:6px 0 6px 10px;padding:8px 12px;min-height:40px;background:#fff;color:#9a3f19;font-size:12px;font-weight:850;cursor:pointer}
+.flowtimeApply:focus-visible{outline:2px solid #fd702c;outline-offset:3px}

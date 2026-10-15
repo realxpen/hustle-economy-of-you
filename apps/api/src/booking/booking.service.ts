@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import {
   BookingStatus,
+  NotificationKind,
   Capability,
   CapabilityStatus,
   Prisma,
@@ -16,6 +17,7 @@ import {
 
 import { PrismaService } from "../database/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { BookingScheduleService } from "./booking-schedule.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 
 export interface CreateBookingInput {
@@ -36,6 +38,11 @@ export interface BookingPaginationInput {
 export interface AcceptBookingInput {
   confirmedStartAt?: unknown;
   confirmedEndAt?: unknown;
+}
+
+export interface ExtendBookingInput {
+  minutes?: unknown;
+  note?: unknown;
 }
 
 export interface DeclineBookingInput {
@@ -73,6 +80,10 @@ const bookingSelect = {
   requestedEndAt: true,
   confirmedStartAt: true,
   confirmedEndAt: true,
+  scheduledDurationMinutes: true,
+  extendedMinutes: true,
+  actualStartedAt: true,
+  actualFinishedAt: true,
   requirements: true,
   location: true,
   notes: true,
@@ -117,7 +128,11 @@ type BookingRecord = Prisma.BookingGetPayload<{ select: typeof bookingSelect }>;
 
 @Injectable()
 export class BookingService {
-  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+    private readonly schedule: BookingScheduleService
+  ) {}
 
   async create(identity: AuthIdentity, input: CreateBookingInput) {
     const client = await this.requireUser(identity);
@@ -264,18 +279,37 @@ export class BookingService {
     const nextStatus = paid ? BookingStatus.PAYMENT_PENDING : BookingStatus.ACCEPTED;
     const now = new Date();
 
-    const updated = await this.transition(
-      id,
-      BookingStatus.REQUESTED,
-      {
-        status: nextStatus,
-        confirmedStartAt,
-        confirmedEndAt,
-        acceptedAt: now,
-        ...(paid ? { paymentPendingAt: now } : {})
-      },
-      viewer.id
-    );
+    // One transaction owns BOTH capacity checking and the status mutation.
+    // Advisory locking on the Hustler prevents simultaneous last-slot acceptances.
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const availability = await this.schedule.reserveWithinTransaction(tx, {
+        serviceId: booking.serviceId,
+        hustlerUserId: viewer.id,
+        startAt: confirmedStartAt,
+        endAt: confirmedEndAt,
+        excludeBookingId: id
+      });
+      const result = await tx.booking.updateMany({
+        where: { id, status: BookingStatus.REQUESTED },
+        data: {
+          status: nextStatus,
+          confirmedStartAt,
+          confirmedEndAt: availability.endAt,
+          scheduledDurationMinutes: availability.endAt
+            ? Math.ceil((availability.endAt.getTime() - confirmedStartAt.getTime()) / 60_000)
+            : null,
+          acceptedAt: now,
+          ...(paid ? { paymentPendingAt: now } : {})
+        }
+      });
+      if (result.count !== 1) {
+        throw new ConflictException("Booking changed before acceptance; refresh and try again");
+      }
+      const confirmed = await tx.booking.findUnique({ where: { id }, select: bookingSelect });
+      if (!confirmed) throw new NotFoundException("Booking unavailable");
+      await this.notifications.recordBookingStatus(tx, confirmed, nextStatus, viewer.id);
+      return confirmed;
+    }, { maxWait: 5000, timeout: 12000 });
 
     await this.recordEvent("booking.accepted", {
       bookingId: id,
@@ -295,6 +329,79 @@ export class BookingService {
       });
     }
 
+    return this.serializeBooking(updated, viewer.id);
+  }
+
+  async extend(identity: AuthIdentity, bookingId: string, input: ExtendBookingInput) {
+    const viewer = await this.requireUser(identity);
+    await this.requireActiveHustler(viewer.id);
+    const id = this.requiredId(bookingId, "bookingId");
+    if (typeof input.minutes !== "number" || !Number.isInteger(input.minutes) ||
+        input.minutes < 5 || input.minutes > 120 || input.minutes % 5 !== 0) {
+      throw new BadRequestException("Extension must be 5 to 120 minutes in five-minute increments");
+    }
+    const minutes = input.minutes;
+    const note = this.optionalText(input.note, "note", 300);
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // Serialize extensions with acceptances and other extensions for this Hustler.
+      // Load under the lock so concurrent changes are never silently overwritten.
+      const locks = await tx.$queryRaw<{ acquired: boolean }[]>`SELECT pg_try_advisory_xact_lock(hashtext(${viewer.id}), 19477) AS acquired`;
+      if (!locks[0]?.acquired) throw new ConflictException("Booking schedule is being updated. Retry shortly");
+      const existing = await tx.booking.findUnique({ where: { id }, select: bookingSelect });
+      if (!existing || existing.hustlerUserId !== viewer.id) throw new NotFoundException("Booking not found");
+      if (existing.status !== BookingStatus.IN_PROGRESS ||
+          !existing.confirmedStartAt || !existing.confirmedEndAt) {
+        throw new ConflictException("Only work currently in progress with a scheduled end can be extended");
+      }
+      if (existing.extendedMinutes + minutes > 240) {
+        throw new ConflictException("Total extensions may not exceed four hours; contact the Client to reschedule");
+      }
+      const proposed = new Date(existing.confirmedEndAt.getTime() + minutes * 60_000);
+      if (proposed.getTime() <= Date.now()) {
+        throw new ConflictException("Extension must leave an expected finish in the future");
+      }
+      // Lock already held on this transaction; re-check shared resource capacity.
+      const availability = await this.schedule.reserveWithinTransaction(tx, {
+        serviceId: existing.serviceId, hustlerUserId: viewer.id,
+        startAt: existing.confirmedStartAt, endAt: proposed,
+        excludeBookingId: id, allowExistingStart: true
+      });
+      if (availability.endAt?.getTime() !== proposed.getTime()) {
+        throw new ConflictException("Extension does not match the scheduling mode");
+      }
+      const result = await tx.booking.updateMany({
+        where: { id, status: BookingStatus.IN_PROGRESS, confirmedEndAt: existing.confirmedEndAt,
+          extendedMinutes: existing.extendedMinutes },
+        data: { confirmedEndAt: proposed, extendedMinutes: { increment: minutes } }
+      });
+      if (result.count !== 1) throw new ConflictException("Booking schedule changed; refresh and retry");
+      const revision = await tx.bookingScheduleRevision.create({
+        data: { bookingId: id, actorUserId: viewer.id,
+          previousEndAt: existing.confirmedEndAt, newEndAt: proposed,
+          addedMinutes: minutes, note }
+      });
+      // State-change notifications are idempotent by status; an extension needs
+      // its own event key to notify Clients on EVERY successful revision.
+      await tx.notification.create({
+        data: {
+          recipientUserId: existing.clientUserId,
+          eventKey: `booking:${id}:extension:${revision.id}`,
+          kind: NotificationKind.BOOKING,
+          title: "Booking time extended",
+          body: `Your Hustler extended the expected finish by ${minutes} minutes.` +
+            (note ? ` Note: ${note}` : "") + " The booking price is unchanged.",
+          href: `/bookings/${encodeURIComponent(id)}`
+        }
+      });
+      const confirmed = await tx.booking.findUnique({ where: { id }, select: bookingSelect });
+      if (!confirmed) throw new NotFoundException("Booking unavailable");
+      return confirmed;
+    }, { maxWait: 5000, timeout: 12000 });
+    await this.recordEvent("booking.schedule_extended", {
+      bookingId: id, serviceId: updated.serviceId,
+      actorUserId: viewer.id, addedMinutes: minutes,
+      hasNote: Boolean(note), priceChanged: false
+    });
     return this.serializeBooking(updated, viewer.id);
   }
 
@@ -405,7 +512,7 @@ export class BookingService {
     const updated = await this.transition(
       id,
       requiredStatus,
-      { status: BookingStatus.IN_PROGRESS, startedAt: new Date() },
+      { status: BookingStatus.IN_PROGRESS, startedAt: new Date(), actualStartedAt: new Date() },
       viewer.id
     );
 
@@ -437,7 +544,7 @@ export class BookingService {
     const updated = await this.transition(
       id,
       BookingStatus.IN_PROGRESS,
-      { status: BookingStatus.COMPLETED, completedAt: new Date() },
+      { status: BookingStatus.COMPLETED, completedAt: new Date(), actualFinishedAt: new Date() },
       viewer.id
     );
 

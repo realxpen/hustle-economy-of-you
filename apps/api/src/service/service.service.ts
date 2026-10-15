@@ -5,6 +5,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import {
+  Prisma,
   ProfessionalProfileStatus,
   ServiceDeliveryMode,
   ServicePricingType,
@@ -26,6 +27,19 @@ export interface SaveServiceInput {
   availabilityNote?: unknown;
   deliveryTime?: unknown;
   requirements?: unknown;
+  bookingMode?: unknown;
+  bookingTimezone?: unknown;
+  resourcePoolKey?: unknown;
+  defaultDurationMinutes?: unknown;
+  prepMinutes?: unknown;
+  bufferMinutes?: unknown;
+  parallelCapacity?: unknown;
+  overbookingAllowance?: unknown;
+  weeklyHours?: unknown;
+  blackoutDates?: unknown;
+  maxActiveJobs?: unknown;
+  turnaroundHours?: unknown;
+  autoExtensionMinutes?: unknown;
 }
 
 @Injectable()
@@ -335,6 +349,72 @@ export class ServiceService {
     const deliveryTime = this.optionalText(input.deliveryTime, "deliveryTime", 120);
     const requirements = this.optionalText(input.requirements, "requirements", 1500);
 
+    const mode = input.bookingMode === undefined ? undefined : input.bookingMode;
+    if (mode !== undefined && !["APPOINTMENT", "WORK_QUEUE", "CONSULTATION"].includes(String(mode))) {
+      throw new BadRequestException("Invalid FlowTime booking mode");
+    }
+    const timezone = input.bookingTimezone === undefined ? undefined : this.optionalText(input.bookingTimezone, "bookingTimezone", 64);
+    if (timezone !== undefined) {
+      if (!timezone) throw new BadRequestException("FlowTime timezone is required");
+      try { new Intl.DateTimeFormat("en", { timeZone: timezone }); }
+      catch { throw new BadRequestException("Unknown FlowTime timezone"); }
+    }
+    const pool = input.resourcePoolKey === undefined ? undefined : this.optionalText(input.resourcePoolKey, "resourcePoolKey", 40);
+    if (pool !== undefined && (!pool || !/^[a-zA-Z0-9_-]{2,40}$/.test(pool))) {
+      throw new BadRequestException("Resource pool must be 2–40 letters, digits, _ or -");
+    }
+    const number = (value: unknown, label: string, min: number, max: number) => {
+      if (value === undefined) return undefined;
+      if (typeof value !== "number" || !Number.isInteger(value) || value < min || value > max) {
+        throw new BadRequestException(`${label} must be an integer from ${min} to ${max}`);
+      }
+      return value;
+    };
+    const numeric = {
+      defaultDurationMinutes: number(input.defaultDurationMinutes, "Default duration", 5, 1440),
+      prepMinutes: number(input.prepMinutes, "Preparation", 0, 120),
+      bufferMinutes: number(input.bufferMinutes, "Recovery buffer", 0, 180),
+      parallelCapacity: number(input.parallelCapacity, "Parallel capacity", 1, 100),
+      overbookingAllowance: number(input.overbookingAllowance, "Overbooking allowance", 0, 10),
+      maxActiveJobs: number(input.maxActiveJobs, "Maximum active jobs", 1, 10000),
+      turnaroundHours: number(input.turnaroundHours, "Turnaround", 1, 8760),
+      autoExtensionMinutes: number(input.autoExtensionMinutes, "Auto-extension limit", 0, 120)
+    };
+    let hours: { day: number; start: string; end: string }[] | null | undefined;
+    if (input.weeklyHours !== undefined) {
+      if (input.weeklyHours !== null && !Array.isArray(input.weeklyHours)) {
+        throw new BadRequestException("Weekly hours must be a list or null");
+      }
+      hours = input.weeklyHours === null ? null : (input.weeklyHours as unknown[]).map((raw) => {
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new BadRequestException("Invalid weekly opening window");
+        const item = raw as Record<string, unknown>;
+        const clock = (v: unknown) => typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
+        if (typeof item.day !== "number" || !Number.isInteger(item.day) || item.day < 0 || item.day > 6 ||
+            !clock(item.start) || !clock(item.end) || String(item.end) <= String(item.start)) {
+          throw new BadRequestException("Weekly hours need a weekday and increasing 24-hour start/end");
+        }
+        return { day: Number(item.day), start: String(item.start), end: String(item.end) };
+      });
+      if (hours && hours.length > 21) throw new BadRequestException("Too many weekly windows");
+      if (hours) {
+        for (const item of hours) for (const other of hours) {
+          if (item !== other && item.day === other.day && item.start < other.end && other.start < item.end)
+            throw new BadRequestException("Weekly opening windows must not overlap");
+        }
+      }
+    }
+    let blackoutDates: string[] | undefined;
+    if (input.blackoutDates !== undefined) {
+      if (!Array.isArray(input.blackoutDates) || input.blackoutDates.length > 365 ||
+          input.blackoutDates.some((d) => typeof d !== "string" ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(d) ||
+            Number.isNaN(new Date(d + "T00:00:00Z").getTime()) ||
+            new Date(d + "T00:00:00Z").toISOString().slice(0, 10) !== d)) {
+        throw new BadRequestException("Blackout dates must be valid ISO calendar dates");
+      }
+      blackoutDates = [...new Set(input.blackoutDates as string[])];
+    }
+
     return {
       ...(title !== undefined ? { title } : {}),
       ...(category !== undefined ? { category } : {}),
@@ -346,7 +426,13 @@ export class ServiceService {
       ...(location !== undefined ? { location } : {}),
       ...(availabilityNote !== undefined ? { availabilityNote } : {}),
       ...(deliveryTime !== undefined ? { deliveryTime } : {}),
-      ...(requirements !== undefined ? { requirements } : {})
+      ...(requirements !== undefined ? { requirements } : {}),
+      ...(mode !== undefined ? { bookingMode: mode as "APPOINTMENT" | "WORK_QUEUE" | "CONSULTATION" } : {}),
+      ...(timezone !== undefined ? { bookingTimezone: timezone } : {}),
+      ...(pool !== undefined ? { resourcePoolKey: pool } : {}),
+      ...Object.fromEntries(Object.entries(numeric).filter(([, value]) => value !== undefined)),
+      ...(hours !== undefined ? { weeklyHours: hours === null ? Prisma.DbNull : hours } : {}),
+      ...(blackoutDates !== undefined ? { blackoutDates } : {})
     };
   }
 

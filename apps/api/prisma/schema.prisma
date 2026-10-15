@@ -113,6 +113,12 @@ enum ServiceDeliveryMode {
   BOTH
 }
 
+enum BookingOperationMode {
+  APPOINTMENT
+  WORK_QUEUE
+  CONSULTATION
+}
+
 enum ProductType {
   PHYSICAL
   DIGITAL
@@ -668,6 +674,19 @@ model Service {
   availabilityNote      String?
   deliveryTime          String?
   requirements          String?
+  bookingMode           BookingOperationMode @default(APPOINTMENT)
+  bookingTimezone       String               @default("Africa/Lagos")
+  resourcePoolKey       String               @default("primary")
+  defaultDurationMinutes Int                 @default(60)
+  prepMinutes           Int                  @default(0)
+  bufferMinutes         Int                  @default(0)
+  parallelCapacity      Int                  @default(1)
+  overbookingAllowance  Int                  @default(0)
+  weeklyHours           Json?
+  blackoutDates         String[]             @default([])
+  maxActiveJobs         Int                  @default(10)
+  turnaroundHours       Int                  @default(48)
+  autoExtensionMinutes  Int                  @default(0)
   status                ServiceStatus       @default(DRAFT)
   moderationState       MarketplaceModerationState @default(CLEAR)
   publishedAt           DateTime?
@@ -679,6 +698,7 @@ model Service {
   bookings            Booking[]
 
   @@index([professionalProfileId, status])
+  @@index([professionalProfileId, resourcePoolKey])
   @@index([status, category])
   @@index([createdAt])
 }
@@ -922,6 +942,10 @@ model Booking {
   requestedEndAt       DateTime?
   confirmedStartAt     DateTime?
   confirmedEndAt       DateTime?
+  scheduledDurationMinutes Int?
+  extendedMinutes      Int                @default(0)
+  actualStartedAt      DateTime?
+  actualFinishedAt     DateTime?
   requirements         String
   location             String?
   notes                String?
@@ -949,13 +973,29 @@ model Booking {
   client       User          @relation("BookingClient", fields: [clientUserId], references: [id], onDelete: Restrict)
   hustler      User          @relation("BookingHustler", fields: [hustlerUserId], references: [id], onDelete: Restrict)
   conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  scheduleRevisions BookingScheduleRevision[]
   cancelledBy  User?         @relation("BookingCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
 
   @@index([clientUserId, status, createdAt])
   @@index([hustlerUserId, status, createdAt])
+  @@index([hustlerUserId, status, confirmedStartAt])
   @@index([serviceId, status, requestedStartAt])
   @@index([conversationId])
   @@index([status, createdAt])
+}
+
+model BookingScheduleRevision {
+  id           String   @id @default(cuid())
+  bookingId    String
+  actorUserId  String
+  previousEndAt DateTime?
+  newEndAt     DateTime
+  addedMinutes Int
+  note         String?
+  createdAt    DateTime @default(now())
+  booking      Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@index([bookingId, createdAt])
 }
 
 model Cart {

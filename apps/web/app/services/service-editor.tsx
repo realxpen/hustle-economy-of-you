@@ -5,7 +5,9 @@ import type {
   SaveServiceInput,
   Service,
   ServiceDeliveryMode,
-  ServicePricingType
+  ServicePricingType,
+  BookingOperationMode,
+  WeeklyHoursWindow
 } from "@hustle/types";
 import {
   createService,
@@ -17,6 +19,7 @@ import {
   saveService
 } from "../../lib/service";
 import styles from "./service-editor.module.css";
+import { getServiceDurationInsights } from "../../lib/booking";
 
 type FormState = {
   title: string;
@@ -30,6 +33,19 @@ type FormState = {
   availabilityNote: string;
   deliveryTime: string;
   requirements: string;
+  bookingMode: BookingOperationMode;
+  bookingTimezone: string;
+  resourcePoolKey: string;
+  defaultDurationMinutes: number;
+  prepMinutes: number;
+  bufferMinutes: number;
+  parallelCapacity: number;
+  overbookingAllowance: number;
+  weeklyHours: WeeklyHoursWindow[] | null;
+  blackoutDatesText: string;
+  maxActiveJobs: number;
+  turnaroundHours: number;
+  autoExtensionMinutes: number;
 };
 
 const emptyForm: FormState = {
@@ -43,7 +59,20 @@ const emptyForm: FormState = {
   location: "",
   availabilityNote: "",
   deliveryTime: "",
-  requirements: ""
+  requirements: "",
+  bookingMode: "APPOINTMENT",
+  bookingTimezone: "Africa/Lagos",
+  resourcePoolKey: "primary",
+  defaultDurationMinutes: 60,
+  prepMinutes: 0,
+  bufferMinutes: 15,
+  parallelCapacity: 1,
+  overbookingAllowance: 0,
+  weeklyHours: [1,2,3,4,5,6].map((day) => ({ day, start: "08:00", end: "21:00" })),
+  blackoutDatesText: "",
+  maxActiveJobs: 10,
+  turnaroundHours: 48,
+  autoExtensionMinutes: 0
 };
 
 function toForm(service: Service): FormState {
@@ -58,13 +87,27 @@ function toForm(service: Service): FormState {
     location: service.location ?? "",
     availabilityNote: service.availabilityNote ?? "",
     deliveryTime: service.deliveryTime ?? "",
-    requirements: service.requirements ?? ""
+    requirements: service.requirements ?? "",
+    bookingMode: service.bookingMode,
+    bookingTimezone: service.bookingTimezone,
+    resourcePoolKey: service.resourcePoolKey,
+    defaultDurationMinutes: service.defaultDurationMinutes,
+    prepMinutes: service.prepMinutes,
+    bufferMinutes: service.bufferMinutes,
+    parallelCapacity: service.parallelCapacity,
+    overbookingAllowance: service.overbookingAllowance,
+    weeklyHours: service.weeklyHours,
+    blackoutDatesText: service.blackoutDates.join("\n"),
+    maxActiveJobs: service.maxActiveJobs,
+    turnaroundHours: service.turnaroundHours,
+    autoExtensionMinutes: service.autoExtensionMinutes
   };
 }
 
 export function ServiceEditor({ serviceId }: { serviceId?: string }) {
   const [service, setService] = useState<Service | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [durationInsights, setDurationInsights] = useState<{sampleSize:number;medianMinutes:number|null;suggestedDurationMinutes:number|null}|null>(null);
   const [loading, setLoading] = useState(Boolean(serviceId));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +119,7 @@ export function ServiceEditor({ serviceId }: { serviceId?: string }) {
       .then((next) => {
         setService(next);
         setForm(toForm(next));
+        void getServiceDurationInsights(next.id).then((result)=>setDurationInsights(result)).catch(()=>setDurationInsights(null));
       })
       .catch((reason: Error) => setError(reason.message))
       .finally(() => setLoading(false));
@@ -112,7 +156,20 @@ export function ServiceEditor({ serviceId }: { serviceId?: string }) {
       location: form.location,
       availabilityNote: form.availabilityNote,
       deliveryTime: form.deliveryTime,
-      requirements: form.requirements
+      requirements: form.requirements,
+      bookingMode: form.bookingMode,
+      bookingTimezone: form.bookingTimezone,
+      resourcePoolKey: form.resourcePoolKey,
+      defaultDurationMinutes: form.defaultDurationMinutes,
+      prepMinutes: form.prepMinutes,
+      bufferMinutes: form.bufferMinutes,
+      parallelCapacity: form.parallelCapacity,
+      overbookingAllowance: form.overbookingAllowance,
+      weeklyHours: form.weeklyHours,
+      blackoutDates: form.blackoutDatesText.split(/[\n,]+/).map((d) => d.trim()).filter(Boolean),
+      maxActiveJobs: form.maxActiveJobs,
+      turnaroundHours: form.turnaroundHours,
+      autoExtensionMinutes: form.autoExtensionMinutes
     };
   }
 
@@ -247,6 +304,69 @@ export function ServiceEditor({ serviceId }: { serviceId?: string }) {
           <label><span>Availability *</span><input maxLength={500} value={form.availabilityNote} onChange={(event) => setField("availabilityNote", event.target.value)} placeholder="Mon–Sat, 9am–6pm" /></label>
           <label><span>Delivery time *</span><input maxLength={120} value={form.deliveryTime} onChange={(event) => setField("deliveryTime", event.target.value)} placeholder="Same day, 3 days, 2 weeks…" /></label>
         </div>
+
+        <section className={styles.flowtime} aria-label="FlowTime scheduling configuration">
+          <div className={styles.sectionHeading}><span>03</span><div><strong>FlowTime · Scheduling & capacity</strong><p>Make your own working rules. A solo Hustler stays simple; a team can accept parallel appointments.</p></div></div>
+          <div className={styles.twoCol}>
+            <label><span>How clients book</span><select value={form.bookingMode} onChange={(e) => setField("bookingMode", e.target.value as BookingOperationMode)}>
+              <option value="APPOINTMENT">Appointments · reserve a time</option>
+              <option value="WORK_QUEUE">Work queue · manage active orders</option>
+              <option value="CONSULTATION">Consultation · propose a schedule first</option>
+            </select></label>
+            <label><span>Resource pool</span><input value={form.resourcePoolKey} maxLength={40} onChange={(e)=>setField("resourcePoolKey",e.target.value)} aria-describedby="pool-help" placeholder="primary"/></label>
+          </div>
+          <p id="pool-help" className={styles.flowtimeHint}>Services using the same resource pool share staff and capacity. Use a different pool only for genuinely independent teams or equipment.</p>
+          {form.bookingMode === "APPOINTMENT" ? <>
+            <div className={styles.twoCol}>
+              <label><span>Default work duration · minutes</span><input type="number" min="5" max="1440" step="5" value={form.defaultDurationMinutes} onChange={(e)=>setField("defaultDurationMinutes",Number(e.target.value))}/></label>
+              <label><span>Simultaneous appointments</span><input type="number" min="1" max="100" value={form.parallelCapacity} onChange={(e)=>setField("parallelCapacity",Number(e.target.value))}/></label>
+            </div>
+            {durationInsights && <div className={styles.flowtimeHint} role="status">
+              {durationInsights.suggestedDurationMinutes !== null
+                ? <>Based on {durationInsights.sampleSize} completed jobs, the median duration is {durationInsights.medianMinutes} minutes.
+                  <button type="button" className={styles.flowtimeApply} onClick={()=>setField("defaultDurationMinutes",durationInsights.suggestedDurationMinutes as number)}>
+                    Apply suggested {durationInsights.suggestedDurationMinutes}-minute default
+                  </button></>
+                : <>Duration insights will appear after at least five completed jobs with recorded start and finish times.</>}
+            </div>}
+            <div className={styles.twoCol}>
+              <label><span>Preparation · minutes</span><input type="number" min="0" max="120" value={form.prepMinutes} onChange={(e)=>setField("prepMinutes",Number(e.target.value))}/></label>
+              <label><span>Recovery buffer · minutes</span><input type="number" min="0" max="180" value={form.bufferMinutes} onChange={(e)=>setField("bufferMinutes",Number(e.target.value))}/></label>
+            </div>
+            <div className={styles.twoCol}>
+              <label><span>Controlled overbooking · extra places</span><input type="number" min="0" max="10" value={form.overbookingAllowance} onChange={(e)=>setField("overbookingAllowance",Number(e.target.value))}/><small>Off at 0. Additional customers may experience delays.</small></label>
+              <label><span>Suggested extension allowance · minutes</span><input type="number" min="0" max="120" step="5" value={form.autoExtensionMinutes} onChange={(e)=>setField("autoExtensionMinutes",Number(e.target.value))}/><small>Used for delay planning; never moves another customer's appointment automatically.</small></label>
+            </div>
+            <div className={styles.flowtimeHours}>
+              <div><strong>Weekly business hours</strong><p>Choose the days and times when your appointments can be accepted. Preparation and buffers must also fit.</p></div>
+              {form.weeklyHours === null && <button type="button" onClick={()=>setField("weeklyHours", [1,2,3,4,5,6].map((day)=>({day,start:"08:00",end:"21:00"})))}>Configure weekly hours</button>}
+              {form.weeklyHours !== null && <>
+                {[0,1,2,3,4,5,6].map((day)=>{
+                  const dayLabel = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day];
+                  const current=form.weeklyHours?.find((w)=>w.day===day);
+                  return <div className={styles.flowtimeDay} key={day}>
+                    <label><input type="checkbox" checked={Boolean(current)} onChange={(e)=>setField("weeklyHours",
+                      e.target.checked ? [...(form.weeklyHours ?? []),{day,start:"08:00",end:"21:00"}].sort((a,b)=>a.day-b.day)
+                        : (form.weeklyHours ?? []).filter((w)=>w.day!==day)
+                    )}/>{dayLabel}</label>
+                    {current ? <>
+                      <input aria-label={dayLabel+" opening"} type="time" value={current.start} onChange={(e)=>setField("weeklyHours",(form.weeklyHours ?? []).map((w)=>w.day===day?{...w,start:e.target.value}:w))}/>
+                      <input aria-label={dayLabel+" closing"} type="time" value={current.end} onChange={(e)=>setField("weeklyHours",(form.weeklyHours ?? []).map((w)=>w.day===day?{...w,end:e.target.value}:w))}/>
+                    </> : <span>Closed</span>}
+                  </div>;
+                })}
+              </>}
+            </div>
+          </> : <div className={styles.twoCol}>
+            <label><span>Maximum active jobs</span><input type="number" min="1" max="10000" value={form.maxActiveJobs} onChange={(e)=>setField("maxActiveJobs",Number(e.target.value))}/></label>
+            <label><span>Usual turnaround · hours</span><input type="number" min="1" max="8760" value={form.turnaroundHours} onChange={(e)=>setField("turnaroundHours",Number(e.target.value))}/></label>
+          </div>}
+          <div className={styles.twoCol}>
+            <label><span>Business time zone</span><input required value={form.bookingTimezone} maxLength={64} onChange={(e)=>setField("bookingTimezone",e.target.value)} placeholder="Africa/Lagos"/></label>
+            <label><span>Dates unavailable (one YYYY-MM-DD per line)</span><textarea rows={3} value={form.blackoutDatesText} onChange={(e)=>setField("blackoutDatesText",e.target.value)} placeholder="2026-12-25"/></label>
+          </div>
+          <p className={styles.flowtimeHint}>Requests do not reserve capacity until accepted. Confirmed work is checked again inside a database transaction. Optional overlap is limited by the capacity you set; clients never see other customers' details.</p>
+        </section>
 
         <label><span>Client requirements</span><textarea rows={5} maxLength={1500} value={form.requirements} onChange={(event) => setField("requirements", event.target.value)} placeholder="What should the client provide before work starts?" /></label>
 

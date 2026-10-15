@@ -55,6 +55,8 @@ jobs:
       - run: npm run build --workspace=@hustle/web
       - run: npm run build --workspace=@hustle/admin
       - run: npm run build --workspace=@hustle/api
+      - name: FlowTime adaptive scheduling and capacity safety regression
+        run: node scripts/experience/check-flowtime.cjs
       - name: Install Chromium for isolated local Web UI smoke
         run: |
           npm install --prefix /tmp/hustle-smoke --no-save --no-package-lock playwright@1.56.1
