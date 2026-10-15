@@ -388,7 +388,7 @@ export class ServiceService {
       hours = input.weeklyHours === null ? null : (input.weeklyHours as unknown[]).map((raw) => {
         if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new BadRequestException("Invalid weekly opening window");
         const item = raw as Record<string, unknown>;
-        const clock = (v: unknown) => typeof v === "string" && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(v);
+        const clock = (v: unknown) => typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
         if (typeof item.day !== "number" || !Number.isInteger(item.day) || item.day < 0 || item.day > 6 ||
             !clock(item.start) || !clock(item.end) || String(item.end) <= String(item.start)) {
           throw new BadRequestException("Weekly hours need a weekday and increasing 24-hour start/end");
@@ -407,7 +407,7 @@ export class ServiceService {
     if (input.blackoutDates !== undefined) {
       if (!Array.isArray(input.blackoutDates) || input.blackoutDates.length > 365 ||
           input.blackoutDates.some((d) => typeof d !== "string" ||
-            !/^\\d{4}-\\d{2}-\\d{2}$/.test(d) ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(d) ||
             Number.isNaN(new Date(d + "T00:00:00Z").getTime()) ||
             new Date(d + "T00:00:00Z").toISOString().slice(0, 10) !== d)) {
         throw new BadRequestException("Blackout dates must be valid ISO calendar dates");
