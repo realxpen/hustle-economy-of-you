@@ -21,7 +21,13 @@ export default function StartMessagePage() {
     const userId = params.get("userId")?.trim();
     const rawType = params.get("contextType")?.trim().toUpperCase() as MessageContextType | undefined;
     const contextId = params.get("contextId")?.trim();
-    const safeReturn = safeTransactionReturnTo(params.get("returnTo"));
+    const candidateReturn = safeTransactionReturnTo(params.get("returnTo"));
+    // Only allow "Continue booking request" when the conversation context
+    // identifies that exact Service; never offer a mismatched return link.
+    const safeReturn = candidateReturn?.startsWith("/bookings/new/") &&
+      (rawType !== "SERVICE" || !contextId ||
+        candidateReturn.split("?")[0] !== `/bookings/new/${contextId}`)
+      ? null : candidateReturn;
     setReturnTo(safeReturn);
 
     if (!userId) {
