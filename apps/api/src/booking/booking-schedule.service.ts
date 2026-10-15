@@ -96,7 +96,7 @@ export class BookingScheduleService {
     // null deliberately preserves existing unconfigured Services; [] means closed.
     if (service.weeklyHours === null) return null;
     if (!Array.isArray(service.weeklyHours)) return "Opening hours need to be configured";
-    const windows = service.weeklyHours as WeeklyWindow[];
+    const windows = service.weeklyHours as unknown as WeeklyWindow[];
     const prep = new Date(start.getTime() - service.prepMinutes * 60_000);
     const recovery = new Date((end ?? start).getTime() + service.bufferMinutes * 60_000);
     const before = this.localParts(prep, service.bookingTimezone);
@@ -292,7 +292,7 @@ export class BookingScheduleService {
       where: { authSubject: identity.subject }, select: { id: true }
     });
     if (!user) throw new BadRequestException("Sign in to inspect availability");
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) ||
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) ||
         Number.isNaN(Date.parse(date + "T00:00:00Z")) ||
         new Date(date + "T00:00:00Z").toISOString().slice(0, 10) !== date) {
       throw new BadRequestException("Choose a valid calendar day");
@@ -307,7 +307,7 @@ export class BookingScheduleService {
     const day = new Date(date + "T00:00:00Z").getUTCDay();
     const windows = service.weeklyHours === null
       ? [{ day, start: "09:00", end: "18:00" }]
-      : Array.isArray(service.weeklyHours) ? service.weeklyHours as WeeklyWindow[] : [];
+      : Array.isArray(service.weeklyHours) ? service.weeklyHours as unknown as WeeklyWindow[] : [];
     const slots: { startAt: string; endAt: string | null; remainingCapacity: number;
       available: boolean; overbooking: boolean }[] = [];
     // Return 30-minute entry opportunities. Work duration and buffers remain Service-specific.
