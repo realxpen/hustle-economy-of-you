@@ -27,7 +27,7 @@ assert.match(detail, /\["REQUESTED", "ACCEPTED", "PAYMENT_PENDING"\]\.includes\(
 assert.match(detail, /\["ACCEPTED", "PAYMENT_PENDING"\]\.includes\(booking\.status\)/,
   "Hustler cancellation status boundary");
 assert.match(detail, /new Date\(start\)\.getTime\(\) <= Date\.now\(\)/, "Cannot confirm elapsed appointment schedule");
-assert.match(detail, /setDecision\(null\);[\s\S]*?setDecisionReason\(" "\)|setDecision\(null\);[\s\S]*?setDecisionReason\("")/,
+assert.ok(detail.includes('setDecision(null);') && detail.includes('setDecisionReason("");'),
   "Successful response clears confirmation");
 assert.match(panel, /onSubmit=\{submit\}/, "Confirm must be a real form submit");
 assert.match(panel, /event\.preventDefault\(\)/, "No implicit page navigation");
