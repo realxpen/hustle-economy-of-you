@@ -129,6 +129,7 @@ export default function BookingDetailPage() {
     const start = toIso(confirmedStartAt);
     const end = toIso(confirmedEndAt);
     if (!start) return setError("Choose a valid confirmed start date and time.");
+    if (new Date(start).getTime() <= Date.now()) return setError("Confirmed start must be in the future.");
     if (confirmedEndAt && !end) return setError("Choose a valid confirmed end date and time.");
     if (end && new Date(end).getTime() <= new Date(start).getTime()) return setError("Confirmed end must be after confirmed start.");
     await act(() => acceptBooking(booking.id, { confirmedStartAt: start, ...(end ? { confirmedEndAt: end } : {}) }));
@@ -217,7 +218,7 @@ export default function BookingDetailPage() {
         <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>ACTIONS</p>
           <div className={styles.actions}>
-            {canAccept && <><div className={styles.field}><label htmlFor="confirmed-start">CONFIRM START</label><input id="confirmed-start" type="datetime-local" value={confirmedStartAt} onChange={(event) => setConfirmedStartAt(event.target.value)} /></div><div className={styles.field}><label htmlFor="confirmed-end">CONFIRM END · OPTIONAL</label><input id="confirmed-end" type="datetime-local" value={confirmedEndAt} onChange={(event) => setConfirmedEndAt(event.target.value)} /></div><button className={styles.primary} disabled={busy} onClick={() => void acceptWithSchedule()}>Accept with confirmed schedule</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => openDecision("DECLINE")}>Decline request</button></>}
+            {canAccept && <><div className={styles.field}><label htmlFor="confirmed-start">CONFIRM START</label><input id="confirmed-start" type="datetime-local" value={confirmedStartAt} onChange={(event) => setConfirmedStartAt(event.target.value)} /></div><div className={styles.field}><label htmlFor="confirmed-end">CONFIRM END · OPTIONAL</label><input id="confirmed-end" type="datetime-local" value={confirmedEndAt} onChange={(event) => setConfirmedEndAt(event.target.value)} /></div><p className={styles.actionNote}>Accepting a paid Booking moves it to payment pending; work cannot start without authoritative funding. Free Bookings can start after acceptance.</p><button type="button" className={styles.primary} disabled={busy} onClick={() => void acceptWithSchedule()}>Accept with confirmed schedule</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => openDecision("DECLINE")}>Decline request</button></>}
             {canStart && <button className={styles.primary} disabled={busy} onClick={() => void act(() => startBooking(booking.id))}>Start work</button>}
             {canComplete && <button className={styles.primary} disabled={busy} onClick={() => void act(() => completeBooking(booking.id))}>Mark work complete</button>}
             {canCancel && <button type="button" className={styles.danger} disabled={busy} onClick={() => openDecision("CANCEL")}>Cancel booking</button>}
