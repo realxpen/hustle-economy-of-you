@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { OpportunityContext } from "../../../../components/commerce/opportunity-context";
 import { useSourcePost, withSourcePost } from "../../../../lib/opportunity-source";
 import { withTransactionReturnTo } from "../../../../lib/transaction-return";
-import { checkBookingAvailability, createBooking } from "../../../../lib/booking";
+import { checkBookingAvailability, createBooking, listFlowTimeSlots, type FlowTimeSlotDay, type BookingAvailability } from "../../../../lib/booking";
 import { openDirectConversation } from "../../../../lib/messaging";
 import { authUrlFor } from "../../../../lib/auth/safe-auth-next";
 import { getSupabaseBrowserClient } from "../../../../lib/supabase/client";
@@ -21,6 +21,19 @@ import styles from "../../bookings.module.css";
 
 function tabStorage(): Storage | null {
   try { return window.sessionStorage; } catch { return null; }
+}
+
+function toLocalInput(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+function serviceToday(timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit"
+  }).formatToParts(new Date());
+  const read = (key: string) => parts.find((part)=>part.type===key)?.value ?? "";
+  return read("year") + "-" + read("month") + "-" + read("day");
 }
 
 function toIso(value: string) {
@@ -42,6 +55,11 @@ export default function NewBookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
+  const [slotDate, setSlotDate] = useState("");
+  const [slotDay, setSlotDay] = useState<FlowTimeSlotDay | null>(null);
+  const [slotError, setSlotError] = useState<string | null>(null);
+  const [checkingSlots, setCheckingSlots] = useState(false);
+  const [checkedTime, setCheckedTime] = useState<BookingAvailability | null>(null);
   const [draftPresent, setDraftPresent] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const sourcePostId = useSourcePost();
@@ -58,6 +76,7 @@ export default function NewBookingPage() {
       .then((service) => {
         if (!active) return;
         setData(service);
+        setSlotDate(serviceToday(service.service.bookingTimezone));
         const draft = readBookingDraft(tabStorage(), serviceId);
         if (draft) {
           setRequestedStartAt(draft.requestedStartAt);
@@ -78,6 +97,34 @@ export default function NewBookingPage() {
       .catch((reason: Error) => { if (active) setError(reason.message); });
     return () => { active = false; };
   }, [params?.serviceId, retryVersion]);
+
+  useEffect(() => {
+    if (!data || !slotDate || data.service.bookingMode !== "APPOINTMENT") {
+      setSlotDay(null); return;
+    }
+    let active = true;
+    setSlotDay(null);
+    setSlotError(null);
+    setCheckingSlots(true);
+    void listFlowTimeSlots(data.service.id, slotDate).then((response) => {
+      if (active) setSlotDay(response);
+    }).catch((reason: Error) => {
+      if (active) setSlotError(reason.message);
+    }).finally(()=>{ if(active) setCheckingSlots(false); });
+    return () => { active = false; };
+  }, [data, slotDate]);
+
+  useEffect(() => {
+    if (!data || !requestedStartAt) { setCheckedTime(null); return; }
+    const start = toIso(requestedStartAt);
+    const end = toIso(requestedEndAt);
+    if (!start || (requestedEndAt && !end)) { setCheckedTime(null); return; }
+    let active=true;
+    void checkBookingAvailability({serviceId:data.service.id,startAt:start,...(end?{endAt:end}:{})})
+      .then((result)=>{if(active)setCheckedTime(result);})
+      .catch(()=>{if(active)setCheckedTime(null);});
+    return ()=>{active=false;};
+  }, [data, requestedStartAt, requestedEndAt]);
 
   function draftFields(): BookingDraftFields {
     return { requestedStartAt, requestedEndAt, requirements, location, notes };
@@ -208,7 +255,7 @@ export default function NewBookingPage() {
         </article>
         <aside className={styles.offerCard}>
           <p className={styles.eyebrow}>HOW IT WORKS</p>
-          <p>1. Choose a requested time. Hustle checks it against already confirmed work.</p>
+          <p>1. Pick a time or propose a deadline. FlowTime considers work duration, operating hours and capacity.</p>
           <p>2. Describe what you need.</p>
           <p>3. The Hustler accepts, adjusts the confirmed time, or declines.</p>
           <p>4. Any paid Booking stays payment pending until the payment provider confirms funding.</p>
@@ -225,10 +272,44 @@ export default function NewBookingPage() {
               : "Your draft is stored only in this browser tab for up to 2 hours as you type."}</span>
           {draftPresent && <button type="button" onClick={discardDraft} disabled={submitting}>Clear draft</button>}
         </div>
+        <section className={styles.flowTimeSlots} aria-label="FlowTime availability">
+          <div className={styles.flowTimeHead}><div><strong>Available booking times</strong><p>
+            {service.bookingMode === "APPOINTMENT"
+              ? "Live remaining capacity. A requested appointment is not held until the Hustler accepts."
+              : service.bookingMode === "WORK_QUEUE"
+                ? "This service accepts concurrent work orders. A start date is a proposal, not a reserved appointment."
+                : "Consult with the Hustler before confirming a schedule."}
+          </p></div><span>{service.bookingTimezone}</span></div>
+          {service.bookingMode === "APPOINTMENT" && <>
+            <label className={styles.flowTimeDate}>Find a date <input aria-label="Availability date" type="date" value={slotDate} onChange={(e)=>setSlotDate(e.target.value)}/></label>
+            {checkingSlots && <p role="status">Checking live appointment capacity…</p>}
+            {slotError && <p role="alert">{slotError}</p>}
+            {slotDay && <>
+              {!slotDay.configuredHours && <p>Indicative 9 AM–6 PM slots: this Hustler has not set structured operating hours. Confirm the time before travelling.</p>}
+              <div className={styles.flowTimeGrid}>
+                {slotDay.slots.map((slot)=><button type="button" key={slot.startAt}
+                  disabled={!slot.available || submitting}
+                  aria-label={new Intl.DateTimeFormat("en-NG",{hour:"numeric",minute:"2-digit",timeZone:service.bookingTimezone}).format(new Date(slot.startAt))+"; "+(slot.available?slot.remainingCapacity+" places available":"fully booked")}
+                  onClick={()=>{
+                    const start=toLocalInput(slot.startAt);
+                    const end=slot.endAt ? toLocalInput(slot.endAt) : "";
+                    setRequestedStartAt(start); setRequestedEndAt(end);
+                    updateDraft({requestedStartAt:start, requestedEndAt:end});
+                    setError(null);
+                  }}>
+                  <strong>{new Intl.DateTimeFormat("en-NG",{hour:"numeric",minute:"2-digit",timeZone:service.bookingTimezone}).format(new Date(slot.startAt))}</strong>
+                  <small>{slot.available ? slot.overbooking ? "Limited extra place" : slot.remainingCapacity+" available" : "Fully booked"}</small>
+                </button>)}
+              </div>
+              {slotDay.slots.length === 0 && <p>No start times remain for this day. Try another date.</p>}
+            </>}
+          </>}
+          {service.bookingMode !== "APPOINTMENT" && <p>Typical turnaround: {service.turnaroundHours} hours, subject to Hustler confirmation.</p>}
+        </section>
         <div className={styles.grid2}>
           <div className={styles.field}>
             <label htmlFor="start">REQUESTED START</label>
-            <input id="start" type="datetime-local" required aria-invalid={Boolean(error && error.includes("start"))} value={requestedStartAt} onChange={(event) => { setRequestedStartAt(event.target.value); updateDraft({ requestedStartAt: event.target.value }); if (error) setError(null); }} />
+            <input id="start" type="datetime-local" required aria-invalid={Boolean(error && error.includes("start"))} value={requestedStartAt} onChange={(event) => { setRequestedStartAt(event.target.value); setSlotDate(event.target.value.slice(0,10)); updateDraft({ requestedStartAt: event.target.value }); if (error) setError(null); }} />
           </div>
           <div className={styles.field}>
             <label htmlFor="end">REQUESTED END · OPTIONAL</label>
@@ -236,6 +317,13 @@ export default function NewBookingPage() {
           </div>
         </div>
 
+        {checkedTime && <p className={checkedTime.available ? styles.flowTimeAvailable : styles.flowTimeUnavailable} role="status">
+          {checkedTime.available
+            ? checkedTime.mode === "APPOINTMENT"
+              ? checkedTime.overbooking ? "This is an extra-capacity slot; the Hustler must confirm timing." : checkedTime.remainingCapacity+" capacity remaining for the requested time."
+              : "Request can be sent for Hustler review. No appointment is reserved."
+            : checkedTime.reason ?? "Not available. Choose another time."}
+        </p>}
         <div className={styles.field}>
           <label htmlFor="requirements">WHAT DO YOU NEED?</label>
           <textarea id="requirements" required maxLength={4000} aria-describedby="requirements-hint" value={requirements} onChange={(event) => { setRequirements(event.target.value); updateDraft({ requirements: event.target.value }); if (error) setError(null); }} placeholder="Describe the project, expected outcome, important features, constraints and deadline." />
