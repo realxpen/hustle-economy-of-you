@@ -78,6 +78,15 @@ const identity={subject:"client-auth"};
  rows.push(booked("two",tomorrow,later(tomorrow,60),record));
  const full=await scheduler.checkAvailability(identity,{serviceId:record.id,startAt:tomorrow.toISOString()});
  assert.equal(full.available,false,"third barber must not be silently accepted");
+ rows=[booked("morning",tomorrow,later(tomorrow,60),record),
+   booked("next",later(tomorrow,60),later(tomorrow,120),record)];
+ const staggered=await scheduler.checkAvailability(identity,{
+   serviceId:record.id,startAt:later(tomorrow,30).toISOString(),
+   endAt:later(tomorrow,90).toISOString()
+ });
+ assert.equal(staggered.remainingCapacity,1,"nonconcurrent overlaps consume only one simultaneous slot");
+ rows=[booked("one",tomorrow,later(tomorrow,60),record),
+   booked("two",tomorrow,later(tomorrow,60),record)];
  record={...record,overbookingAllowance:1};
  const extra=await scheduler.checkAvailability(identity,{serviceId:record.id,startAt:tomorrow.toISOString()});
  assert.equal(extra.available,true,"explicit overbooking policy allows one extra");
