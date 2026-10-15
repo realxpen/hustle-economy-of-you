@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { safeTransactionReturnTo, transactionReturnLabel } from "../../../lib/transaction-return";
+import { authUrlFor } from "../../../lib/auth/safe-auth-next";
 import { ConversationSafetyActions } from "../../../components/trust/conversation-safety-actions";
 import { ExperienceState } from "../../../components/experience/experience-state";
 import {
@@ -154,7 +155,7 @@ export default function ConversationPage() {
         setError(reason.message);
         setLoading(false);
         if (reason.message.toLowerCase().includes("sign in")) {
-          authTimeout = setTimeout(() => router.replace("/auth"), 900);
+          authTimeout = setTimeout(() => router.replace(authUrlFor(window.location.pathname + window.location.search)), 900);
         }
       });
     return () => {
@@ -480,7 +481,7 @@ export default function ConversationPage() {
 
     {returnTo && <div className={styles.transactionHandoff}>
       <a href={returnTo}>← {transactionReturnLabel(returnTo)}</a>
-      <span>This conversation is for coordination. Only the original transaction page confirms status and payment.</span>
+      <span>{returnTo.startsWith("/bookings/new/") ? "Continue your prepared Booking request when you are ready. Your draft stays in this browser tab and has not been submitted." : "This conversation is for coordination. Only the original transaction page confirms status and payment."}</span>
     </div>}
     {conversationId && other && <div style={{ padding: "14px 18px 0" }}>
       <ConversationSafetyActions
