@@ -35,6 +35,10 @@ export interface BookingRecord {
   requestedEndAt: string | null;
   confirmedStartAt: string | null;
   confirmedEndAt: string | null;
+  scheduledDurationMinutes: number | null;
+  extendedMinutes: number;
+  actualStartedAt: string | null;
+  actualFinishedAt: string | null;
   requirements: string;
   location: string | null;
   notes: string | null;
@@ -99,6 +103,11 @@ export interface CreateBookingInput {
 
 export interface BookingAvailability {
   available: boolean;
+  mode: "APPOINTMENT" | "WORK_QUEUE" | "CONSULTATION";
+  capacity: number;
+  remainingCapacity: number;
+  overbooking: boolean;
+  turnaroundHours: number;
   startAt: string;
   endAt: string | null;
   reason: string | null;
@@ -167,6 +176,45 @@ export async function cancelBooking(bookingId: string, reason?: string) {
   const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}/cancel`, {
     method: "POST",
     body: JSON.stringify({ reason })
+  });
+  return response.json() as Promise<BookingRecord>;
+}
+
+export interface FlowTimeSlot {
+  startAt: string;
+  endAt: string | null;
+  available: boolean;
+  remainingCapacity: number;
+  overbooking: boolean;
+}
+export interface FlowTimeSlotDay {
+  date: string;
+  timezone: string;
+  mode: "APPOINTMENT" | "WORK_QUEUE" | "CONSULTATION";
+  turnaroundHours: number;
+  configuredHours?: boolean;
+  slots: FlowTimeSlot[];
+}
+
+export async function listFlowTimeSlots(serviceId: string, date: string) {
+  const params = new URLSearchParams({ serviceId, date });
+  const response = await authenticatedFetch(`/bookings/slots?${params.toString()}`);
+  return response.json() as Promise<FlowTimeSlotDay>;
+}
+
+export async function getServiceDurationInsights(serviceId: string) {
+  const response = await authenticatedFetch(`/bookings/duration-insights?serviceId=${encodeURIComponent(serviceId)}`);
+  return response.json() as Promise<{
+    sampleSize: number;
+    medianMinutes: number | null;
+    suggestedDurationMinutes: number | null;
+    currentDefaultMinutes: number;
+  }>;
+}
+
+export async function extendBooking(bookingId: string, minutes: number, note?: string) {
+  const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}/extend`, {
+    method: "POST", body: JSON.stringify({ minutes, note })
   });
   return response.json() as Promise<BookingRecord>;
 }
