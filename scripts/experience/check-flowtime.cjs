@@ -21,6 +21,11 @@ assert.match(scheduleSource, /pg_try_advisory_xact_lock\(hashtext/);
 assert.match(bookingSource, /reserveWithinTransaction\(tx/);
 assert.match(bookingSource, /tx\.booking\.updateMany/);
 assert.match(bookingSource, /booking\.schedule_extended/);
+assert.match(bookingSource, /booking:\\\$\\\{id\\\}:extension:\\\$\\\{revision\.id\\\}/,
+  "every extension must have its own Client notification event key");
+assert.match(bookingSource, /priceChanged: false/,
+  "extensions never change existing financial terms");
+
 assert.match(bookingSource, /actualStartedAt: new Date\(\)/);
 assert.match(bookingSource, /actualFinishedAt: new Date\(\)/);
 assert.match(editor, /FlowTime · Scheduling & capacity/);
