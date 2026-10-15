@@ -62,9 +62,25 @@ function inputLocalDate(value) {
     assert.match(await page.locator("main").innerText(), /QA Hustler/);
     steps.push("Public published Service renders owner, title and price");
 
+    const serviceConsultHref = await page.getByRole("link", { name: "Message first" }).getAttribute("href");
+    const serviceConsult = new URL(serviceConsultHref, base);
+    assert.equal(serviceConsult.pathname, "/messages/start");
+    assert.equal(serviceConsult.searchParams.get("contextType"), "SERVICE");
+    assert.equal(serviceConsult.searchParams.get("contextId"), service.id);
+    assert.equal(serviceConsult.searchParams.get("returnTo"), "/bookings/new/" + service.id);
+    steps.push("Service Message-first CTA retains its offer and an optional return-to-Booking action");
+
     await page.getByRole("link", { name: /Book this service/ }).click();
     await page.waitForURL("**/bookings/new/qa-service", { timeout: 15000 });
     await page.getByRole("heading", { name: service.title }).waitFor({ timeout: 15000 });
+    const bookingConsultHref = await page.getByRole("link", { name: /Consult QA Hustler/ }).getAttribute("href");
+    const bookingConsult = new URL(bookingConsultHref, base);
+    assert.equal(bookingConsult.pathname, "/messages/start");
+    assert.equal(bookingConsult.searchParams.get("contextType"), "SERVICE");
+    assert.equal(bookingConsult.searchParams.get("contextId"), service.id);
+    assert.equal(bookingConsult.searchParams.get("returnTo"), "/bookings/new/" + service.id);
+    steps.push("Consult-from-Booking returns to the same prepared Service and does not submit a Booking");
+
     const submit = page.getByRole("button", { name: /Submit booking request/ });
     assert.equal(await submit.isDisabled(), true, "Booking cannot submit without requirements");
     steps.push("Service CTA opens actual Booking UI and required description is gated");
