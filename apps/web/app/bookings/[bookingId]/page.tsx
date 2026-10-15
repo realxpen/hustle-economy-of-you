@@ -19,6 +19,7 @@ import {
   cancelBooking,
   completeBooking,
   declineBooking,
+  extendBooking,
   formatBookingPrice,
   getBooking,
   startBooking
@@ -52,6 +53,9 @@ function Fact({ label, value }: { label: string; value: string }) {
 export default function BookingDetailPage() {
   const params = useParams<{ bookingId: string }>();
   const [storedBooking, setBooking] = useState<BookingRecord | null>(null);
+  const [extensionMinutes, setExtensionMinutes] = useState(15);
+  const [extensionNote, setExtensionNote] = useState("");
+  const [extensionOpen, setExtensionOpen] = useState(false);
   const requestVersion = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -85,6 +89,7 @@ export default function BookingDetailPage() {
     setBooking(null);
     setDecision(null);
     setDecisionReason("");
+    setExtensionOpen(false);
     void load();
     return () => { requestVersion.current += 1; };
   }, [load]);
@@ -98,6 +103,8 @@ export default function BookingDetailPage() {
       applyBooking(updated);
       setDecision(null);
       setDecisionReason("");
+      setExtensionOpen(false);
+      setExtensionNote("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Booking action failed");
     } finally {
@@ -122,6 +129,11 @@ export default function BookingDetailPage() {
     void act(() => decision === "DECLINE"
       ? declineBooking(booking.id, reason)
       : cancelBooking(booking.id, reason));
+  }
+
+  function submitExtension() {
+    if (!booking || booking.viewerRole !== "HUSTLER" || booking.status !== "IN_PROGRESS" || !booking.confirmedEndAt || busy) return;
+    void act(() => extendBooking(booking.id, extensionMinutes, extensionNote.trim() || undefined));
   }
 
   async function acceptWithSchedule() {
@@ -182,6 +194,29 @@ export default function BookingDetailPage() {
         <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
           <p className={styles.eyebrow}>SCHEDULE</p>
           <div className={styles.facts}><Fact label="REQUESTED START" value={formatDate(booking.requestedStartAt)} /><Fact label="REQUESTED END" value={formatDate(booking.requestedEndAt)} /><Fact label="CONFIRMED START" value={formatDate(booking.confirmedStartAt)} /><Fact label="CONFIRMED END" value={formatDate(booking.confirmedEndAt)} /></div>
+          {booking.actualStartedAt && <p className={styles.copy}>Actual work started: {formatDate(booking.actualStartedAt)}</p>}
+          {booking.actualFinishedAt && <p className={styles.copy}>Actual work completed: {formatDate(booking.actualFinishedAt)}</p>}
+          {booking.extendedMinutes > 0 && <p className={styles.flowTimeAvailable} role="status">Schedule extended by {booking.extendedMinutes} minutes in total. The agreed price is unchanged.</p>}
+          {booking.viewerRole === "HUSTLER" && booking.status === "IN_PROGRESS" && booking.confirmedEndAt && (
+            <div className={styles.flowTimeExtend}>
+              <strong>Running late?</strong>
+              <p>Extend the expected finish only if the shared team or equipment still has room. Other confirmed customers are protected; the Client is notified and the price stays unchanged.</p>
+              {!extensionOpen ? <button type="button" disabled={busy} onClick={()=>setExtensionOpen(true)}>Review an extension</button> : <>
+                <label>Extra time
+                  <select value={extensionMinutes} onChange={(event)=>setExtensionMinutes(Number(event.target.value))}>
+                    {[5,10,15,30,45,60,90,120].map((minutes)=><option key={minutes} value={minutes}>{minutes} minutes</option>)}
+                  </select>
+                </label>
+                <label>Explanation to Client (optional)
+                  <textarea maxLength={300} value={extensionNote} onChange={(event)=>setExtensionNote(event.target.value)} placeholder="The previous step took longer; I need a little more time."/>
+                </label>
+                <div className={styles.actions}>
+                  <button type="button" disabled={busy} onClick={submitExtension}>Confirm extension & notify Client</button>
+                  <button type="button" disabled={busy} onClick={()=>{setExtensionOpen(false);setExtensionNote("");}}>Keep current time</button>
+                </div>
+              </>}
+            </div>
+          )}
         </article>
         <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
           <p className={styles.eyebrow}>REQUIREMENTS</p><p className={styles.copy}>{booking.requirements}</p>
