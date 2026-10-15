@@ -1,10 +1,11 @@
-import { Prisma,
+import {
   BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
 import {
+  Prisma,
   ProfessionalProfileStatus,
   ServiceDeliveryMode,
   ServicePricingType,
@@ -388,7 +389,7 @@ export class ServiceService {
         if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new BadRequestException("Invalid weekly opening window");
         const item = raw as Record<string, unknown>;
         const clock = (v: unknown) => typeof v === "string" && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(v);
-        if (!Number.isInteger(item.day) || Number(item.day) < 0 || Number(item.day) > 6 ||
+        if (typeof item.day !== "number" || !Number.isInteger(item.day) || item.day < 0 || item.day > 6 ||
             !clock(item.start) || !clock(item.end) || String(item.end) <= String(item.start)) {
           throw new BadRequestException("Weekly hours need a weekday and increasing 24-hour start/end");
         }
