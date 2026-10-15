@@ -269,6 +269,68 @@ export class BookingScheduleService {
     return result;
   }
 
+  private zonedInstant(date: string, clock: string, timeZone: string) {
+    const target = Date.parse(date + "T" + clock + ":00Z");
+    // Resolve local wall clock against IANA offsets, including DST transitions.
+    const offsetAt = (probe: number) => {
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+      }).formatToParts(new Date(probe));
+      const field = (name: string) => parts.find((p) => p.type === name)?.value ?? "00";
+      const localAsUtc = Date.UTC(+field("year"), +field("month") - 1, +field("day"), +field("hour"), +field("minute"));
+      return localAsUtc - probe;
+    };
+    const first = target - offsetAt(target);
+    const resolved = target - offsetAt(first);
+    const formatted = this.localParts(new Date(resolved), timeZone);
+    return formatted.date === date && formatted.clock === clock ? new Date(resolved) : null;
+  }
+
+  async listSlots(identity: AuthIdentity, serviceId: string, date: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { authSubject: identity.subject }, select: { id: true }
+    });
+    if (!user) throw new BadRequestException("Sign in to inspect availability");
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) ||
+        Number.isNaN(Date.parse(date + "T00:00:00Z")) ||
+        new Date(date + "T00:00:00Z").toISOString().slice(0, 10) !== date) {
+      throw new BadRequestException("Choose a valid calendar day");
+    }
+    const dayOffset = (Date.parse(date + "T00:00:00Z") - Date.now()) / 86_400_000;
+    if (dayOffset < -1 || dayOffset > 90) throw new BadRequestException("Choose a day within the next 90 days");
+    const service = await this.loadService(this.prisma, serviceId);
+    if (service.bookingMode !== BookingOperationMode.APPOINTMENT) {
+      return { mode: service.bookingMode, date, timezone: service.bookingTimezone,
+        turnaroundHours: service.turnaroundHours, slots: [] };
+    }
+    const day = new Date(date + "T00:00:00Z").getUTCDay();
+    const windows = service.weeklyHours === null
+      ? [{ day, start: "09:00", end: "18:00" }]
+      : Array.isArray(service.weeklyHours) ? service.weeklyHours as WeeklyWindow[] : [];
+    const slots: { startAt: string; endAt: string | null; remainingCapacity: number;
+      available: boolean; overbooking: boolean }[] = [];
+    // Return 30-minute entry opportunities. Work duration and buffers remain Service-specific.
+    for (const window of windows.filter((item) => item.day === day)) {
+      const minutes = (clock: string) => Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3));
+      for (let at = minutes(window.start); at + service.defaultDurationMinutes <= minutes(window.end); at += 30) {
+        const clock = String(Math.floor(at / 60)).padStart(2, "0") + ":" + String(at % 60).padStart(2, "0");
+        const start = this.zonedInstant(date, clock, service.bookingTimezone);
+        if (!start || start.getTime() <= Date.now()) continue;
+        const availability = await this.availabilityForService(this.prisma, service, start, null);
+        slots.push({ startAt: start.toISOString(),
+          endAt: availability.endAt?.toISOString() ?? null,
+          remainingCapacity: availability.remainingCapacity,
+          available: availability.available, overbooking: availability.overbooking });
+        if (slots.length >= 72) break;
+      }
+      if (slots.length >= 72) break;
+    }
+    return { mode: service.bookingMode, date, timezone: service.bookingTimezone,
+      configuredHours: service.weeklyHours !== null,
+      turnaroundHours: service.turnaroundHours, slots };
+  }
+
   async durationInsights(identity: AuthIdentity, serviceId: string) {
     const user = await this.prisma.user.findUnique({
       where: { authSubject: identity.subject }, select: { id: true }
