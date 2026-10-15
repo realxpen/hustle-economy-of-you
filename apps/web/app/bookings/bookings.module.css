@@ -81,3 +81,5 @@
 .priorityQueue p{font-size:12px;line-height:1.5;margin:0 0 10px}
 .priorityLabel{margin:10px 0;font-size:11px;font-weight:850;letter-spacing:.08em;color:#645a49}
 .priorityAction{display:block;margin-top:12px;font-size:12px;font-weight:900;color:#6d2b0f}
+
+.actionNote{font-size:12px;line-height:1.5;color:#645e52;background:#fff7e6;border:1px solid #e1c59a;padding:12px;border-radius:12px;margin:0}
