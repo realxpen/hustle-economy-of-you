@@ -698,6 +698,7 @@ model Service {
   bookings            Booking[]
 
   @@index([professionalProfileId, status])
+  @@index([professionalProfileId, resourcePoolKey])
   @@index([status, category])
   @@index([createdAt])
 }
@@ -977,6 +978,7 @@ model Booking {
 
   @@index([clientUserId, status, createdAt])
   @@index([hustlerUserId, status, createdAt])
+  @@index([hustlerUserId, status, confirmedStartAt])
   @@index([serviceId, status, requestedStartAt])
   @@index([conversationId])
   @@index([status, createdAt])
