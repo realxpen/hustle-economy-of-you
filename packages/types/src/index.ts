@@ -333,8 +333,30 @@ export interface PublicProfessionalProfile {
 export type ServiceStatus = "DRAFT" | "PUBLISHED" | "PAUSED";
 export type ServicePricingType = "FIXED" | "STARTING_AT" | "HOURLY";
 export type ServiceDeliveryMode = "REMOTE" | "PHYSICAL" | "BOTH";
+export type BookingOperationMode = "APPOINTMENT" | "WORK_QUEUE" | "CONSULTATION";
+export interface WeeklyHoursWindow {
+  day: number; // 0=Sunday, 6=Saturday
+  start: string; // HH:mm local to bookingTimezone
+  end: string;
+}
+export interface ServiceSchedulingSettings {
+  bookingMode: BookingOperationMode;
+  bookingTimezone: string;
+  resourcePoolKey: string;
+  defaultDurationMinutes: number;
+  prepMinutes: number;
+  bufferMinutes: number;
+  parallelCapacity: number;
+  overbookingAllowance: number;
+  weeklyHours: WeeklyHoursWindow[] | null;
+  blackoutDates: string[];
+  maxActiveJobs: number;
+  turnaroundHours: number;
+  autoExtensionMinutes: number;
+}
 
-export interface Service {
+
+export interface Service extends ServiceSchedulingSettings {
   id: string;
   professionalProfileId: string;
   title: string | null;
@@ -356,6 +378,19 @@ export interface Service {
 }
 
 export interface SaveServiceInput {
+  bookingMode?: BookingOperationMode;
+  bookingTimezone?: string;
+  resourcePoolKey?: string;
+  defaultDurationMinutes?: number;
+  prepMinutes?: number;
+  bufferMinutes?: number;
+  parallelCapacity?: number;
+  overbookingAllowance?: number;
+  weeklyHours?: WeeklyHoursWindow[] | null;
+  blackoutDates?: string[];
+  maxActiveJobs?: number;
+  turnaroundHours?: number;
+  autoExtensionMinutes?: number;
   title?: string | null;
   category?: string | null;
   description?: string | null;
