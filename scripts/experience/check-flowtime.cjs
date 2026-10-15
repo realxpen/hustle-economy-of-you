@@ -36,7 +36,7 @@ tomorrow.setUTCHours(9,0,0,0);
 const later = (d, mins) => new Date(d.getTime() + mins*60000);
 const owner = { userId:"hustler" };
 const base = {
- id:"service1", professionalProfileId:"professional1",
+ id:"service1", status:"PUBLISHED", professionalProfileId:"professional1",
  bookingMode:BookingOperationMode.APPOINTMENT, bookingTimezone:"Africa/Lagos",
  resourcePoolKey:"primary", defaultDurationMinutes:60,
  prepMinutes:0, bufferMinutes:0, parallelCapacity:1, overbookingAllowance:0,
