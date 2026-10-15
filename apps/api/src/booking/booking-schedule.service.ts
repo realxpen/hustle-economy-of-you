@@ -148,16 +148,18 @@ export class BookingScheduleService {
         id: true, confirmedStartAt: true, confirmedEndAt: true,
         service: { select: {
           bookingMode: true, defaultDurationMinutes: true, prepMinutes: true,
-          bufferMinutes: true, parallelCapacity: true
+          bufferMinutes: true, parallelCapacity: true, maxActiveJobs: true
         } }
       }
     });
 
     if (service.bookingMode === BookingOperationMode.WORK_QUEUE) {
-      const used = bookings.filter((b) => b.service.bookingMode === BookingOperationMode.WORK_QUEUE).length;
-      const remaining = Math.max(0, service.maxActiveJobs - used);
+      const queued = bookings.filter((b) => b.service.bookingMode === BookingOperationMode.WORK_QUEUE);
+      const maxJobs = Math.min(service.maxActiveJobs, ...queued.map((b) => b.service.maxActiveJobs));
+      const used = queued.length;
+      const remaining = Math.max(0, maxJobs - used);
       return { available: remaining > 0, mode: service.bookingMode, startAt, endAt,
-        capacity: service.maxActiveJobs, remainingCapacity: remaining, overbooking: false,
+        capacity: maxJobs, remainingCapacity: remaining, overbooking: false,
         turnaroundHours: service.turnaroundHours,
         reason: remaining ? null : "This Hustler's work queue is at capacity" };
     }
