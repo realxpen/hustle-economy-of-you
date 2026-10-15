@@ -116,10 +116,10 @@ export class BookingScheduleService {
 
   private async availabilityForService(
     db: Db, service: SchedulingService, startAt: Date, proposedEnd: Date | null,
-    excludeBookingId?: string
+    excludeBookingId?: string, allowExistingStart = false
   ): Promise<FlowTimeAvailability> {
     const endAt = this.effectiveEnd(service, startAt, proposedEnd);
-    if (startAt.getTime() <= Date.now()) {
+    if (!allowExistingStart && startAt.getTime() <= Date.now()) {
       return { available: false, mode: service.bookingMode, startAt, endAt,
         capacity: 0, remainingCapacity: 0, overbooking: false,
         turnaroundHours: service.turnaroundHours, reason: "Choose a time in the future" };
@@ -253,7 +253,7 @@ export class BookingScheduleService {
   async reserveWithinTransaction(
     tx: Prisma.TransactionClient, input: {
       serviceId: string; hustlerUserId: string; startAt: Date; endAt: Date | null;
-      excludeBookingId?: string;
+      excludeBookingId?: string; allowExistingStart?: boolean;
     }
   ) {
     // PostgreSQL transaction-scoped advisory lock: released on commit/rollback, never global process state.
@@ -263,7 +263,7 @@ export class BookingScheduleService {
       throw new ForbiddenException("Service owner mismatch");
     }
     const result = await this.availabilityForService(
-      tx, service, input.startAt, input.endAt, input.excludeBookingId
+      tx, service, input.startAt, input.endAt, input.excludeBookingId, input.allowExistingStart ?? false
     );
     if (!result.available) throw new ConflictException(result.reason ?? "Booking capacity is full");
     return result;
