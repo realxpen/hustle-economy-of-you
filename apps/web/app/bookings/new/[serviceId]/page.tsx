@@ -239,11 +239,11 @@ export default function NewBookingPage() {
         <div className={styles.grid2}>
           <div className={styles.field}>
             <label htmlFor="location">LOCATION · OPTIONAL</label>
-            <input id="location" maxLength={300} value={location} onChange={(event) => setLocation(event.target.value); updateDraft({ location: event.target.value }); }} placeholder="Lagos, Nigeria" />
+            <input id="location" maxLength={300} value={location} onChange={(event) => { setLocation(event.target.value); updateDraft({ location: event.target.value }); }} placeholder="Lagos, Nigeria" />
           </div>
           <div className={styles.field}>
             <label htmlFor="notes">NOTES · OPTIONAL</label>
-            <input id="notes" maxLength={2000} value={notes} onChange={(event) => setNotes(event.target.value); updateDraft({ notes: event.target.value }); }} placeholder="Anything else the Hustler should know" />
+            <input id="notes" maxLength={2000} value={notes} onChange={(event) => { setNotes(event.target.value); updateDraft({ notes: event.target.value }); }} placeholder="Anything else the Hustler should know" />
           </div>
         </div>
 
