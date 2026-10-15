@@ -60,3 +60,8 @@
 @media(prefers-reduced-transparency:reduce){
  .panel,.card,.formCard,.summaryCard,.detailMain,.detailSide,.handoff,.bookingConsult{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+.draftStatus{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 14px;border:1px solid #d3d0c7;border-radius:14px;background:#fff;color:#575249;font-size:12px;line-height:1.5}
+.draftStatus button{appearance:none;border:0;background:none;text-decoration:underline;text-underline-offset:3px;font:inherit;font-weight:800;color:#111;cursor:pointer;padding:6px 0}
+.draftStatus button:focus-visible{outline:2px solid #ff5a1f;outline-offset:4px}
+.draftStatus button:disabled{opacity:.5;cursor:not-allowed}
