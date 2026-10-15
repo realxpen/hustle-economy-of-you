@@ -271,7 +271,8 @@ export class BookingScheduleService {
     }
   ) {
     // PostgreSQL transaction-scoped advisory lock: released on commit/rollback, never global process state.
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${input.hustlerUserId}), 19477)`;
+    const locks = await tx.$queryRaw<{ acquired: boolean }[]>`SELECT pg_try_advisory_xact_lock(hashtext(${input.hustlerUserId}), 19477) AS acquired`;
+    if (!locks[0]?.acquired) throw new ConflictException("Booking schedule is being updated. Retry shortly");
     const service = await this.loadService(tx, input.serviceId);
     if (service.professionalProfile.userId !== input.hustlerUserId) {
       throw new ForbiddenException("Service owner mismatch");
