@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/payment-sandbox.yml"
       - "scripts/payment-sandbox/**"
+      - "scripts/experience/staging-*"
       - "apps/api/src/payment/**"
       - "apps/api/src/commerce/**"
       - "apps/api/src/notifications/**"
