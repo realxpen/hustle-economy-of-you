@@ -21,7 +21,7 @@ assert.match(scheduleSource, /pg_try_advisory_xact_lock\(hashtext/);
 assert.match(bookingSource, /reserveWithinTransaction\(tx/);
 assert.match(bookingSource, /tx\.booking\.updateMany/);
 assert.match(bookingSource, /booking\.schedule_extended/);
-assert.match(bookingSource, /booking:\\\$\\\{id\\\}:extension:\\\$\\\{revision\.id\\\}/,
+assert.ok(bookingSource.includes("eventKey: " + "`booking:\${id}:extension:\${revision.id}`"),
   "every extension must have its own Client notification event key");
 assert.match(bookingSource, /priceChanged: false/,
   "extensions never change existing financial terms");
