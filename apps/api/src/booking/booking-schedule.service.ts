@@ -176,11 +176,25 @@ export class BookingScheduleService {
     const normalCapacity = Math.min(service.parallelCapacity,
       ...overlapping.map((b) => b.service.parallelCapacity));
     const totalCapacity = normalCapacity + service.overbookingAllowance;
-    const remaining = Math.max(0, totalCapacity - overlapping.length);
+    // Peak concurrent occupancy matters: two non-overlapping clients inside a
+    // long requested interval consume only one slot at any instant.
+    const events: { at: number; change: number }[] = [];
+    for (const row of overlapping) {
+      const begin = new Date(row.confirmedStartAt!.getTime() - row.service.prepMinutes * 60_000).getTime();
+      const finish = (row.confirmedEndAt ??
+        new Date(row.confirmedStartAt!.getTime() + row.service.defaultDurationMinutes * 60_000)).getTime() +
+        row.service.bufferMinutes * 60_000;
+      events.push({ at: Math.max(begin, candidateStart.getTime()), change: 1 });
+      events.push({ at: Math.min(finish, candidateEnd.getTime()), change: -1 });
+    }
+    events.sort((a,b)=>a.at - b.at || a.change - b.change);
+    let active = 0, peak = 0;
+    for (const event of events) { active += event.change; peak = Math.max(peak, active); }
+    const remaining = Math.max(0, totalCapacity - peak);
     return {
       available: remaining > 0, mode: service.bookingMode, startAt, endAt,
       capacity: totalCapacity, remainingCapacity: remaining,
-      overbooking: overlapping.length >= normalCapacity,
+      overbooking: peak >= normalCapacity,
       turnaroundHours: service.turnaroundHours,
       reason: remaining ? null : "All available capacity for this time is already committed"
     };
