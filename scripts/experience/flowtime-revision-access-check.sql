@@ -11,7 +11,8 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'FlowTime schedule revisions must use row-level security';
   END IF;
-  IF NOT has_table_privilege('hustle_api','public."BookingScheduleRevision"','INSERT,SELECT') THEN
+  IF NOT has_table_privilege('hustle_api','public."BookingScheduleRevision"','INSERT')
+    OR NOT has_table_privilege('hustle_api','public."BookingScheduleRevision"','SELECT') THEN
     RAISE EXCEPTION 'FlowTime API role cannot create and read revisions';
   END IF;
   IF has_table_privilege('anon','public."BookingScheduleRevision"','SELECT')
