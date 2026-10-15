@@ -23,6 +23,7 @@ function formatDate(value: string | null) {
 
 function BookingCard({ booking }: { booking: BookingRecord }) {
   const counterpart = booking.viewerRole === "CLIENT" ? booking.hustler : booking.client;
+  const needsResponse = booking.viewerRole === "HUSTLER" && booking.status === "REQUESTED";
   return <a className={[styles.card, "h-experience-surface"].join(" ")} href={`/bookings/${booking.id}`}>
     <div className={styles.cardTop}>
       <div>
@@ -37,6 +38,7 @@ function BookingCard({ booking }: { booking: BookingRecord }) {
       <span>{counterpart.displayName ?? counterpart.username ?? "Hustle user"}</span>
     </div>
     <p className={styles.next}>{booking.nextAction}</p>
+    {needsResponse && <span className={styles.priorityAction}>Review & respond →</span>}
   </a>;
 }
 
@@ -59,15 +61,29 @@ function BookingSection({
   onRetry: () => void;
   noCapability?: boolean;
 }) {
+  const isHustlerView = eyebrow === "AS HUSTLER";
+  const awaitingResponse = isHustlerView ? page?.items.filter((booking) => booking.status === "REQUESTED") ?? [] : [];
+  const otherBookings = isHustlerView ? page?.items.filter((booking) => booking.status !== "REQUESTED") ?? [] : page?.items ?? [];
   return <section className={[styles.panel, "h-experience-surface"].join(" ")}>
     <div className={styles.panelHead}>
       <div><small>{eyebrow}</small><h2>{title}</h2></div>
-      {page && <small>{page.items.length} loaded</small>}
+      <div>
+        {page && <small>{page.items.length} loaded</small>}
+        {isHustlerView && <button className={styles.loadMore} type="button" disabled={loadingMore} onClick={onRetry}>Refresh requests</button>}
+      </div>
     </div>
     {error && <ExperienceState compact kind={noCapability ? "empty" : "error"} title={noCapability ? "Hustler tools are not active yet." : "Could not load bookings."} description={error} action={noCapability ? { label: "View your profile", href: "/account" } : { label: "Retry", onClick: onRetry }} />}
     {!error && !page && <ExperienceState compact kind="loading" title="Getting your bookings…" />}
     {!error && page && page.items.length === 0 && <ExperienceState compact kind="empty" title="No bookings in this view yet." description={eyebrow === "AS CLIENT" ? "Find a Service and request a time when you're ready." : "Requests for your published Services will appear here."} action={eyebrow === "AS CLIENT" ? { label: "Explore Services", href: "/marketplace" } : undefined} />}
-    {page && page.items.length > 0 && <div className={styles.list}>{page.items.map((booking) => <BookingCard key={booking.id} booking={booking} />)}</div>}
+    {awaitingResponse.length > 0 && <section className={styles.priorityQueue} aria-label="Incoming booking requests awaiting a response">
+      <strong>{awaitingResponse.length} request{awaitingResponse.length === 1 ? "" : "s"} waiting for your response</strong>
+      <p>These are the incoming requests in your currently loaded list. Review the schedule and accept or decline each request.</p>
+      <div className={styles.list}>{awaitingResponse.map((booking) => <BookingCard key={booking.id} booking={booking} />)}</div>
+    </section>}
+    {otherBookings.length > 0 && <>
+      {isHustlerView && awaitingResponse.length > 0 && <p className={styles.priorityLabel}>OTHER BOOKINGS</p>}
+      <div className={styles.list}>{otherBookings.map((booking) => <BookingCard key={booking.id} booking={booking} />)}</div>
+    </>}
     {page?.hasMore && <button className={styles.loadMore} onClick={onLoadMore} disabled={loadingMore}>{loadingMore ? "Loading…" : "Load more"}</button>}
   </section>;
 }

@@ -9,6 +9,7 @@ import { TransactionJourney } from "../../../components/commerce/transaction-jou
 import { withTransactionReturnTo } from "../../../lib/transaction-return";
 import { useParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
+import { BookingDecisionPanel, type BookingDecision } from "../../../components/booking/booking-decision-panel";
 import { CounterpartyFeedbackCard } from "../../../components/trust/counterparty-feedback-card";
 import { ReviewEligibilityCard } from "../../../components/trust/review-eligibility-card";
 import { TransactionSafetyActions } from "../../../components/trust/transaction-safety-actions";
@@ -56,6 +57,8 @@ export default function BookingDetailPage() {
   const [busy, setBusy] = useState(false);
   const [confirmedStartAt, setConfirmedStartAt] = useState("");
   const [confirmedEndAt, setConfirmedEndAt] = useState("");
+  const [decision, setDecision] = useState<BookingDecision | null>(null);
+  const [decisionReason, setDecisionReason] = useState("");
 
   const applyBooking = useCallback((next: BookingRecord) => {
     setBooking(next);
@@ -80,15 +83,21 @@ export default function BookingDetailPage() {
 
   useEffect(() => {
     setBooking(null);
+    setDecision(null);
+    setDecisionReason("");
     void load();
     return () => { requestVersion.current += 1; };
   }, [load]);
 
   async function act(action: () => Promise<BookingRecord>) {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      applyBooking(await action());
+      const updated = await action();
+      applyBooking(updated);
+      setDecision(null);
+      setDecisionReason("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Booking action failed");
     } finally {
@@ -96,11 +105,31 @@ export default function BookingDetailPage() {
     }
   }
 
+  function openDecision(next: BookingDecision) {
+    if (busy) return;
+    setDecision(next);
+    setDecisionReason("");
+    setError(null);
+  }
+
+  function submitDecision() {
+    if (!booking || !decision || busy) return;
+    if (decision === "DECLINE" && (booking.viewerRole !== "HUSTLER" || booking.status !== "REQUESTED")) return;
+    if (decision === "CANCEL" && !(booking.viewerRole === "CLIENT"
+      ? ["REQUESTED", "ACCEPTED", "PAYMENT_PENDING"].includes(booking.status)
+      : ["ACCEPTED", "PAYMENT_PENDING"].includes(booking.status))) return;
+    const reason = decisionReason.trim() || undefined;
+    void act(() => decision === "DECLINE"
+      ? declineBooking(booking.id, reason)
+      : cancelBooking(booking.id, reason));
+  }
+
   async function acceptWithSchedule() {
     if (!booking) return;
     const start = toIso(confirmedStartAt);
     const end = toIso(confirmedEndAt);
     if (!start) return setError("Choose a valid confirmed start date and time.");
+    if (new Date(start).getTime() <= Date.now()) return setError("Confirmed start must be in the future.");
     if (confirmedEndAt && !end) return setError("Choose a valid confirmed end date and time.");
     if (end && new Date(end).getTime() <= new Date(start).getTime()) return setError("Confirmed end must be after confirmed start.");
     await act(() => acceptBooking(booking.id, { confirmedStartAt: start, ...(end ? { confirmedEndAt: end } : {}) }));
@@ -189,10 +218,20 @@ export default function BookingDetailPage() {
         <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>ACTIONS</p>
           <div className={styles.actions}>
-            {canAccept && <><div className={styles.field}><label htmlFor="confirmed-start">CONFIRM START</label><input id="confirmed-start" type="datetime-local" value={confirmedStartAt} onChange={(event) => setConfirmedStartAt(event.target.value)} /></div><div className={styles.field}><label htmlFor="confirmed-end">CONFIRM END · OPTIONAL</label><input id="confirmed-end" type="datetime-local" value={confirmedEndAt} onChange={(event) => setConfirmedEndAt(event.target.value)} /></div><button className={styles.primary} disabled={busy} onClick={() => void acceptWithSchedule()}>Accept with confirmed schedule</button><button className={styles.secondary} disabled={busy} onClick={() => { const reason = window.prompt("Optional decline reason") ?? undefined; void act(() => declineBooking(booking.id, reason)); }}>Decline request</button></>}
+            {canAccept && <><div className={styles.field}><label htmlFor="confirmed-start">CONFIRM START</label><input id="confirmed-start" type="datetime-local" value={confirmedStartAt} onChange={(event) => setConfirmedStartAt(event.target.value)} /></div><div className={styles.field}><label htmlFor="confirmed-end">CONFIRM END · OPTIONAL</label><input id="confirmed-end" type="datetime-local" value={confirmedEndAt} onChange={(event) => setConfirmedEndAt(event.target.value)} /></div><p className={styles.actionNote}>Accepting a paid Booking moves it to payment pending; work cannot start without authoritative funding. Free Bookings can start after acceptance.</p><button type="button" className={styles.primary} disabled={busy} onClick={() => void acceptWithSchedule()}>Accept with confirmed schedule</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => openDecision("DECLINE")}>Decline request</button></>}
             {canStart && <button className={styles.primary} disabled={busy} onClick={() => void act(() => startBooking(booking.id))}>Start work</button>}
             {canComplete && <button className={styles.primary} disabled={busy} onClick={() => void act(() => completeBooking(booking.id))}>Mark work complete</button>}
-            {canCancel && <button className={styles.danger} disabled={busy} onClick={() => { const reason = window.prompt("Optional cancellation reason") ?? undefined; void act(() => cancelBooking(booking.id, reason)); }}>Cancel booking</button>}
+            {canCancel && <button type="button" className={styles.danger} disabled={busy} onClick={() => openDecision("CANCEL")}>Cancel booking</button>}
+            {decision && ((decision === "DECLINE" && canAccept) || (decision === "CANCEL" && canCancel)) && (
+              <BookingDecisionPanel
+                decision={decision}
+                reason={decisionReason}
+                onReasonChange={setDecisionReason}
+                onDismiss={() => { setDecision(null); setDecisionReason(""); }}
+                onConfirm={submitDecision}
+                busy={busy}
+              />
+            )}
             <a className={styles.secondary} href={`/services/${booking.serviceId}`}>Open Service</a>
           </div>
           {error && <div className={styles.error}>{error}</div>}

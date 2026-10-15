@@ -65,3 +65,21 @@
 .draftStatus button{appearance:none;border:0;background:none;text-decoration:underline;text-underline-offset:3px;font:inherit;font-weight:800;color:#111;cursor:pointer;padding:6px 0}
 .draftStatus button:focus-visible{outline:2px solid #ff5a1f;outline-offset:4px}
 .draftStatus button:disabled{opacity:.5;cursor:not-allowed}
+
+/* Booking decisions must be deliberate: do not use browser prompts, which can
+   be dismissed while still mutating the Booking state. */
+.decisionPanel{display:grid;gap:10px;border:1px solid #bd8d7e;background:#fff8f5;border-radius:18px;padding:18px;min-width:0}
+.decisionPanel strong{font-size:16px}
+.decisionPanel p{margin:0;line-height:1.5;font-size:13px;color:#644b44}
+.decisionPanel label{font-size:11px;font-weight:850;letter-spacing:.09em}
+.decisionPanel textarea{width:100%;box-sizing:border-box;border:1px solid #cbb0a6;border-radius:12px;padding:12px;min-height:85px;resize:vertical;font:inherit}
+.decisionPanel small{font-size:11px;color:#6e6a61}
+.decisionButtons{display:flex;gap:10px;flex-wrap:wrap}
+.decisionButtons button{flex:1 1 150px}
+.priorityQueue{border:1px solid #d1b590;background:#fff8e9;border-radius:16px;padding:14px;margin-bottom:14px}
+.priorityQueue strong{display:block;font-size:14px;margin-bottom:5px}
+.priorityQueue p{font-size:12px;line-height:1.5;margin:0 0 10px}
+.priorityLabel{margin:10px 0;font-size:11px;font-weight:850;letter-spacing:.08em;color:#645a49}
+.priorityAction{display:block;margin-top:12px;font-size:12px;font-weight:900;color:#6d2b0f}
+
+.actionNote{font-size:12px;line-height:1.5;color:#645e52;background:#fff7e6;border:1px solid #e1c59a;padding:12px;border-radius:12px;margin:0}
