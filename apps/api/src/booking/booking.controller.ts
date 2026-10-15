@@ -10,7 +10,8 @@ import {
   type BookingPaginationInput,
   type CancelBookingInput,
   type CreateBookingInput,
-  type DeclineBookingInput
+  type DeclineBookingInput,
+  type ExtendBookingInput
 } from "./booking.service";
 
 @Controller("bookings")
@@ -51,6 +52,15 @@ export class BookingController {
     return this.bookingScheduleService.checkAvailability(identity, query);
   }
 
+  @Get("duration-insights")
+  durationInsights(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Query("serviceId") serviceId: string
+  ) {
+    if (!serviceId) return { sampleSize: 0, suggestedDurationMinutes: null };
+    return this.bookingScheduleService.durationInsights(identity, serviceId);
+  }
+
   @Get(":bookingId")
   get(
     @CurrentIdentity() identity: AuthIdentity,
@@ -65,11 +75,20 @@ export class BookingController {
     @Param("bookingId") bookingId: string,
     @Body() input: AcceptBookingInput
   ) {
-    await this.bookingScheduleService.validateAccept(identity, bookingId, input);
+    // Acceptance checks and commits capacity atomically inside BookingService.
     return this.bookingService.accept(identity, bookingId, input);
   }
 
-  @Post(":bookingId/decline")
+  @Post(":bookingId/extend")
+  extend(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("bookingId") bookingId: string,
+    @Body() input: ExtendBookingInput
+  ) {
+    return this.bookingService.extend(identity, bookingId, input);
+  }
+
+    @Post(":bookingId/decline")
   decline(
     @CurrentIdentity() identity: AuthIdentity,
     @Param("bookingId") bookingId: string,
