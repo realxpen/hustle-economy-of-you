@@ -38,3 +38,6 @@
 .flowtimeDay>input{width:100%;min-width:0;border:1px solid #ccc7bb;padding:8px;border-radius:10px}
 .flowtimeDay>span{grid-column:2/4;color:#888;font-size:12px}
 @media(max-width:560px){.flowtime{gap:12px}.flowtimeHours{padding:10px}.flowtimeDay{gap:5px;grid-template-columns:70px minmax(0,1fr) minmax(0,1fr)}.flowtimeDay>input{font-size:12px;padding:6px}}
+
+.flowtimeApply{display:inline-flex;align-items:center;border:1px solid #ed7739;border-radius:999px;margin:6px 0 6px 10px;padding:8px 12px;min-height:40px;background:#fff;color:#9a3f19;font-size:12px;font-weight:850;cursor:pointer}
+.flowtimeApply:focus-visible{outline:2px solid #fd702c;outline-offset:3px}
