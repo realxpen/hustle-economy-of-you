@@ -19,6 +19,7 @@ import {
   saveService
 } from "../../lib/service";
 import styles from "./service-editor.module.css";
+import { getServiceDurationInsights } from "../../lib/booking";
 
 type FormState = {
   title: string;
@@ -106,6 +107,7 @@ function toForm(service: Service): FormState {
 export function ServiceEditor({ serviceId }: { serviceId?: string }) {
   const [service, setService] = useState<Service | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [durationInsights, setDurationInsights] = useState<{sampleSize:number;medianMinutes:number|null;suggestedDurationMinutes:number|null}|null>(null);
   const [loading, setLoading] = useState(Boolean(serviceId));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +119,7 @@ export function ServiceEditor({ serviceId }: { serviceId?: string }) {
       .then((next) => {
         setService(next);
         setForm(toForm(next));
+        void getServiceDurationInsights(next.id).then((result)=>setDurationInsights(result)).catch(()=>setDurationInsights(null));
       })
       .catch((reason: Error) => setError(reason.message))
       .finally(() => setLoading(false));
@@ -318,6 +321,14 @@ export function ServiceEditor({ serviceId }: { serviceId?: string }) {
               <label><span>Default work duration · minutes</span><input type="number" min="5" max="1440" step="5" value={form.defaultDurationMinutes} onChange={(e)=>setField("defaultDurationMinutes",Number(e.target.value))}/></label>
               <label><span>Simultaneous appointments</span><input type="number" min="1" max="100" value={form.parallelCapacity} onChange={(e)=>setField("parallelCapacity",Number(e.target.value))}/></label>
             </div>
+            {durationInsights && <div className={styles.flowtimeHint} role="status">
+              {durationInsights.suggestedDurationMinutes !== null
+                ? <>Based on {durationInsights.sampleSize} completed jobs, the median duration is {durationInsights.medianMinutes} minutes.
+                  <button type="button" className={styles.flowtimeApply} onClick={()=>setField("defaultDurationMinutes",durationInsights.suggestedDurationMinutes as number)}>
+                    Apply suggested {durationInsights.suggestedDurationMinutes}-minute default
+                  </button></>
+                : <>Duration insights will appear after at least five completed jobs with recorded start and finish times.</>}
+            </div>}
             <div className={styles.twoCol}>
               <label><span>Preparation · minutes</span><input type="number" min="0" max="120" value={form.prepMinutes} onChange={(e)=>setField("prepMinutes",Number(e.target.value))}/></label>
               <label><span>Recovery buffer · minutes</span><input type="number" min="0" max="180" value={form.bufferMinutes} onChange={(e)=>setField("bufferMinutes",Number(e.target.value))}/></label>
