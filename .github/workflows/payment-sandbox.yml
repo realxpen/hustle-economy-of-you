@@ -69,6 +69,12 @@ jobs:
           npx prisma migrate resolve --applied 20260917130500_phase16b_story_rls_hardening --schema=apps/api/prisma/schema.prisma
       - name: Apply all other Hustle migrations to disposable Postgres
         run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+      - name: Verify FlowTime revision table is API-only (isolated Postgres)
+        shell: bash
+        run: |
+          PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -f scripts/experience/flowtime-revision-access-check.sql
       - name: Build actual Nest API
         run: npm run build --workspace=@hustle/api
       - name: Run end-to-end paid Order and notification assertions
