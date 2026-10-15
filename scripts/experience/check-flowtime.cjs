@@ -52,7 +52,7 @@ const booked = (id,start,end,policy=base,status=BookingStatus.ACCEPTED)=>({
  id,confirmedStartAt:start,confirmedEndAt:end, status,
  service:{bookingMode:policy.bookingMode,defaultDurationMinutes:policy.defaultDurationMinutes,
  prepMinutes:policy.prepMinutes,bufferMinutes:policy.bufferMinutes,
- parallelCapacity:policy.parallelCapacity}
+ parallelCapacity:policy.parallelCapacity,maxActiveJobs:policy.maxActiveJobs}
 });
 let record={...base}, rows=[], locks=0;
 const prisma = {
