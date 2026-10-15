@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import {
   BookingStatus,
+  NotificationKind,
   Capability,
   CapabilityStatus,
   Prisma,
@@ -373,14 +374,26 @@ export class BookingService {
         data: { confirmedEndAt: proposed, extendedMinutes: { increment: minutes } }
       });
       if (result.count !== 1) throw new ConflictException("Booking schedule changed; refresh and retry");
-      await tx.bookingScheduleRevision.create({
+      const revision = await tx.bookingScheduleRevision.create({
         data: { bookingId: id, actorUserId: viewer.id,
           previousEndAt: existing.confirmedEndAt, newEndAt: proposed,
           addedMinutes: minutes, note }
       });
+      // State-change notifications are idempotent by status; an extension needs
+      // its own event key to notify Clients on EVERY successful revision.
+      await tx.notification.create({
+        data: {
+          recipientUserId: existing.clientUserId,
+          eventKey: `booking:${id}:extension:${revision.id}`,
+          kind: NotificationKind.BOOKING,
+          title: "Booking time extended",
+          body: `Your Hustler extended the expected finish by ${minutes} minutes.` +
+            (note ? ` Note: ${note}` : "") + " The booking price is unchanged.",
+          href: `/bookings/${encodeURIComponent(id)}`
+        }
+      });
       const confirmed = await tx.booking.findUnique({ where: { id }, select: bookingSelect });
       if (!confirmed) throw new NotFoundException("Booking unavailable");
-      await this.notifications.recordBookingStatus(tx, confirmed, confirmed.status, viewer.id);
       return confirmed;
     }, { maxWait: 5000, timeout: 12000 });
     await this.recordEvent("booking.schedule_extended", {
