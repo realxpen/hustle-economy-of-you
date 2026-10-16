@@ -7,6 +7,7 @@ on:
       - ".github/workflows/payment-sandbox.yml"
       - "scripts/payment-sandbox/**"
       - "scripts/experience/staging-*"
+      - "scripts/experience/casework-access-check.sql"
       - "apps/api/src/payment/**"
       - "apps/api/src/commerce/**"
       - "apps/api/src/notifications/**"
@@ -75,6 +76,12 @@ jobs:
           PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
             -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
             -f scripts/experience/flowtime-revision-access-check.sql
+      - name: Verify server-only Marketplace casework access (isolated Postgres)
+        shell: bash
+        run: |
+          PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -f scripts/experience/casework-access-check.sql
       - name: Build actual Nest API
         run: npm run build --workspace=@hustle/api
       - name: Run end-to-end paid Order and notification assertions
