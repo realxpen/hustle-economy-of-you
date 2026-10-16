@@ -37,6 +37,18 @@ The owner created a **separate** local Supabase instance `supabase_db_hustle-res
 
 The owner is temporarily away from the laptop. **Do not attempt local restoration on the hosted production Supabase project.**
 
+## Vercel release baseline — checked remotely, read-only
+
+The following **production aliases were confirmed** on the latest READY production deployment in the linked Vercel account. This is deployed code, **not** current GitHub `main`:
+
+| Alias | Git SHA | Created (UTC) |
+| --- | --- | --- |
+| `api-swifnatechnologyltd.vercel.app` | `d5f4b2bc2466f040721b7f147cf45ccb1ff32133` | 2026-10-11 16:42 |
+| `web-swifnatechnologyltd.vercel.app` | `80193c952a27f422bb5291474b3dd0cee7ebfdc3` | 2026-10-12 14:49 |
+| `admin-swifnatechnologyltd.vercel.app` | `151bcb98928c8ea0e13631ace6321646bcaa6de1` | 2026-10-12 12:29 |
+
+Latest visible staging FlowTime API and Web production-targeted deployments (2026-10-15) were **CANCELED**; this does not prove all staging environments are unusable, but their readiness must be rechecked before acceptance. Do not assume CI/PR merge automatically updates any of these live aliases. Migration-first compatibility and separate manual Vercel `DEPLOY` approvals remain required.
+
 ## Production prerequisites (not yet authorized)
 
 1. Finish local Storage byte-level recovery and examine metadata/ownership/RLS/paths; distinguish known limitations from recoverable failures.
