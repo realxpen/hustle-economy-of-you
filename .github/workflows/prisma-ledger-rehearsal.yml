@@ -1,0 +1,56 @@
+name: Isolated Prisma Ledger Reconciliation Rehearsal
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/prisma-ledger-rehearsal.yml"
+      - "scripts/experience/rehearse-prisma-ledger.sh"
+      - "scripts/experience/casework-access-check.sql"
+      - "scripts/experience/flowtime-revision-access-check.sql"
+      - "scripts/payment-sandbox/supabase-compat.sql"
+      - "apps/api/prisma/**"
+      - "Knowledge/QA/PRISMA_LEDGER_RECONCILIATION_REHEARSAL.md"
+
+permissions:
+  contents: read
+
+jobs:
+  ledger-rehearsal:
+    name: Reconcile legacy Prisma history in throwaway Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: sandbox_only
+          POSTGRES_DB: hustle_payment_sandbox
+        ports:
+          - 127.0.0.1:55439:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hustle_payment_sandbox"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:sandbox_only@127.0.0.1:55439/hustle_payment_sandbox?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Bootstrap minimal local Supabase-compatible roles
+        shell: bash
+        run: |
+          PGPASSWORD=sandbox_only psql -X -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -f scripts/payment-sandbox/supabase-compat.sql
+      - name: Rehearse divergent ledger reconciliation without any live credentials
+        shell: bash
+        run: bash scripts/experience/rehearse-prisma-ledger.sh
