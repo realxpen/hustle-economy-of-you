@@ -1,31 +1,31 @@
-# Hustle Expo EAS Cloud Preview — Acceptance Gate
+# Hustle Expo EAS Cloud Preview — Free Plan Acceptance Gate
 
-**Scope:** Review branch `feat/mobile-eas-cloud-preview-gate`; integration PR #127 already merged.
+**Scope:** Review branch `feat/mobile-eas-cloud-preview-gate`; mobile integration PR #127 already merged.
+
+## Cost boundary (Expo Free)
+As of 2026-10-17 Expo Free advertises up to 15 Android and 15 iOS EAS builds each month and up to 60 EAS workflow minutes. The EAS-hosted Maestro `type: maestro` jobs are not included on Expo Free (source: https://expo.dev/pricing). This PR **does not provide or trigger paid Maestro testing**. Standard GitHub-hosted source checks are the automated free-tier validation; no real-device test has been completed.
 
 ## Prepared cloud assets
-- `apps/mobile/app.config.js`: preview app branding and isolated package IDs, unchanged default app identity.
-- `apps/mobile/eas.json`: preview Android APK, iOS simulator preview, and credential-free emulator/simulator E2E profiles.
-- `.github/workflows/hustle-mobile-eas-preview.yml`: manual-only GitHub Actions trigger, explicit approval input, no store submit.
-- `apps/mobile/.eas/workflows/hustle-e2e-android.yml` and `hustle-e2e-ios.yml`: build + Maestro test jobs, manually launched via GitHub.
-- `apps/mobile/.maestro/auth-smoke.yml`: nonauthenticated identity/signin/signup navigation assertions. Does not assert a real signed-in journey.
-- `apps/mobile/scripts/cloud-preview-config-gate.cjs`: source-only contract checks run by Mobile Cloud CI.
+- `apps/mobile/app.config.js`: dedicated `Hustle Preview` identity with preview-only Android and iOS package identifiers.
+- `apps/mobile/eas.json`: Android internal APK and iOS simulator preview build profiles; both force `EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS=false`.
+- `.github/workflows/hustle-mobile-eas-preview.yml`: manual-only GitHub Actions bridge to EAS cloud builds. Explicit approval input, no store submission, no Maestro job.
+- `apps/mobile/scripts/cloud-preview-config-gate.cjs`: static safety contract executed on every Mobile Cloud CI PR.
+- `apps/mobile/scripts/mobile-experience-contract.mjs`: content and booking source contracts already in Mobile Cloud CI.
 
-## One-time cloud connections required before launching a build
-1. An owner-controlled Expo/EAS project exists for Hustle. Its project UUID is public but must correspond to the correct owner/project. The workflow does not create a new Expo project or auto-enroll payment plans.
-2. GitHub **environment** `mobile-preview` is configured with `EXPO_TOKEN` as an environment **secret** (never paste token in chat) and `EXPO_PROJECT_ID` as an environment **variable**. Add environment approver protection if available.
-3. In the Expo project's EAS environment named `preview`, configure `EXPO_PUBLIC_API_URL` to a working nonproduction Hustle API, `EXPO_PUBLIC_SUPABASE_URL` to nonproduction auth, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to the matching publishable key, and optionally `EXPO_PUBLIC_PUBLIC_WEB_URL` to nonproduction web. For cloud config parity, also provide `EXPO_PROJECT_ID` in the EAS preview environment if requested by remote Expo config resolution.
-4. First-time EAS signing/project credential provisioning may require a separate Expo owner action. The GitHub workflow does not invent or print credentials. iOS physical distribution additionally requires Apple signing; the configured `ios-simulator` and E2E iOS variants do not produce an iPhone-installable build.
+## Cloud-only onboarding, once, without local development tools
+1. Use an Expo **Free** account and keep it on Free. Link/create a Hustle EAS project under the chosen Expo username/organization. Its project UUID is public, but must match the intended owner.
+2. In GitHub repository **Settings → Environments** create `mobile-preview`, with secret `EXPO_TOKEN` created at https://expo.dev/settings/access-tokens and variable `EXPO_PROJECT_ID` from the linked Expo project. **Never share or commit tokens**. If creation or initialization of the EAS project needs a cloud terminal, use a reviewed cloud workflow rather than installing anything locally.
+3. Configure Expo EAS `preview` environment with nonproduction `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Set preview-only authentication and API credentials; don't attach the active production database. Booking writes stay off.
+4. Only after these conditions and owner approval, trigger **GitHub → Actions → Hustle Mobile EAS Preview (manual)** and choose `android` or `ios-simulator`. EAS may request first-time signing credential setup. If it cannot run non-interactively, stop and resolve through the Expo cloud account.
+5. Review Android APK or iOS simulator build artifacts and EAS dashboard logs. A successful cloud build is **not** proof of the full signed-in user journey.
 
-## Cloud execution (no local setup)
-From **GitHub > Actions > Hustle Mobile EAS Preview (manual) > Run workflow**, select `main` once this PR is merged, choose `android`, `ios-simulator`, `e2e-android`, or `e2e-ios`, and explicitly enable the nonproduction approval input. The workflow checks the Expo connection and queues EAS work. View installable artifacts or test logs through the returned EAS dashboard link.
+## Quality gate before wider release
+- Green latest-head Foundation CI and Mobile Cloud CI.
+- App identity verification and actual EAS build result recorded (URL, target, outcome).
+- Nonproduction account/session and content-to-booking acceptance on a real Android device or trusted remote testing environment, with authorization and explicit evidence.
+- Verify video pause/unload, cursor loading, likes/comments/saves/follows, external share, attached Service, timezone-accurate slots, offline/slow network and error/retry behavior.
+- Confirm booking POST, payments, escrow and merchant/provider operations remain disabled during preview.
+- No iPhone App Store distribution or automatic store submissions.
 
-## Evidence required to mark milestone complete
-- Green exact-head GitHub Foundation CI and Mobile Cloud CI, including `cloud-preview-config-gate.cjs`.
-- EAS artifact successfully built for required platform(s), with build URL and target identifier recorded.
-- EAS Maestro smoke pass for both Android emulator and iOS simulator, with linked cloud logs.
-- Separate verified staging test accounts for Client and Hustler; authenticated session recovery, scroll/video lifecycle, comments/replies, save/follow, discovery, attached Service, truthful slots and rejection cases must be tested with nonproduction records.
-- Booking POST remains disabled and no payment/escrow activity is conducted during smoke testing.
-- Accessibility, small screens, Android Back, offline/slow networking and media lifecycle need explicit acceptance before release.
-
-## Current limits
-This PR provisions code and gated workflows only. It does **not** connect an Expo owner token, initialize an EAS project, perform cloud builds, issue developer credentials, run Maestro tests, test a device, or deploy production. Actual tests need explicit connected cloud project permission. Maestro EAS jobs are an alpha capability; failure to provision should be reported, not treated as an app defect.
+## Current limitation
+The owner has created an Expo account, but no authenticated EAS project is linked yet and no preview build or real-device test has run. A separate cloud project authentication step is required; the assistant cannot silently provision an Expo account or store its token. Paid EAS Maestro jobs are deliberately excluded from this free-plan milestone.
