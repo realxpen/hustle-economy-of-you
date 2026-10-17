@@ -14,6 +14,7 @@ try {
   process.env.EXPO_PROJECT_ID = "eb9df9ee-5f3b-4e90-b9dc-36a770d00c25"; // test fixture only
   const preview = makeConfig({ config: base });
   assert.equal(preview.name, "Hustle Preview");
+  assert.equal(preview.owner, "xpen");
   assert.equal(preview.android.package, "com.hustle.economyofyou.preview");
   assert.equal(preview.ios.bundleIdentifier, "com.hustle.economyofyou.preview");
   assert.equal(preview.extra.eas.projectId, process.env.EXPO_PROJECT_ID);
