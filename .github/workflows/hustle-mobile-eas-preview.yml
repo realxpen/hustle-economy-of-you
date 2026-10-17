@@ -12,6 +12,8 @@ on:
         options:
           - android
           - ios-simulator
+          - e2e-android
+          - e2e-ios
       approved_nonproduction_build:
         description: "I approve a nonproduction preview build that may consume Expo build credits"
         required: true
@@ -81,6 +83,10 @@ jobs:
             eas build --platform android --profile preview --non-interactive --no-wait
           elif [[ "$TARGET" == "ios-simulator" ]]; then
             eas build --platform ios --profile ios-simulator --non-interactive --no-wait
+          elif [[ "$TARGET" == "e2e-android" ]]; then
+            eas workflow:run .eas/workflows/hustle-e2e-android.yml --non-interactive --no-wait
+          elif [[ "$TARGET" == "e2e-ios" ]]; then
+            eas workflow:run .eas/workflows/hustle-e2e-ios.yml --non-interactive --no-wait
           else
             echo "::error::Unsupported preview target"
             exit 1
