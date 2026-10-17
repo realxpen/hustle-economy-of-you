@@ -5,6 +5,9 @@ on:
     paths:
       - 'apps/mobile/**'
       - 'package-lock.json'
+      - 'apps/api/src/common/staging-isolation.ts'
+      - 'scripts/experience/check-*staging*.cjs'
+      - '.github/workflows/hustle-mobile-eas-preview.yml'
       - '.github/workflows/mobile-cloud-validation.yml'
   push:
     branches: [main]
@@ -32,5 +35,9 @@ jobs:
         run: node apps/mobile/scripts/mobile-experience-contract.mjs
       - name: Check cloud EAS preview configuration safeguards
         run: node apps/mobile/scripts/cloud-preview-config-gate.cjs
+      - name: Check isolated staging runtime contracts
+        run: |
+          node scripts/experience/check-mobile-staging-isolation.cjs
+          node scripts/experience/check-eas-staging-runtime-contract.cjs
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile

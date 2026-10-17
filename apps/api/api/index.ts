@@ -1,9 +1,12 @@
+import { assertStagingApiIsolation, stagingMutationBlocked } from "../src/common/staging-isolation";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 
 let serverPromise: Promise<any> | null = null;
 
 async function createServer() {
+  // Refuse to bootstrap the staging API without a separately isolated Supabase database.
+  assertStagingApiIsolation(process.env);
   try {
     const [{ AppModule }, { AllExceptionsFilter }] = await Promise.all([
       import("../src/app.module"),
@@ -12,6 +15,12 @@ async function createServer() {
     const app = await NestFactory.create(AppModule, { bufferLogs: false });
 
     app.setGlobalPrefix("api/v1");
+    app.use((req: any, res: any, next: () => void) => {
+      if (stagingMutationBlocked(process.env, req.method || "", req.url || "")) {
+        return res.status(403).json({ error: { code: "STAGING_MUTATION_DISABLED", message: "Nonproduction financial and booking writes are disabled" } });
+      }
+      next();
+    });
     app.enableCors({
       origin: [process.env.WEB_ORIGIN, process.env.ADMIN_ORIGIN].filter(Boolean) as string[],
       credentials: true
