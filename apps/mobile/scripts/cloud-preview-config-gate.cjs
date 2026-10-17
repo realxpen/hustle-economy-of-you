@@ -17,7 +17,10 @@ try {
   assert.equal(preview.owner, "xpen");
   assert.equal(preview.android.package, "com.hustle.economyofyou.preview");
   assert.equal(preview.ios.bundleIdentifier, "com.hustle.economyofyou.preview");
-  assert.equal(preview.extra.eas.projectId, process.env.EXPO_PROJECT_ID);
+  assert.equal(preview.extra.eas.projectId, "b52b03ef-37f1-4bdf-ab42-5c80e5988ec4");
+  process.env.EXPO_PROJECT_ID = "00000000-0000-0000-0000-000000000000";
+  const isolated = makeConfig({ config: base });
+  assert.equal(isolated.extra.eas.projectId, "b52b03ef-37f1-4bdf-ab42-5c80e5988ec4", "Preview must ignore stale EXPO_PROJECT_ID overrides");
   assert.equal(build.preview.distribution, "internal");
   assert.equal(build.preview.environment, "preview");
   assert.equal(build.preview.android.buildType, "apk");
@@ -48,6 +51,8 @@ try {
   assert.doesNotMatch(initWorkflow, /\n\s+pull_request:/);
   assert.doesNotMatch(initWorkflow, /eas build --platform|eas submit|billing:subscribe/);
   assert.match(workflow, /secrets.EXPO_TOKEN/);
+  assert.match(workflow, /EXPO_PROJECT_ID: b52b03ef-37f1-4bdf-ab42-5c80e5988ec4/);
+  assert.doesNotMatch(workflow, /vars.EXPO_PROJECT_ID|secrets.EXPO_PROJECT_ID/);
   assert.doesNotMatch(workflow, /e2e-android|e2e-ios|workflow:run|maestro/i);
   assert.deepEqual(Object.keys(build).sort(), ["ios-simulator", "preview"]);
   assert.doesNotMatch(workflow, /--auto-submit/);
