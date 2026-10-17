@@ -1,3 +1,4 @@
+import { assertStagingApiIsolation, stagingMutationBlocked } from "./common/staging-isolation";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
@@ -12,7 +13,14 @@ async function bootstrap() {
     }
   }
 
+  assertStagingApiIsolation(process.env);
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  app.use((req: any, res: any, next: () => void) => {
+    if (stagingMutationBlocked(process.env, req.method || "", req.url || "")) {
+      return res.status(403).json({ error: { code: "STAGING_MUTATION_DISABLED", message: "Nonproduction financial and booking writes are disabled" } });
+    }
+    next();
+  });
   app.setGlobalPrefix("api/v1");
 
   const configuredOrigins = [process.env.WEB_ORIGIN, process.env.ADMIN_ORIGIN]
