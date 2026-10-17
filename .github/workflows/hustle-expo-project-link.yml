@@ -43,11 +43,16 @@ jobs:
       - name: Ensure Expo token belongs to xpen
         shell: bash
         run: |
+          # EAS CLI prints 'xpen (authenticated using EXPO_TOKEN)' for tokens.
+          # Match both documented account forms; never print account details or token.
           WHOAMI="$(eas whoami | head -n 1 | tr -d '\r' | xargs)"
-          if [[ "$WHOAMI" != "xpen" ]]; then
-            echo "::error::Expo account mismatch. This workflow requires a token owned by @xpen."
-            exit 1
-          fi
+          case "$WHOAMI" in
+            "xpen"|"xpen (authenticated using EXPO_TOKEN)") ;;
+            *)
+              echo "::error::Expo account does not match expected owner @xpen."
+              exit 1
+              ;;
+          esac
       - name: Prepare ephemeral static Expo config for account linking
         shell: bash
         working-directory: apps/mobile
