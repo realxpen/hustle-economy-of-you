@@ -32,6 +32,15 @@ try {
   const workflow = fs.readFileSync(path.resolve(mobileRoot, "../../.github/workflows/hustle-mobile-eas-preview.yml"), "utf8");
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /approved_nonproduction_build/);
+  const initWorkflow = fs.readFileSync(path.resolve(mobileRoot, "../../.github/workflows/hustle-expo-project-link.yml"), "utf8");
+  assert.match(initWorkflow, /workflow_dispatch:/);
+  assert.match(initWorkflow, /confirm_xpen_owner/);
+  assert.match(initWorkflow, /eas init --account xpen --non-interactive --json/);
+  assert.match(initWorkflow, /secrets.EXPO_TOKEN/);
+  assert.match(initWorkflow, /Expo project: https:\/\/expo.dev\/accounts\/xpen\/projects\/hustle/);
+  assert.doesNotMatch(initWorkflow, /\n\s+push:/);
+  assert.doesNotMatch(initWorkflow, /\n\s+pull_request:/);
+  assert.doesNotMatch(initWorkflow, /eas build --platform|eas submit|billing:subscribe/);
   assert.match(workflow, /secrets.EXPO_TOKEN/);
   assert.doesNotMatch(workflow, /e2e-android|e2e-ios|workflow:run|maestro/i);
   assert.deepEqual(Object.keys(build).sort(), ["ios-simulator", "preview"]);
