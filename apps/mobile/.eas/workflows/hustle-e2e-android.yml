@@ -1,0 +1,16 @@
+name: Hustle Android Cloud Smoke (manual)
+
+jobs:
+  build_android:
+    name: Build nonproduction Android emulator APK
+    type: build
+    params:
+      platform: android
+      profile: e2e-test
+  maestro_android:
+    name: Verify unified-account entry
+    needs: [build_android]
+    type: maestro
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      flow_path: .maestro/auth-smoke.yml
