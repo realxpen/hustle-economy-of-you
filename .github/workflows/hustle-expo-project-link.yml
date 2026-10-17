@@ -1,0 +1,95 @@
+name: Hustle Expo Project Link (manual, free)
+
+# One-time account linking only; does not build, bill, submit, or deploy.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_xpen_owner:
+        description: "I authorize creating or linking the Hustle Expo EAS project under @xpen"
+        type: boolean
+        default: false
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  link:
+    if: inputs.confirm_xpen_owner == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: mobile-preview
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Require Expo authorization
+        shell: bash
+        run: |
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo "::error::Add the private EXPO_TOKEN in GitHub Settings → Environments → mobile-preview → Environment secrets."
+            exit 1
+          fi
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Ensure Expo token belongs to xpen
+        shell: bash
+        run: |
+          WHOAMI="$(eas whoami --non-interactive | tr -d '\r\n' | xargs)"
+          if [[ "$WHOAMI" != "xpen" ]]; then
+            echo "::error::Expo account mismatch. This workflow requires a token owned by @xpen."
+            exit 1
+          fi
+      - name: Prepare ephemeral static Expo config for account linking
+        shell: bash
+        working-directory: apps/mobile
+        run: |
+          # EAS CLI can update static app.json; dynamic app.config.js cannot be edited by CLI.
+          # The following config exists only in the ephemeral GitHub runner.
+          mv app.config.js /tmp/hustle-original-app.config.js
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const p = "app.json";
+          const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+          cfg.expo.owner = "xpen";
+          cfg.expo.name = "Hustle Preview";
+          cfg.expo.android = { ...cfg.expo.android, package: "com.hustle.economyofyou.preview" };
+          cfg.expo.ios = { ...cfg.expo.ios, bundleIdentifier: "com.hustle.economyofyou.preview" };
+          fs.writeFileSync(p, JSON.stringify(cfg, null, 2) + "\n");
+          NODE
+      - name: Create or link @xpen/hustle in Expo, without publishing or building
+        shell: bash
+        working-directory: apps/mobile
+        run: |
+          eas init --account xpen --non-interactive --json > /tmp/hustle-eas-init.json
+      - name: Display safe Expo project ID for GitHub variable
+        shell: bash
+        working-directory: apps/mobile
+        run: |
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const local = JSON.parse(fs.readFileSync("app.json", "utf8"));
+          const init = JSON.parse(fs.readFileSync("/tmp/hustle-eas-init.json", "utf8"));
+          const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const id = [
+            local.expo?.extra?.eas?.projectId,
+            init.id, init.projectId, init.project?.id, init.project?.projectId
+          ].find(v => typeof v === "string" && uuid.test(v));
+          if (!id) throw new Error("Expo did not return a valid project UUID. Check the @xpen/hustle Expo dashboard.");
+          const lines = [
+            "### Hustle EAS project linked under @xpen",
+            "",
+            "- Expo project: https://expo.dev/accounts/xpen/projects/hustle",
+            "- Public EAS project ID: \`" + id + "\`",
+            "- Save this ID as the GitHub \`mobile-preview\` environment variable \`EXPO_PROJECT_ID\`.",
+            "- No mobile build, payment, or production deployment was started."
+          ];
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          console.log("Linked public EAS project ID:", id);
+          NODE
