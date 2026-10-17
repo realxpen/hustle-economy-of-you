@@ -36,6 +36,9 @@ try {
   assert.match(initWorkflow, /workflow_dispatch:/);
   assert.match(initWorkflow, /confirm_xpen_owner/);
   assert.match(initWorkflow, /eas init --account xpen --non-interactive --json/);
+  assert.match(initWorkflow, /WHOAMI=.*eas whoami/);
+  assert.doesNotMatch(initWorkflow, /eas whoami --non-interactive/);
+  assert.match(initWorkflow, /run: npm ci/);
   assert.match(initWorkflow, /secrets.EXPO_TOKEN/);
   assert.match(initWorkflow, /Expo project: https:\/\/expo.dev\/accounts\/xpen\/projects\/hustle/);
   assert.doesNotMatch(initWorkflow, /\n\s+push:/);
