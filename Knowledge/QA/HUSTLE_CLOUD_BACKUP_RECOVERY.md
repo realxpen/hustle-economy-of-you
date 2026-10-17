@@ -1,6 +1,6 @@
 # Hustle — Isolated Cloud Backup Recovery
 
-Status: **INSTALLATION PR / NOT MERGED / RECOVERY NOT EXECUTED**. Current authorization covers installing this package, offline validation and opening a pull request for review. Do not dispatch the cloud recovery job, access production database credentials, modify the production database or deploy the application as part of this change. Any future recovery rehearsal requires a separate owner instruction after review and setup.
+Status: **INSTALLED / FIRST CLOUD RUN FAILED BEFORE RESTORE / DRIVE REQUEST FIX PROPOSED**. The package was merged in PR #128. The owner manually started recovery run [39055578239](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39055578239), which failed at backup preflight. Supabase startup and every restore step were skipped. The follow-up fix is validated offline; no retry, production database credential access, production database change or application deployment is performed as part of this fix.
 
 ## What this does
 
@@ -51,4 +51,8 @@ A green run is only a **smoke test**. It does **not** prove original Storage obj
 
 ## Status and known limitations
 
-Prepared scripts have been syntax checked and security helper unit-tested, but their **GitHub Actions integration has not been executed**. Any operational issues surfaced by the first controlled run must be investigated before treating the result as validated. The earlier successful on-laptop app/Auth restores remain separate evidence.
+The first owner-triggered integration run passed the offline tests and dependency installation, then failed in the backup inventory/download/integrity preflight. Its log deliberately suppresses private exception details; it does not establish that the service-account credentials, folder permissions or encryption passwords are correct. Supabase installation/startup and all data restore steps were skipped, and the cleanup step succeeded.
+
+Offline reproduction identified a definite request-construction bug: `files().list()` used `page_size` and `page_token`, while the Google discovery client requires `pageSize` and `pageToken`. The fix uses those documented names and isolates folder listing for credential-free tests. A strict Drive API fake verifies pagination through an empty intermediate page and duplicate-name rejection across pages. The new tests fail with the original keywords and pass after the correction. See Google's [Python quickstart](https://developers.google.com/workspace/drive/api/quickstart/python) and [files.list reference](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list).
+
+After review and merge, a new deliberate workflow dispatch on `main` is still needed to validate real Drive access, encrypted-file integrity, decryption and the temporary Supabase restore. The offline reproduction does not prove the invalid keywords were the only problem in the failed run. The earlier successful on-laptop app/Auth restores remain separate evidence.
