@@ -22,6 +22,19 @@ try {
   assert.equal(build.preview.android.buildType, "apk");
   assert.equal(build.preview.env.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS, "false");
   assert.equal(build["ios-simulator"].ios.simulator, true);
+  assert.equal(build["e2e-test"].withoutCredentials, true);
+  assert.equal(build["e2e-test"].ios.simulator, true);
+  assert.equal(build["e2e-test"].android.buildType, "apk");
+  assert.equal(build["e2e-test"].env.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS, "false");
+  const maestro = fs.readFileSync(path.resolve(mobileRoot, ".maestro/auth-smoke.yml"), "utf8");
+  assert.match(maestro, /appId: com\.hustle\.economyofyou\.preview/);
+  assert.match(maestro, /clearState: true/);
+  assert.match(maestro, /Enter your Hustle/);
+  for (const platform of ["android", "ios"]) {
+    const smoke = fs.readFileSync(path.resolve(mobileRoot, ".eas/workflows/hustle-e2e-" + platform + ".yml"), "utf8");
+    assert.match(smoke, /type: maestro/);
+    assert.match(smoke, /profile: e2e-test/);
+  }
   process.env.APP_VARIANT = "production";
   delete process.env.EXPO_PROJECT_ID;
   const standard = makeConfig({ config: base });
@@ -31,6 +44,8 @@ try {
   const workflow = fs.readFileSync(path.resolve(mobileRoot, "../../.github/workflows/hustle-mobile-eas-preview.yml"), "utf8");
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /approved_nonproduction_build/);
+  assert.match(workflow, /eas workflow:run \.eas\/workflows\/hustle-e2e-android.yml/);
+  assert.match(workflow, /eas workflow:run \.eas\/workflows\/hustle-e2e-ios.yml/);
   assert.match(workflow, /secrets.EXPO_TOKEN/);
   assert.doesNotMatch(workflow, /--auto-submit/);
   assert.doesNotMatch(workflow, /\n\s+push:/);
