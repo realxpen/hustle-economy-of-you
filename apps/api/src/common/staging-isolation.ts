@@ -12,7 +12,7 @@ function fail(): never {
 export function assertStagingApiIsolation(env: StagingEnvironment) {
   if (env.HUSTLE_DEPLOY_ENV !== "staging") return;
   const ref = env.HUSTLE_STAGING_SUPABASE_REF?.trim();
-  if (!ref || !/^[a-z]{20}$/.test(ref) || KNOWN_NONSTAGING_REFS.has(ref)) fail();
+  if (!ref || !/^[a-z0-9]{20}$/.test(ref) || KNOWN_NONSTAGING_REFS.has(ref)) fail();
   if (!env.DATABASE_URL || !env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) fail();
   try {
     const auth = new URL(env.SUPABASE_URL);
