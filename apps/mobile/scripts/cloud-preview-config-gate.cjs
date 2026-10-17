@@ -37,6 +37,9 @@ try {
   assert.match(initWorkflow, /confirm_xpen_owner/);
   assert.match(initWorkflow, /eas init --account xpen --non-interactive --json/);
   assert.match(initWorkflow, /WHOAMI=.*eas whoami/);
+  assert.match(initWorkflow, /"xpen \(authenticated using EXPO_TOKEN\)"/);
+  assert.match(initWorkflow, /case "\$WHOAMI" in/);
+  assert.doesNotMatch(initWorkflow, /if \[\[ "\$WHOAMI" != "xpen" \]\]/);
   assert.doesNotMatch(initWorkflow, /eas whoami --non-interactive/);
   assert.match(initWorkflow, /run: npm ci/);
   assert.match(initWorkflow, /secrets.EXPO_TOKEN/);
