@@ -1,0 +1,34 @@
+name: Hustle Mobile Cloud CI
+
+on:
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'package-lock.json'
+      - '.github/workflows/mobile-cloud-validation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - 'package-lock.json'
+      - '.github/workflows/mobile-cloud-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate mobile experience integration
+        run: node apps/mobile/scripts/mobile-experience-contract.mjs
+      - name: Check Expo mobile TypeScript
+        run: npm run typecheck --workspace=@hustle/mobile
