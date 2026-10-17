@@ -86,6 +86,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
   const [bookingDate, setBookingDate] = useState(() => new Date(Date.now() + 86_400_000).toISOString().slice(0, 10));
   const [slots, setSlots] = useState<BookingSlot[]>([]);
   const [slotMode, setSlotMode] = useState('');
+  const [slotTimezone, setSlotTimezone] = useState('UTC');
   const [slotLoading, setSlotLoading] = useState(false);
   const [chosenSlot, setChosenSlot] = useState<BookingSlot | null>(null);
   const [requirements, setRequirements] = useState('');
@@ -195,7 +196,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     let mounted = true;
     setSlots([]); setChosenSlot(null); setSlotLoading(true);
     mobileApi.slots(token, offerService.id, bookingDate).then(result => {
-      if (mounted) { setSlots(result.slots.filter(s => s.available)); setSlotMode(result.mode); }
+      if (mounted) { setSlots(result.slots.filter(s => s.available)); setSlotMode(result.mode); setSlotTimezone(result.timezone || 'UTC'); }
     }).catch(err => { if (mounted) { setSlotMode('Unavailable: ' + (err instanceof Error ? err.message : 'try again')); } })
       .finally(() => { if (mounted) setSlotLoading(false); });
     return () => { mounted = false; };
@@ -239,7 +240,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
       </View>
       <View style={[styles.feedTabs, { top: insets.top + 65 }]}>
         {([['live', 'LIVE'], ['for-you', 'For You'], ['nearby', 'Nearby'], ['connections', 'Following']] as const).map(([key, label]) =>
-          <Pressable key={key} accessibilityRole="tab" accessibilityState={{ selected: feedTab === key }} onPress={() => setFeedTab(key)} style={[styles.feedTab, feedTab === key && styles.feedTabActive]}>
+          <Pressable key={key} accessibilityRole="tab" accessibilityState={{ selected: feedTab === key }} onPress={() => key === 'live' ? Alert.alert('Live beta', 'Live streaming is not enabled yet.') : setFeedTab(key)} style={[styles.feedTab, feedTab === key && styles.feedTabActive]}>
             <Text style={[styles.feedTabText, feedTab === key && { color: C.white }]}>{label}</Text>
           </Pressable>)}
       </View>
@@ -264,7 +265,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     </View>;
   }
 
-  const renderPost = useCallback(({ item, index }: { item: FeedItem; index: number }) => <FeedCard item={item} index={index} />, [activeIndex, screen, sheet, pageHeight, feedTab, insets.top, insets.bottom, working]);
+  const renderPost = ({ item, index }: { item: FeedItem; index: number }) => FeedCard({ item, index });
   return <View style={{ flex: 1, backgroundColor: C.dark }}>
     <StatusBar barStyle={screen === 'Home' ? 'light-content' : 'dark-content'} />
     {screen === 'Home' ? feedTab === 'live' ? <View style={styles.emptyDark}><Icon name="radio-outline" size={50} /><Text style={styles.emptyHeading}>Live is coming to Hustle</Text><Text style={styles.emptyBody}>Live discovery will appear here when the Live API and media infrastructure are active.</Text></View>
@@ -311,7 +312,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
               const day = new Date(Date.now() + offset * 86_400_000).toISOString().slice(0,10);
               return <Pressable key={day} onPress={() => setBookingDate(day)} style={[styles.dateChoice, day === bookingDate && styles.selectedDate]}><Text style={[styles.chipText, day === bookingDate && { color: C.white }]}>{day.slice(5)}</Text></Pressable>;
             })}</ScrollView>{slotLoading ? <ActivityIndicator /> : <Text style={styles.meta}>{slotMode === 'APPOINTMENT' ? 'Available appointment starts' : slotMode || 'Availability unavailable'}</Text>}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginVertical: 12 }}>{slots.map(slot => <Pressable key={slot.startAt} style={[styles.dateChoice, slot.startAt === chosenSlot?.startAt && styles.selectedDate]} onPress={() => setChosenSlot(slot)}><Text style={[styles.chipText, slot.startAt === chosenSlot?.startAt && { color: C.white }]}>{new Intl.DateTimeFormat('en-NG',{hour:'numeric',minute:'2-digit',timeZone:slotMode === 'APPOINTMENT' ? undefined : 'UTC'}).format(new Date(slot.startAt))}</Text></Pressable>)}</ScrollView>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginVertical: 12 }}>{slots.map(slot => <Pressable key={slot.startAt} style={[styles.dateChoice, slot.startAt === chosenSlot?.startAt && styles.selectedDate]} onPress={() => setChosenSlot(slot)}><Text style={[styles.chipText, slot.startAt === chosenSlot?.startAt && { color: C.white }]}>{new Intl.DateTimeFormat('en-NG',{hour:'numeric',minute:'2-digit',timeZone: slotTimezone}).format(new Date(slot.startAt))}</Text></Pressable>)}</ScrollView>
             {slotMode === 'APPOINTMENT' && !slotLoading && slots.length === 0 ? <Text style={styles.meta}>No available slots for this day.</Text> : null}
             <TextInput accessibilityLabel="Project requirements" style={styles.requirements} multiline placeholder="Describe the work you need..." value={requirements} onChangeText={setRequirements}/>
             <Action disabled={working || !chosenSlot || !requirements.trim()} onPress={bookingRequest}>Request booking</Action><Text style={styles.meta}>Booking submission is disabled by default. No payment or escrow action occurs here.</Text></>}
