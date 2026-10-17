@@ -1,0 +1,88 @@
+name: Hustle Mobile EAS Preview (manual)
+
+# Never runs on push/PR. An approved GitHub user must manually request it.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Cloud build target (not a store release)"
+        required: true
+        type: choice
+        default: android
+        options:
+          - android
+          - ios-simulator
+      approved_nonproduction_build:
+        description: "I approve a nonproduction preview build that may consume Expo build credits"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-eas-preview
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    if: inputs.approved_nonproduction_build == true
+    runs-on: ubuntu-latest
+    environment: mobile-preview
+    timeout-minutes: 25
+    env:
+      APP_VARIANT: preview
+      EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      TARGET: ${{ inputs.target }}
+      # No booking writes, store submission, custody or production payment capability.
+      EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Require Expo cloud connection
+        shell: bash
+        run: |
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo "::error::Connect the Expo account: set EXPO_TOKEN in the mobile-preview GitHub environment."
+            exit 1
+          fi
+          if [[ ! "${EXPO_PROJECT_ID:-}" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+            echo "::error::Set EXPO_PROJECT_ID as a mobile-preview GitHub environment variable using the linked Expo EAS project UUID."
+            exit 1
+          fi
+      - name: Install locked workspaces
+        run: npm ci
+      - name: Check preview identity and guardrails
+        run: |
+          node apps/mobile/scripts/cloud-preview-config-gate.cjs
+          node apps/mobile/scripts/mobile-experience-contract.mjs
+          npm run typecheck --workspace=@hustle/mobile
+      - name: Authenticate Expo EAS (cloud)
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Verify linked EAS project configuration
+        shell: bash
+        working-directory: apps/mobile
+        run: |
+          npx expo config --json > /tmp/hustle-preview-expo-config.json
+          node -e 'const c=require("/tmp/hustle-preview-expo-config.json");if(c.extra?.eas?.projectId!==process.env.EXPO_PROJECT_ID||c.name!=="Hustle Preview"||c.android?.package!=="com.hustle.economyofyou.preview")process.exit(1)'
+      - name: Queue EAS cloud preview (no store submission)
+        shell: bash
+        working-directory: apps/mobile
+        run: |
+          if [[ "$TARGET" == "android" ]]; then
+            eas build --platform android --profile preview --non-interactive --no-wait
+          elif [[ "$TARGET" == "ios-simulator" ]]; then
+            eas build --platform ios --profile ios-simulator --non-interactive --no-wait
+          else
+            echo "::error::Unsupported preview target"
+            exit 1
+          fi
+          echo "Cloud build queued. Follow the EAS build URL in this job log."
