@@ -20,6 +20,20 @@
       "ios": {
         "simulator": true
       }
+    },
+    "e2e-test": {
+      "environment": "preview",
+      "withoutCredentials": true,
+      "env": {
+        "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS": "false"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
     }
   }
 }
