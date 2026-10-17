@@ -13,11 +13,13 @@ As of 2026-10-17 Expo Free advertises up to 15 Android and 15 iOS EAS builds eac
 - `apps/mobile/scripts/mobile-experience-contract.mjs`: content and booking source contracts already in Mobile Cloud CI.
 
 ## Cloud-only onboarding, once, without local development tools
-1. Use an Expo **Free** account and keep it on Free. Link/create a Hustle EAS project under the chosen Expo username/organization. Its project UUID is public, but must match the intended owner.
-2. In GitHub repository **Settings → Environments** create `mobile-preview`, with secret `EXPO_TOKEN` created at https://expo.dev/settings/access-tokens and variable `EXPO_PROJECT_ID` from the linked Expo project. **Never share or commit tokens**. If creation or initialization of the EAS project needs a cloud terminal, use a reviewed cloud workflow rather than installing anything locally.
-3. Configure Expo EAS `preview` environment with nonproduction `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Set preview-only authentication and API credentials; don't attach the active production database. Booking writes stay off.
-4. Only after these conditions and owner approval, trigger **GitHub → Actions → Hustle Mobile EAS Preview (manual)** and choose `android` or `ios-simulator`. EAS may request first-time signing credential setup. If it cannot run non-interactively, stop and resolve through the Expo cloud account.
-5. Review Android APK or iOS simulator build artifacts and EAS dashboard logs. A successful cloud build is **not** proof of the full signed-in user journey.
+1. The user created the Expo **Free** account `@xpen`. This branch now pins **preview-only** Expo owner to `xpen`; the default production identity is unchanged. No EAS project UUID is linked yet.
+2. Create a private Expo access token at https://expo.dev/settings/access-tokens. On GitHub, open [Hustle repository Settings → Environments](https://github.com/realxpen/hustle-economy-of-you/settings/environments), create `mobile-preview`, and add the token under **Environment secrets** as `EXPO_TOKEN`. Do not paste it into ChatGPT, code or a commit.
+3. After this PR is reviewed and merged, go to **GitHub → Actions → Hustle Expo Project Link (manual, free)**, choose `main` and enable `confirm_xpen_owner`. This manually creates or links `@xpen/hustle` using Expo's documented `eas init --account xpen --non-interactive`. The cloud runner writes the project UUID to the job summary; it does **not** build, submit or activate production. The config is modified only inside the ephemeral GitHub runner, not pushed to main.
+4. Copy the **public** Expo UUID reported by the linking workflow into the GitHub `mobile-preview` **Environment variable** `EXPO_PROJECT_ID`. This is not a secret. Confirm the Expo project in the browser at https://expo.dev/accounts/xpen/projects/hustle.
+5. Configure Expo EAS `preview` environment with nonproduction `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Set preview-only authentication and API credentials; don't attach the active production database. Booking writes stay off.
+6. Only after these conditions and owner approval, trigger **GitHub → Actions → Hustle Mobile EAS Preview (manual)** and choose `android` or `ios-simulator`. EAS may request first-time signing credential setup. If it cannot run non-interactively, stop and resolve through the Expo cloud account.
+7. Review Android APK or iOS simulator build artifacts and EAS dashboard logs. A successful cloud build is **not** proof of the full signed-in user journey.
 
 ## Quality gate before wider release
 - Green latest-head Foundation CI and Mobile Cloud CI.
@@ -28,4 +30,4 @@ As of 2026-10-17 Expo Free advertises up to 15 Android and 15 iOS EAS builds eac
 - No iPhone App Store distribution or automatic store submissions.
 
 ## Current limitation
-The owner has created an Expo account, but no authenticated EAS project is linked yet and no preview build or real-device test has run. A separate cloud project authentication step is required; the assistant cannot silently provision an Expo account or store its token. Paid EAS Maestro jobs are deliberately excluded from this free-plan milestone.
+The owner has created Expo account `xpen`, but no authenticated EAS project is linked yet and no preview build or real-device test has run. A separate cloud project authentication step is required; the assistant cannot silently provision an Expo account or store its token. Paid EAS Maestro jobs are deliberately excluded from this free-plan milestone.
