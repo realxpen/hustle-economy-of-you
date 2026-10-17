@@ -8,6 +8,7 @@ import type { Session } from '@supabase/supabase-js';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { syncMobileAccount } from '../lib/account';
 import { mobileApi, type FeedItem, type FeedTab, type Offer, type PostComment, type SearchResult, type BookingSlot } from './feed-api';
 
 const C = { dark: '#121714', lime: '#C9F26B', paper: '#F7F6F2', white: '#FFFFFF', muted: '#727A70', card: '#E9EEE4' };
@@ -323,7 +324,26 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
   </View>;
 }
 export function MobileExperience(props: { session: Session; onSignOut: () => Promise<void> }) {
-  return <SafeAreaProvider><Experience {...props} /></SafeAreaProvider>;
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let mounted = true;
+    setReady(false); setError('');
+    syncMobileAccount(props.session.access_token)
+      .then(() => { if (mounted) setReady(true); })
+      .catch(reason => { if (mounted) setError(reason instanceof Error ? reason.message : 'Account sync failed'); });
+    return () => { mounted = false; };
+  }, [props.session.access_token, retry]);
+  return <SafeAreaProvider>
+    {ready ? <Experience {...props} /> : <View style={styles.emptyDark}>
+      {error ? <><Text style={styles.emptyHeading}>Unable to prepare your Hustle account</Text>
+        <Text style={styles.emptyBody}>{error}</Text>
+        <Action onPress={() => setRetry(n => n + 1)}>Try again</Action>
+        <Action secondary onPress={() => void props.onSignOut()}>Sign out</Action></>
+        : <><ActivityIndicator color={C.lime} /><Text style={styles.emptyBody}>Preparing your Hustle identity…</Text></>}
+    </View>}
+  </SafeAreaProvider>;
 }
 const styles = StyleSheet.create({
   post: { backgroundColor: C.dark, width: '100%' }, mediaUnavailable: { flex: 1, backgroundColor: '#344A3C', justifyContent: 'center', alignItems: 'center', gap: 16 },
