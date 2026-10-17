@@ -4,14 +4,59 @@ from pathlib import Path
 import sys
 import tarfile
 import tempfile
+from types import SimpleNamespace
 import unittest
 
 sys.path.insert(0,str(Path(__file__).parent))
-from fetch_backups import parse_checksum
+from fetch_backups import FOLDER, list_backup_files, parse_checksum
 from safe_extract import extract
 from verify_metadata import copy_count
 
+
+class StrictDriveFiles:
+    """Offline fake with Drive v3's keyword names and paginated responses."""
+
+    def __init__(self, pages):
+        self.pages = pages
+        self.tokens = []
+        self.queries = []
+
+    def list(self, *, q, fields, pageSize, pageToken=None):
+        self.tokens.append(pageToken)
+        self.queries.append(q)
+        return SimpleNamespace(execute=lambda: self.pages[pageToken])
+
+
 class CloudRecoveryContractTests(unittest.TestCase):
+    def test_drive_inventory_pagination_including_empty_page(self):
+        first = {'id': 'fake-archive', 'name': 'example.enc'}
+        last = {'id': 'fake-checksum', 'name': 'example.enc.sha256'}
+        files_api = StrictDriveFiles({
+            None: {'files': [first], 'nextPageToken': 'second'},
+            'second': {'files': [], 'nextPageToken': 'third'},
+            'third': {'files': [last]},
+        })
+        drive = SimpleNamespace(files=lambda: files_api)
+
+        self.assertEqual(list_backup_files(drive), {
+            'example.enc': first, 'example.enc.sha256': last,
+        })
+        self.assertEqual(files_api.tokens, [None, 'second', 'third'])
+        self.assertEqual(files_api.queries, [
+            f"'{FOLDER}' in parents and trashed = false",
+        ] * 3)
+
+    def test_drive_duplicate_names_across_pages_fail(self):
+        files_api = StrictDriveFiles({
+            None: {'files': [{'id': 'first', 'name': 'example.enc'}],
+                   'nextPageToken': 'second'},
+            'second': {'files': [{'id': 'duplicate', 'name': 'example.enc'}]},
+        })
+        drive = SimpleNamespace(files=lambda: files_api)
+
+        with self.assertRaisesRegex(ValueError, 'Duplicate file name'):
+            list_backup_files(drive)
+
     def test_exact_checksum_filename(self):
         checksum=hashlib.sha256(b'x').hexdigest()
         self.assertEqual(parse_checksum((checksum+'  expected.enc\n').encode(),'expected.enc'),checksum)

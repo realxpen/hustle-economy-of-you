@@ -45,6 +45,26 @@ def check_guards():
     return root / 'hustle-encrypted-downloads'
 
 
+def list_backup_files(drive):
+    """List every folder page without downloading files or exposing credentials."""
+    items = {}
+    token = None
+    while True:
+        # The discovery client preserves Drive v3's camelCase query names.
+        page = drive.files().list(
+            q=f"'{FOLDER}' in parents and trashed = false",
+            fields='nextPageToken,files(id,name,mimeType,size)',
+            pageSize=100, pageToken=token).execute()
+        for item in page.get('files', []):
+            if item['name'] in items:
+                raise ValueError('Duplicate file name in Drive backup folder')
+            items[item['name']] = item
+        token = page.get('nextPageToken')
+        if not token:
+            break
+    return items
+
+
 def fetch():
     from google.oauth2.service_account import Credentials
     from googleapiclient.discovery import build
@@ -57,19 +77,7 @@ def fetch():
     credentials = Credentials.from_service_account_info(
         sa, scopes=['https://www.googleapis.com/auth/drive.readonly'])
     drive = build('drive', 'v3', credentials=credentials, cache_discovery=False)
-    items = {}
-    token = None
-    while True:
-        page = drive.files().list(q=f"'{FOLDER}' in parents and trashed = false",
-                                  fields='nextPageToken,files(id,name,mimeType,size)',
-                                  page_size=100, page_token=token).execute()
-        for item in page.get('files', []):
-            if item['name'] in items:
-                raise ValueError('Duplicate file name in Drive backup folder')
-            items[item['name']] = item
-        token = page.get('nextPageToken')
-        if not token:
-            break
+    items = list_backup_files(drive)
     wanted = [name + ext for name in ARCHIVES for ext in ('', '.sha256')]
     missing = [name for name in wanted if name not in items]
     if missing:
