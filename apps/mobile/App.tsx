@@ -1,3 +1,4 @@
+import { MobileExperience } from "./src/experience/MobileExperience";
 import { useEffect, useState } from "react";
 import { SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import type { Session } from "@supabase/supabase-js";
@@ -37,6 +38,8 @@ export default function App() {
   }
 
   async function signOut() { await getSupabase().auth.signOut(); }
+
+  if (session) return <MobileExperience session={session} onSignOut={signOut} />;
 
   return <SafeAreaView style={styles.safe}><View style={styles.container}>
     <View style={styles.brandRow}><Text style={styles.brand}>HUSTLE</Text><View style={styles.brandDot}><Text style={styles.arrow}>↗</Text></View></View>
