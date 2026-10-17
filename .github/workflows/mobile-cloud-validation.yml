@@ -1,46 +1,34 @@
-name: Cloud Mobile Dependency Repair and Validation
+name: Hustle Mobile Cloud CI
 
 on:
-  push:
-    branches:
-      - feat/mobile-content-feed-interactions
+  pull_request:
     paths:
-      - .github/workflows/mobile-cloud-validation.yml
+      - 'apps/mobile/**'
+      - 'package-lock.json'
+      - '.github/workflows/mobile-cloud-validation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - 'package-lock.json'
+      - '.github/workflows/mobile-cloud-validation.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  reconcile-and-check:
-    if: github.ref == 'refs/heads/feat/mobile-content-feed-interactions'
+  mobile-validate:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: feat/mobile-content-feed-interactions
-          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Resolve complete workspace dependency lock
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Commit lockfile to this review branch only
-        shell: bash
-        run: |
-          if git diff --quiet -- package-lock.json; then
-            echo "Lockfile already consistent."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "chore(mobile): resolve Expo dependency lock in cloud"
-          git push origin HEAD:feat/mobile-content-feed-interactions
-      - name: Install exact locked dependencies
+      - name: Install locked dependencies
         run: npm ci
-      - name: Mobile source contract
+      - name: Validate mobile experience integration
         run: node apps/mobile/scripts/mobile-experience-contract.mjs
-      - name: Mobile TypeScript check
+      - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
