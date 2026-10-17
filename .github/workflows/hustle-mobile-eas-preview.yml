@@ -33,7 +33,8 @@ jobs:
     timeout-minutes: 25
     env:
       APP_VARIANT: preview
-      EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
+      # Public, verified EAS ID from successful @xpen/hustle linker workflow #39055672347.
+      EXPO_PROJECT_ID: b52b03ef-37f1-4bdf-ab42-5c80e5988ec4
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       TARGET: ${{ inputs.target }}
       # No booking writes, store submission, custody or production payment capability.
@@ -52,7 +53,7 @@ jobs:
             exit 1
           fi
           if [[ ! "${EXPO_PROJECT_ID:-}" =~ ^[0-9a-fA-F-]{36}$ ]]; then
-            echo "::error::Set EXPO_PROJECT_ID as a mobile-preview GitHub environment variable using the linked Expo EAS project UUID."
+            echo "::error::Expo preview project ID is invalid; inspect the linked @xpen/hustle project."
             exit 1
           fi
       - name: Install locked workspaces
