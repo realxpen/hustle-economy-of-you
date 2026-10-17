@@ -11,6 +11,7 @@ module.exports = ({ config }) => {
   if (!isPreview) return base;
   return {
     ...base,
+    owner: "xpen",
     name: "Hustle Preview",
     android: {
       ...base.android,
