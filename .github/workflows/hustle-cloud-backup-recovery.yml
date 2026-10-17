@@ -1,0 +1,135 @@
+name: Hustle Isolated Cloud Backup Recovery
+
+# Recovery is never run on pull requests. No remote production DB is accessed.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/hustle-cloud-backup-recovery.yml'
+      - 'scripts/recovery/**'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Enter EPHEMERAL_RESTORE to test recovery in a disposable GitHub runner'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-cloud-backup-recovery
+  cancel-in-progress: false
+
+jobs:
+  offline-guard-tests:
+    name: Validate scripts without secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Python security/format tests
+        run: python -m unittest discover -s scripts/recovery -p 'test_*.py'
+      - name: Shell syntax checks
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for script in scripts/recovery/restore-app.sh scripts/recovery/restore-auth.sh scripts/recovery/restore-storage.sh; do
+            bash -n "$script"
+          done
+
+  isolated-restore:
+    name: Restore October 16 backups into throwaway Supabase (no production credentials)
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm == 'EPHEMERAL_RESTORE' && github.ref == 'refs/heads/main'
+    needs: offline-guard-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    environment: hustle-cloud-recovery
+    env:
+      HUSTLE_ISOLATED_RECOVERY: 'true'
+      HUSTLE_BACKUP_FOLDER_ID: '1iCRbvOV07FYu3SvrXY4u6O9SAXNhUXWp'
+      HUSTLE_RESTORE_DRIVE_SA_JSON: ${{ secrets.HUSTLE_RESTORE_DRIVE_SA_JSON }}
+      HUSTLE_RESTORE_APP_PASSPHRASE: ${{ secrets.HUSTLE_RESTORE_APP_PASSPHRASE }}
+      HUSTLE_RESTORE_AUTH_PASSPHRASE: ${{ secrets.HUSTLE_RESTORE_AUTH_PASSPHRASE }}
+      HUSTLE_RESTORE_STORAGE_PASSPHRASE: ${{ secrets.HUSTLE_RESTORE_STORAGE_PASSPHRASE }}
+      HUSTLE_RESTORE_METADATA_PASSPHRASE: ${{ secrets.HUSTLE_RESTORE_METADATA_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install private Drive reader dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          python -m venv "$RUNNER_TEMP/hustle-venv"
+          "$RUNNER_TEMP/hustle-venv/bin/python" -m pip -q install --disable-pip-version-check \
+            'google-api-python-client>=2.150,<3' 'google-auth>=2.35,<3'
+      - name: Require exact backup files (09:45 metadata reference) and verify digests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          "$RUNNER_TEMP/hustle-venv/bin/python" scripts/recovery/fetch_backups.py
+      - name: Install the local Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start an unlinked, ephemeral Supabase local stack
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          test "$HUSTLE_ISOLATED_RECOVERY" = true
+          test -z "${SUPABASE_ACCESS_TOKEN:-}"
+          test -z "${DATABASE_URL:-}"
+          LAB="$RUNNER_TEMP/hustle-cloud-restore"
+          mkdir -p "$LAB"
+          cd "$LAB"
+          supabase init
+          test ! -s supabase/.temp/project-ref
+          supabase start
+          docker ps --format '{{.Names}}' | grep -Fxq supabase_db_hustle-cloud-restore
+      - name: Restore application data (local-only)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          cd "$RUNNER_TEMP/hustle-cloud-restore"
+          bash "$GITHUB_WORKSPACE/scripts/recovery/restore-app.sh"
+      - name: Restore Auth users and identities (local-only)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          cd "$RUNNER_TEMP/hustle-cloud-restore"
+          bash "$GITHUB_WORKSPACE/scripts/recovery/restore-auth.sh"
+      - name: Restore local Storage buckets and round-trip file bytes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          cd "$RUNNER_TEMP/hustle-cloud-restore"
+          bash "$GITHUB_WORKSPACE/scripts/recovery/restore-storage.sh"
+      - name: Verify earlier Storage metadata reference counts and report gaps
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          python scripts/recovery/verify_metadata.py
+          echo 'PASS: Cloud recovery smoke test completed on ephemeral local Supabase.'
+          echo 'NOT TESTED: original Storage owner/UUID/RLS, Auth sessions/MFA/sign-in, full disaster recovery.'
+      - name: Remove decrypted recovery files and private import logs
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          rm -rf -- "$RUNNER_TEMP/hustle-cloud-restore/.restore-test-v3-"* \
+            "$RUNNER_TEMP/hustle-cloud-restore/.auth-restore-"* \
+            "$RUNNER_TEMP/hustle-cloud-restore/.fresh-storage-restore-"* \
+            "$RUNNER_TEMP/hustle-encrypted-downloads"
+          rm -f -- "$RUNNER_TEMP/app-import-private.log" "$RUNNER_TEMP/auth-import-private.log" \
+            "$RUNNER_TEMP/storage-api-private.log"
+          echo 'Ephemeral recovery material cleanup requested; GitHub runner is destroyed after job.'
