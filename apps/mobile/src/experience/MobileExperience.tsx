@@ -276,7 +276,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
           onMomentumScrollEnd={e => setActiveIndex(Math.max(0, Math.min(posts.length - 1, Math.round(e.nativeEvent.contentOffset.y / pageHeight))))}
           getItemLayout={(_, i) => ({ length: pageHeight, offset: pageHeight * i, index: i })} onEndReached={() => void fetchMore()} onEndReachedThreshold={0.7}
           ListEmptyComponent={<View style={styles.emptyDark}><Text style={styles.emptyHeading}>No posts yet</Text><Text style={styles.emptyBody}>Follow Hustlers or check the Nearby feed as people publish their work.</Text></View>}
-          ListFooterComponent={loadingMore ? <ActivityIndicator color={C.lime} /> : feedError ? <Pressable onPress={() => void fetchMore()}><Text style={styles.errorSmall}>{feedError} · Retry</Text></Pressable> : null} />}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color={C.lime} /> : feedError ? <Pressable onPress={() => void fetchMore()}><Text style={styles.errorSmall}>{feedError} · Retry</Text></Pressable> : null} /> : null}
     {screen === 'Explore' && <View style={[styles.lightPage, { paddingTop: insets.top + 18 }]}>
       <Text style={styles.pageTitle}>Explore</Text><Text style={styles.subline}>Find skills, people, services and products.</Text>
       <View style={styles.searchRow}><Icon name="search" color={C.dark} size={20} /><TextInput accessibilityLabel="Search Hustle" placeholder="Try 'tailor in Lagos'" placeholderTextColor={C.muted} style={styles.searchInput} value={searchText} onChangeText={setSearchText} onSubmitEditing={() => void performSearch()} returnKeyType="search"/><Pressable onPress={() => void performSearch()}><Icon name="arrow-forward" color={C.dark} size={20}/></Pressable></View>
