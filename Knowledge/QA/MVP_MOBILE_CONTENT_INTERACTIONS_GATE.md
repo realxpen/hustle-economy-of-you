@@ -53,3 +53,7 @@ Owner approves Figma flow and nonproduction tests, then reviews CI and explicitl
 ## CI run observed (2026-10-17)
 
 GitHub Foundation CI run `39051143792` failed at step 4, `Install locked dependencies` (`npm ci`, `EUSAGE`) before mobile typechecking. The logs report missing locked versions including `@expo/vector-icons@15.1.1`, `expo-video@3.0.16`, `react-native-safe-area-context@5.6.2`, plus numerous Expo transitive packages. Regenerate the **complete root npm lockfile** with a live registry on a trusted development machine and commit it to this PR; manually inserting three lock entries is not sufficient. Re-run CI afterward. No mobile build, device, authentication test or booking request is proven successful by this run.
+
+## Cloud-only delivery process (2026-10-17)
+
+No local installation or command-line work is required from the owner. GitHub Actions cloud workflow `.github/workflows/mobile-cloud-validation.yml` reconciles the npm lockfile in the review branch and checks mobile dependencies, source contracts and TypeScript. Subsequent standard Foundation CI runs are cloud-only as well. Production/live device acceptance remains a separate gated requirement.
