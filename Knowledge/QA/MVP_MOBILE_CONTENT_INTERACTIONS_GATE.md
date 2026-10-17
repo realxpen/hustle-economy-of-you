@@ -27,11 +27,11 @@ Implements Expo mobile Home video feed, Explore search, signed-in Supabase sessi
 - `POST /api/v1/bookings` (feature-gated, REQUESTED only).
 - `POST /api/v1/feed/events` for read telemetry.
 
-## Required local checks before approval
-1. Reconcile root `package-lock.json` with the new Expo dependencies using the repository-approved package manager; do not merge until `npm ci` works.
-2. Run `node apps/mobile/scripts/mobile-experience-contract.mjs`.
-3. Run `npm run typecheck --workspace=@hustle/mobile` and the existing `npm run ci`.
-4. Start `npm run dev:mobile` using a nonproduction backend and configured Expo public variables; test an actual iOS/Android device.
+## Required cloud checks before approval
+1. The root `package-lock.json` was reconciled by a one-time GitHub Actions cloud repair. Keep it committed and require `npm ci` success on the latest PR head.
+2. Run `node apps/mobile/scripts/mobile-experience-contract.mjs` in GitHub Actions Mobile Cloud CI.
+3. Run `npm run typecheck --workspace=@hustle/mobile` and existing Foundation CI in GitHub Actions.
+4. Provision a trusted Expo/EAS cloud preview with nonproduction backend and Expo public variables; test an actual iOS/Android device only after connected cloud-build credentials are approved.
 5. Sign in and restore session; verify role/capability model, signout and expired-session behavior.
 6. Feed: swipe videos, pause inactive videos, reach last item and fetch next cursor, switch For You/Nearby/Following, test empty/error/network retry.
 7. Like/unlike, save/unsave, follow/unfollow; reload each and confirm server persistence. Post/reply on comments and confirm visible threads.
@@ -44,7 +44,7 @@ Implements Expo mobile Home video feed, Explore search, signed-in Supabase sessi
 - Figma: existing 20 hotspot navigation reactions saved, no full prototype/device acceptance claim.
 - API route signatures and response shapes inspected from GitHub main.
 - No local device execution or actual signed-in API calls performed by this assistant.
-- The development environment cannot reach npm/GitHub hostnames from its container; package lock refresh and executable CI/devices remain unverified.
+- The working container cannot access npm/GitHub hostnames; a one-time GitHub Actions workflow resolved and committed the lockfile. Subsequent cloud CI and device acceptance remain distinct checks.
 - Production activation is explicitly out of scope. `PROJECT_STATE.md` continues to block real funds, provider rails and unsafe production migrations.
 
 ## Human gate
@@ -56,4 +56,4 @@ GitHub Foundation CI run `39051143792` failed at step 4, `Install locked depende
 
 ## Cloud-only delivery process (2026-10-17)
 
-No local installation or command-line work is required from the owner. GitHub Actions cloud workflow `.github/workflows/mobile-cloud-validation.yml` reconciles the npm lockfile in the review branch and checks mobile dependencies, source contracts and TypeScript. Subsequent standard Foundation CI runs are cloud-only as well. Production/live device acceptance remains a separate gated requirement.
+No local installation or command-line work is required from the owner. A one-time GitHub Actions runner reconciled the npm lockfile in the review branch. The permanent `.github/workflows/mobile-cloud-validation.yml` now checks locked dependencies, source contracts and TypeScript on PRs and main without write permissions. Subsequent standard Foundation CI runs are cloud-only as well. Production/live device acceptance remains a separate gated requirement.
