@@ -49,3 +49,7 @@ Implements Expo mobile Home video feed, Explore search, signed-in Supabase sessi
 
 ## Human gate
 Owner approves Figma flow and nonproduction tests, then reviews CI and explicitly decides whether to merge. Never interpret PR creation or mocked UI as real ecosystem activation.
+
+## CI run observed (2026-10-17)
+
+GitHub Foundation CI run `39051143792` failed at step 4, `Install locked dependencies` (`npm ci`, `EUSAGE`) before mobile typechecking. The logs report missing locked versions including `@expo/vector-icons@15.1.1`, `expo-video@3.0.16`, `react-native-safe-area-context@5.6.2`, plus numerous Expo transitive packages. Regenerate the **complete root npm lockfile** with a live registry on a trusted development machine and commit it to this PR; manually inserting three lock entries is not sufficient. Re-run CI afterward. No mobile build, device, authentication test or booking request is proven successful by this run.
