@@ -68,6 +68,20 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+      - name: Refuse any non-isolated Expo preview before consuming build credits
+        shell: bash
+        working-directory: apps/mobile
+        env:
+          HUSTLE_STAGING_SUPABASE_REF: ${{ vars.HUSTLE_STAGING_SUPABASE_REF }}
+          HUSTLE_EAS_PREVIEW_ENV_FILE: /tmp/hustle-preview-eas-env
+        run: |
+          umask 077
+          # Expo's preview environment must contain only nonproduction public runtime settings.
+          # Never echo these values or add them to a repository file.
+          eas env:pull --environment preview --path "$HUSTLE_EAS_PREVIEW_ENV_FILE" --non-interactive > /dev/null
+          trap 'rm -f "$HUSTLE_EAS_PREVIEW_ENV_FILE"' EXIT
+          APP_VARIANT=preview EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS=false \
+            node ../../scripts/experience/check-eas-staging-runtime.cjs
       - name: Verify linked EAS project configuration
         shell: bash
         working-directory: apps/mobile
