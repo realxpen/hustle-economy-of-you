@@ -1,0 +1,11 @@
+appId: com.hustle.economyofyou.preview
+---
+- launchApp:
+    clearState: true
+- assertVisible: "HUSTLE"
+- assertVisible: "Enter your Hustle."
+- assertVisible: "Sign in"
+- tapOn: "Create"
+- assertVisible: "Build your identity."
+- tapOn: "Sign in"
+- assertVisible: "Enter your Hustle."
