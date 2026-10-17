@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install locked workspace dependencies for Expo config resolution
+        run: npm ci
       - name: Require Expo authorization
         shell: bash
         run: |
@@ -41,7 +43,7 @@ jobs:
       - name: Ensure Expo token belongs to xpen
         shell: bash
         run: |
-          WHOAMI="$(eas whoami --non-interactive | tr -d '\r\n' | xargs)"
+          WHOAMI="$(eas whoami | head -n 1 | tr -d '\r' | xargs)"
           if [[ "$WHOAMI" != "xpen" ]]; then
             echo "::error::Expo account mismatch. This workflow requires a token owned by @xpen."
             exit 1
