@@ -49,7 +49,7 @@ jobs:
         working-directory: apps/mobile
         shell: bash
         run: |
-          npx expo-modules-autolinking resolve --platform android > /tmp/hustle-autolink-modules.json
+          npx expo-modules-autolinking resolve --platform android --json > /tmp/hustle-autolink-modules.json
           node - <<'NODE'
           const fs = require('node:fs');
           const v = JSON.parse(fs.readFileSync('/tmp/hustle-autolink-modules.json', 'utf8'));
