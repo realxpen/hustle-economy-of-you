@@ -189,7 +189,6 @@ export default function AccountPage() {
           <h3>Discover and your preferences</h3>
           <ToolRow href="/marketplace" icon="store" label="Marketplace" supporting="Browse goods and services" />
           <ToolRow href="/cart" icon="bag" label="Your cart" supporting="Saved purchase choices" />
-          <ToolRow href="/search" icon="spark" label="Find Hustlers" supporting="Search skills and people" />
           <ToolRow href="/notifications" icon="chat" label="Notifications" supporting="Account and activity alerts" />
         </div>
       </div>

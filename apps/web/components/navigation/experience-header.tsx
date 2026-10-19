@@ -9,7 +9,6 @@ import { ExperienceThemeControl } from "./experience-theme-control";
 type NavItem = { href: string; label: string };
 const primary: readonly NavItem[] = [
   { href: "/home", label: "Discover" },
-  { href: "/search", label: "Search" },
   { href: "/marketplace", label: "Marketplace" },
   { href: "/bookings", label: "Bookings" },
   { href: "/orders", label: "Orders" },
@@ -48,7 +47,6 @@ export function ExperienceHeader({
       </nav>
       {actions && <div className={styles.actions}>{actions}</div>}
       <div className={styles.appearance}><ExperienceThemeControl /></div>
-      <Link className={styles.mobileMarket} href="/marketplace">Explore offers <span aria-hidden="true">↗</span></Link>
     </div>
     <div className={styles.contextRow}>
       <nav aria-label="Breadcrumb" className={styles.breadcrumbs}>
