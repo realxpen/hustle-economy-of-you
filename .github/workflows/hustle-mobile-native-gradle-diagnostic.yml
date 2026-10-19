@@ -36,6 +36,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
       - name: Install exact monorepo dependencies
         run: npm ci
       - name: Check Expo native package compatibility (diagnostic)
