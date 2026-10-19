@@ -49,6 +49,10 @@ jobs:
           node apps/mobile/scripts/offline-demo-contract.cjs
           node apps/mobile/scripts/cloud-preview-config-gate.cjs
           npm run typecheck --workspace=@hustle/mobile
+      - name: Verify Android Metro bundle before spending a free EAS build allowance
+        working-directory: apps/mobile
+        shell: bash
+        run: npx expo export --platform android --output-dir /tmp/hustle-offline-android-metro --clear
       - uses: expo/expo-github-action@v8
         with:
           eas-version: latest
