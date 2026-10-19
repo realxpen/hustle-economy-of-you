@@ -49,6 +49,8 @@ jobs:
           node apps/mobile/scripts/offline-demo-contract.cjs
           node apps/mobile/scripts/cloud-preview-config-gate.cjs
           npm run typecheck --workspace=@hustle/mobile
+      - name: Prevent duplicate React dispatcher crash before queuing EAS
+        run: node apps/mobile/scripts/react-singleton-contract.cjs
       - name: Verify Android Metro bundle before spending a free EAS build allowance
         working-directory: apps/mobile
         shell: bash
