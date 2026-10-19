@@ -54,7 +54,9 @@ try {
   assert.match(workflow, /EXPO_PROJECT_ID: b52b03ef-37f1-4bdf-ab42-5c80e5988ec4/);
   assert.doesNotMatch(workflow, /vars.EXPO_PROJECT_ID|secrets.EXPO_PROJECT_ID/);
   assert.doesNotMatch(workflow, /e2e-android|e2e-ios|workflow:run|maestro/i);
-  assert.deepEqual(Object.keys(build).sort(), ["ios-simulator", "preview"]);
+  assert.deepEqual(Object.keys(build).sort(), ["demo", "ios-simulator", "preview"]);
+  assert.equal(build.demo.env.EXPO_PUBLIC_HUSTLE_DEMO, "true");
+  assert.equal(build.demo.env.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS, "false");
   assert.doesNotMatch(workflow, /--auto-submit/);
   assert.doesNotMatch(workflow, /\n\s+push:/);
   assert.doesNotMatch(workflow, /\n\s+pull_request:/);
