@@ -1,0 +1,62 @@
+name: Hustle Android Native Gradle Diagnostic (free CI)
+
+# Android native compiler reproduction without EAS credits, tokens or app distribution.
+on:
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'package-lock.json'
+      - '.github/workflows/hustle-mobile-native-gradle-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: '1'
+      APP_VARIANT: preview
+      EXPO_PUBLIC_HUSTLE_DEMO: 'true'
+      EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: 'false'
+      EXPO_PUBLIC_API_URL: https://hustle-offline-demo.invalid/api/v1
+      EXPO_PUBLIC_SUPABASE_URL: https://hustle-offline-demo.invalid
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_demo_not_a_real_key
+      JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install exact monorepo dependencies
+        run: npm ci
+      - name: Check Expo native package compatibility (diagnostic)
+        working-directory: apps/mobile
+        shell: bash
+        run: |
+          npx expo install --check || echo "::warning::Expo dependency check reported incompatibilities; see diagnostics above."
+      - name: Generate a fresh Android project without signing or EAS
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform android --clean --non-interactive
+      - name: Compile offline demo Android release in GitHub cloud
+        working-directory: apps/mobile/android
+        shell: bash
+        run: |
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --stacktrace --no-daemon --max-workers=2 --warning-mode=summary 2>&1 | tee /tmp/hustle-native-gradle-diagnostic.log
+      - name: Upload sanitized diagnostic metadata (no APK)
+        if: failure()
+        shell: bash
+        run: |
+          echo "Native Gradle diagnostic failed. The Gradle job log is available in GitHub Actions."
+          echo "### Android compiler diagnosis" >> "$GITHUB_STEP_SUMMARY"
+          echo "Inspect **Compile offline demo Android release in GitHub cloud** for the first Gradle failure and root-cause message. No EAS build credits were used." >> "$GITHUB_STEP_SUMMARY"
