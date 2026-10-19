@@ -1,0 +1,27 @@
+name: Hustle Local Storage CLI Contract
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/hustle-storage-cli-contract.yml'
+      - 'scripts/recovery/**'
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-storage:
+    name: Synthetic local Storage upload and byte readback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: '2.121.0'
+      - name: Test only generated PDF/PNG fixtures in a fresh unlinked stack
+        shell: bash
+        run: bash scripts/recovery/test_storage_cli_local.sh

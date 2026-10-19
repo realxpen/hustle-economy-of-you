@@ -21,8 +21,9 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+source "${GITHUB_WORKSPACE:?}/scripts/recovery/storage-copy.sh"
 
-for cmd in docker supabase openssl sha256sum find cmp tar grep mktemp; do
+for cmd in docker supabase openssl sha256sum find cmp tar grep mktemp python3; do
   command -v "$cmd" >/dev/null 2>&1 || fail "Required command not found: $cmd"
 done
 [[ "$PWD" == "$LAB" ]] || fail "Run this script from the fresh local project: $LAB"
@@ -116,7 +117,7 @@ for i in "${!BUCKETS[@]}"; do
     rel="${file#"$dir"/}"
     [[ "$rel" != "$file" && -n "$rel" && "$rel" != /* && "$rel" != ../* && "$rel" != *'/../'* ]] \
       || fail 'Unsafe source relative file path.'
-    supabase storage cp "$file" "ss:///$bucket/$rel" --local --experimental >/dev/null 2>"${RUNNER_TEMP:?}/storage-api-private.log" \
+    copy_local_storage upload "$file" "ss:///$bucket/$rel" \
       || fail "Local Storage upload failed in bucket $bucket. Stop; do not rerun because partial local writes may exist."
   done < <(find "$dir" -type f -print0)
 done
@@ -138,7 +139,7 @@ for i in "${!BUCKETS[@]}"; do
     rel="${file#"$dir"/}"
     recovered="$TMP/readback/$bucket/$rel"
     mkdir -p -- "$(dirname -- "$recovered")"
-    supabase storage cp "ss:///$bucket/$rel" "$recovered" --local --experimental >/dev/null 2>"${RUNNER_TEMP:?}/storage-api-private.log" \
+    copy_local_storage download "ss:///$bucket/$rel" "$recovered" \
       || fail "Unable to read a LOCAL object back from $bucket."
     cmp -s -- "$file" "$recovered" || fail "LOCAL object bytes mismatch in $bucket."
   done < <(find "$dir" -type f -print0)
