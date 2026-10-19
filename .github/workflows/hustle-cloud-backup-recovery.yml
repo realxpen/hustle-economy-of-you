@@ -23,7 +23,7 @@ concurrency:
 jobs:
   offline-guard-tests:
     name: Validate scripts without secrets
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,7 +35,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          for script in scripts/recovery/restore-app.sh scripts/recovery/restore-auth.sh scripts/recovery/restore-storage.sh; do
+          for script in scripts/recovery/*.sh; do
             bash -n "$script"
           done
 
@@ -43,7 +43,7 @@ jobs:
     name: Restore October 16 backups into throwaway Supabase (no production credentials)
     if: github.event_name == 'workflow_dispatch' && inputs.confirm == 'EPHEMERAL_RESTORE' && github.ref == 'refs/heads/main'
     needs: offline-guard-tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 55
     environment: hustle-cloud-recovery
     env:
@@ -76,7 +76,9 @@ jobs:
       - name: Install the local Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: '2.121.0'
+      - name: Report the tested Supabase CLI version
+        run: supabase --version
       - name: Start an unlinked, ephemeral Supabase local stack
         shell: bash
         run: |
