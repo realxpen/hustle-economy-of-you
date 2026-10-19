@@ -1,4 +1,5 @@
 import { MobileExperience } from "./src/experience/MobileExperience";
+import DemoExperience from "./src/experience/DemoExperience";
 import { useEffect, useState } from "react";
 import { SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import type { Session } from "@supabase/supabase-js";
@@ -6,6 +7,7 @@ import { getSupabase, isMobileAuthConfigured } from "./src/lib/supabase";
 import { syncMobileAccount } from "./src/lib/account";
 
 export default function App() {
+  const demo = process.env.EXPO_PUBLIC_HUSTLE_DEMO === "true";
   const configured = isMobileAuthConfigured();
   const [session, setSession] = useState<Session | null>(null);
   const [mode, setMode] = useState<"signin"|"signup">("signin");
@@ -15,12 +17,12 @@ export default function App() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!configured) return;
+    if (demo || !configured) return;
     const supabase = getSupabase();
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
     return () => listener.subscription.unsubscribe();
-  }, [configured]);
+  }, [configured, demo]);
 
   async function authenticate() {
     setLoading(true); setMessage(null);
@@ -39,6 +41,8 @@ export default function App() {
 
   async function signOut() { await getSupabase().auth.signOut(); }
 
+  // Offline Expo demo always takes priority over sessions/auth, and never runs sync.
+  if (demo) return <DemoExperience />;
   if (session) return <MobileExperience session={session} onSignOut={signOut} />;
 
   return <SafeAreaView style={styles.safe}><View style={styles.container}>
