@@ -41,6 +41,8 @@ assert.match(workflow, /workflow_dispatch:/);
 assert.match(workflow, /approve_free_demo_build/);
 assert.match(workflow, /eas build --platform android --profile demo --non-interactive --no-wait/);
 assert.match(workflow, /node apps\/mobile\/scripts\/offline-demo-contract\.cjs/);
+assert.match(workflow, /npx expo export --platform android/);
+assert.ok(workflow.indexOf("npx expo export --platform android") < workflow.indexOf("eas build --platform android"), "Metro preflight must happen before any EAS credit is consumed");
 assert.doesNotMatch(workflow, /\n\s+(push|pull_request):|--auto-submit|eas submit|eas workflow:run/);
 assert.ok(packageJson.dependencies["@expo/vector-icons"]);
 console.log("PASS: offline demo uses fictitious local posts and disabled network/payment, with owner-gated Free APK queue");
