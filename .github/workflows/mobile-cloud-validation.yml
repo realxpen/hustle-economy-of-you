@@ -42,6 +42,8 @@ jobs:
         run: |
           npx expo-modules-autolinking resolve --platform android --json > /tmp/hustle-ci-native-modules.json
           node scripts/check-native-autolinking.cjs /tmp/hustle-ci-native-modules.json
+      - name: Prevent duplicate React dispatcher crash on Android
+        run: node apps/mobile/scripts/react-singleton-contract.cjs
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
       - name: Bundle offline Android demo with Metro (no EAS build credits)
