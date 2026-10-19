@@ -3,6 +3,8 @@
 Date: 2026-10-15
 State: **READ-ONLY PREPARED / NOT ACTIVATED**. No database DDL, Prisma migration changes, production API redeployment, or fund movement executed in the active Supabase project.
 
+Evidence update (2026-10-19): Owner-triggered [recovery run 39241163040](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39241163040) passed application/Auth restore, all 10 Storage file byte readbacks and the earlier metadata count check in disposable Supabase. The backup statements below describe the October 15 audit, before that test. The passing smoke test is partial and does not clear this activation gate: full original metadata/access recovery, real Auth behavior, a coordinated snapshot and migration equivalence remain unverified. Follow [the recovery and activation plan](HUSTLE_FULL_RECOVERY_AND_ACTIVATION_PLAN.md); revalidate the historical production observations below before preparing exact rollout SQL.
+
 ## Owner choice
 Keep the EXISTING Hustle Supabase project (ref: `pfgarmyygybmhiiuopym`) and existing Vercel projects. No new paid project or paid branch. User approved reconciliation/preparation, **not an unverified destructive/migration-history repair**.
 
