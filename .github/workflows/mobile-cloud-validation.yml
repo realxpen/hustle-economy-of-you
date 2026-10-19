@@ -17,6 +17,38 @@ permissions:
   contents: read
 
 jobs:
+  # Temporary cloud-only lock reconciliation on this owner review branch.
+  # Remove this job before merge; never executes for forks or production branches.
+  reconcile-font-lock:
+    if: github.event_name == 'pull_request' && github.head_ref == 'test/mobile-free-native-gradle-diagnosis' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reconcile npm lockfile in owner feature branch only
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit only package-lock changes in the feature branch
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "Lockfile already reconciled"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore(mobile): reconcile Expo SDK54 font dependency lockfile"
+          git push origin HEAD:refs/heads/test/mobile-free-native-gradle-diagnosis
+
   mobile-validate:
     runs-on: ubuntu-latest
     timeout-minutes: 25
