@@ -32,5 +32,7 @@ jobs:
         run: node apps/mobile/scripts/mobile-experience-contract.mjs
       - name: Check cloud EAS preview configuration safeguards
         run: node apps/mobile/scripts/cloud-preview-config-gate.cjs
+      - name: Verify offline demo safety and synthetic interaction coverage
+        run: node apps/mobile/scripts/offline-demo-contract.cjs
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
