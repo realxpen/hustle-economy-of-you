@@ -53,6 +53,12 @@ jobs:
         working-directory: apps/mobile
         shell: bash
         run: npx expo export --platform android --output-dir /tmp/hustle-offline-android-metro --clear
+      - name: Verify SDK54 native module compatibility before using an Expo build allowance
+        working-directory: apps/mobile
+        shell: bash
+        run: |
+          npx expo-modules-autolinking resolve --platform android --json > /tmp/hustle-offline-native-modules.json
+          node scripts/check-native-autolinking.cjs /tmp/hustle-offline-native-modules.json
       - uses: expo/expo-github-action@v8
         with:
           eas-version: latest

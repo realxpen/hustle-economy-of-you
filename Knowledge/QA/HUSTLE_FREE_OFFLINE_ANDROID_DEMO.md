@@ -52,3 +52,13 @@ Status: **PR prepared. No EAS build has been launched and no APK exists yet.**
 - Previous `apps/mobile/package.json` used `node_modules/expo/AppEntry.js`, a path unavailable inside the hoisted npm workspace layout. Remediation sets `main: index.js` and registers `App` via Expo's `registerRootComponent` in `apps/mobile/index.js`.
 - Free GitHub Actions Android Metro export **passed** after this change, bundling 726 modules. Include that export in both Mobile Cloud CI and the manual EAS queue workflow **before** issuing any EAS build request.
 - A green Metro export validates the JavaScript bundle, not Android native Gradle packaging, APK install or touch interactions. Owner approval is still required for a retry via the manual EAS workflow; no paid service or extra staging database is needed.
+
+## Second Expo build incident — 2026-10-19 (native dependency compatibility)
+- EAS Android `demo` build `d3031146-7900-4619-ac7a-e15c039f14cc` **passed JavaScript bundle**, then failed during `Run gradlew`. No APK exists from that run.
+- GitHub Actions native diagnostic reproduced the Gradle exception at `android/settings.gradle`: `Field 'version' is required for expo.modules.plugin.configuration.Publication at $.modules[4].projects[0].publication`.
+- Expo autolinking JSON isolated `modules[4]` to `expo-font@58.0.8`, incompatible with Expo SDK 54. Expo SDK 54 documents `expo-font@~14.0.12` (https://docs.expo.dev/versions/v54.0.0/sdk/font/).
+- Upstream issue (https://github.com/expo/vector-icons/issues/372) confirms `@expo/vector-icons@15.1.x` brings an incompatible transitive `expo-font` when running SDK 54. The direct mobile dependency was `@expo/vector-icons@^15.0.0`, resolved to 15.1.1.
+- Fix: set mobile `@expo/vector-icons` **exact 15.0.3**, and add mobile `expo-font` **exact 14.0.12**, with root npm overrides. Reconcile the `package-lock.json` in a GitHub Actions runner, no local tools.
+- Enforce the **actual autolinked Expo module version** and complete `publication.version` fields with `apps/mobile/scripts/check-native-autolinking.cjs`, inside Mobile Cloud CI and the owner-approved manual Expo queue, before any Free build allowance is consumed.
+- Include the optional no-credit GitHub-hosted **Android Native Gradle Diagnostic** to detect further Gradle or SDK issues. A successful native build remains required before recommending another EAS run.
+- The obsolete temporary write-enabled lock reconciliation CI was removed from the final PR; normal Mobile CI is read-only.
