@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - 'apps/mobile/**'
+      - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/mobile-cloud-validation.yml'
   push:
     branches: [main]
     paths:
       - 'apps/mobile/**'
+      - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/mobile-cloud-validation.yml'
 
