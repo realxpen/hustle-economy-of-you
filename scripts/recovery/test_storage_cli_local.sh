@@ -6,8 +6,9 @@ umask 077
 [[ -z "${DATABASE_URL:-}" && -z "${SUPABASE_ACCESS_TOKEN:-}" && -z "${SUPABASE_AUTH_SERVICE_ROLE_KEY:-}" ]] \
   || { echo 'STOP: external credentials present' >&2; exit 2; }
 LAB="${RUNNER_TEMP:?}/hustle-storage-cli-contract"
-CONTAINER='supabase_db_hustle-storage-cli-contract'
+DB_CONTAINER='supabase_db_hustle-storage-cli-contract'
 source "${GITHUB_WORKSPACE:?}/scripts/recovery/storage-copy.sh"
+source "${GITHUB_WORKSPACE:?}/scripts/recovery/storage-buckets.sh"
 
 cleanup() {
   if [[ -f "$LAB/supabase/config.toml" ]]; then
@@ -28,14 +29,10 @@ if ! supabase start >"$RUNNER_TEMP/synthetic-start-private.log" 2>&1; then
   echo 'STOP: synthetic local stack failed to start; private startup output withheld' >&2
   exit 1
 fi
-docker ps --format '{{.Names}}' | grep -Fxq "$CONTAINER"
-IMAGE="$(docker inspect -f '{{.Config.Image}}' "$CONTAINER")"
+docker ps --format '{{.Names}}' | grep -Fxq "$DB_CONTAINER"
+IMAGE="$(docker inspect -f '{{.Config.Image}}' "$DB_CONTAINER")"
 [[ "$IMAGE" == *supabase/postgres* ]]
-docker exec -i "$CONTAINER" psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('agent-proofs', 'agent-proofs', false, 10485760,
-        ARRAY['application/pdf','image/jpeg','image/png','image/webp']);
-SQL
+create_local_storage_buckets
 mkdir fixtures readback
 python3 - <<'PY'
 import base64
@@ -61,6 +58,6 @@ PY
   copy_local_storage download "ss:///agent-proofs/contracts/proof.$extension" "$LAB/readback/proof.$extension"
   cmp -- "$LAB/fixtures/proof.$extension" "$LAB/readback/proof.$extension"
 done
-COUNT="$(docker exec "$CONTAINER" psql -X -U postgres -d postgres -Atqc 'SELECT count(*) FROM storage.objects')"
+COUNT="$(local_storage_sql -Atqc 'SELECT count(*) FROM storage.objects')"
 [[ "$COUNT" == 2 ]]
 echo 'PASS: synthetic PDF/PNG uploads and byte-for-byte local readbacks.'

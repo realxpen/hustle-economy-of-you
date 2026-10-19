@@ -22,6 +22,7 @@ cleanup() {
 }
 trap cleanup EXIT
 source "${GITHUB_WORKSPACE:?}/scripts/recovery/storage-copy.sh"
+source "${GITHUB_WORKSPACE:?}/scripts/recovery/storage-buckets.sh"
 
 for cmd in docker supabase openssl sha256sum find cmp tar grep mktemp python3; do
   command -v "$cmd" >/dev/null 2>&1 || fail "Required command not found: $cmd"
@@ -35,12 +36,9 @@ docker ps --format '{{.Names}}' | grep -Fxq "$DB_CONTAINER" || fail 'The expecte
 IMAGE="$(docker inspect -f '{{.Config.Image}}' "$DB_CONTAINER")"
 [[ "$IMAGE" == *supabase/postgres* ]] || fail "Unexpected database Docker image: $IMAGE"
 
-local_sql() {
-  docker exec "$DB_CONTAINER" psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 "$@"
-}
-DB_ID="$(local_sql -Atqc "SELECT current_database() || ':' || current_user || ':' || current_setting('port')")"
+DB_ID="$(local_storage_sql -Atqc "SELECT current_database() || ':' || current_user || ':' || current_setting('port')")"
 [[ "$DB_ID" == postgres:postgres:* ]] || fail "Unexpected local DB identity: $DB_ID"
-BEFORE="$(local_sql -Atqc "SELECT (SELECT count(*) FROM public.\"User\")::text || ':' || (SELECT count(*) FROM auth.users)::text || ':' || (SELECT count(*) FROM storage.buckets)::text || ':' || (SELECT count(*) FROM storage.objects)::text")"
+BEFORE="$(local_storage_sql -Atqc "SELECT (SELECT count(*) FROM public.\"User\")::text || ':' || (SELECT count(*) FROM auth.users)::text || ':' || (SELECT count(*) FROM storage.buckets)::text || ':' || (SELECT count(*) FROM storage.objects)::text")"
 [[ "$BEFORE" == '6:4:0:0' ]] || fail "Expected 6 app users, 4 Auth users, and empty local Storage. Found app:auth:buckets:objects=$BEFORE. No writes made."
 
 printf 'Checking fresh Storage archive SHA-256...\n'
@@ -82,32 +80,7 @@ for i in "${!BUCKETS[@]}"; do
 done
 
 printf '\nCreating four buckets ONLY in the fresh local database...\n'
-# The bucket visibility, size and MIME restrictions come from the read-only
-# production audit. This is NOT a production SQL operation.
-local_sql --single-transaction -f /dev/stdin <<'SQL'
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES
- ('agent-proofs', 'agent-proofs', false, 10485760,
-  ARRAY['application/pdf','image/jpeg','image/png','image/webp']),
- ('hustler-proofs', 'hustler-proofs', false, 10485760,
-  ARRAY['application/pdf','image/jpeg','image/png','image/webp']),
- ('message-attachments', 'message-attachments', false, 26214400,
-  ARRAY['image/jpeg','image/png','image/webp','image/gif','application/pdf',
-        'text/plain','text/csv','application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/zip']),
- ('story-media', 'story-media', true, 52428800,
-  ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','video/quicktime']);
-DO $$ BEGIN
-  IF (SELECT count(*) FROM storage.buckets) <> 4 THEN
-    RAISE EXCEPTION 'Expected precisely four local Storage buckets';
-  END IF;
-END $$;
-SQL
+create_local_storage_buckets || fail 'Local Storage buckets were not verified. No uploads attempted.'
 
 printf '\nRestoring all 10 files through the LOCAL Supabase Storage API...\n'
 for i in "${!BUCKETS[@]}"; do
@@ -123,11 +96,11 @@ for i in "${!BUCKETS[@]}"; do
 done
 
 printf '\nVerifying local Storage bucket and object counts...\n'
-TOTAL="$(local_sql -Atqc 'SELECT count(*) FROM storage.objects')"
+TOTAL="$(local_storage_sql -Atqc 'SELECT count(*) FROM storage.objects')"
 [[ "$TOTAL" == '10' ]] || fail "Expected 10 local Storage objects, got $TOTAL."
 for i in "${!BUCKETS[@]}"; do
   bucket="${BUCKETS[$i]}"
-  count="$(local_sql -Atqc "SELECT count(*) FROM storage.objects WHERE bucket_id='$bucket'")"
+  count="$(local_storage_sql -Atqc "SELECT count(*) FROM storage.objects WHERE bucket_id='$bucket'")"
   [[ "$count" == "${EXPECTED[$i]}" ]] || fail "Unexpected restored object count in $bucket: $count"
 done
 
@@ -146,6 +119,6 @@ for i in "${!BUCKETS[@]}"; do
 done
 
 printf '\nFRESH LOCAL STORAGE BYTE RECOVERY PASSED: 4 buckets, 10 objects, all object bytes matched.\n'
-local_sql -c "SELECT bucket_id, count(*) AS objects FROM storage.objects GROUP BY bucket_id ORDER BY bucket_id;"
+local_storage_sql -c "SELECT bucket_id, count(*) AS objects FROM storage.objects GROUP BY bucket_id ORDER BY bucket_id;"
 printf '\nProduction original object UUIDs, owner fields, timestamps, Storage RLS and real sign-in remain unverified.\n'
 printf 'The separate encrypted Storage metadata backup remains unchanged.\n'
