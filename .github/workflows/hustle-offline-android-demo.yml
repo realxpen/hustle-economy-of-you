@@ -1,0 +1,70 @@
+name: Hustle Free Android Demo APK (manual)
+
+# Owner-controlled, free-tier build queue. Never publishes, deploys or connects databases.
+on:
+  workflow_dispatch:
+    inputs:
+      approve_free_demo_build:
+        description: "I approve one Expo Free-tier Android DEMO build (uses a free build allowance)"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-free-android-demo
+  cancel-in-progress: false
+
+jobs:
+  android-demo:
+    if: inputs.approve_free_demo_build == true
+    runs-on: ubuntu-latest
+    environment: mobile-preview
+    timeout-minutes: 20
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: preview
+      EXPO_PUBLIC_HUSTLE_DEMO: "true"
+      EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: "false"
+      EXPO_PROJECT_ID: b52b03ef-37f1-4bdf-ab42-5c80e5988ec4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Require owner Expo token
+        shell: bash
+        run: |
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo "::error::Expected existing EXPO_TOKEN under GitHub mobile-preview Environment secrets"
+            exit 1
+          fi
+      - name: Install locked workspaces
+        run: npm ci
+      - name: Verify offline demo and no financial/backend access
+        run: |
+          node apps/mobile/scripts/offline-demo-contract.cjs
+          node apps/mobile/scripts/cloud-preview-config-gate.cjs
+          npm run typecheck --workspace=@hustle/mobile
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Verify isolated preview Expo ID
+        working-directory: apps/mobile
+        shell: bash
+        run: |
+          npx expo config --json > /tmp/hustle-demo-expo-config.json
+          node -e 'const c=require("/tmp/hustle-demo-expo-config.json");if(c.owner!=="xpen"||c.extra?.eas?.projectId!==process.env.EXPO_PROJECT_ID||c.android?.package!=="com.hustle.economyofyou.preview")process.exit(1)'
+      - name: Queue one cloud Android DEMO APK (no app store)
+        working-directory: apps/mobile
+        shell: bash
+        run: |
+          eas build --platform android --profile demo --non-interactive --no-wait
+          echo "Android demo queued under @xpen/hustle. Inspect the EAS build URL above."
+          echo "### Hustle offline demo queued" >> "$GITHUB_STEP_SUMMARY"
+          echo "Open [Expo Android builds](https://expo.dev/accounts/xpen/projects/hustle/builds) for the build status and installable APK when ready." >> "$GITHUB_STEP_SUMMARY"
+          echo "No backend, customer account, staging, transactions, store submission, or production deployment was requested." >> "$GITHUB_STEP_SUMMARY"
