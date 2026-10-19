@@ -1,0 +1,86 @@
+name: Hustle Encrypted Backup Set Preflight
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/hustle-backup-set-preflight.yml'
+      - 'scripts/recovery/**'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Enter VERIFY_ENCRYPTED_SET (download and verify encrypted files only)'
+        required: true
+        type: string
+      manifest_name:
+        description: 'Exact new backup-set manifest filename in the private Drive folder'
+        required: true
+        type: string
+      manifest_sha256:
+        description: 'Manifest SHA-256 retained independently by the trusted capture operator'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-backup-set-preflight
+  cancel-in-progress: false
+
+jobs:
+  offline:
+    name: Validate generated backup manifests without secrets
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s scripts/recovery -p 'test_*.py'
+
+  encrypted-preflight:
+    name: Verify encrypted backup set only (no database or decryption)
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.confirm == 'VERIFY_ENCRYPTED_SET'
+    needs: offline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment: hustle-cloud-recovery
+    env:
+      HUSTLE_BACKUP_FOLDER_ID: '1iCRbvOV07FYu3SvrXY4u6O9SAXNhUXWp'
+      HUSTLE_RESTORE_DRIVE_SA_JSON: ${{ secrets.HUSTLE_RESTORE_DRIVE_SA_JSON }}
+      HUSTLE_PREFLIGHT_CONFIRM: ${{ inputs.confirm }}
+      HUSTLE_PREFLIGHT_MANIFEST_NAME: ${{ inputs.manifest_name }}
+      HUSTLE_PREFLIGHT_MANIFEST_SHA256: ${{ inputs.manifest_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install read-only Drive client
+        run: |
+          python -m venv "$RUNNER_TEMP/hustle-preflight-venv"
+          "$RUNNER_TEMP/hustle-preflight-venv/bin/python" -m pip -q install --disable-pip-version-check \
+            'google-api-python-client>=2.150,<3' 'google-auth>=2.35,<3'
+      - name: Verify selected encrypted set without opening its contents
+        run: '"$RUNNER_TEMP/hustle-preflight-venv/bin/python" scripts/recovery/fetch_backup_set.py'
+      - name: Remove downloaded encrypted copies
+        if: always()
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import shutil
+          root = Path(os.environ['RUNNER_TEMP'])
+          if not root.is_absolute() or root.is_symlink() or root.resolve() in (Path('/'), Path('/tmp')):
+              raise ValueError('Unsafe runner directory')
+          target = root / 'hustle-manifest-preflight'
+          if target.is_symlink():
+              raise ValueError('Unexpected cleanup symlink')
+          if target.exists():
+              shutil.rmtree(target)
+          print('Downloaded encrypted preflight copies removed.')
+          PY

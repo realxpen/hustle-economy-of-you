@@ -17,6 +17,8 @@ This is the completed partial smoke test. The next milestone is proving that a r
 
 The current workflow intentionally pins October 16 filenames and counts. It must be reviewed and adapted to the new manifest before a fresh set can be tested; replacing files under old names would invalidate the evidence trail.
 
+Preparation tooling: [fresh encrypted backup-set preflight](HUSTLE_FRESH_BACKUP_PREFLIGHT.md) provides a private local manifest sealer and a separate manual Drive integrity check. This is encrypted-file verification only; fresh-set restore integration, capture consistency, original metadata/access and real Auth acceptance remain unverified.
+
 ## 2. Complete the isolated recovery rehearsal
 
 - Restore into a new unlinked, disposable Supabase instance. Prove the target identity and expected empty state before writes.

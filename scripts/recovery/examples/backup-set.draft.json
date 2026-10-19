@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "backup_set_id": "hustle-20261019T130000Z",
+  "source_project_ref": "pfgarmyygybmhiiuopym",
+  "capture": {
+    "started_at": "2026-10-19T13:00:00Z",
+    "ended_at": "2026-10-19T13:05:00Z",
+    "consistency": "operator_declared_write_freeze",
+    "evidence_ref": "replace-with-actual-capture-record"
+  },
+  "archives": {
+    "application": {"filename": "hustle-20261019T130000Z-application.tar.gz.enc", "captured_at": "2026-10-19T13:01:00Z"},
+    "auth": {"filename": "hustle-20261019T130000Z-auth.sql.gz.enc", "captured_at": "2026-10-19T13:02:00Z"},
+    "storage_metadata": {"filename": "hustle-20261019T130000Z-storage_metadata.sql.gz.enc", "captured_at": "2026-10-19T13:03:00Z"},
+    "storage_files": {"filename": "hustle-20261019T130000Z-storage_files.tar.gz.enc", "captured_at": "2026-10-19T13:04:00Z"}
+  },
+  "declared_coverage": {
+    "application": ["application_schema", "application_data", "roles_grants", "prisma_history", "supabase_history"],
+    "auth": ["users", "identities", "auth_configuration"],
+    "storage_metadata": ["buckets", "objects", "policies"],
+    "storage_files": ["object_bytes", "file_hash_manifest"]
+  },
+  "expected_counts": {
+    "application": {"users": 0, "services": 0, "bookings": 0, "notifications": 0},
+    "auth": {"users": 0, "identities": 0},
+    "storage": {"buckets": 0, "objects": 0}
+  }
+}
