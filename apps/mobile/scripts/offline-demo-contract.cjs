@@ -7,6 +7,11 @@ const demo = fs.readFileSync(path.resolve(__dirname, "../src/experience/DemoExpe
 const eas = require("../eas.json");
 const workflow = fs.readFileSync(path.resolve(__dirname, "../../../.github/workflows/hustle-offline-android-demo.yml"), "utf8");
 const packageJson = require("../package.json");
+const entry = fs.readFileSync(path.resolve(__dirname, "../index.js"), "utf8");
+assert.equal(packageJson.main, "index.js", "Use workspace-local Expo entry point; do not reference hoisted node_modules");
+assert.match(entry, /registerRootComponent\(App\)/);
+assert.match(entry, /from ['"]expo['"]/);
+assert.match(entry, /from ['"]\.\/App['"]/);
 const profile = eas.build.demo;
 assert.ok(profile, "Require a separate Expo demo profile");
 assert.equal(profile.environment, "development", "Keep demo outside potential production/stage EAS environments");
