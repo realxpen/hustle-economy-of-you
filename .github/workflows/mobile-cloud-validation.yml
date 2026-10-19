@@ -36,6 +36,12 @@ jobs:
         run: node apps/mobile/scripts/cloud-preview-config-gate.cjs
       - name: Verify offline demo safety and synthetic interaction coverage
         run: node apps/mobile/scripts/offline-demo-contract.cjs
+      - name: Verify SDK54 Android autolinking is compatible
+        working-directory: apps/mobile
+        shell: bash
+        run: |
+          npx expo-modules-autolinking resolve --platform android --json > /tmp/hustle-ci-native-modules.json
+          node scripts/check-native-autolinking.cjs /tmp/hustle-ci-native-modules.json
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
       - name: Bundle offline Android demo with Metro (no EAS build credits)
