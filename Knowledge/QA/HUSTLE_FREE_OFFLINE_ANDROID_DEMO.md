@@ -45,3 +45,10 @@ Status: **PR prepared. No EAS build has been launched and no APK exists yet.**
 - No schema migrations, staging database, backend subscription, live feed, video production CDN, real escrow, payout/merchant custody, or public store release.
 - No paid Maestro hosted device tests.
 - Expo Free quota and first-time credentials are external limits, not a guaranteed completed APK.
+
+## First Expo build incident — 2026-10-19 (corrected on review branch)
+- EAS Android demo build `4253c101-ad17-4f55-9526-37bad8e24911` **failed** at `Bundle JavaScript`; there is no downloadable APK from that build. Expo UI says the failed build **does not count toward EAS Build usage**.
+- Root cause reproduced in free GitHub CI: `ConfigError: Cannot resolve entry file: The main field defined in your package.json points to an unresolvable or non-existent path.`
+- Previous `apps/mobile/package.json` used `node_modules/expo/AppEntry.js`, a path unavailable inside the hoisted npm workspace layout. Remediation sets `main: index.js` and registers `App` via Expo's `registerRootComponent` in `apps/mobile/index.js`.
+- Free GitHub Actions Android Metro export **passed** after this change, bundling 726 modules. Include that export in both Mobile Cloud CI and the manual EAS queue workflow **before** issuing any EAS build request.
+- A green Metro export validates the JavaScript bundle, not Android native Gradle packaging, APK install or touch interactions. Owner approval is still required for a retry via the manual EAS workflow; no paid service or extra staging database is needed.
