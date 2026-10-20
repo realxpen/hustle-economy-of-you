@@ -4,18 +4,20 @@
  *
  * This experience is opt-in ONLY for the dedicated Expo "demo" build profile.
  */
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable,
   ScrollView, Share, StatusBar, StyleSheet, Text, TextInput,
   useWindowDimensions, View
 } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, spacing, radii } from "../ux004/theme";
+import { colors, spacing, radii, layout } from "../ux004/theme";
 import { AppIcon, type AppIconName } from "../ux004/components/AppIcon";
 import { HybridScreenSurface } from "../ux004/components/HybridScreenSurface";
 import { TactilePressable } from "../ux004/components/TactilePressable";
 import { DemoDisclosure } from "../ux004/components/DemoDisclosure";
+import { FloatingTabBar } from "../ux004/components/FloatingTabBar";
+import { useDemoNavigation } from "../ux004/navigation/useDemoNavigation";
 
 // Legacy local names map to approved UX004 semantic tokens. The full feed
 // layout/navigation upgrade happens in separate A1.2/A2 review slices.
@@ -25,7 +27,6 @@ const C = {
   charcoal: colors.charcoal,
 };
 type IconName = AppIconName;
-type Screen = "Home" | "Explore" | "Inbox" | "You";
 type Sheet = "comments" | "save" | "share" | "creator" | "offer" | "booking" | null;
 type Collection = "Inspiration" | "Outfit ideas";
 type Offer = { kind: "service" | "product"; title: string; price: string; detail: string };
@@ -74,7 +75,7 @@ function Button({ title, onPress, outline = false }: { title: string; onPress: (
 function Experience() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const [screen, setScreen] = useState<Screen>("Home");
+  const { activeTab: screen, selectTab: setScreen } = useDemoNavigation();
   const [feed, setFeed] = useState<"For You" | "Nearby">("For You");
   const [index, setIndex] = useState(0);
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -89,7 +90,29 @@ function Experience() {
   const [category, setCategory] = useState("All");
   const [selectedTime, setSelectedTime] = useState("11:00 AM");
   const [savedOnly, setSavedOnly] = useState(false);
+  const regularFeedIndex = useRef(0);
+  const bottomReserve = layout.navVisualHeight +
+    Math.max(insets.bottom, layout.navBottomGap) + layout.navContentGap;
   const pageHeight = height;
+
+  // Only explicit tab navigation leaves the saved-feed view. Switching tabs
+  // keeps the normal Feed position, Explorer query, category and engagement.
+  const selectRootTab = (destination: "Home" | "Explore" | "Inbox" | "You") => {
+    if (destination === screen) return;
+    setSheet(null);
+    if (savedOnly) {
+      setSavedOnly(false);
+      setIndex(regularFeedIndex.current);
+    }
+    setScreen(destination);
+  };
+  const openSavedCollection = () => {
+    if (!savedOnly) regularFeedIndex.current = index;
+    setSavedOnly(true);
+    setIndex(0);
+    setSheet(null);
+    setScreen("Home");
+  };
   const current = POSTS.find(p => p.id === chosenPost) || POSTS[0];
   const visibleFeed = savedOnly ? POSTS.filter(p => (saves[p.id] || []).length > 0) : POSTS;
   const explore = useMemo(() => POSTS.filter(p =>
@@ -149,7 +172,7 @@ function Experience() {
       <View style={styles.posterShade} pointerEvents="none" />
       <View style={[styles.topRow, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.wordmark}>hustle<Text style={{ color: C.lime }}>.</Text></Text>
-        <Pressable onPress={() => { setScreen("Explore"); setSavedOnly(false); }} accessibilityLabel="Explore skills">
+        <Pressable onPress={() => selectRootTab("Explore")} accessibilityLabel="Explore skills">
           <I name="search-outline" size={27} />
         </Pressable>
       </View>
@@ -166,14 +189,14 @@ function Experience() {
       </View>
       <DemoDisclosure compact label={DEMO_BANNER}
         style={[styles.demoChip, { top: insets.top + 113 }]} />
-      <View style={[styles.rail, { bottom: insets.bottom + 208 }]}>
+      <View style={[styles.rail, { bottom: bottomReserve + 120 }]}>
         {rail("person-circle-outline", "Creator", () => open("creator", post))}
         {rail(heart(post) ? "heart" : "heart-outline", String(post.likes + (heart(post) ? 1 : 0)), () => toggleLike(post.id), heart(post))}
         {rail("chatbubble-outline", String((comments[post.id] || []).length), () => open("comments", post))}
         {rail((saves[post.id] || []).length ? "bookmark" : "bookmark-outline", "Save", () => open("save", post), (saves[post.id] || []).length > 0)}
         {rail("arrow-redo-outline", "Share", () => open("share", post))}
       </View>
-      <View style={[styles.feedBottom, { bottom: insets.bottom + 77 }]}>
+      <View style={[styles.feedBottom, { bottom: bottomReserve }]}>
         <Pressable accessibilityRole="button" onPress={() => open("creator", post)}>
           <Text style={styles.creatorName}>@{post.handle} <Text style={{ color: C.lime }}>↗</Text></Text>
           <Text style={styles.caption} numberOfLines={2}>{post.caption}</Text>
@@ -196,10 +219,15 @@ function Experience() {
     <StatusBar barStyle={screen === "Home" ? "light-content" : "dark-content"} />
     {screen === "Home" ? <FlatList
       key={savedOnly ? "saved" : feed} data={visibleFeed} keyExtractor={p => p.id}
+      initialScrollIndex={Math.min(index, Math.max(0, visibleFeed.length - 1))}
       renderItem={({ item, index: i }) => feedCard(item, i)}
       pagingEnabled decelerationRate="fast" showsVerticalScrollIndicator={false}
       getItemLayout={(_, i) => ({ length: pageHeight, offset: pageHeight * i, index: i })}
-      onMomentumScrollEnd={event => setIndex(Math.max(0, Math.round(event.nativeEvent.contentOffset.y / pageHeight)))}
+      onMomentumScrollEnd={event => {
+        const next = Math.max(0, Math.round(event.nativeEvent.contentOffset.y / pageHeight));
+        setIndex(next);
+        if (!savedOnly) regularFeedIndex.current = next;
+      }}
       ListEmptyComponent={<View style={styles.emptyDark}>
         <I name="bookmark-outline" size={40}/><Text style={styles.whiteTitle}>Your saved feed is empty</Text>
         <Button title="Return to For You" onPress={() => setSavedOnly(false)} />
@@ -218,7 +246,7 @@ function Experience() {
             <Text style={[styles.categoryText, category === cat && { color: C.white }]}>{cat}</Text>
           </Pressable>)}
       </ScrollView>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomReserve }}>
         <Text style={styles.sectionHeading}>Featured Hustlers <Text style={styles.sampleLabel}>· Demo</Text></Text>
         {explore.length === 0 ? <Text style={styles.mutedText}>No matching sample. Try another skill.</Text> :
           explore.map(post => <Pressable key={post.id} onPress={() => open("creator", post)} style={styles.exploreCard}>
@@ -239,7 +267,7 @@ function Experience() {
       <I name="chatbubbles-outline" color={C.ink} size={58}/>
       <Text style={styles.pageTitle}>Inbox</Text>
       <Text style={[styles.subtitle, { textAlign: "center" }]}>Messages appear here when Hustle is connected. No messages are sent in this demo.</Text>
-      <Button title="Explore Hustlers" onPress={() => setScreen("Explore")} />
+      <Button title="Explore Hustlers" onPress={() => selectRootTab("Explore")} />
     </View>
     : <View style={[styles.lightPage, { paddingTop: insets.top + 27 }]}>
       <Text style={styles.pageTitle}>Your Hustle</Text><Text style={styles.subtitle}>One account. Your economy.</Text>
@@ -247,7 +275,7 @@ function Experience() {
         <View style={{ flex: 1 }}><Text style={styles.youTitle}>Demo guest</Text><Text style={styles.youMeta}>Offline preview · Not signed in</Text></View></View>
       <Text style={styles.sectionHeading}>Your collections</Text>
       {(["Inspiration","Outfit ideas"] as const).map(collection =>
-        <Pressable key={collection} onPress={() => { setSavedOnly(true); setScreen("Home"); setIndex(0); }}
+        <Pressable key={collection} onPress={openSavedCollection}
           style={styles.collectionRow}>
           <I name="bookmark-outline" color={C.ink}/>
           <Text style={styles.collectionName}>{collection}</Text>
@@ -256,18 +284,9 @@ function Experience() {
       <View style={styles.demoNotice}><I name="shield-checkmark-outline" color={C.ink}/>
         <Text style={styles.demoNoticeText}>This demo uses only temporary sample data. Nothing is saved to a server.</Text></View>
     </View>}
-    <View style={[styles.nav, { bottom: Math.max(insets.bottom, 10) }]}>
-      {([["Home","home-outline"],["Explore","compass-outline"],["Create","add-circle-outline"],["Inbox","chatbubble-ellipses-outline"],["You","person-outline"]] as const).map(([label, icon]) => {
-        const selected = label === screen;
-        return <Pressable key={label} accessibilityRole="tab" accessibilityLabel={label}
-          accessibilityState={{ selected }} onPress={() => {
-            if (label === "Create") Alert.alert("Create · Demo", "Publishing is disabled in the offline preview.");
-            else { setScreen(label); setSavedOnly(false); }
-          }} style={[styles.navItem, selected && styles.navActive]}>
-          <I name={icon} color={selected ? C.ink : C.white} size={25}/>
-        </Pressable>;
-      })}
-    </View>
+    <FloatingTabBar activeTab={screen} onSelectTab={selectRootTab}
+      onPressCreate={() => Alert.alert("Create · Demo", "Publishing is disabled in the offline preview.")}
+      bottomInset={insets.bottom} />
     <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={close}>
       <View style={styles.modalRoot}>
         <Pressable style={styles.scrim} onPress={close} accessibilityLabel="Close sheet"/>
@@ -380,9 +399,6 @@ const styles = StyleSheet.create({
   offerAmount: { color: C.lime, marginTop: 5, fontSize: 12 },
   offerLink: { color: C.lime, fontWeight: "800", fontSize: 12, marginLeft: 7 },
   mediaDisclosure: { fontSize: 10, color: "#E1E8DE", marginTop: 8 },
-  nav: { position: "absolute", backgroundColor: C.ink, left: 17, right: 17, height: 59, borderRadius: 32, flexDirection: "row", paddingHorizontal: 6, alignItems: "center", justifyContent: "space-around" },
-  navItem: { width: 54, height: 43, alignItems: "center", justifyContent: "center", borderRadius: 22 },
-  navActive: { backgroundColor: C.lime },
   lightPage: { flex: 1, backgroundColor: C.cream, paddingHorizontal: spacing.gutter },
   centerPage: { alignItems: "center", justifyContent: "center", gap: 17 },
   pageTitle: { color: C.ink, fontWeight: "900", fontSize: 30 },
