@@ -350,7 +350,7 @@ export default function DemoExperience() {
   return <SafeAreaProvider><Experience/></SafeAreaProvider>;
 }
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.ink },
+  root: { flex: 1 },
   feedCard: { width: "100%", backgroundColor: C.charcoal },
   poster: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   halo: { width: 325, height: 325, position: "absolute", borderRadius: 160, top: "22%", right: -80, opacity: .62 },
@@ -367,8 +367,7 @@ const styles = StyleSheet.create({
   feedTabMuted: { color: "#E7EDE7", fontSize: 13, fontWeight: "800", marginRight: 3 },
   feedTab: { paddingVertical: 9 }, feedTabActive: { borderBottomWidth: 2, borderBottomColor: C.lime },
   feedTabText: { color: "#B5C3B5", fontSize: 14, fontWeight: "700" },
-  demoChip: { position: "absolute", left: 19, backgroundColor: "#263B2C", borderWidth: 1, borderColor: "#9DC77A", paddingHorizontal: 10, paddingVertical: 7, borderRadius: 15 },
-  demoChipText: { color: C.lime, fontSize: 9, fontWeight: "800", letterSpacing: 1 },
+  demoChip: { position: "absolute", left: 19 },
   rail: { position: "absolute", right: 10, gap: 10 },
   railItem: { alignItems: "center", width: 60, paddingVertical: 4 },
   railCaption: { color: C.white, fontSize: 11, marginTop: 4, fontWeight: "800", textAlign: "center" },
