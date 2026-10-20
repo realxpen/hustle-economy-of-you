@@ -47,6 +47,7 @@ jobs:
       - name: Verify offline demo and no financial/backend access
         run: |
           node apps/mobile/scripts/offline-demo-contract.cjs
+          node apps/mobile/scripts/ux004-a11-contract.cjs
           node apps/mobile/scripts/cloud-preview-config-gate.cjs
           npm run typecheck --workspace=@hustle/mobile
       - name: Prevent duplicate React dispatcher crash before queuing EAS
