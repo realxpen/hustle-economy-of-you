@@ -45,8 +45,8 @@ assert.match(demo, /HybridScreenSurface mode=\{screen === "Home" \? "darkFeed" :
 assert.match(demo, /import \{ AppIcon, type AppIconName \}/);
 assert.ok(demo.includes('<DemoDisclosure compact label={DEMO_BANNER}'), 'Demo disclosure stays visible');
 assert.ok(demo.includes('<TactilePressable accessibilityLabel={title}'), 'Primary CTA must use tactile primitive');
-assert.match(demo, /type Screen = "Home" \| "Explore" \| "Inbox" \| "You"/);
-assert.match(demo, /if \(label === "Create"\) Alert\.alert/);
+assert.match(demo, /import \{ useDemoNavigation \} from "\.\.\/ux004\/navigation\/useDemoNavigation"/);
+assert.match(demo, /onPressCreate=\{\(\) => Alert\.alert\("Create · Demo"/);
 assert.match(demo, /EXPO|FICTIONAL CONTENT/i);
 assert.match(disclosure, /accessibilityLabel=\{label\}/);
 assert.match(disclosure, /fontSize: typography\.label/);
