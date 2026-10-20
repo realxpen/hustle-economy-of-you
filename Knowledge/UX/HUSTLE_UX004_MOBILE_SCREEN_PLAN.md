@@ -1,6 +1,6 @@
 # Hustle UX004 — Mobile Visual and Experience Upgrade
-**Status:** Proposed experience architecture and implementation plan; documentation only
-**Date:** 2026-10-19
+**Status:** Experience architecture proposed; **Hybrid theme approved and locked by owner (2026-10-20)**; documentation only
+**Date:** 2026-10-19; theme decision recorded 2026-10-20
 **Scope:** Expo / React Native Android-first; working offline demo as the regression baseline
 **Change policy:** No production data, environment, authentication, backend, payments, escrow, deployments, or paid services. Do not merge visual implementation without owner review.
 
@@ -25,7 +25,7 @@ Name this direction **Expressive Tactile Minimalism**: premium, calm, spacious, 
 - These are reference *principles*, not assets to copy. No wholesale pin recreation; use original Hustle design tokens and content.
 
 ## 2. Experience decisions to lock before coding
-1. **Recommended hybrid theme, pending owner sign-off:** immersive charcoal/dark Feed and eventual Live; cream/light Explore, detail screens, Inbox, You and forms. Do not apply blur uniformly.
+1. **APPROVED / LOCKED — Hybrid theme (owner decision, 2026-10-20):** immersive charcoal/dark Feed and future Live experiences; cream/light Explore, search, creator profiles, services/products, Inbox, You and forms. Sheets use the light surface, over a dimmed dark Feed. Do not apply blur uniformly. Changes to this direction require an explicit later owner design decision.
 2. **Home is skill discovery, not empty entertainment:** creator profession, general Lagos location and attached offer remain accessible during viewing.
 3. **One account, progressive capabilities:** every identity is a Client; Hustler capability is additional after approval. Never add a role-switcher.
 4. **Work-first profile:** demonstrate skills/portfolio and services/products before follower counts. Verification and review metrics appear only when data genuinely exists.
@@ -33,7 +33,15 @@ Name this direction **Expressive Tactile Minimalism**: premium, calm, spacious, 
 6. **Offline demo integrity:** visible “Demo / fictional content” context, no fake real-time location/Live/availability, no actual requests/payments, no real account connectivity.
 7. **No new paid imagery, animations, backend, storage, analytics, fonts, media hosting or staging.** Prefer built-in React Native / installed Expo packages, self-authored illustrations and licensed small demonstration media where explicitly approved.
 
-## 3. Visual foundation / proposed tokens
+### UX004 theme decision record — UX004-ADR-001 (LOCKED)
+- **Decision-maker:** Hustle project owner; approved explicitly on **2026-10-20**.
+- **Exact decision:** `Hybrid — dark immersive Feed/Live and light cream utility screens`.
+- **Binding scope:** UX004-A1 shell and design tokens, and all later UX004 screen designs; Feed/Live are dark, utility/detail/screens and sheets use warm light surfaces.
+- **Non-decision:** This does **not** approve a video asset, implementation, authenticated API connection, publishing, payments, booking, actual Live, new dependency or an Expo build. All those retain separate gates.
+- **Implementation guidance:** Feed contrast comes from a controlled media scrim, not white typography on arbitrary artwork; no fake Live capability. On utility screens use dark text and tactile cream/white cards; overlays/sheets match the surface they occupy.
+- **Change control:** do not reinterpret this as a fully dark or fully light product without a new owner decision.
+
+## 3. Visual foundation / proposed tokens (governed by locked Hybrid theme)
 Maintain current usable palette while upgrading hierarchy; actual contrast remains a QA gate:
 - Ink #151D19; dark charcoal #26332A; paper #F7F6F2; white #FFFFFF; accent lime #C9F26B; supporting muted #758178.
 - Accent lime is an **action/status highlight**, not body text on pale backgrounds; contrast-check every pairing. Feed text uses high-contrast white plus controlled dark gradient/scrim.
@@ -182,11 +190,11 @@ Each implementation slice is reviewed in its own PR; no mass rewrite, production
 UX004 is done when all scoped screens use one visual language; full Feed → Hustler profile → offer → booking **preview** path is clear and testable; Explore and saved collections work; all interactions have accurate semantics; accessibility, low-memory and physical Android smoke checks pass; and the owner approves the updated experience. This is **not** equivalent to the connected Hustle marketplace being activated.
 
 ## 11. Pending design/product decisions for owner
-1. Confirm **hybrid light utility + dark immersive Feed/Live** (recommended) versus a predominantly dark product.
+1. **RESOLVED / APPROVED 2026-10-20:** Hybrid — dark immersive Feed/future Live with cream/light Explore, Profile, Offer, Inbox, You and forms. This theme must be carried through UX004-A1. Do not reopen without owner approval.
 2. Confirm primary Feed CTA label **View service/product** with separate **Book/Consult** on the detail page (recommended), or immediate booking CTA on the feed.
 3. Choose whether Create opens only a clear placeholder for UX004 (safest) or a non-publishing composer prototype.
 4. Approve one or two small legally usable video samples for the APK, or keep static samples until authenticated real publishing.
 5. Decide which Hustler trust attributes have truthful data in the future connected build; hide unsupported rating/verification during UX004 demo.
 
 ## 12. Next action
-Owner reviews this **documentation-only** plan and resolves pending design decisions. Start A1 on a separate reviewed code PR only after that. Preserve the currently working physical Android APK and the offline demo controls as non-regression references.
+The owner **approved and locked the Hybrid theme on 2026-10-20**. Review the companion [UX004-A1 design-system and navigation specification](./HUSTLE_UX004_A1_DESIGN_SYSTEM_NAVIGATION_SPEC.md) together with this documentation PR. Resolve remaining CTA/Create/media/trust decisions separately; they do **not** block A1 shell planning. Only start A1 code implementation in a separate reviewed PR after specification approval. Preserve the currently working physical Android APK and the offline demo controls as non-regression references.
