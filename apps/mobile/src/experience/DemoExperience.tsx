@@ -10,14 +10,21 @@ import {
   ScrollView, Share, StatusBar, StyleSheet, Text, TextInput,
   useWindowDimensions, View
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, spacing, radii } from "../ux004/theme";
+import { AppIcon, type AppIconName } from "../ux004/components/AppIcon";
+import { HybridScreenSurface } from "../ux004/components/HybridScreenSurface";
+import { TactilePressable } from "../ux004/components/TactilePressable";
+import { DemoDisclosure } from "../ux004/components/DemoDisclosure";
 
+// Legacy local names map to approved UX004 semantic tokens. The full feed
+// layout/navigation upgrade happens in separate A1.2/A2 review slices.
 const C = {
-  ink: "#151D19", lime: "#C9F26B", cream: "#F7F6F2",
-  white: "#FFFFFF", muted: "#758178", charcoal: "#26332A"
+  ink: colors.ink, lime: colors.lime, cream: colors.paper,
+  white: colors.surface, muted: colors.textSecondaryLight,
+  charcoal: colors.charcoal,
 };
-type IconName = React.ComponentProps<typeof Ionicons>["name"];
+type IconName = AppIconName;
 type Screen = "Home" | "Explore" | "Inbox" | "You";
 type Sheet = "comments" | "save" | "share" | "creator" | "offer" | "booking" | null;
 type Collection = "Inspiration" | "Outfit ideas";
@@ -56,13 +63,13 @@ const INITIAL_COMMENTS: Record<string, Comment[]> = {
 };
 const DEMO_BANNER = "INTERACTIVE DEMO · FICTIONAL CONTENT";
 function I({ name, color = "#fff", size = 24 }: { name: IconName; color?: string; size?: number }) {
-  return <Ionicons name={name} color={color} size={size} />;
+  return <AppIcon name={name} color={color} size={size} />;
 }
 function Button({ title, onPress, outline = false }: { title: string; onPress: () => void; outline?: boolean }) {
-  return <Pressable accessibilityRole="button" onPress={onPress}
+  return <TactilePressable accessibilityLabel={title} onPress={onPress}
     style={[styles.button, outline && { backgroundColor: "#E8EDE4" }]}>
     <Text style={[styles.buttonText, outline && { color: C.ink }]}>{title}</Text>
-  </Pressable>;
+  </TactilePressable>;
 }
 function Experience() {
   const insets = useSafeAreaInsets();
@@ -157,9 +164,8 @@ function Experience() {
           </Pressable>
         )}
       </View>
-      <View style={[styles.demoChip, { top: insets.top + 113 }]}>
-        <Text style={styles.demoChipText}>{DEMO_BANNER}</Text>
-      </View>
+      <DemoDisclosure compact label={DEMO_BANNER}
+        style={[styles.demoChip, { top: insets.top + 113 }]} />
       <View style={[styles.rail, { bottom: insets.bottom + 208 }]}>
         {rail("person-circle-outline", "Creator", () => open("creator", post))}
         {rail(heart(post) ? "heart" : "heart-outline", String(post.likes + (heart(post) ? 1 : 0)), () => toggleLike(post.id), heart(post))}
@@ -186,7 +192,7 @@ function Experience() {
   }
 
   const close = () => setSheet(null);
-  return <View style={styles.root}>
+  return <HybridScreenSurface mode={screen === "Home" ? "darkFeed" : "lightUtility"} style={styles.root}>
     <StatusBar barStyle={screen === "Home" ? "light-content" : "dark-content"} />
     {screen === "Home" ? <FlatList
       key={savedOnly ? "saved" : feed} data={visibleFeed} keyExtractor={p => p.id}
@@ -338,7 +344,7 @@ function Experience() {
         </KeyboardAvoidingView>
       </View>
     </Modal>
-  </View>;
+  </HybridScreenSurface>;
 }
 export default function DemoExperience() {
   return <SafeAreaProvider><Experience/></SafeAreaProvider>;
@@ -378,7 +384,7 @@ const styles = StyleSheet.create({
   nav: { position: "absolute", backgroundColor: C.ink, left: 17, right: 17, height: 59, borderRadius: 32, flexDirection: "row", paddingHorizontal: 6, alignItems: "center", justifyContent: "space-around" },
   navItem: { width: 54, height: 43, alignItems: "center", justifyContent: "center", borderRadius: 22 },
   navActive: { backgroundColor: C.lime },
-  lightPage: { flex: 1, backgroundColor: C.cream, paddingHorizontal: 21 },
+  lightPage: { flex: 1, backgroundColor: C.cream, paddingHorizontal: spacing.gutter },
   centerPage: { alignItems: "center", justifyContent: "center", gap: 17 },
   pageTitle: { color: C.ink, fontWeight: "900", fontSize: 30 },
   subtitle: { color: C.muted, fontSize: 14, marginTop: 7, marginBottom: 20, lineHeight: 22 },
@@ -410,7 +416,7 @@ const styles = StyleSheet.create({
   grabber: { width: 65, height: 5, borderRadius: 3, backgroundColor: "#CAD5C5", alignSelf: "center", marginBottom: 21 },
   sheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15 },
   sheetTitle: { color: C.ink, fontSize: 22, fontWeight: "900" },
-  button: { backgroundColor: C.lime, marginTop: 13, borderRadius: 19, paddingVertical: 16, paddingHorizontal: 16, alignItems: "center" },
+  button: { backgroundColor: C.lime, marginTop: 13, borderRadius: radii.button, paddingVertical: 16, paddingHorizontal: 16, alignItems: "center" },
   buttonText: { fontWeight: "900", fontSize: 14, color: C.ink, textAlign: "center" },
   commentRow: { flexDirection: "row", gap: 11, marginBottom: 18 },
   commentAvatar: { backgroundColor: "#DCEACF", width: 37, height: 37, borderRadius: 20, alignItems: "center", justifyContent: "center" },
