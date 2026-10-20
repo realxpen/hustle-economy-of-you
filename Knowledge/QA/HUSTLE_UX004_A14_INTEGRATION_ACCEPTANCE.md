@@ -1,6 +1,6 @@
 # Hustle UX004-A1.4 — Integration QA and Visual Review
 
-**Status: post-fix Waydroid acceptance 5/5 PASS (owner-reported), physical Android acceptance PENDING.** The latest Expo APK succeeded, but A1 is not signed off until phone testing.
+**Status: post-fix Waydroid 5/5 PASS; physical Android 6/7 PASS, 0 FAIL, 1 NOT TESTED (owner-reported). UX004-A1 SIGN-OFF PENDING the offline-safety gate.** The latest Expo APK succeeded and was installed on both environments.
 **Review date:** 2026-10-20
 **Theme:** UX004-ADR-001, **Hybrid — dark immersive Feed / future Live and warm cream/light utility screens**.
 **Baseline:** #146 (A1.1), #147 (A1.2), #148 (A1.3) are merged; each had green free GitHub cloud Android checks. This document proposes **A1.4 verification** for their integration, not an already tested APK.
@@ -45,6 +45,33 @@
 **Summary: Waydroid 5/5 PASS, user-reported.** The assistant did not run or observe these gestures directly, and no post-fix screenshot has yet been independently inspected. This evidence is sufficient to move the QA process to physical Android testing, but **not** to close A1.
 
 **Physical handset required:** install the **same exact APK** on a real Android phone, verify 7/7 legacy features, layout, keyboard-first Back with comments draft, collections and offer restrictions, safe areas (gesture or 3-button mode), airplane-mode offline behavior, and >=10-minute crash-free use. Record pass/fail plus any reproduction steps; physical sign-off remains **PENDING**. No additional EAS build is required for the phone test.
+
+## 1C. Physical Android QA results — owner submission
+
+**Tested artifact:** Same successful Expo build `189f1447-93f9-4d63-b331-f38a7125a9f9` (`2444ac6`) previously tested in Waydroid. **Environment:** physical Android handset (model and Android version not supplied). These are **owner-reported pass/fail observations**, not independently observed tests.
+
+| Physical Android check | Owner outcome | Acceptance note |
+|---|---|---|
+| App launches | PASS | No launch failure reported |
+| Feed layout | PASS | Previous badge/headline overlap and Feed-height issue no longer reported |
+| Swiping and navigation | PASS | User reports Feed and tab navigation working |
+| Social interactions | PASS | User reports offline like/comment/save/etc. interaction working |
+| Android Back and keyboard | PASS | User reports comments keyboard and Back flow working |
+| Offline safety | **NOT TESTED** | **Required DEMO-01 gate remains open** |
+| Stability and screen fit | PASS | Owner reports stability/layout working; exact session duration, airplane-mode check, screenshots and logs not individually supplied |
+
+**Result: 6 PASS, 0 FAIL, 1 NOT TESTED (85.7% checklist completion).** No defect to reproduce or debug was reported from this round. **Do not mark all A1 criteria accepted:** manual validation of the disconnected-demo/disabled-action safety promise is incomplete, and the broader screenshot, device details and exact 10-minute evidence requirements are not independently verified.
+
+### Required targeted safety retest — no code change or new APK needed
+
+1. With the **same APK installed on the phone**, turn on **airplane mode**. Open Home and Explore; the illustrative Feed and profiles should still work without network access.
+2. Tap **LIVE** in the Feed header. Expected: `Live demo` alert explaining that livestreaming is not enabled; no camera/microphone livestream starts.
+3. Tap the center **Create** button. Expected: `Create · Demo` alert explaining publishing is disabled; no upload, account creation, or real post.
+4. Tap a post's service pill → **See sample booking** → **Preview request (not sent)**. Expected: illustrative time options and a confirmation explicitly stating the booking was not sent or saved and no payment was collected. No real booking/checkout/payment.
+5. Tap a **product** offer → **View sample product options**. Expected: product-preview alert explaining shopping/checkout is disabled; no purchase.
+6. Optionally reopen the app with the network still off and check that the interactions and visible fictional-content/no-transaction disclosures remain clear. Report **PASS** if all work as stated; otherwise **FAIL** and give which action and what appeared.
+
+**Gate for UX004-A1:** The owner must report this targeted safety check as PASS. Record actual test results before considering full A1 sign-off; the next product milestone is A2, not activation of a real marketplace.
 
 ## 2. New in A1.4
 
@@ -111,9 +138,9 @@ Use **AUTOMATED**, **MANUAL PENDING**, **PASS** or **FAIL**. Do not mark device 
 | Expo build quota approved separately | explicit owner decision, manual GitHub Action only | NOT APPROVED by this document |
 | New APK Finished | Expo build result, not GitHub workflow success | PENDING |
 | Waydroid post-fix functional retest | owner-tested updated APK, Feed badge/viewport, Feed navigation, Android Back and Hybrid theme | **PASS 5/5, owner-reported**; updated screenshot optional verification |
-| 5 physical-phone captures and 7/7 regression | phone evidence, comments keyboard/back, nav, disclosures | PENDING |
+| Physical-phone functional checklist | Owner report for exact APK: app launches; Feed layout; navigation; social interactions; Android Back/keyboard; stability/screen fit | **PASS 6/7, FAIL 0, NOT TESTED 1 (offline safety)** |
 | Stable real Android smoke | >=10min, offline/background and Back checks | PENDING |
-| UX004-A1 fully accepted | all gates above PASS, owner signs off | PENDING |
+| UX004-A1 fully accepted | owner-reported physical QA plus DEMO-01 safety pass and sign-off | **PENDING: offline safety NOT TESTED** |
 
 **Next milestone after sign-off:** UX004-A2 Feed and Social Interaction Experience Upgrade. Do not begin rollout or claim that a live marketplace is activated on the basis of this offline UI.
 
