@@ -48,6 +48,8 @@ jobs:
         run: node apps/mobile/scripts/ux004-a11-contract.cjs
       - name: Validate UX004-A1.2 floating navigation, demo state and insets
         run: node apps/mobile/scripts/ux004-a12-navigation-contract.cjs
+      - name: Validate UX004-A1.3 Android Back, keyboard and safe-area contracts
+        run: node apps/mobile/scripts/ux004-a13-android-back-contract.cjs
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
       - name: Bundle offline Android demo with Metro (no EAS build credits)
