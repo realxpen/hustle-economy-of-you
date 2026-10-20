@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   offerName: { color: "#FFFFFF", fontWeight: "800", fontSize: 12 },
   offerAmount: { color: C.lime, marginTop: 5, fontSize: 12 },
   offerLink: { color: C.lime, fontWeight: "800", fontSize: 12, marginLeft: 7 },
-  mediaDisclosure: { fontSize: 10, color: "#E1E8DE", marginTop: 8 },
+  mediaDisclosure: { fontSize: 12, lineHeight: 17, color: "#E1E8DE", marginTop: 8 },
   lightPage: { flex: 1, backgroundColor: C.cream, paddingHorizontal: spacing.gutter },
   centerPage: { alignItems: "center", justifyContent: "center", gap: 17 },
   pageTitle: { color: C.ink, fontWeight: "900", fontSize: 30 },
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
   explorePrice: { color: C.ink, fontSize: 13, fontWeight: "800", marginTop: 7 },
   mutedText: { color: C.muted, fontSize: 13, lineHeight: 20 },
   demoNotice: { marginTop: 20, backgroundColor: "#E8EDDE", borderRadius: 17, padding: 14, flexDirection: "row", alignItems: "center", gap: 8 },
-  demoNoticeText: { color: C.ink, fontSize: 12, flex: 1, lineHeight: 18 },
+  demoNoticeText: { color: C.ink, fontSize: 13, flex: 1, lineHeight: 19 },
   youCard: { backgroundColor: C.white, borderRadius: 19, flexDirection: "row", alignItems: "center", marginTop: 17, padding: 16, gap: 14 },
   youAvatar: { backgroundColor: "#D9EABF", width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center" },
   youTitle: { color: C.ink, fontWeight: "900", fontSize: 18 },
@@ -484,5 +484,5 @@ const styles = StyleSheet.create({
   slotRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 19 },
   slot: { backgroundColor: "#E2EADC", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 14 },
   slotText: { color: C.ink, fontWeight: "800", fontSize: 12 },
-  sheetDisclaimer: { color: C.muted, fontSize: 10, letterSpacing: 1, fontWeight: "800", textAlign: "center", marginTop: 18 }
+  sheetDisclaimer: { color: C.muted, fontSize: 12, lineHeight: 18, letterSpacing: 0.4, fontWeight: "800", textAlign: "center", marginTop: 18 }
 });
