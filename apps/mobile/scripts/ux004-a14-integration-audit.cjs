@@ -72,6 +72,19 @@ verify("Four real tabs and separate disabled Create action",()=>{
  assert.match(nav,/unavailable in demo/);
  assert.match(demo,/Publishing is disabled in the offline preview/);
 });
+verify("Feed paging matches measured viewport; badge does not cover headline",()=>{
+ assert.match(demo,/const \[feedViewportHeight, setFeedViewportHeight\] = useState\(0\)/);
+ assert.match(demo,/const pageHeight = feedViewportHeight \|\| height;/);
+ assert.match(demo,/style=\{styles\.feedList\}/);
+ assert.match(demo,/onLayout=\{event => \{/);
+ assert.match(demo,/Math\.round\(event\.nativeEvent\.layout\.height\)/);
+ assert.match(demo,/getItemLayout=\{\(_, i\) => \(\{ length: pageHeight, offset: pageHeight \* i, index: i \}\)\}/);
+ assert.match(demo,/height: pageHeight/);
+ assert.match(demo,/setFeedViewportHeight\(prev => prev === nextHeight \? prev : nextHeight\)/);
+ assert.match(demo,/top: insets\.top \+ 164/);
+ assert.match(demo,/top: insets\.top \+ 113/);
+ assert.ok(164-113>=48,"Badge/header relative anchors must leave room for disclosure pill");
+});
 verify("Safe floating bar at compact Android widths",()=>{
  const min=Number(layout.match(/minTapTarget:\s*(\d+)/)?.[1]);
  const height=Number(layout.match(/navVisualHeight:\s*(\d+)/)?.[1]);

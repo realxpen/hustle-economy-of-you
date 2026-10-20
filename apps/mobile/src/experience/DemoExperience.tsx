@@ -92,10 +92,13 @@ function Experience() {
   const [category, setCategory] = useState("All");
   const [selectedTime, setSelectedTime] = useState("11:00 AM");
   const [savedOnly, setSavedOnly] = useState(false);
+  // The true FlatList viewport can differ from useWindowDimensions height,
+  // especially in landscape letterboxing / Android edge-to-edge mode.
+  const [feedViewportHeight, setFeedViewportHeight] = useState(0);
   const regularFeedIndex = useRef(0);
   const bottomReserve = layout.navVisualHeight +
     Math.max(insets.bottom, layout.navBottomGap) + layout.navContentGap;
-  const pageHeight = height;
+  const pageHeight = feedViewportHeight || height;
 
   // Only explicit tab navigation leaves the saved-feed view. Switching tabs
   // keeps the normal Feed position, Explorer query, category and engagement.
@@ -171,7 +174,7 @@ function Experience() {
         <View style={[styles.halo, { backgroundColor: post.accent }]} />
         <View style={[styles.haloSmall, { backgroundColor: post.accent }]} />
         <Text style={styles.posterSymbol}>{post.icon}</Text>
-        <View style={styles.posterType}>
+        <View style={[styles.posterType, { top: insets.top + 164 }]}>
           <Text style={styles.posterHeadline}>{post.headline}</Text>
           <Text style={styles.posterSlogan}>{post.slogan}</Text>
           <Text style={styles.posterFoot}>CREATIVE WORK · {post.category.toUpperCase()}</Text>
@@ -235,7 +238,13 @@ function Experience() {
   return <HybridScreenSurface mode={screen === "Home" ? "darkFeed" : "lightUtility"} style={styles.root}>
     <StatusBar barStyle={screen === "Home" ? "light-content" : "dark-content"} />
     {screen === "Home" ? <FlatList
-      key={savedOnly ? "saved" : feed} data={visibleFeed} keyExtractor={p => p.id}
+      style={styles.feedList}
+      onLayout={event => {
+        const nextHeight = Math.round(event.nativeEvent.layout.height);
+        if (nextHeight > 0) setFeedViewportHeight(prev => prev === nextHeight ? prev : nextHeight);
+      }}
+      key={`${savedOnly ? "saved" : feed}:${Math.round(pageHeight)}`}
+      data={visibleFeed} keyExtractor={p => p.id}
       initialScrollIndex={Math.min(index, Math.max(0, visibleFeed.length - 1))}
       renderItem={({ item, index: i }) => feedCard(item, i)}
       pagingEnabled decelerationRate="fast" showsVerticalScrollIndicator={false}
@@ -400,12 +409,13 @@ export default function DemoExperience() {
 }
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  feedList: { flex: 1 },
   feedCard: { width: "100%", backgroundColor: C.charcoal },
   poster: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   halo: { width: 325, height: 325, position: "absolute", borderRadius: 160, top: "22%", right: -80, opacity: .62 },
   haloSmall: { width: 240, height: 240, position: "absolute", borderRadius: 125, top: "50%", left: -115, opacity: .2 },
   posterSymbol: { fontSize: 148, textAlign: "center", position: "absolute", top: "29%", left: 30, right: 30 },
-  posterType: { position: "absolute", left: 20, right: 18, top: "17%" },
+  posterType: { position: "absolute", left: 20, right: 18 },
   posterHeadline: { color: "#FFFFFF", fontWeight: "900", fontSize: 49, letterSpacing: -2.5 },
   posterSlogan: { fontSize: 25, color: "#FFFFFF", fontWeight: "500", marginTop: -7 },
   posterFoot: { color: "#FFFFFF", fontSize: 10, marginTop: 12, letterSpacing: 2, fontWeight: "700" },
