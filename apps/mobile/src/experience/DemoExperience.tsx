@@ -6,7 +6,7 @@
  */
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
-  Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable,
+  Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable,
   ScrollView, Share, StatusBar, StyleSheet, Text, TextInput,
   useWindowDimensions, View
 } from "react-native";
@@ -18,6 +18,8 @@ import { TactilePressable } from "../ux004/components/TactilePressable";
 import { DemoDisclosure } from "../ux004/components/DemoDisclosure";
 import { FloatingTabBar } from "../ux004/components/FloatingTabBar";
 import { useDemoNavigation } from "../ux004/navigation/useDemoNavigation";
+import { useDemoAndroidBack } from "../ux004/navigation/useDemoAndroidBack";
+import type { RootTab } from "../ux004/navigation/types";
 
 // Legacy local names map to approved UX004 semantic tokens. The full feed
 // layout/navigation upgrade happens in separate A1.2/A2 review slices.
@@ -97,7 +99,7 @@ function Experience() {
 
   // Only explicit tab navigation leaves the saved-feed view. Switching tabs
   // keeps the normal Feed position, Explorer query, category and engagement.
-  const selectRootTab = (destination: "Home" | "Explore" | "Inbox" | "You") => {
+  const selectRootTab = useCallback((destination: RootTab) => {
     if (destination === screen) return;
     setSheet(null);
     if (savedOnly) {
@@ -105,7 +107,13 @@ function Experience() {
       setIndex(regularFeedIndex.current);
     }
     setScreen(destination);
-  };
+  }, [screen, savedOnly, setScreen]);
+  const goHome = useCallback(() => selectRootTab("Home"), [selectRootTab]);
+  const { keyboardVisible } = useDemoAndroidBack({
+    activeTab: screen,
+    sheetOpen: sheet !== null,
+    onNavigateHome: goHome,
+  });
   const openSavedCollection = () => {
     if (!savedOnly) regularFeedIndex.current = index;
     setSavedOnly(true);
@@ -215,6 +223,15 @@ function Experience() {
   }
 
   const close = () => setSheet(null);
+  // RN Modal owns Android Back while visible. A first Back hides the keyboard;
+  // a second closes the sheet, preserving the comment draft and current post.
+  const requestDismissSheet = () => {
+    if (Keyboard.isVisible() || keyboardVisible) {
+      Keyboard.dismiss();
+      return;
+    }
+    close();
+  };
   return <HybridScreenSurface mode={screen === "Home" ? "darkFeed" : "lightUtility"} style={styles.root}>
     <StatusBar barStyle={screen === "Home" ? "light-content" : "dark-content"} />
     {screen === "Home" ? <FlatList
@@ -263,13 +280,16 @@ function Experience() {
         <View style={styles.demoNotice}><I name="information-circle-outline" color={C.ink}/><Text style={styles.demoNoticeText}>These are fictional examples. Map locations and real availability are not connected.</Text></View>
       </ScrollView>
     </View>
-    : screen === "Inbox" ? <View style={[styles.lightPage, styles.centerPage]}>
+    : screen === "Inbox" ? <View style={[styles.lightPage, styles.centerPage,
+      { paddingTop: insets.top + spacing.md, paddingBottom: bottomReserve }]}>
       <I name="chatbubbles-outline" color={C.ink} size={58}/>
       <Text style={styles.pageTitle}>Inbox</Text>
       <Text style={[styles.subtitle, { textAlign: "center" }]}>Messages appear here when Hustle is connected. No messages are sent in this demo.</Text>
       <Button title="Explore Hustlers" onPress={() => selectRootTab("Explore")} />
     </View>
-    : <View style={[styles.lightPage, { paddingTop: insets.top + 27 }]}>
+    : <ScrollView style={styles.lightPage}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ paddingTop: insets.top + 27, paddingBottom: bottomReserve }}>
       <Text style={styles.pageTitle}>Your Hustle</Text><Text style={styles.subtitle}>One account. Your economy.</Text>
       <View style={styles.youCard}><View style={styles.youAvatar}><I name="person-outline" color={C.ink} size={39}/></View>
         <View style={{ flex: 1 }}><Text style={styles.youTitle}>Demo guest</Text><Text style={styles.youMeta}>Offline preview · Not signed in</Text></View></View>
@@ -283,21 +303,27 @@ function Experience() {
         </Pressable>)}
       <View style={styles.demoNotice}><I name="shield-checkmark-outline" color={C.ink}/>
         <Text style={styles.demoNoticeText}>This demo uses only temporary sample data. Nothing is saved to a server.</Text></View>
-    </View>}
-    <FloatingTabBar activeTab={screen} onSelectTab={selectRootTab}
+    </ScrollView>}
+    {!keyboardVisible && <FloatingTabBar activeTab={screen} onSelectTab={selectRootTab}
       onPressCreate={() => Alert.alert("Create · Demo", "Publishing is disabled in the offline preview.")}
-      bottomInset={insets.bottom} />
-    <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={close}>
+      bottomInset={insets.bottom} />}
+    <Modal visible={sheet !== null} transparent animationType="slide"
+      onRequestClose={requestDismissSheet} statusBarTranslucent={false}>
       <View style={styles.modalRoot}>
-        <Pressable style={styles.scrim} onPress={close} accessibilityLabel="Close sheet"/>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 14) + 14 }]}>
+        <Pressable style={styles.scrim} accessibilityRole="button"
+          onPress={requestDismissSheet} accessibilityLabel="Dismiss sheet"/>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalKeyboardArea}>
+          <ScrollView style={styles.sheetScroll} nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 14) + 14 }]}>
             <View style={styles.grabber}/>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{sheet === "comments" ? "Comments" : sheet === "save" ? "Save to collection" :
                 sheet === "share" ? "Share this work" : sheet === "creator" ? "Creator" :
                 sheet === "offer" ? current.offer.kind === "service" ? "Attached service" : "Attached product" : "Booking preview"}</Text>
-              <Pressable onPress={close} accessibilityLabel="Close"><I name="close" color={C.ink}/></Pressable>
+              <Pressable onPress={requestDismissSheet} accessibilityRole="button"
+                style={styles.sheetCloseTarget} accessibilityLabel="Close sheet"><I name="close" color={C.ink}/></Pressable>
             </View>
             {sheet === "comments" && <>
               <ScrollView style={{ maxHeight: 325 }} keyboardShouldPersistTaps="handled">
@@ -312,8 +338,12 @@ function Experience() {
                   </View>)}
               </ScrollView>
               {replyTo ? <Pressable onPress={() => setReplyTo(null)}><Text style={styles.reply}>Replying to comment · Cancel</Text></Pressable> : null}
-              <View style={styles.composer}><TextInput value={commentText} onChangeText={setCommentText} placeholder="Write a comment..." placeholderTextColor="#829080" style={{ flex: 1, color: C.ink }} accessibilityLabel="Demo comment"/>
-                <Pressable onPress={addComment} accessibilityLabel="Post demo comment"><I name="send" color={C.ink}/></Pressable></View>
+              <View style={styles.composer}><TextInput value={commentText} onChangeText={setCommentText}
+                placeholder="Write a comment..." placeholderTextColor={C.muted}
+                returnKeyType="send" onSubmitEditing={addComment}
+                style={styles.commentInput} accessibilityLabel="Demo comment"/>
+                <Pressable onPress={addComment} accessibilityRole="button"
+                  style={styles.sendTarget} accessibilityLabel="Post demo comment"><I name="send" color={C.ink}/></Pressable></View>
             </>}
             {sheet === "save" && <><Text style={styles.mutedText}>Organize your saved inspiration. Saved only on this screen until the app closes.</Text>
               {(["Inspiration","Outfit ideas"] as const).map(collection => {
@@ -359,7 +389,7 @@ function Experience() {
               <Button title="Preview request (not sent)" onPress={() => Alert.alert("Demo request only", "Your sample " + selectedTime + " booking was not sent or saved. No payment was collected.")}/>
             </>}
             <Text style={styles.sheetDisclaimer}>OFFLINE DEMO · NO BACKEND · NO TRANSACTIONS</Text>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -427,9 +457,12 @@ const styles = StyleSheet.create({
   whiteTitle: { color: C.white, fontSize: 22, fontWeight: "800", textAlign: "center" },
   modalRoot: { flex: 1, justifyContent: "flex-end" },
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(3,8,5,.63)" },
-  sheet: { backgroundColor: C.cream, borderTopLeftRadius: 27, borderTopRightRadius: 27, paddingHorizontal: 22, paddingTop: 12, maxHeight: "90%" },
+  modalKeyboardArea: { width: "100%", maxHeight: "100%", flexShrink: 1 },
+  sheetScroll: { backgroundColor: C.cream, borderTopLeftRadius: 27, borderTopRightRadius: 27, maxHeight: "90%" },
+  sheet: { paddingHorizontal: 22, paddingTop: 12 },
   grabber: { width: 65, height: 5, borderRadius: 3, backgroundColor: "#CAD5C5", alignSelf: "center", marginBottom: 21 },
   sheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15 },
+  sheetCloseTarget: { minWidth: layout.minTapTarget, minHeight: layout.minTapTarget, alignItems: "center", justifyContent: "center" },
   sheetTitle: { color: C.ink, fontSize: 22, fontWeight: "900" },
   button: { backgroundColor: C.lime, marginTop: 13, borderRadius: radii.button, paddingVertical: 16, paddingHorizontal: 16, alignItems: "center" },
   buttonText: { fontWeight: "900", fontSize: 14, color: C.ink, textAlign: "center" },
@@ -438,7 +471,9 @@ const styles = StyleSheet.create({
   commentName: { fontSize: 13, color: C.ink, fontWeight: "800" },
   commentBody: { marginTop: 5, fontSize: 13, color: C.ink },
   reply: { marginTop: 8, color: C.muted, fontSize: 12, fontWeight: "800" },
-  composer: { flexDirection: "row", backgroundColor: "#E8EDE2", borderRadius: 25, paddingHorizontal: 15, alignItems: "center", minHeight: 49, marginTop: 11 },
+  composer: { flexDirection: "row", backgroundColor: "#E8EDE2", borderRadius: 25, paddingLeft: 15, paddingRight: 4, alignItems: "center", minHeight: 49, marginTop: 11 },
+  commentInput: { flex: 1, minHeight: layout.minTapTarget, color: C.ink, fontSize: 15 },
+  sendTarget: { minHeight: layout.minTapTarget, minWidth: layout.minTapTarget, alignItems: "center", justifyContent: "center" },
   sheetChoice: { flexDirection: "row", gap: 14, backgroundColor: C.white, padding: 17, borderRadius: 14, marginTop: 12, alignItems: "center" },
   choiceText: { color: C.ink, fontWeight: "800", fontSize: 14, flex: 1 },
   creatorPanel: { flexDirection: "row", gap: 15, alignItems: "center", marginTop: 8, marginBottom: 20 },
