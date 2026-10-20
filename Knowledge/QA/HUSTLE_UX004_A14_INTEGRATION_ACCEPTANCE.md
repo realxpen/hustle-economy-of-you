@@ -14,6 +14,20 @@
 - **Visual review limitation:** No updated Android screenshot, comment keyboard recording, or hardware Back observation exists for merged A1.1–A1.3. Mark these tests **PENDING**, not green.
 - **Release limitation:** A GitHub job that queues `eas build --no-wait` is *not* a completed APK; inspect the actual Expo EAS status if the owner later approves a build.
 
+## 1A. Screenshot-based visual review (owner image, 2026-10-20)
+
+**Evidence received:** one Android display screenshot of the dark For You Feed, with sample creator Mira Styles, booking offer, right action rail and lime-active five-item capsule. The screenshot shows the application constrained to a portrait area of a wider landscape Android display; this is **not** proof that ordinary portrait phone layouts fail.
+
+**Visible and provisionally acceptable:** cream/lime actions on the charcoal capsule are legible; the creator, offer and illustrated-content disclosure are visible. The updated design foundation is appearing, but full A1 device QA is still pending.
+
+**Visible defects requiring a separate reviewed fix:**
+1. The floating “INTERACTIVE DEMO · FICTIONAL CONTENT” chip covers the top of the “MADE TO” poster headline on the screenshot. Its placement at `insets.top + 113` conflicted with `posterType.top = 17%` of card height.
+2. Below the floating navigation capsule, the screenshot shows a sliver of the following Feed card / repeated wordmark at the bottom of the Android content viewport. The Feed card used `useWindowDimensions().height` for `pageHeight` rather than a measured FlatList viewport; the two can differ when Android letterboxes a portrait activity or reserves system bars.
+
+**Corrective change in companion review PR:** use `FlatList.onLayout` to measure its real viewport, apply the same page height to card layout, paging offsets and scroll position, and remount the list only when its measured height changes. Anchor poster headline at `insets.top + 164`, leaving a nominal 51dp band below the badge anchor; actual collision still requires an Android screenshot retest.
+
+**Still PENDING:** actual screen-capture confirmation of the fix, Explorer, Inbox, You, keyboard/Back walkthrough, comment sheet, font scaling, 7/7 regression, >=10-minute stability, EAS build provenance. Do **not** mark A1 complete from this one image.
+
 ## 2. New in A1.4
 
 - Add `apps/mobile/scripts/ux004-a14-integration-audit.cjs`: read-only, standard-library validation of theme contrast and semantic surfaces, accurate offline disclosure sizing, tab order and Create semantics, compact widths (320/360/390/430 dp), navigation preservation, keyboard/sheet ownership, no API or production access and the manual Free APK gate.
