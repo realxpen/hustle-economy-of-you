@@ -1,10 +1,10 @@
 # Hustle UX004-A1.4 — Integration QA and Visual Review
 
-**Status: PENDING post-fix Waydroid retest and physical Android acceptance.** Automated checks and one pre-fix Waydroid screenshot do not close A1.
+**Status: post-fix Waydroid acceptance 5/5 PASS (owner-reported), physical Android acceptance PENDING.** The latest Expo APK succeeded, but A1 is not signed off until phone testing.
 **Review date:** 2026-10-20
 **Theme:** UX004-ADR-001, **Hybrid — dark immersive Feed / future Live and warm cream/light utility screens**.
 **Baseline:** #146 (A1.1), #147 (A1.2), #148 (A1.3) are merged; each had green free GitHub cloud Android checks. This document proposes **A1.4 verification** for their integration, not an already tested APK.
-**No EAS build has been requested by this A1.4 work.**
+**Latest A1 test build:** Expo demo APK [189f1447-93f9-4d63-b331-f38a7125a9f9](https://expo.dev/accounts/xpen/projects/hustle/builds/189f1447-93f9-4d63-b331-f38a7125a9f9), successful Android internal distribution build, Git commit `2444ac6252cbae3280bfa873e6f0589af45534e0`. Owner installed this updated APK in Waydroid and reported five passes. Physical Android installation/testing still pending.
 
 ## 1. What the current evidence proves
 
@@ -26,7 +26,25 @@
 
 **Corrective change merged in PR #150:** use `FlatList.onLayout` to measure its real viewport, apply the same page height to card layout, paging offsets and scroll position, and remount the list only when its measured height changes. Anchor poster headline at `insets.top + 164`, leaving a nominal 51dp band below the badge anchor. PR #150's native build passed. **A new APK must be installed into Waydroid to verify either visual fix**; merging code does not update the APK already installed. A later physical-phone smoke test remains a separate gate.
 
-**Still PENDING:** post-#150 Waydroid screen-capture confirmation of both fixes; Explore, Inbox, You, keyboard/Back walkthrough, comment sheet, font scaling, 7/7 regression, >=10-minute stability; Expo build provenance; and physical Android phone acceptance. Do **not** mark A1 complete from this one Waydroid image.
+**Latest evidence:** Owner-reported post-#150 **Waydroid 5/5 PASS**, including headline overlap, Feed height, Feed navigation, Android Back, Hybrid theme. No updated screenshot independently reviewed yet; full physical Android device acceptance, exact-keyboard behavior on handset, 7/7 regression and >=10-minute stability remain pending. Do **not** mark A1 complete based solely on Waydroid results.
+
+## 1B. Updated Waydroid QA result — 2026-10-20
+
+**Environment:** Waydroid on the owner's Linux computer, updated Hustle APK from Expo build `189f1447-93f9-4d63-b331-f38a7125a9f9` (`2444ac6`, profile `demo`, Expo status **Succeeded**). This build includes merged PRs #146–#151, including the #150 visual fixes.
+
+**Owner submitted five independent PASS results:**
+
+| Waydroid check | Reported outcome |
+|---|---|
+| Demo badge no longer overlaps “MADE TO” headline | PASS |
+| Next Feed card no longer bleeds below floating navigation | PASS |
+| Feed swipes / switching Home and Explore | PASS |
+| Android Back interaction | PASS |
+| Dark Feed / cream utility Hybrid theme | PASS |
+
+**Summary: Waydroid 5/5 PASS, user-reported.** The assistant did not run or observe these gestures directly, and no post-fix screenshot has yet been independently inspected. This evidence is sufficient to move the QA process to physical Android testing, but **not** to close A1.
+
+**Physical handset required:** install the **same exact APK** on a real Android phone, verify 7/7 legacy features, layout, keyboard-first Back with comments draft, collections and offer restrictions, safe areas (gesture or 3-button mode), airplane-mode offline behavior, and >=10-minute crash-free use. Record pass/fail plus any reproduction steps; physical sign-off remains **PENDING**. No additional EAS build is required for the phone test.
 
 ## 2. New in A1.4
 
@@ -92,7 +110,7 @@ Use **AUTOMATED**, **MANUAL PENDING**, **PASS** or **FAIL**. Do not mark device 
 | Free CI checks green | latest GitHub Mobile, Foundation, Native Gradle jobs | PENDING |
 | Expo build quota approved separately | explicit owner decision, manual GitHub Action only | NOT APPROVED by this document |
 | New APK Finished | Expo build result, not GitHub workflow success | PENDING |
-| Waydroid post-fix visual retest | updated APK build ID, Feed badge/viewport screenshots | PENDING |
+| Waydroid post-fix functional retest | owner-tested updated APK, Feed badge/viewport, Feed navigation, Android Back and Hybrid theme | **PASS 5/5, owner-reported**; updated screenshot optional verification |
 | 5 physical-phone captures and 7/7 regression | phone evidence, comments keyboard/back, nav, disclosures | PENDING |
 | Stable real Android smoke | >=10min, offline/background and Back checks | PENDING |
 | UX004-A1 fully accepted | all gates above PASS, owner signs off | PENDING |
