@@ -34,7 +34,7 @@ function color(name) {
   assert.ok(m, "Missing UX004 semantic token: "+name);
   return m[1];
 }
-assert.match(spec, /Locked theme:[\s\S]*dark immersive Feed/i);
+assert.match(spec, /Hybrid — dark immersive Feed and future Live/i);
 assert.ok(contrast(color("textPrimaryLight"),color("paper"))>=4.5);
 assert.ok(contrast(color("textSecondaryLight"),color("paper"))>=4.5);
 assert.ok(contrast(color("textPrimaryDark"),color("ink"))>=4.5);
