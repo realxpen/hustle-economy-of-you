@@ -20,8 +20,10 @@ assert.match(navTypes, /ROOT_TABS = \["Home", "Explore", "Inbox", "You"\]/);
 assert.match(navTypes, /RootTab \| "Create"/);
 assert.doesNotMatch(navTypes, /"Create"\s*\|\s*"Inbox"/);
 assert.ok(tabBar.indexOf('key: "Home"') < tabBar.indexOf('key: "Explore"'));
-assert.ok(tabBar.indexOf('key: "Explore"') < tabBar.indexOf('name="add-circle-outline"'));
-assert.ok(tabBar.indexOf('name="add-circle-outline"') < tabBar.indexOf('key: "Inbox"'));
+// LEFT and RIGHT arrays are defined before the JSX; validate both their
+// internal order AND the actual render sequence, not source declaration order.
+assert.ok(tabBar.indexOf('{LEFT.map(renderTab)}') < tabBar.indexOf('name="add-circle-outline"'));
+assert.ok(tabBar.indexOf('name="add-circle-outline"') < tabBar.indexOf('{RIGHT.map(renderTab)}'));
 assert.ok(tabBar.indexOf('key: "Inbox"') < tabBar.indexOf('key: "You"'));
 assert.match(tabBar, /accessibilityRole="tab"/);
 assert.match(tabBar, /accessibilityState=\{\{ selected \}\}/);
