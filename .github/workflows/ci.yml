@@ -10,7 +10,9 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 cannot install Chromium on runner Ubuntu 26.04.
+    # Pin supported LTS image for deterministic no-cost visual smoke tests.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
