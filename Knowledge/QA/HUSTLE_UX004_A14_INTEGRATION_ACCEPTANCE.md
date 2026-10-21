@@ -1,32 +1,32 @@
 # Hustle UX004-A1.4 — Integration QA and Visual Review
 
-**Status: post-fix Waydroid 5/5 PASS; physical Android 6/7 PASS, 0 FAIL, 1 NOT TESTED (owner-reported). UX004-A1 SIGN-OFF PENDING the offline-safety gate.** The latest Expo APK succeeded and was installed on both environments.
-**Review date:** 2026-10-20
+**FINAL UX004-A1 STATUS (2026-10-21): ACCEPTED for the offline demo on owner-reported functional QA.** Waydroid **5/5 PASS**; physical Android **7/7 PASS, 0 FAIL, 0 NOT TESTED**, including the final offline-safety gate. This is not an independently observed multi-device certification or a live-marketplace production release.
+**QA window:** 2026-10-20–2026-10-21; **owner sign-off recorded:** 2026-10-21
 **Theme:** UX004-ADR-001, **Hybrid — dark immersive Feed / future Live and warm cream/light utility screens**.
 **Baseline:** #146 (A1.1), #147 (A1.2), #148 (A1.3) are merged; each had green free GitHub cloud Android checks. This document proposes **A1.4 verification** for their integration, not an already tested APK.
-**Latest A1 test build:** Expo demo APK [189f1447-93f9-4d63-b331-f38a7125a9f9](https://expo.dev/accounts/xpen/projects/hustle/builds/189f1447-93f9-4d63-b331-f38a7125a9f9), successful Android internal distribution build, Git commit `2444ac6252cbae3280bfa873e6f0589af45534e0`. Owner installed this updated APK in Waydroid and reported five passes. Physical Android installation/testing still pending.
+**Latest A1 test build:** Expo demo APK [189f1447-93f9-4d63-b331-f38a7125a9f9](https://expo.dev/accounts/xpen/projects/hustle/builds/189f1447-93f9-4d63-b331-f38a7125a9f9), successful Android internal distribution build, Git commit `2444ac6252cbae3280bfa873e6f0589af45534e0`. Owner installed this updated APK in Waydroid and on a physical Android phone, reported **5/5** and **7/7** functional passes respectively, and confirmed the final offline-safety retest **PASS**.
 
 ## 1. What the current evidence proves
 
 - **Code-level integration:** Offline demo imports the approved Hybrid color/spacing/type layer and uses four root tabs plus a distinct Create action; preserves local fake creators, likes, saves, comments, and search/filter.
-- **Cloud compiled:** A1.3 main integration inherits the successful PR #148 native Gradle build and Mobile/Foundation CI. A1.4 must run exact-head checks again on its new PR.
+- **Cloud compiled:** Reviewed A1.1–A1.4 PR checks passed, including the #150 native Gradle diagnostic. The owner-approved demo workflow [run #39428884874](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39428884874) queued the final approved APK at exact commit `2444ac6`; Expo separately reported **Succeeded**.
 - **Actual device evidence:** The owner previously installed and successfully launched the pre-UX004 offline Android APK (Expo build `90abbf94-0b2c-4f2d-92d3-b6d12050d13c`) and marked the original seven interactive smoke tests complete. The phone photo is a baseline, **not a screenshot of A1.1–A1.4**.
-- **Visual review limitation:** One screenshot was captured from **Waydroid running on the owner's computer**, not a physical handset. It documents two layout defects in the pre-#150 APK; it does not verify a post-fix APK, comments/keyboard, hardware Back, touch performance, or phone stability. Mark those tests **PENDING**, not green.
-- **Release limitation:** A GitHub job that queues `eas build --no-wait` is *not* a completed APK; inspect the actual Expo EAS status if the owner later approves a build.
+- **Visual review provenance:** The pre-#150 defect screenshot was captured in **Waydroid on the owner's computer**, not a physical handset. The owner later reported that the same two layout defects were resolved on the new APK in Waydroid and on physical Android. No new screenshots, device metadata, system logs or independent gesture recordings have been submitted.
+- **Release evidence:** A GitHub job that queues `eas build --no-wait` is not itself a finished APK. Here Expo [build 189f1447](https://expo.dev/accounts/xpen/projects/hustle/builds/189f1447-93f9-4d63-b331-f38a7125a9f9) separately reported **Succeeded** (SDK 54, Android internal-distribution APK, `demo` profile); owner reported installing and testing it in both environments.
 
 ## 1A. Waydroid screenshot review (owner image, 2026-10-20; environment confirmed)
 
 **Evidence received:** one **Waydroid Android container screenshot** from the owner's Linux computer—not an emulator screenshot from Android Studio and **not a physical-phone screenshot**—of the dark For You Feed, with sample creator Mira Styles, booking offer, right action rail and lime-active five-item capsule. Waydroid displayed the portrait activity within a wider landscape desktop environment; black side margins are expected letterboxing and are **not** a validated app styling defect. This is not proof that ordinary portrait phone layouts fail.
 
-**Visible and provisionally acceptable:** cream/lime actions on the charcoal capsule are legible; the creator, offer and illustrated-content disclosure are visible. The updated design foundation is appearing, but full A1 device QA is still pending.
+**Visible and provisionally acceptable:** cream/lime actions on the charcoal capsule are legible; the creator, offer and illustrated-content disclosure are visible. The updated design foundation is apparent in the pre-fix screenshot; later owner-reported post-fix Waydroid 5/5 and physical Android 7/7 results supersede this initial observation.
 
 **Visible defects requiring a separate reviewed fix:**
 1. The floating “INTERACTIVE DEMO · FICTIONAL CONTENT” chip covers the top of the “MADE TO” poster headline on the screenshot. Its placement at `insets.top + 113` conflicted with `posterType.top = 17%` of card height.
 2. Below the floating navigation capsule, the screenshot shows a sliver of the following Feed card / repeated wordmark at the bottom of the Android content viewport. The Feed card used `useWindowDimensions().height` for `pageHeight` rather than a measured FlatList viewport; the two can differ when Android letterboxes a portrait activity or reserves system bars.
 
-**Corrective change merged in PR #150:** use `FlatList.onLayout` to measure its real viewport, apply the same page height to card layout, paging offsets and scroll position, and remount the list only when its measured height changes. Anchor poster headline at `insets.top + 164`, leaving a nominal 51dp band below the badge anchor. PR #150's native build passed. **A new APK must be installed into Waydroid to verify either visual fix**; merging code does not update the APK already installed. A later physical-phone smoke test remains a separate gate.
+**Corrective change merged in PR #150:** use `FlatList.onLayout` to measure its real viewport, apply the same page height to card layout, paging offsets and scroll position, and remount the list only when its measured height changes. Anchor poster headline at `insets.top + 164`, leaving a nominal 51dp band below the badge anchor. PR #150's native build passed. **The updated APK was subsequently installed in Waydroid and on the owner's physical phone**, and the owner reported both fixes passing. Merging code alone would not have updated the prior installation.
 
-**Latest evidence:** Owner-reported post-#150 **Waydroid 5/5 PASS**, including headline overlap, Feed height, Feed navigation, Android Back, Hybrid theme. No updated screenshot independently reviewed yet; full physical Android device acceptance, exact-keyboard behavior on handset, 7/7 regression and >=10-minute stability remain pending. Do **not** mark A1 complete based solely on Waydroid results.
+**Final evidence:** Owner-reported post-#150 **Waydroid 5/5 PASS** and **physical Android 7/7 PASS**, including keyboard/Back, interaction state, offline-safety disclosures and stability/screen-fit. No updated post-fix screenshot, exact phone model/Android version or independent runtime log was submitted. Acceptance is based on owner QA, not Waydroid alone.
 
 ## 1B. Updated Waydroid QA result — 2026-10-20
 
@@ -42,9 +42,9 @@
 | Android Back interaction | PASS |
 | Dark Feed / cream utility Hybrid theme | PASS |
 
-**Summary: Waydroid 5/5 PASS, user-reported.** The assistant did not run or observe these gestures directly, and no post-fix screenshot has yet been independently inspected. This evidence is sufficient to move the QA process to physical Android testing, but **not** to close A1.
+**Summary: Waydroid 5/5 PASS, user-reported.** The assistant did not run or observe these gestures directly, and no post-fix screenshot has yet been independently inspected. This was the Waydroid-only intermediate gate. Physical Android QA subsequently passed 7/7 and the owner accepted the offline-demo milestone.
 
-**Physical handset required:** install the **same exact APK** on a real Android phone, verify 7/7 legacy features, layout, keyboard-first Back with comments draft, collections and offer restrictions, safe areas (gesture or 3-button mode), airplane-mode offline behavior, and >=10-minute crash-free use. Record pass/fail plus any reproduction steps; physical sign-off remains **PENDING**. No additional EAS build is required for the phone test.
+**Physical handset follow-up (completed, owner-reported):** the owner installed this same APK and marked the seven grouped functional checks PASS, including the final airplane-mode/LIVE/Create/booking/product safety test on 2026-10-21. Exact phone model/OS, screenshots and raw 10-minute timing/log evidence were not supplied. No additional EAS build is needed for UX004-A1.
 
 ## 1C. Physical Android QA results — owner submission
 
@@ -57,12 +57,12 @@
 | Swiping and navigation | PASS | User reports Feed and tab navigation working |
 | Social interactions | PASS | User reports offline like/comment/save/etc. interaction working |
 | Android Back and keyboard | PASS | User reports comments keyboard and Back flow working |
-| Offline safety | **NOT TESTED** | **Required DEMO-01 gate remains open** |
+| Offline safety | **PASS (final owner submission 2026-10-21)** | Airplane mode, disabled LIVE/Create, preview-only booking, and disabled product checkout all reported as expected |
 | Stability and screen fit | PASS | Owner reports stability/layout working; exact session duration, airplane-mode check, screenshots and logs not individually supplied |
 
-**Result: 6 PASS, 0 FAIL, 1 NOT TESTED (85.7% checklist completion).** No defect to reproduce or debug was reported from this round. **Do not mark all A1 criteria accepted:** manual validation of the disconnected-demo/disabled-action safety promise is incomplete, and the broader screenshot, device details and exact 10-minute evidence requirements are not independently verified.
+**Final result: 7 PASS, 0 FAIL, 0 NOT TESTED (100% of the owner-reported seven-item functional checklist).** The first submission was 6/7 with offline safety untested; the owner explicitly completed the targeted safety retest with **PASS** on 2026-10-21. No functional defect was reported. Raw screenshots, device/OS metadata and independently timed stability evidence remain uncollected; do not describe them as verified.
 
-### Required targeted safety retest — no code change or new APK needed
+### Targeted safety retest — completed PASS (owner report, 2026-10-21)
 
 1. With the **same APK installed on the phone**, turn on **airplane mode**. Open Home and Explore; the illustrative Feed and profiles should still work without network access.
 2. Tap **LIVE** in the Feed header. Expected: `Live demo` alert explaining that livestreaming is not enabled; no camera/microphone livestream starts.
@@ -71,7 +71,17 @@
 5. Tap a **product** offer → **View sample product options**. Expected: product-preview alert explaining shopping/checkout is disabled; no purchase.
 6. Optionally reopen the app with the network still off and check that the interactions and visible fictional-content/no-transaction disclosures remain clear. Report **PASS** if all work as stated; otherwise **FAIL** and give which action and what appeared.
 
-**Gate for UX004-A1:** The owner must report this targeted safety check as PASS. Record actual test results before considering full A1 sign-off; the next product milestone is A2, not activation of a real marketplace.
+**Result:** The owner reported **PASS** for this exact five-step safety checklist on 2026-10-21, closing DEMO-01 for the offline demonstration. This is user-observed behavior, not proof of a network-packet audit. The next milestone is UX004-A2, not activation of a real marketplace.
+
+## 1D. Final A1 acceptance decision — 2026-10-21
+
+- **Scope accepted:** UX004-A1 Hybrid UI and demo navigation on the **fictional, offline Android APK** only. A1.1 semantic theme, A1.2 floating four-tab navigation + Create action, A1.3 Android Back/keyboard and safe-area handling, A1.4 integration/disclosure/readability checks and PR #150 viewport/headline corrections.
+- **Owner QA results:** Waydroid on Linux **5/5 PASS** (reported 2026-10-20); physical Android **6/7 PASS, one untested** initially, followed by explicit **offline safety PASS** on 2026-10-21: final **7/7 PASS, 0 FAIL**. No observed defect remained open in these grouped tests.
+- **Exact accepted artifact:** [Expo Android demo APK `189f1447-93f9-4d63-b331-f38a7125a9f9`](https://expo.dev/accounts/xpen/projects/hustle/builds/189f1447-93f9-4d63-b331-f38a7125a9f9), commit `2444ac6`, `demo` profile, Android internal distribution; status **Succeeded**.
+- **Code/CI evidence:** PRs #146–#151 merged; Mobile/Foundation cloud validations green, #150 native Android Gradle green. Documentation PR #152 records final user acceptance; **do not merge it automatically** without separate owner action.
+- **Known evidence limits:** phone brand/OS, five planned physical screenshots, a fresh post-fix Waydroid screenshot and raw 10-minute logs/timing have **not** been provided. The owner marked the stability/screen-fit test PASS, but no independent instrumentation was run. These are **follow-up documentation/device-coverage opportunities**, not unreported failures.
+- **Out-of-scope:** production launch, real user accounts/identity, real video or LIVE, publishing, messaging, Supabase/backend integration, escrow, wallets, checkout, bookings or payment authorization. These remain disabled or unconnected in the offline demo. **Do not interpret A1 acceptance as production security certification.**
+- **Decision:** **ACCEPT UX004-A1 as complete for the offline interactive prototype based on the owner's reported acceptance checks.** Begin planning UX004-A2 Feed and Social Interaction Experience Upgrade as a separate reviewed change. No build or production rollout is authorized by this decision.
 
 ## 2. New in A1.4
 
@@ -133,15 +143,15 @@ Use **AUTOMATED**, **MANUAL PENDING**, **PASS** or **FAIL**. Do not mark device 
 
 | Gate | Evidence | Reviewer / outcome |
 |---|---|---|
-| A1.4 code PR reviewed | GitHub diff, no restricted files touched | Owner — PENDING |
-| Free CI checks green | latest GitHub Mobile, Foundation, Native Gradle jobs | PENDING |
-| Expo build quota approved separately | explicit owner decision, manual GitHub Action only | NOT APPROVED by this document |
-| New APK Finished | Expo build result, not GitHub workflow success | PENDING |
+| A1.4 and Feed correction PRs | Reviewed/merged PRs #149 and #150; QA correction #151 merged | COMPLETE |
+| Free CI checks green | A1.4 Mobile/Foundation passes and PR #150 Mobile/Foundation/Native Gradle passes | PASS |
+| Expo build quota approved separately | owner explicitly approved one manual demo build; GitHub run #39428884874, commit `2444ac6` | APPROVED AND QUEUED ONCE |
+| New APK Finished | [Expo 189f1447](https://expo.dev/accounts/xpen/projects/hustle/builds/189f1447-93f9-4d63-b331-f38a7125a9f9), succeeded | PASS |
 | Waydroid post-fix functional retest | owner-tested updated APK, Feed badge/viewport, Feed navigation, Android Back and Hybrid theme | **PASS 5/5, owner-reported**; updated screenshot optional verification |
-| Physical-phone functional checklist | Owner report for exact APK: app launches; Feed layout; navigation; social interactions; Android Back/keyboard; stability/screen fit | **PASS 6/7, FAIL 0, NOT TESTED 1 (offline safety)** |
-| Stable real Android smoke | >=10min, offline/background and Back checks | PENDING |
-| UX004-A1 fully accepted | owner-reported physical QA plus DEMO-01 safety pass and sign-off | **PENDING: offline safety NOT TESTED** |
+| Physical-phone functional checklist | Owner report on exact APK: launch; Feed layout; navigation; social interactions; Back/keyboard; offline safety; stability/screen fit | **PASS 7/7, FAIL 0, NOT TESTED 0** |
+| Stable real Android smoke | Owner marked the combined stability/screen-fit and Back checks PASS; raw timing, logs and phone metadata not supplied | **OWNER-REPORTED PASS**; detailed instrumentation not verified |
+| UX004-A1 offline-demo milestone | Waydroid 5/5 + phone 7/7 + final DEMO-01 pass, owner acceptance | **ACCEPTED 2026-10-21 (owner-reported QA); non-production only** |
 
-**Next milestone after sign-off:** UX004-A2 Feed and Social Interaction Experience Upgrade. Do not begin rollout or claim that a live marketplace is activated on the basis of this offline UI.
+**Next milestone:** UX004-A2 Feed and Social Interaction Experience Upgrade. UX004-A1 is accepted only as an **offline demonstration**; do not start a connected-marketplace rollout or claim real transactions are supported.
 
 **Safety:** No production database/credentials, new dependencies, paid services, new staging, real bookings, payments, escrow, deployment or automatic EAS builds.
