@@ -98,6 +98,7 @@ function Experience() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [exploreSavedOnly, setExploreSavedOnly] = useState(false);
+  const [exploreSavedCollection, setExploreSavedCollection] = useState<Collection | null>(null);
   const [selectedTime, setSelectedTime] = useState("11:00 AM");
   const [savedOnly, setSavedOnly] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
@@ -150,13 +151,15 @@ function Experience() {
   // Saved-only mode intersects the existing category/text search; both use
   // the same in-memory per-post collections as Feed and the You tab.
   const visibleExplore = useMemo(() => exploreSavedOnly
-    ? selectSavedPosts(explore, saves, null) : explore, [explore, saves, exploreSavedOnly]);
+    ? selectSavedPosts(explore, saves, exploreSavedCollection) : explore,
+    [explore, saves, exploreSavedOnly, exploreSavedCollection]);
   const exploreSavedCount = useMemo(() => selectSavedPosts(POSTS, saves, null).length, [saves]);
   const hasExploreFilters = Boolean(search.trim()) || category !== "All" || exploreSavedOnly;
   function resetExploreFilters() {
     setSearch("");
     setCategory("All");
     setExploreSavedOnly(false);
+    setExploreSavedCollection(null);
   }
 
   function open(type: Sheet, post: Post) {
@@ -364,6 +367,23 @@ function Experience() {
         <Text style={styles.exploreSavedFilterText}>Saved work only</Text>
         <Text style={styles.exploreSavedFilterCount}>{exploreSavedCount} saved</Text>
       </Pressable>
+      {exploreSavedOnly && <ScrollView horizontal style={styles.exploreCollectionStrip}
+        showsHorizontalScrollIndicator={false}
+        accessibilityLabel="Filter locally saved work by collection">
+        {([null, "Inspiration", "Outfit ideas"] as const).map(collection => {
+          const active = exploreSavedCollection === collection;
+          const count = selectSavedPosts(POSTS, saves, collection).length;
+          const label = collection ?? "All saved";
+          return <Pressable key={label} accessibilityRole="tab" accessibilityState={{ selected: active }}
+            accessibilityLabel={label + " collection, " + count + " locally saved sample posts"}
+            onPress={() => setExploreSavedCollection(collection)}
+            style={[styles.exploreCollectionTab, active && styles.exploreCollectionTabActive]}>
+            <Text style={[styles.exploreCollectionTabText, active && styles.exploreCollectionTabTextActive]}>
+              {label} · {count}
+            </Text>
+          </Pressable>;
+        })}
+      </ScrollView>}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomReserve }}>
         <Text style={styles.sectionHeading}>Featured Hustlers <Text style={styles.sampleLabel}>· Demo</Text></Text>
         <Text style={styles.exploreResultsCount} accessibilityLiveRegion="polite">
@@ -371,7 +391,10 @@ function Experience() {
         </Text>
         {visibleExplore.length === 0 ? <View style={styles.exploreEmpty}>
           <Text style={styles.mutedText}>
-            {exploreSavedOnly ? "No locally saved sample work matches these filters. Save work in Explore or clear filters."
+            {exploreSavedOnly
+              ? exploreSavedCollection
+                ? "No locally saved sample work in " + exploreSavedCollection + " matches these filters. Try All saved or clear filters."
+                : "No locally saved sample work matches these filters. Save work in Explore or clear filters."
               : "No fictional work matches your search and skill filter."}
           </Text>
           {hasExploreFilters && <Pressable accessibilityRole="button"
@@ -623,6 +646,12 @@ const styles = StyleSheet.create({
   exploreSavedFilterActive: { backgroundColor: "#DCECCF" },
   exploreSavedFilterText: { flex: 1, color: C.ink, fontSize: 13, fontWeight: "800" },
   exploreSavedFilterCount: { color: C.muted, fontSize: 12, fontWeight: "700" },
+  exploreCollectionStrip: { flexGrow: 0, marginTop: 8 },
+  exploreCollectionTab: { minHeight: layout.minTapTarget, justifyContent: "center",
+    backgroundColor: C.white, borderRadius: 14, paddingHorizontal: 13, marginRight: 9 },
+  exploreCollectionTabActive: { backgroundColor: C.ink },
+  exploreCollectionTabText: { color: C.ink, fontSize: 12, fontWeight: "800" },
+  exploreCollectionTabTextActive: { color: C.white },
   exploreEmpty: { gap: 11, paddingBottom: 20 },
   exploreResetTarget: { minHeight: layout.minTapTarget, backgroundColor: C.white,
     borderRadius: 14, alignItems: "center", justifyContent: "center" },
