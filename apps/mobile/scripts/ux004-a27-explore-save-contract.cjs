@@ -66,7 +66,7 @@ check("Explore save and unsave states feed the SAME Inspiration/Outfit ideas sel
   assert.deepEqual(ids(selectSavedPosts(posts,saves,null)),[first]);
 });
 check("Explore actions are separate siblings and the save button opens the existing sheet",()=>{
-  const start=demo.indexOf("explore.map(post => <View key={post.id} style={styles.exploreCard}>");
+  const start=demo.indexOf("visibleExplore.map(post => <View key={post.id} style={styles.exploreCard}>");
   const end=demo.indexOf("</View>)}",start);
   assert.ok(start>0&&end>start);
   const card=demo.slice(start,end);
