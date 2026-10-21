@@ -119,7 +119,7 @@ WITH entries AS (
     ORDER BY r.rolname) FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid WHERE m.member=pg_roles.oid))
  FROM pg_roles WHERE rolname='hustle_api'
  UNION ALL
- SELECT 'default_acl:public:postgres:'||d.defaclobjtype,
+ SELECT 'default_acl:public:postgres:'||d.defaclobjtype::text,
   (SELECT jsonb_agg(jsonb_build_array(CASE WHEN a.grantee=0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END,
    pg_get_userbyid(a.grantor),a.privilege_type,a.is_grantable)
    ORDER BY a.grantee::regrole::text,a.grantor::regrole::text,a.privilege_type,a.is_grantable)
