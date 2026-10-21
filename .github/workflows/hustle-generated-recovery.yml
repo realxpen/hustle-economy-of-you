@@ -6,6 +6,7 @@ on:
       - '.github/workflows/hustle-generated-recovery.yml'
       - '.github/workflows/hustle-native-backup-access.yml'
       - '.github/workflows/hustle-native-migration-audit.yml'
+      - '.github/workflows/hustle-native-migration-rehearsal.yml'
       - 'scripts/recovery/native_contract/**'
       - 'apps/api/prisma/**'
       - 'Knowledge/QA/HUSTLE_AUTOMATED_RECOVERY_CHECKS.md'
@@ -15,6 +16,7 @@ on:
       - '.github/workflows/hustle-generated-recovery.yml'
       - '.github/workflows/hustle-native-backup-access.yml'
       - '.github/workflows/hustle-native-migration-audit.yml'
+      - '.github/workflows/hustle-native-migration-rehearsal.yml'
       - 'scripts/recovery/native_contract/**'
       - 'apps/api/prisma/**'
   workflow_dispatch:
@@ -48,7 +50,7 @@ jobs:
           PYTHONWARNINGS: error::ResourceWarning
         run: |
           python -m pip install --disable-pip-version-check --only-binary=:all: --require-hashes -r requirements.lock
-          python -m unittest -v test_restore.py test_access.py test_cloud_contract.py test_private_cloud.py test_migration_audit.py
+          python -m unittest -v test_restore.py test_access.py test_cloud_contract.py test_private_cloud.py test_migration_audit.py test_pending_migrations.py
 
   generated-native-api:
     name: Generated PostgreSQL 17 restore, login and private-file permissions
@@ -70,6 +72,7 @@ jobs:
           python scripts/recovery/native_contract/cloud_contract.py
           python scripts/recovery/native_contract/private_fixture.py
           python scripts/recovery/native_contract/migration_audit.py
+          python scripts/recovery/native_contract/pending_migrations.py
       - name: Record the tested scope
         if: always()
         env:
