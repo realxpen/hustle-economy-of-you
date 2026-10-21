@@ -52,6 +52,8 @@ jobs:
         run: node apps/mobile/scripts/ux004-a13-android-back-contract.cjs
       - name: Audit UX004-A1.4 cumulative integration readiness and device review gates
         run: node apps/mobile/scripts/ux004-a14-integration-audit.cjs
+      - name: Validate UX004-A2.1 offline Feed gestures and caption controls
+        run: node apps/mobile/scripts/ux004-a21-feed-contract.cjs
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
       - name: Bundle offline Android demo with Metro (no EAS build credits)

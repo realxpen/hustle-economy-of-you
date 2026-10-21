@@ -142,16 +142,17 @@ verify("Cloud-only validation and explicit Expo build approval",()=>{
  assert.ok(apk.indexOf("ux004-a14-integration-audit.cjs")<apk.indexOf("eas build --platform android"),"Gate runs after paid/quota-consuming build");
  assert.doesNotMatch(apk,/\n\s+(push|pull_request):|--auto-submit|eas submit/);
 });
-verify("Manual physical QA explicitly pending",()=>{
- assert.match(qa,/Status:.*PENDING/i);
- assert.match(qa,/physical Android/i);
- assert.match(qa,/Screenshots.*pending/i);
- assert.match(qa,/No EAS build/i);
+verify("A1 owner acceptance preserved; A2 requires fresh phone QA",()=>{
+ assert.match(qa,/FINAL UX004-A1 STATUS .*ACCEPTED for the offline demo/i);
+ assert.match(qa,/Waydroid.*5\/5 PASS/i);
+ assert.match(qa,/physical Android.*7\/7 PASS/i);
+ assert.match(qa,/No new screenshots/i);
+ assert.match(qa,/No additional EAS build/i);
 });
 const result=["### UX004-A1.4 — Automated integration readiness",
  ...results.map(s=>"- ✅ "+s),
  "",
  "**Not certified here:** visual screenshots, actual Android Back/keyboard behavior, tap/scroll feel, font scaling, device stability, or an installed APK.",
- "**Physical review status:** PENDING. This workflow never queues an EAS build."].join("\n");
+ "**A1:** owner-reported Waydroid 5/5 and phone 7/7 accepted for the old APK. **A2 changes have not been tested on hardware.** This workflow never queues EAS."].join("\n");
 console.log(result);
 if(process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,result+"\n");
