@@ -102,7 +102,8 @@ check("Removing the final collection membership immediately hides only the remov
 check("Saved-only is an independent checkbox and combines with search/category in the UI",()=>{
   assert.match(demo, /const \[exploreSavedOnly, setExploreSavedOnly\] = useState\(false\)/);
   assert.match(demo, /const explore = useMemo\(\(\) => filterDemoExplorePosts\(POSTS, search, category\), \[category, search\]\)/);
-  assert.match(demo, /const visibleExplore = useMemo\(\(\) => exploreSavedOnly\s*\?\s*selectSavedPosts\(explore, saves, null\) : explore, \[explore, saves, exploreSavedOnly\]\)/);
+  assert.match(demo, /const visibleExplore = useMemo\(\(\) => exploreSavedOnly\s*\?\s*selectSavedPosts\(explore, saves, exploreSavedCollection\) : explore,/);
+  assert.match(demo, /\[explore, saves, exploreSavedOnly, exploreSavedCollection\]/);
   assert.match(demo, /const exploreSavedCount = useMemo\(\(\) => selectSavedPosts\(POSTS, saves, null\)\.length, \[saves\]\)/);
   assert.match(demo, /accessibilityRole="checkbox" accessibilityState=\{\{ checked: exploreSavedOnly \}\}/);
   assert.match(demo, /accessibilityLabel="Show only locally saved sample work"/);
