@@ -39,7 +39,17 @@ SKIP = '20260917130500_phase16b_story_rls_hardening'
 BOOTSTRAP = """
 CREATE ROLE postgres SUPERUSER LOGIN;
 CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;
+CREATE ROLE service_role NOLOGIN BYPASSRLS;
 SET ROLE postgres;
+-- Reviewed source pg_default_acl on 2026-10-21. These grants reproduce the
+-- platform baseline in the GENERATED reference only. Actual grants are still
+-- compared exactly; no role/ACL is filtered or normalized away.
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+ GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+ GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+ GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
 CREATE SCHEMA auth; CREATE SCHEMA storage;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT NULL::uuid $$;
 CREATE FUNCTION storage.foldername(path text) RETURNS text[] LANGUAGE sql IMMUTABLE
@@ -108,6 +118,15 @@ WITH entries AS (
   'memberships',(SELECT jsonb_agg(jsonb_build_array(r.rolname,m.admin_option,m.inherit_option,m.set_option)
     ORDER BY r.rolname) FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid WHERE m.member=pg_roles.oid))
  FROM pg_roles WHERE rolname='hustle_api'
+ UNION ALL
+ SELECT 'default_acl:public:postgres:'||d.defaclobjtype,
+  (SELECT jsonb_agg(jsonb_build_array(CASE WHEN a.grantee=0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END,
+   pg_get_userbyid(a.grantor),a.privilege_type,a.is_grantable)
+   ORDER BY a.grantee::regrole::text,a.grantor::regrole::text,a.privilege_type,a.is_grantable)
+   FROM aclexplode(d.defaclacl) a)
+ FROM pg_default_acl d JOIN pg_namespace n ON n.oid=d.defaclnamespace
+ WHERE n.nspname='public' AND pg_get_userbyid(d.defaclrole)='postgres'
+  AND d.defaclobjtype IN ('r','S','f')
 )
 SELECT coalesce(jsonb_object_agg(key,value),'{}'::jsonb) FROM entries;
 """
@@ -149,8 +168,11 @@ def reference_contract(database):
         core.require(bool(scopes[name]), 'AUDIT_SCOPE', 'A historical migration produced no auditable schema effect.')
         before = after
     # Security-role attributes and memberships are prerequisites for EVERY scope.
+    core.require(all('default_acl:public:postgres:' + kind in before for kind in ('r','S','f')),
+                 'AUDIT_BASELINE', 'The generated platform default privilege baseline was incomplete.')
     for keys in scopes.values():
         keys.append('role:hustle_api')
+        keys.extend('default_acl:public:postgres:' + kind for kind in ('r','S','f'))
     return before, scopes, fingerprints
 
 
@@ -159,8 +181,13 @@ def compare(expected, actual, scopes):
     for name in HISTORICAL:
         keys = scopes[name]
         differences = [k for k in keys if (k in expected) != (k in actual) or expected.get(k) != actual.get(k)]
+        # Only fixed catalog FIELD names from the generated reference are
+        # published. No differing values or actual-only private names escape.
+        fields = {k: [field for field in sorted(expected[k]) if expected[k].get(field) != actual.get(k, {}).get(field)]
+                  for k in differences if isinstance(expected.get(k), dict) and isinstance(actual.get(k, {}), dict)}
         results.append({'migration': name, 'objects_checked': len(keys),
-                        'schema_contract_matched': not differences, 'differing_objects': differences})
+                        'schema_contract_matched': not differences, 'differing_objects': differences,
+                        'differing_fields': fields})
     return results
 
 
@@ -177,11 +204,13 @@ def generated_contract():
         perturbations = (
             'ALTER TABLE "AgentApplication" ADD COLUMN unexpected_contract_column text;',
             'DROP INDEX "AgentApplication_status_idx";',
-            'GRANT SELECT ON "AgentApplication" TO anon;',
+            'GRANT SELECT ON "AgentAssistedRegistration" TO anon;',
             'ALTER TABLE "AgentApplication" DISABLE ROW LEVEL SECURITY;',
             "UPDATE storage.buckets SET public=true WHERE id='agent-proofs';",
             'ALTER POLICY agent_proofs_select_own ON storage.objects USING (true);',
             'ALTER ROLE hustle_api BYPASSRLS;',
+            'REVOKE ALL ON "AgentApplication" FROM service_role;',
+            'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM service_role;',
         )
         for sql in perturbations:
             altered = json.loads(access.private_sql(database, 'BEGIN;\n' + sql + '\n' + SNAPSHOT + '\nROLLBACK;'))
@@ -208,7 +237,7 @@ if __name__ == '__main__':
         cloud.preflight()
         cloud.assert_clean()
         generated_contract()
-        print('GENERATED MIGRATION AUDIT CONTRACT PASSED: nine schema scopes, seven drift detections, five later SQL migrations and access assertions.')
+        print('GENERATED MIGRATION AUDIT CONTRACT PASSED: nine schema scopes, nine drift detections, five later SQL migrations and access assertions.')
         print('Generated data only. No actual backup equivalence or production change is claimed.')
     except core.RestoreError as error:
         print('[' + error.code + '] ' + error.message)

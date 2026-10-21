@@ -2,6 +2,14 @@
 
 Date: 2026-10-21. Owner approved continuing engineering without terminal work.
 
+## Actual first comparison and reference correction
+
+[Audit 39675092400](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39675092400) completed on `c192295bb9157d72c29ae8377a3073bf3371f69b`; all nine historical groups reported differences, across 15 relation definitions. Cleanup and unchanged ledgers passed. Verified artifact ZIP SHA-256 `0b1adeb8aa0e490c1fc1ea522261cc11038203454b93699b965e67a1d786f49d`; verified JSON SHA-256 `c914a21dec5f3fd3f391dffcc611088df58baeb8e95e36f358be0b5673bc5c98`. This was a completed diagnostic, not equivalent schema or authorization to stamp history.
+
+Read-only metadata inspection identified a missing managed baseline in the independent reference: existing Supabase public tables inherit grants to `anon`, `authenticated` and `service_role`. The source `postgres` default privileges for public tables/sequences/functions were inspected on October 21. The reference now explicitly reproduces those reviewed defaults, including the owner, then executes the original SQL's grants/revokes. It also compares those three default ACL definitions in every migration scope; no role or grant is ignored. Field names for mismatched catalog properties are reported without private values, making remaining differences actionable. Generated mutation checks include removal of service-role grants and changes to the default ACL itself.
+
+This change affects only the generated reference and diagnostic output. It does not recommend retaining broad browser grants, certify runtime access, alter production or change the saved backup. The source's RLS and historical SQL remain subject to exact comparison and later security review. Supabase's current [API security guide](https://supabase.com/docs/guides/api/securing-your-api) documents automatic grants on existing projects and the transition toward explicit grants. The metadata read establishes this project's actual baseline; it does not assume every Supabase project has the same defaults.
+
 ## Completed private-backup acceptance
 
 [Run 39650103698 attempt 3](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39650103698/attempts/3) **PASSED** on `d7aaf9a0ea9e65263e4c30268b480d7785c842b6`. Both jobs succeeded. Aggregate artifact `12375412558` was downloaded and ZIP SHA-256 independently verified: `e665a1ee697f45a97f16bad176e438b683bcb19af53359ff4371604954dd216c`. JSON report SHA-256: `11dd47b5f900f6b1fac932033f3a4a73ca8032fe60c53e82152a271dffe9bc89`.
