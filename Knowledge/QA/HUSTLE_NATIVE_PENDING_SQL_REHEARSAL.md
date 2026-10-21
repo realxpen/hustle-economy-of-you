@@ -1,6 +1,18 @@
 # Five pending SQL files on a disposable native restore
 
-Date: 2026-10-21. Preparation only until the actual protected run is inspected.
+Date: 2026-10-21. **Actual saved-backup SQL rehearsal passed.**
+
+## Verified actual result
+
+[Run 39681658711](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39681658711) passed on `ab9f8850793dd251ef33074b908a93b7809f140f` after the ownership correction in PR #165. Artifact `12384941585` was downloaded independently: ZIP SHA-256 `734753a4dbf2b8246cfb155fd6d4c2bcd32e28572e57b6909b40ef08913461fa`; JSON SHA-256 `08ef117f516b26d7df55495a94b5857a145767fc123989b579bc3a87e967568c`. Report time: `2026-10-21T21:50:57Z`.
+
+- All nine historical schema groups matched before the pending SQL.
+- All five pinned SQL files applied in one transaction; all 11 affected schema objects matched the independently generated reference.
+- Every one of 94 original application/Auth/Storage/history tables retained its original projected row count and SHA-256 receipt. Both migration ledgers and original Storage catalog stayed unchanged.
+- Existing Service/Booking new defaults, the active-refund unique index, casework/FlowTime grants/RLS, browser denial and API visibility for generated financial/receipt probes passed.
+- The temporary containers and downloaded encrypted copies were removed before publishing the report.
+
+All 94 unit tests and six final-head CI workflows passed before merge. The workflow did not access production. Preparation used one read-only production metadata query to confirm database/schema ownership; no production writes or deployments occurred. This milestone is complete and requires no owner terminal work. The exclusions under “Scope after a pass” remain explicit: this is not actual Prisma history resolution/deploy or application concurrency proof.
 
 First actual run [39680532252](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39680532252) stopped at the first pending CREATE with SQLSTATE 42501; cleanup passed. The native archive does not carry database ownership because it was captured without `--create`. Its new initdb target belonged to `supabase_admin`, while read-only source metadata independently confirmed database `postgres` belongs to `postgres`, and schema `public` belongs to `pg_database_owner`. The correction changes only the owned disposable database owner to the verified source owner, retaining imported role attributes and schema grants. A generated non-superuser negative control must fail before that correction and pass afterwards. No passing actual rehearsal is inferred from the failed run.
 
