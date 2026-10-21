@@ -46,3 +46,6 @@ Implementation follows `Knowledge → Specification → Architecture → Experie
 
 ## Security
 Never commit secrets, tokens, payment keys, private certificates, production credentials, or user-sensitive data.
+
+## Engineering execution and owner handoff
+The owner directs the product, supplies account access the agent cannot obtain, and tests the actual experience. The agent owns implementation, running automated engineering checks, diagnosing failures, and preparing reviewable changes. Prefer connected tools and GitHub-hosted tests when this workspace lacks Docker; do not make routine terminal commands the owner's default task. Continue independent authorized work when private access or device testing is blocked, and report the exact limitation without restarting completed milestones. Generated-fixture tests must never be represented as tests of private backups or actual user accounts. Production database changes, releases and payment/provider activation retain their separate existing approval gates.

@@ -1,0 +1,73 @@
+name: Hustle Generated Recovery Contract
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/hustle-generated-recovery.yml'
+      - 'scripts/recovery/native_contract/**'
+      - 'apps/api/prisma/**'
+      - 'Knowledge/QA/HUSTLE_AUTOMATED_RECOVERY_CHECKS.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hustle-generated-recovery.yml'
+      - 'scripts/recovery/native_contract/**'
+      - 'apps/api/prisma/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: generated-recovery-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-regression:
+    name: Native and API recovery safety regressions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test encryption, identity, access boundaries and generated-only orchestration
+        working-directory: scripts/recovery/native_contract
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONWARNINGS: error::ResourceWarning
+        run: python -m unittest -v test_restore.py test_access.py test_cloud_contract.py
+
+  generated-native-api:
+    name: Generated PostgreSQL 17 restore, login and private-file permissions
+    needs: offline-regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Rehearse native roles/database/files and actual Auth/Storage APIs automatically
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONUNBUFFERED: '1'
+        run: python scripts/recovery/native_contract/cloud_contract.py
+      - name: Record the tested scope
+        if: always()
+        env:
+          CONTRACT_STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "Generated recovery contract: $CONTRACT_STATUS"
+            echo 'Generated data only; no production credentials, private backup or account prompts.'
+            echo 'Actual October 20 backup login/access and full disaster recovery remain unverified.'
+          } >> "$GITHUB_STEP_SUMMARY"

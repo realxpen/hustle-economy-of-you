@@ -1,5 +1,7 @@
 # Hustle — Isolated Cloud Backup Recovery
 
+**Current handoff (2026-10-21):** A newer October 20 native backup and local database/file restore have passed, including original Storage metadata and all 10 recovered file hashes. Actual backup Auth and Storage API acceptance remains pending secure runtime access. The owner requested agent-run checks; [the new generated cloud contract](HUSTLE_AUTOMATED_RECOVERY_CHECKS.md) provides an independent automatic engineering check. Follow [the current recovery plan](HUSTLE_FULL_RECOVERY_AND_ACTIVATION_PLAN.md). This page documents the older cloud workflow and its limitations; do not rerun it or recapture the completed native set merely because the next check is waiting.
+
 Status: **ISOLATED RECOVERY SMOKE TEST PASSED / FULL DISASTER RECOVERY NOT YET VERIFIED**. Owner-triggered [run 39241163040](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39241163040) used merged PR #139 (`94e12fa6dc3ed5278e9747f6ba4e7b6f654ce019`). Both jobs succeeded, including the actual restore. Application and Auth data restored, all 10 files passed local Storage upload/readback/byte comparison, the older metadata reference decrypted and passed count checks, and cleanup succeeded. No production database access/change or application deployment was performed. The remaining completion criteria are in [the recovery and activation plan](HUSTLE_FULL_RECOVERY_AND_ACTIVATION_PLAN.md).
 
 ## Verified October 19 result

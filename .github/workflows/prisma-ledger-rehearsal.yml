@@ -5,6 +5,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/prisma-ledger-rehearsal.yml"
+      - ".github/workflows/hustle-generated-recovery.yml"
+      - "scripts/recovery/native_contract/**"
       - "scripts/experience/rehearse-prisma-ledger.sh"
       - "scripts/experience/casework-access-check.sql"
       - "scripts/experience/flowtime-revision-access-check.sql"

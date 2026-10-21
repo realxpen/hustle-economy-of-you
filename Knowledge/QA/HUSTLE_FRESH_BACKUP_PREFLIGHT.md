@@ -1,6 +1,6 @@
 # Hustle — Fresh encrypted backup-set preflight
 
-Status: **PREPARATION / NO FRESH BACKUP CAPTURED OR RECOVERY STARTED**.
+Status: **THIS TOOL IS MANIFEST PREFLIGHT ONLY**. A separate fresh native capture and local database/file restore passed on 2026-10-20; [the recovery plan](HUSTLE_FULL_RECOVERY_AND_ACTIVATION_PLAN.md) records that completed evidence and the remaining Auth/API checks. The native set uses a different inventory/archive contract; do not rename or feed it into this four-component manifest workflow. Its completion does not require rerunning this preparation milestone.
 
 This is the next preparation milestone after the verified October 16 recovery smoke test. It checks a new encrypted set by its own manifest instead of reusing old filenames or fixed counts. It does not export production data, decrypt archives, restore a database, or prove full recovery. The successful legacy recovery workflow remains unchanged.
 
