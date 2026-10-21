@@ -23,6 +23,7 @@ import type { RootTab } from "../ux004/navigation/types";
 import { orderDemoComments, replyRootId, selectSavedPosts } from "../ux004/feed/demoSocial";
 import type { DemoComment, DemoCollection } from "../ux004/feed/demoSocial";
 import { FeedOfferAttachment } from "../ux004/feed/FeedOfferAttachment";
+import { findDemoWorkIndex } from "../ux004/discovery/demoWorkRoute";
 
 // Legacy local names map to approved UX004 semantic tokens. The full feed
 // layout/navigation upgrade happens in separate A1.2/A2 review slices.
@@ -151,6 +152,20 @@ function Experience() {
   function open(type: Sheet, post: Post) {
     setChosenPost(post.id); setSheet(type);
     if (type === "comments") { setCommentText(""); setReplyTo(null); }
+  }
+  // The Explore result opens its matching fictional proof-of-work post.
+  // Home is unmounted while Explore is shown, so initialScrollIndex
+  // selects the target without an imperative scroll or a new Feed key.
+  function openWorkInFeed(postId: string) {
+    const target = findDemoWorkIndex(POSTS, postId);
+    if (target === null) return;
+    regularFeedIndex.current = target;
+    setIndex(target);
+    setSavedOnly(false);
+    setSelectedCollection(null);
+    setSheet(null);
+    setFeed("For You");
+    setScreen("Home");
   }
   function toggleLike(id: string) {
     setLikes(v => v.includes(id) ? v.filter(x => x !== id) : [...v, id]);
@@ -326,17 +341,26 @@ function Experience() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomReserve }}>
         <Text style={styles.sectionHeading}>Featured Hustlers <Text style={styles.sampleLabel}>· Demo</Text></Text>
         {explore.length === 0 ? <Text style={styles.mutedText}>No matching sample. Try another skill.</Text> :
-          explore.map(post => <Pressable key={post.id} onPress={() => open("creator", post)} style={styles.exploreCard}>
-            <View style={[styles.exploreImage, { backgroundColor: post.bg }]}>
-              <Text style={{ fontSize: 39 }}>{post.icon}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.exploreTitle}>{post.name}</Text>
-              <Text style={styles.exploreMeta}>{post.profession} · {post.place}</Text>
-              <Text style={styles.explorePrice}>{post.offer.price}</Text>
-            </View>
-            <I name="chevron-forward" color={C.ink} size={20}/>
-          </Pressable>)}
+          explore.map(post => <View key={post.id} style={styles.exploreCard}>
+            <Pressable accessibilityRole="button" accessibilityLabel={"Open sample profile for " + post.name}
+              onPress={() => open("creator", post)} style={styles.exploreIdentity}>
+              <View style={[styles.exploreImage, { backgroundColor: post.bg }]}>
+                <Text style={{ fontSize: 39 }}>{post.icon}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.exploreTitle}>{post.name}</Text>
+                <Text style={styles.exploreMeta}>{post.profession} · {post.place}</Text>
+                <Text style={styles.explorePrice}>{post.offer.price}</Text>
+              </View>
+              <I name="chevron-forward" color={C.ink} size={20}/>
+            </Pressable>
+            <Pressable accessibilityRole="button"
+              accessibilityLabel={"See fictional work by " + post.name + " in Feed"}
+              accessibilityHint="Opens the matching illustrated sample post in For You"
+              onPress={() => openWorkInFeed(post.id)} style={styles.exploreWorkTarget}>
+              <Text style={styles.exploreWorkText}>See work ↗</Text>
+            </Pressable>
+          </View>)}
         <View style={styles.demoNotice}><I name="information-circle-outline" color={C.ink}/><Text style={styles.demoNoticeText}>These are fictional examples. Map locations and real availability are not connected.</Text></View>
       </ScrollView>
     </View>
@@ -448,6 +472,8 @@ function Experience() {
               </View>
               <Text style={styles.mutedText}>Demo profile • No verification, reviews, or completed jobs implied.</Text>
               <Button title={follows.includes(current.id) ? "Following ✓" : "Follow creator"} onPress={() => setFollows(old => old.includes(current.id) ? old.filter(id=>id!==current.id) : [...old,current.id])}/>
+              {screen === "Explore" && <Button title="See sample work in Feed ↗" outline
+                onPress={() => openWorkInFeed(current.id)} />}
               <Button title={"View " + (current.offer.kind === "service" ? "service" : "product")} outline onPress={() => setSheet("offer")}/>
             </>}
             {sheet === "offer" && <>
@@ -519,7 +545,11 @@ const styles = StyleSheet.create({
   sampleLabel: { color: C.muted, fontWeight: "500", fontSize: 12 },
   category: { marginRight: 9, backgroundColor: "#DCECCF", borderRadius: 17, paddingVertical: 10, paddingHorizontal: 15, alignItems: "center", height: 39 },
   categoryText: { fontWeight: "800", color: C.ink, fontSize: 13 },
-  exploreCard: { backgroundColor: C.white, borderRadius: 18, marginBottom: 11, padding: 11, flexDirection: "row", alignItems: "center", gap: 12 },
+  exploreCard: { backgroundColor: C.white, borderRadius: 18, marginBottom: 11, padding: 11, gap: 7 },
+  exploreIdentity: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 83 },
+  exploreWorkTarget: { alignItems: "center", justifyContent: "center", minHeight: layout.minTapTarget,
+    borderTopWidth: 1, borderTopColor: "#E8EDE4" },
+  exploreWorkText: { color: C.ink, fontSize: 13, fontWeight: "800" },
   exploreImage: { width: 75, height: 83, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   exploreTitle: { color: C.ink, fontWeight: "900", fontSize: 15 },
   exploreMeta: { color: C.muted, fontSize: 11, marginTop: 5 },
