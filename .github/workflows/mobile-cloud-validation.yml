@@ -64,6 +64,8 @@ jobs:
         run: node apps/mobile/scripts/ux004-a25-explore-work-contract.cjs
       - name: Validate UX004-A2.6 content-aware Explore search
         run: node apps/mobile/scripts/ux004-a26-explore-search-contract.cjs
+      - name: Validate UX004-A2.7 Explore save and named collection continuity
+        run: node apps/mobile/scripts/ux004-a27-explore-save-contract.cjs
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
       - name: Bundle offline Android demo with Metro (no EAS build credits)
