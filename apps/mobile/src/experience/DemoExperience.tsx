@@ -22,6 +22,7 @@ import { useDemoAndroidBack } from "../ux004/navigation/useDemoAndroidBack";
 import type { RootTab } from "../ux004/navigation/types";
 import { orderDemoComments, replyRootId, selectSavedPosts } from "../ux004/feed/demoSocial";
 import type { DemoComment, DemoCollection } from "../ux004/feed/demoSocial";
+import { FeedOfferAttachment } from "../ux004/feed/FeedOfferAttachment";
 
 // Legacy local names map to approved UX004 semantic tokens. The full feed
 // layout/navigation upgrade happens in separate A1.2/A2 review slices.
@@ -210,7 +211,7 @@ function Experience() {
         <View style={[styles.posterType, { top: insets.top + 164 }]}>
           <Text style={styles.posterHeadline}>{post.headline}</Text>
           <Text style={styles.posterSlogan}>{post.slogan}</Text>
-          <Text style={styles.posterFoot}>CREATIVE WORK · {post.category.toUpperCase()}</Text>
+          <Text style={styles.posterFoot}>ILLUSTRATED DEMO · {post.category.toUpperCase()}</Text>
         </View>
       </View>
       <View style={styles.posterShade} pointerEvents="none" />
@@ -264,13 +265,9 @@ function Experience() {
           onPress={() => open("creator", post)}>
           <Text style={styles.specialty}>{post.profession} · {post.place}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => open("offer", post)} style={styles.offerPill}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.offerName} numberOfLines={1}>{post.offer.kind === "service" ? "✦ Book" : "✦ Shop"} · {post.offer.title}</Text>
-            <Text style={styles.offerAmount}>{post.offer.price}</Text>
-          </View>
-          <Text style={styles.offerLink}>View ↗</Text>
-        </Pressable>
+        <FeedOfferAttachment kind={post.offer.kind} title={post.offer.title}
+          price={post.offer.price} creatorName={post.name}
+          onPress={() => open("offer", post)} />
         <Text style={styles.mediaDisclosure}>{spotlight ? "Swipe up to discover more · " : ""}Illustrated sample, not real video</Text>
       </View>
     </View>;
@@ -492,7 +489,7 @@ const styles = StyleSheet.create({
   posterType: { position: "absolute", left: 20, right: 18 },
   posterHeadline: { color: "#FFFFFF", fontWeight: "900", fontSize: 49, letterSpacing: -2.5 },
   posterSlogan: { fontSize: 25, color: "#FFFFFF", fontWeight: "500", marginTop: -7 },
-  posterFoot: { color: "#FFFFFF", fontSize: 10, marginTop: 12, letterSpacing: 2, fontWeight: "700" },
+  posterFoot: { color: "#FFFFFF", fontSize: 12, lineHeight: 17, marginTop: 12, letterSpacing: 1, fontWeight: "700" },
   posterShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(4,8,6,.24)" },
   artworkTapTarget: { ...StyleSheet.absoluteFillObject },
   topRow: { position: "absolute", left: 20, right: 21, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
@@ -511,10 +508,6 @@ const styles = StyleSheet.create({
   captionTapTarget: { minHeight: layout.minTapTarget, justifyContent: "center" },
   captionMore: { color: C.lime, fontSize: 12, fontWeight: "800", marginTop: 3 },
   specialty: { color: "#E2E9E1", fontSize: 11, marginTop: 7 },
-  offerPill: { marginTop: 13, padding: 13, borderRadius: 17, flexDirection: "row", alignItems: "center", backgroundColor: "#293C30" },
-  offerName: { color: "#FFFFFF", fontWeight: "800", fontSize: 12 },
-  offerAmount: { color: C.lime, marginTop: 5, fontSize: 12 },
-  offerLink: { color: C.lime, fontWeight: "800", fontSize: 12, marginLeft: 7 },
   mediaDisclosure: { fontSize: 12, lineHeight: 17, color: "#E1E8DE", marginTop: 8 },
   lightPage: { flex: 1, backgroundColor: C.cream, paddingHorizontal: spacing.gutter },
   centerPage: { alignItems: "center", justifyContent: "center", gap: 17 },
