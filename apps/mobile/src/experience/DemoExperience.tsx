@@ -20,6 +20,8 @@ import { FloatingTabBar } from "../ux004/components/FloatingTabBar";
 import { useDemoNavigation } from "../ux004/navigation/useDemoNavigation";
 import { useDemoAndroidBack } from "../ux004/navigation/useDemoAndroidBack";
 import type { RootTab } from "../ux004/navigation/types";
+import { orderDemoComments, replyRootId, selectSavedPosts } from "../ux004/feed/demoSocial";
+import type { DemoComment, DemoCollection } from "../ux004/feed/demoSocial";
 
 // Legacy local names map to approved UX004 semantic tokens. The full feed
 // layout/navigation upgrade happens in separate A1.2/A2 review slices.
@@ -30,14 +32,14 @@ const C = {
 };
 type IconName = AppIconName;
 type Sheet = "comments" | "save" | "share" | "creator" | "offer" | "booking" | null;
-type Collection = "Inspiration" | "Outfit ideas";
+type Collection = DemoCollection;
 type Offer = { kind: "service" | "product"; title: string; price: string; detail: string };
 type Post = {
   id: string; handle: string; name: string; profession: string; place: string;
   category: string; caption: string; headline: string; slogan: string; icon: string;
   bg: string; accent: string; likes: number; offer: Offer;
 };
-type Comment = { id: string; handle: string; body: string; parentId?: string };
+type Comment = DemoComment;
 
 const POSTS: Post[] = [
   { id: "p1", handle: "mira.stitches", name: "Mira Styles", profession: "Fashion designer",
@@ -94,6 +96,7 @@ function Experience() {
   const [category, setCategory] = useState("All");
   const [selectedTime, setSelectedTime] = useState("11:00 AM");
   const [savedOnly, setSavedOnly] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   // The true FlatList viewport can differ from useWindowDimensions height,
   // especially in landscape letterboxing / Android edge-to-edge mode.
   const [feedViewportHeight, setFeedViewportHeight] = useState(0);
@@ -109,6 +112,7 @@ function Experience() {
     setSheet(null);
     if (savedOnly) {
       setSavedOnly(false);
+      setSelectedCollection(null);
       setIndex(regularFeedIndex.current);
     }
     setScreen(destination);
@@ -119,15 +123,25 @@ function Experience() {
     sheetOpen: sheet !== null,
     onNavigateHome: goHome,
   });
-  const openSavedCollection = () => {
+  const openSavedCollection = (collection: Collection) => {
     if (!savedOnly) regularFeedIndex.current = index;
+    setSelectedCollection(collection);
     setSavedOnly(true);
     setIndex(0);
     setSheet(null);
     setScreen("Home");
   };
+  const returnToForYou = () => {
+    setSavedOnly(false);
+    setSelectedCollection(null);
+    setIndex(regularFeedIndex.current);
+  };
   const current = POSTS.find(p => p.id === chosenPost) || POSTS[0];
-  const visibleFeed = savedOnly ? POSTS.filter(p => (saves[p.id] || []).length > 0) : POSTS;
+  const visibleFeed = savedOnly ? selectSavedPosts(POSTS, saves, selectedCollection) : POSTS;
+  const currentComments = comments[current.id] || [];
+  const orderedComments = orderDemoComments(currentComments);
+  const replyTarget = currentComments.find(note => note.id === replyTo);
+  const savedCollectionsForPost = saves[current.id] || [];
   const explore = useMemo(() => POSTS.filter(p =>
     (category === "All" || p.category === category) &&
     (p.name + " " + p.profession + " " + p.offer.title + " " + p.place).toLowerCase().includes(search.toLowerCase())
@@ -280,7 +294,7 @@ function Experience() {
         const nextHeight = Math.round(event.nativeEvent.layout.height);
         if (nextHeight > 0) setFeedViewportHeight(prev => prev === nextHeight ? prev : nextHeight);
       }}
-      key={`${savedOnly ? "saved" : feed}:${Math.round(pageHeight)}`}
+      key={`${savedOnly ? "saved-" + selectedCollection : feed}:${Math.round(pageHeight)}`}
       data={visibleFeed} keyExtractor={p => p.id}
       initialScrollIndex={Math.min(index, Math.max(0, visibleFeed.length - 1))}
       renderItem={({ item, index: i }) => feedCard(item, i)}
@@ -292,8 +306,11 @@ function Experience() {
         if (!savedOnly) regularFeedIndex.current = next;
       }}
       ListEmptyComponent={<View style={styles.emptyDark}>
-        <I name="bookmark-outline" size={40}/><Text style={styles.whiteTitle}>Your saved feed is empty</Text>
-        <Button title="Return to For You" onPress={() => setSavedOnly(false)} />
+        <I name="bookmark-outline" size={40}/>
+        <Text style={styles.whiteTitle}>
+          {selectedCollection ? "No posts in " + selectedCollection + " yet" : "Your saved feed is empty"}
+        </Text>
+        <Button title="Return to For You" onPress={returnToForYou} />
       </View>} />
     : screen === "Explore" ? <View style={[styles.lightPage, { paddingTop: insets.top + 18 }]}>
       <Text style={styles.pageTitle}>Explore</Text>
@@ -341,7 +358,8 @@ function Experience() {
         <View style={{ flex: 1 }}><Text style={styles.youTitle}>Demo guest</Text><Text style={styles.youMeta}>Offline preview · Not signed in</Text></View></View>
       <Text style={styles.sectionHeading}>Your collections</Text>
       {(["Inspiration","Outfit ideas"] as const).map(collection =>
-        <Pressable key={collection} onPress={openSavedCollection}
+        <Pressable key={collection} onPress={() => openSavedCollection(collection)}
+          accessibilityRole="button" accessibilityLabel={"Open " + collection + " saved posts"}
           style={styles.collectionRow}>
           <I name="bookmark-outline" color={C.ink}/>
           <Text style={styles.collectionName}>{collection}</Text>
