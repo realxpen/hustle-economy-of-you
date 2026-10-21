@@ -69,7 +69,7 @@ check("named collection feed, restore and checked save feedback all wired",()=>{
  assert.match(demo,/setSelectedCollection\(collection\)/);
  assert.match(demo,/selectSavedPosts\(POSTS, saves, selectedCollection\)/);
  assert.match(demo,/onPress=\{\(\) => openSavedCollection\(collection\)\}/);
- assert.match(demo,/saved-\\" \+ selectedCollection/); // separate saved FlatList identity
+ assert.match(demo,/saved-" \+ selectedCollection/); // separate saved FlatList identity
  assert.match(demo,/No posts in " \+ selectedCollection \+ " yet/);
  assert.match(demo,/onPress=\{returnToForYou\}/);
  assert.match(demo,/setIndex\(regularFeedIndex\.current\)/);
