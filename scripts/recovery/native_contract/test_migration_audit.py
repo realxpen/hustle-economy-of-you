@@ -47,7 +47,21 @@ class AuditTests(unittest.TestCase):
         result = json.dumps(audit.compare(self.expected, actual, self.scopes))
         self.assertNotIn('private-user', result)
         self.assertNotIn('private-row-data', result)
-        self.assertNotIn('columns', result)
+
+    def test_differing_field_names_are_reported_without_values(self):
+        actual = copy.deepcopy(self.expected)
+        actual['relation:AgentApplication']['acl'] = ['sensitive-unexpected-role-value']
+        result = audit.compare(self.expected, actual, self.scopes)[0]
+        self.assertEqual(result['differing_fields'], {'relation:AgentApplication': ['acl']})
+        self.assertNotIn('sensitive-unexpected-role-value', json.dumps(result))
+
+    def test_platform_baseline_is_compared_without_filtering_service_role(self):
+        expected = dict(self.expected, **{'default_acl:public:postgres:r': ['generated-defaults']})
+        actual = dict(expected)
+        actual['default_acl:public:postgres:r'] = ['changed-defaults']
+        scopes = {name: keys + ['default_acl:public:postgres:r'] for name, keys in self.scopes.items()}
+        self.assertTrue(all(not r['schema_contract_matched'] for r in audit.compare(expected, actual, scopes)))
+        self.assertIn('GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role', audit.BOOTSTRAP)
 
     def test_removed_reference_object_is_checked_for_absence(self):
         expected = dict(self.expected)
