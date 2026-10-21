@@ -1,6 +1,6 @@
 # Hustle — Agent-run recovery engineering checks
 
-Date: 2026-10-21. Status: **IMPLEMENTED; REAL CLOUD EXECUTION PENDING**.
+Date: 2026-10-21. Status: **GENERATED CLOUD RECOVERY CONTRACT PASSED; ACTUAL PRIVATE BACKUP LOGIN/ACCESS PENDING SECURE RUNTIME ACCESS**.
 
 ## Owner workflow
 
@@ -30,6 +30,7 @@ MFA/OAuth, existing-session recovery, all accounts, message participants, applic
 ## Validation record
 
 - Local offline regression results: **55/55 passed**, including real OpenSSL and Node pipelines plus five noninteractive CI boundary/orchestration checks. Python ResourceWarnings are treated as errors.
-- Actual GitHub PostgreSQL/Auth/Storage contract: pending; do not infer success from source or unit checks.
+- Actual GitHub execution: [run 39589753154](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39589753154) **PASSED** on PR #154 head `f4e509da37cabd66f6e61dc1798e38d262f09401` (tested merge `129f00ad114a7c24af8ecdcb595c952fbb47e433`). Both jobs passed: 55 offline regressions and the actual generated PostgreSQL 17 native/Auth/Storage recovery. Runtime log confirms native and real API contracts passed and temporary containers were removed.
+- Companion [Prisma ledger rehearsal 39589753035](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39589753035) **PASSED** on the same PR head, as did [the generated Storage CLI contract](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39589753047). These tests use generated data, not the private October 20 backup.
 
 References: [Supabase platform-to-self-hosted restore guidance](https://supabase.com/docs/guides/self-hosting/restore-from-platform) and [Storage access control](https://supabase.com/docs/guides/storage/security/access-control). Current version changes were reviewed against [the changelog](https://supabase.com/changelog.md).
