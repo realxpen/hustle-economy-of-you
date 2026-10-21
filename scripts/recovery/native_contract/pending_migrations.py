@@ -74,6 +74,24 @@ def apply_pending(database):
     access.private_sql(database, pending_sql())
 
 
+def prepare_database_owner(database):
+    # pg_dump without --create restores objects, not the database's owner.
+    # Source metadata independently read on 2026-10-21: database postgres is
+    # owned by postgres; public is owned by pg_database_owner. Preserve the
+    # imported schema ACL and original role attributes; repair only the owned
+    # disposable database's initdb ownership before executing as postgres.
+    state = json.loads(access.private_sql(database, """BEGIN READ ONLY;
+SELECT jsonb_build_object('database',current_database(),
+ 'owner',(SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname=current_database()),
+ 'public_owner',(SELECT pg_get_userbyid(nspowner) FROM pg_namespace WHERE nspname='public'));
+COMMIT;"""))
+    core.require(state == {'database':'postgres','owner':'supabase_admin','public_owner':'pg_database_owner'},
+                 'REHEARSAL_DATABASE_OWNER','The disposable database ownership did not match the reviewed restore setup.')
+    access.private_sql(database,'ALTER DATABASE postgres OWNER TO postgres;')
+    valid = access.private_sql(database,"SELECT pg_get_userbyid(datdba)='postgres' AND has_schema_privilege('postgres','public','CREATE') FROM pg_database WHERE datname=current_database();")
+    core.require(valid == b't','REHEARSAL_DATABASE_OWNER','The restored database did not reproduce the verified source ownership.')
+
+
 def pending_reference(database, before):
     apply_pending(database)
     after = audit.snapshot(database)
@@ -166,6 +184,16 @@ def generated_contract():
     try:
         database.start()
         before_schema, _, _ = audit.reference_contract(database)
+        # Model the real non-superuser migration role and the initdb-owner
+        # mismatch that a schema-only generated reference would otherwise hide.
+        access.private_sql(database,'ALTER ROLE postgres NOSUPERUSER;')
+        try:
+            apply_pending(database)
+        except core.RestoreError as error:
+            core.require('42501' in error.code,'REHEARSAL_GENERATED_OWNER','The ownership negative control failed unexpectedly.')
+        else:
+            raise core.RestoreError('REHEARSAL_GENERATED_OWNER','A non-owner unexpectedly created pending structures.')
+        prepare_database_owner(database)
         verify_source_pending(database)
         access.private_sql(database, 'INSERT INTO public."SystemEvent"("id","name","source") VALUES(\'generated-rehearsal\',\'original\',\'generated\');')
         tables = original_tables(database)
