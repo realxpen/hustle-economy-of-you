@@ -24,6 +24,7 @@ import { orderDemoComments, replyRootId, selectSavedPosts } from "../ux004/feed/
 import type { DemoComment, DemoCollection } from "../ux004/feed/demoSocial";
 import { FeedOfferAttachment } from "../ux004/feed/FeedOfferAttachment";
 import { findDemoWorkIndex } from "../ux004/discovery/demoWorkRoute";
+import { filterDemoExplorePosts } from "../ux004/discovery/demoExploreSearch";
 
 // Legacy local names map to approved UX004 semantic tokens. The full feed
 // layout/navigation upgrade happens in separate A1.2/A2 review slices.
@@ -144,10 +145,12 @@ function Experience() {
   const orderedComments = orderDemoComments(currentComments);
   const replyTarget = currentComments.find(note => note.id === replyTo);
   const savedCollectionsForPost = saves[current.id] || [];
-  const explore = useMemo(() => POSTS.filter(p =>
-    (category === "All" || p.category === category) &&
-    (p.name + " " + p.profession + " " + p.offer.title + " " + p.place).toLowerCase().includes(search.toLowerCase())
-  ), [category, search]);
+  const explore = useMemo(() => filterDemoExplorePosts(POSTS, search, category), [category, search]);
+  const hasExploreFilters = Boolean(search.trim()) || category !== "All";
+  function resetExploreFilters() {
+    setSearch("");
+    setCategory("All");
+  }
 
   function open(type: Sheet, post: Post) {
     setChosenPost(post.id); setSheet(type);
@@ -328,7 +331,14 @@ function Experience() {
       <Text style={styles.pageTitle}>Explore</Text>
       <Text style={styles.subtitle}>Find great work, not just listings.</Text>
       <View style={styles.searchBar}><I name="search-outline" color={C.ink} size={21}/>
-        <TextInput value={search} onChangeText={setSearch} placeholder="Search skills, people, services..." placeholderTextColor="#89948A" style={styles.searchField} accessibilityLabel="Search demo professionals"/>
+        <TextInput value={search} onChangeText={setSearch}
+          placeholder="Search skills, work, people..." placeholderTextColor="#89948A"
+          style={styles.searchField} accessibilityLabel="Search fictional work and professionals"
+          returnKeyType="search" />
+        {Boolean(search) && <Pressable accessibilityRole="button" accessibilityLabel="Clear Explore search"
+          onPress={() => setSearch("")} style={styles.searchClearTarget}>
+          <Text style={styles.searchClearText}>Clear</Text>
+        </Pressable>}
       </View>
       <Text style={styles.sectionHeading}>Discover by skill</Text>
       <ScrollView horizontal style={{ flexGrow: 0 }} showsHorizontalScrollIndicator={false}>
@@ -340,7 +350,17 @@ function Experience() {
       </ScrollView>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomReserve }}>
         <Text style={styles.sectionHeading}>Featured Hustlers <Text style={styles.sampleLabel}>· Demo</Text></Text>
-        {explore.length === 0 ? <Text style={styles.mutedText}>No matching sample. Try another skill.</Text> :
+        <Text style={styles.exploreResultsCount} accessibilityLiveRegion="polite">
+          {explore.length} fictional {explore.length === 1 ? "result" : "results"} · Local sample work
+        </Text>
+        {explore.length === 0 ? <View style={styles.exploreEmpty}>
+          <Text style={styles.mutedText}>No fictional work matches your search and skill filter.</Text>
+          {hasExploreFilters && <Pressable accessibilityRole="button"
+            accessibilityLabel="Clear Explore search and skill filters"
+            onPress={resetExploreFilters} style={styles.exploreResetTarget}>
+            <Text style={styles.exploreResetText}>Clear search and filters</Text>
+          </Pressable>}
+        </View> :
           explore.map(post => <View key={post.id} style={styles.exploreCard}>
             <Pressable accessibilityRole="button" accessibilityLabel={"Open sample profile for " + post.name}
               onPress={() => open("creator", post)} style={styles.exploreIdentity}>
@@ -351,6 +371,7 @@ function Experience() {
                 <Text style={styles.exploreTitle}>{post.name}</Text>
                 <Text style={styles.exploreMeta}>{post.profession} · {post.place}</Text>
                 <Text style={styles.explorePrice}>{post.offer.price}</Text>
+                <Text style={styles.exploreWorkPreview} numberOfLines={2}>{post.caption}</Text>
               </View>
               <I name="chevron-forward" color={C.ink} size={20}/>
             </Pressable>
@@ -541,6 +562,9 @@ const styles = StyleSheet.create({
   subtitle: { color: C.muted, fontSize: 14, marginTop: 7, marginBottom: 20, lineHeight: 22 },
   searchBar: { backgroundColor: C.white, borderRadius: 17, height: 51, flexDirection: "row", alignItems: "center", paddingHorizontal: 13 },
   searchField: { flex: 1, paddingLeft: 10, fontSize: 13, color: C.ink },
+  searchClearTarget: { minWidth: layout.minTapTarget, minHeight: layout.minTapTarget,
+    alignItems: "center", justifyContent: "center" },
+  searchClearText: { color: C.ink, fontSize: 12, fontWeight: "800" },
   sectionHeading: { color: C.ink, fontWeight: "800", fontSize: 18, marginTop: 23, marginBottom: 14 },
   sampleLabel: { color: C.muted, fontWeight: "500", fontSize: 12 },
   category: { marginRight: 9, backgroundColor: "#DCECCF", borderRadius: 17, paddingVertical: 10, paddingHorizontal: 15, alignItems: "center", height: 39 },
@@ -554,6 +578,12 @@ const styles = StyleSheet.create({
   exploreTitle: { color: C.ink, fontWeight: "900", fontSize: 15 },
   exploreMeta: { color: C.muted, fontSize: 11, marginTop: 5 },
   explorePrice: { color: C.ink, fontSize: 13, fontWeight: "800", marginTop: 7 },
+  exploreWorkPreview: { color: C.muted, fontSize: 12, lineHeight: 18, marginTop: 6 },
+  exploreResultsCount: { color: C.muted, fontSize: 12, marginBottom: 12 },
+  exploreEmpty: { gap: 11, paddingBottom: 20 },
+  exploreResetTarget: { minHeight: layout.minTapTarget, backgroundColor: C.white,
+    borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  exploreResetText: { color: C.ink, fontSize: 13, fontWeight: "800" },
   mutedText: { color: C.muted, fontSize: 13, lineHeight: 20 },
   demoNotice: { marginTop: 20, backgroundColor: "#E8EDDE", borderRadius: 17, padding: 14, flexDirection: "row", alignItems: "center", gap: 8 },
   demoNoticeText: { color: C.ink, fontSize: 13, flex: 1, lineHeight: 19 },
