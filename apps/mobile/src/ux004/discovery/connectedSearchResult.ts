@@ -2,7 +2,7 @@
  * Pure projection of the existing authenticated NestJS /search response.
  * No invented profiles, prices, ratings, availability or external redirects.
  */
-import type { SearchResult } from "../experience/feed-api";
+import type { SearchResult } from "../../experience/feed-api";
 
 export type MobileSearchResultView = { title: string; detail: string; kindLabel: string };
 
@@ -38,6 +38,8 @@ export function describeMobileSearchResult(item: SearchResult): MobileSearchResu
         detail: [name, item.product?.category].filter(Boolean).join(" · ") || "Published product",
         kindLabel: "Product"
       };
+    default:
+      return { title: "Published result", detail: "Hustle search", kindLabel: "Result" };
   }
 }
 
