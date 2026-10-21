@@ -107,7 +107,7 @@ check("Explore UI wires real selector, readable proof-of-work snippet and result
   assert.match(demo, /onChangeText=\{setSearch\}/);
   assert.match(demo, /accessibilityLabel="Search fictional work and professionals"/);
   assert.match(demo, /accessibilityLiveRegion="polite"/);
-  assert.match(demo, /explore\.length} fictional \{explore\.length === 1 \? "result" : "results"}/);
+  assert.match(demo, /visibleExplore\.length} fictional \{visibleExplore\.length === 1 \? "result" : "results"}/);
   assert.match(demo, /<Text style=\{styles\.exploreWorkPreview\} numberOfLines=\{2\}>\{post\.caption\}<\/Text>/);
   assert.match(demo, /onPress=\{\(\) => openWorkInFeed\(post\.id\)\}/);
   assert.match(demo, /onPress=\{\(\) => open\("creator", post\)\}/);
@@ -118,7 +118,7 @@ check("Both clearing paths are accessible; category and query survive normal tab
   assert.match(demo, /function resetExploreFilters\(\) \{\s*setSearch\(""\);\s*setCategory\("All"\);/);
   assert.match(demo, /accessibilityLabel="Clear Explore search"/);
   assert.match(demo, /onPress=\{\(\) => setSearch\(""\)\}/);
-  assert.match(demo, /accessibilityLabel="Clear Explore search and skill filters"/);
+  assert.match(demo, /accessibilityLabel="Clear Explore search and filters"/);
   assert.match(demo, /onPress=\{resetExploreFilters\}/);
   assert.match(demo, /searchClearTarget: \{ minWidth: layout\.minTapTarget, minHeight: layout\.minTapTarget/);
   assert.match(demo, /exploreResetTarget: \{ minHeight: layout\.minTapTarget/);
