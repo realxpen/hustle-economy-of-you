@@ -44,7 +44,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install hash-locked authentication dependencies before exposing credentials
-        run: python -m pip install --disable-pip-version-check --only-binary=:all: --require-hashes -r scripts/recovery/native_contract/requirements.lock
+        run: |
+          python -m pip install --disable-pip-version-check --only-binary=:all: --require-hashes -r scripts/recovery/native_contract/requirements.lock
       - name: Compare the actual saved native schema without applying or resolving migrations
         env:
           PYTHONDONTWRITEBYTECODE: '1'
