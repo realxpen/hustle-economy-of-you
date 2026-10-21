@@ -83,6 +83,8 @@ function Experience() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [chosenPost, setChosenPost] = useState(POSTS[0].id);
   const [likes, setLikes] = useState<string[]>([]);
+  const [expandedCaptions, setExpandedCaptions] = useState<string[]>([]);
+  const lastArtworkTap = useRef<{ postId: string; timestamp: number } | null>(null);
   const [follows, setFollows] = useState<string[]>([]);
   const [saves, setSaves] = useState<Record<string, Collection[]>>({});
   const [comments, setComments] = useState<Record<string, Comment[]>>(INITIAL_COMMENTS);
@@ -138,6 +140,23 @@ function Experience() {
   function toggleLike(id: string) {
     setLikes(v => v.includes(id) ? v.filter(x => x !== id) : [...v, id]);
   }
+  // The fictional artwork has no video playback. Single tap stays inert; a
+  // second tap on the SAME post within 300 ms only ADDS a like (never unlikes).
+  // No timer, player, backend, permission request or global gesture handler.
+  function onArtworkTap(postId: string) {
+    const timestamp = Date.now();
+    const previous = lastArtworkTap.current;
+    if (previous?.postId === postId && timestamp - previous.timestamp > 0 &&
+        timestamp - previous.timestamp <= 300) {
+      setLikes(previousLikes => previousLikes.includes(postId) ? previousLikes : [...previousLikes, postId]);
+      lastArtworkTap.current = null;
+      return;
+    }
+    lastArtworkTap.current = { postId, timestamp };
+  }
+  function toggleCaption(id: string) {
+    setExpandedCaptions(old => old.includes(id) ? old.filter(value => value !== id) : [...old, id]);
+  }
   function toggleSave(id: string, collection: Collection) {
     setSaves(old => {
       const current = old[id] || [];
@@ -160,8 +179,8 @@ function Experience() {
     catch { Alert.alert("Sharing unavailable", "Try again later."); }
   };
   const heart = (post: Post) => likes.includes(post.id);
-  function rail(name: IconName, label: string, press: () => void, enabled = false) {
-    return <Pressable accessibilityRole="button" accessibilityLabel={label}
+  function rail(name: IconName, label: string, press: () => void, enabled = false, accessibleLabel = label) {
+    return <Pressable accessibilityRole="button" accessibilityLabel={accessibleLabel}
       onPress={press} style={styles.railItem}>
       <I name={name} size={29} color={enabled ? C.lime : C.white} />
       <Text style={styles.railCaption}>{label}</Text>
@@ -181,6 +200,9 @@ function Experience() {
         </View>
       </View>
       <View style={styles.posterShade} pointerEvents="none" />
+      <Pressable style={styles.artworkTapTarget} onPress={() => onArtworkTap(post.id)}
+        accessible={false} importantForAccessibility="no"
+        testID={"demo-artwork-" + post.id} />
       <View style={[styles.topRow, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.wordmark}>hustle<Text style={{ color: C.lime }}>.</Text></Text>
         <Pressable onPress={() => selectRootTab("Explore")} accessibilityLabel="Explore skills">
@@ -202,15 +224,30 @@ function Experience() {
         style={[styles.demoChip, { top: insets.top + 113 }]} />
       <View style={[styles.rail, { bottom: bottomReserve + 120 }]}>
         {rail("person-circle-outline", "Creator", () => open("creator", post))}
-        {rail(heart(post) ? "heart" : "heart-outline", String(post.likes + (heart(post) ? 1 : 0)), () => toggleLike(post.id), heart(post))}
-        {rail("chatbubble-outline", String((comments[post.id] || []).length), () => open("comments", post))}
-        {rail((saves[post.id] || []).length ? "bookmark" : "bookmark-outline", "Save", () => open("save", post), (saves[post.id] || []).length > 0)}
-        {rail("arrow-redo-outline", "Share", () => open("share", post))}
+        {rail(heart(post) ? "heart" : "heart-outline", String(post.likes + (heart(post) ? 1 : 0)),
+          () => toggleLike(post.id), heart(post),
+          (heart(post) ? "Unlike " : "Like ") + post.name + " work")}
+        {rail("chatbubble-outline", String((comments[post.id] || []).length),
+          () => open("comments", post), false, "Read comments on " + post.name + " work")}
+        {rail((saves[post.id] || []).length ? "bookmark" : "bookmark-outline", "Save",
+          () => open("save", post), (saves[post.id] || []).length > 0,
+          "Manage collections for " + post.name + " work")}
+        {rail("arrow-redo-outline", "Share", () => open("share", post), false,
+          "Share fictional work from " + post.name)}
       </View>
       <View style={[styles.feedBottom, { bottom: bottomReserve }]}>
-        <Pressable accessibilityRole="button" onPress={() => open("creator", post)}>
+        <Pressable accessibilityRole="button" accessibilityLabel={"Open " + post.name + " fictional creator"}
+          onPress={() => open("creator", post)}>
           <Text style={styles.creatorName}>@{post.handle} <Text style={{ color: C.lime }}>↗</Text></Text>
-          <Text style={styles.caption} numberOfLines={2}>{post.caption}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button"
+          accessibilityLabel={(expandedCaptions.includes(post.id) ? "Collapse" : "Expand") + " caption by " + post.name}
+          onPress={() => toggleCaption(post.id)} style={styles.captionTapTarget}>
+          <Text style={styles.caption} numberOfLines={expandedCaptions.includes(post.id) ? undefined : 2}>{post.caption}</Text>
+          <Text style={styles.captionMore}>{expandedCaptions.includes(post.id) ? "Show less" : "Read more"}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={"View skill and sample location for " + post.name}
+          onPress={() => open("creator", post)}>
           <Text style={styles.specialty}>{post.profession} · {post.place}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => open("offer", post)} style={styles.offerPill}>
@@ -420,6 +457,7 @@ const styles = StyleSheet.create({
   posterSlogan: { fontSize: 25, color: "#FFFFFF", fontWeight: "500", marginTop: -7 },
   posterFoot: { color: "#FFFFFF", fontSize: 10, marginTop: 12, letterSpacing: 2, fontWeight: "700" },
   posterShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(4,8,6,.24)" },
+  artworkTapTarget: { ...StyleSheet.absoluteFillObject },
   topRow: { position: "absolute", left: 20, right: 21, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   wordmark: { color: "#FFFFFF", fontWeight: "900", fontSize: 26 },
   feedTabs: { position: "absolute", alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 16 },
@@ -433,6 +471,8 @@ const styles = StyleSheet.create({
   feedBottom: { position: "absolute", left: 18, right: 83 },
   creatorName: { color: C.white, fontSize: 17, fontWeight: "900" },
   caption: { color: C.white, fontSize: 13, marginTop: 7, lineHeight: 19 },
+  captionTapTarget: { minHeight: layout.minTapTarget, justifyContent: "center" },
+  captionMore: { color: C.lime, fontSize: 12, fontWeight: "800", marginTop: 3 },
   specialty: { color: "#E2E9E1", fontSize: 11, marginTop: 7 },
   offerPill: { marginTop: 13, padding: 13, borderRadius: 17, flexDirection: "row", alignItems: "center", backgroundColor: "#293C30" },
   offerName: { color: "#FFFFFF", fontWeight: "800", fontSize: 12 },
