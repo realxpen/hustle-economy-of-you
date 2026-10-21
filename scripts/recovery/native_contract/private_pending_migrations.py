@@ -51,6 +51,7 @@ def rehearse_copy(folder, passphrase):
         restored_db.start()
         restored_db.restore(folder,passphrase)
         core.compare_database(restored_db.catalog(),reference)
+        pending.prepare_database_owner(restored_db)
         before_schema = audit.snapshot(restored_db)
         core.require(all(r['schema_contract_matched'] for r in audit.compare(historical,before_schema,scopes)),
             'REHEARSAL_HISTORICAL','A historical schema contract did not match; no pending SQL was applied.')
@@ -88,6 +89,7 @@ def safe_report(result):
         checked_at=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         pending_sql_sha256=pending.PENDING_HASHES,
         original_row_counts_and_sha256_preserved=True,migration_ledgers_unchanged=True,
+        disposable_database_owner_matches_verified_source=True,
         original_storage_catalog_matches=True,existing_service_and_booking_new_defaults_passed=True,
         existing_refund_data_passed_new_unique_index=True,casework_and_flowtime_access_assertions_passed=True,
         generated_financial_and_receipt_rows_denied_to_browser_roles=True,

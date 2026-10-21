@@ -28,6 +28,17 @@ class PendingTests(unittest.TestCase):
             pending.apply_pending(database)
         execute.assert_called_once_with(database,pending.pending_sql())
 
+    def test_only_owned_restore_database_gets_verified_source_owner_without_role_or_acl_changes(self):
+        state={'database':'postgres','owner':'supabase_admin','public_owner':'pg_database_owner'}
+        with patch.object(pending.access,'private_sql',side_effect=[json.dumps(state).encode(),b'',b't']) as execute:
+            pending.prepare_database_owner(object())
+            self.assertEqual(execute.call_args_list[1].args[1],'ALTER DATABASE postgres OWNER TO postgres;')
+            self.assertNotIn('GRANT',''.join(call.args[1] for call in execute.call_args_list))
+        for key,value in [('database','other'),('owner','unknown'),('public_owner','unknown')]:
+            with patch.object(pending.access,'private_sql',return_value=json.dumps({**state,key:value}).encode()) as execute, self.assertRaises(pending.core.RestoreError):
+                pending.prepare_database_owner(object())
+            self.assertEqual(execute.call_count,1)
+
     def test_hash_query_projects_original_columns_and_returns_only_digest_and_count(self):
         table = {'schema':'public','table':'Service','columns':['id','title']}
         sql = pending.fingerprint_sql(table)
@@ -100,6 +111,7 @@ class PendingTests(unittest.TestCase):
              patch.object(private.audit,'reference_contract',return_value=({}, {}, {})), \
              patch.object(private.pending,'pending_reference',return_value=({}, [])), \
              patch.object(private.core,'read_reference',return_value={}),patch.object(private.core,'compare_database'), \
+             patch.object(private.pending,'prepare_database_owner'), \
              patch.object(private.audit,'snapshot',return_value={}), \
              patch.object(private.audit,'compare',return_value=[{'schema_contract_matched':False}]), \
              patch.object(private.pending,'apply_pending') as apply,patch.object(private.core,'cleanup_all') as cleanup, \
