@@ -2,6 +2,8 @@
 
 Date: 2026-10-21. Owner approved continuing engineering without terminal work.
 
+Latest result: [corrected actual audit 39677312520](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39677312520) **PASSED ALL NINE HISTORICAL SCHEMA GROUPS** on `752e2a89cca7de2ae23b6bf5d39a54e63da1abf7`. Independently verified JSON SHA-256 `c74e2ae4eba05fa47cd1d06325f2f35f0505787f646273e7f0d1a8075cf2d8bf`; ZIP SHA-256 `3fdd9071e11eee76fd899c240d46954f9aacb3ba824f9775087e16e04bd5c7c0`. All differing-object/field lists were empty; histories unchanged and cleanup passed. No pending SQL or production writes occurred. [The next SQL rehearsal](HUSTLE_NATIVE_PENDING_SQL_REHEARSAL.md) tests the five pending files on another temporary native restore.
+
 ## Actual first comparison and reference correction
 
 [Audit 39675092400](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39675092400) completed on `c192295bb9157d72c29ae8377a3073bf3371f69b`; all nine historical groups reported differences, across 15 relation definitions. Cleanup and unchanged ledgers passed. Verified artifact ZIP SHA-256 `0b1adeb8aa0e490c1fc1ea522261cc11038203454b93699b965e67a1d786f49d`; verified JSON SHA-256 `c914a21dec5f3fd3f391dffcc611088df58baeb8e95e36f358be0b5673bc5c98`. This was a completed diagnostic, not equivalent schema or authorization to stamp history.
@@ -29,13 +31,13 @@ The PostgreSQL-evaluated catalog contract includes columns/types/defaults/collat
 
 Reference managed Auth/Storage schemas are **minimal schema-only stand-ins**, not managed-service acceptance. Conservative differences need review; never normalize away security differences to get a pass. Only schema/configuration effects are compared: data semantics, runtime behavior, full dependency closure and global/default privileges still need review. Even a schema match does **not** certify or authorize migration-history repair.
 
-Generated cloud tests exercise the actual query, matching reference, seven unsafe schema mutations, five later SQL migrations and existing casework/FlowTime non-bypass API/browser-role assertions. Generated data is not private restored-data migration proof.
+Generated cloud tests exercise the actual query, matching reference, nine unsafe schema mutations, five later SQL migrations and existing casework/FlowTime non-bypass API/browser-role assertions. Generated data is not private restored-data migration proof.
 
 ## Actual-backup workflow
 
 `Hustle Saved Native Migration Audit` is manual, main-only, confirmation-guarded, GitHub-hosted and protected by `hustle-cloud-recovery`. It reuses ONLY existing Drive reader and backup passphrase secrets. No owner account/password, laptop command, new Supabase project or production connection is needed.
 
-After merge: open the workflow in GitHub, select main, enter `AUDIT_SAVED_MIGRATIONS`. The connector has no workflow-dispatch operation; the browser-only start remains an owner handoff.
+To run: select main and enter `AUDIT_SAVED_MIGRATIONS` in GitHub. The connector has no workflow-dispatch operation; the agent has now successfully used the connected browser to handle that start without owner terminal work.
 
 The secret-free generated gate must pass first. The private job downloads/verifies the exact eleven encrypted backup files and previously verified native restore report. A new network-disabled target strictly imports roles/native database; subsequent catalog queries are explicitly read-only. Both migration ledgers and original capture comparisons must remain unchanged. Repository migrations and history-resolution operations NEVER execute against the actual backup target.
 
