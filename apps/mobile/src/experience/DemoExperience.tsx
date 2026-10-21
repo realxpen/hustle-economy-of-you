@@ -20,6 +20,8 @@ import { FloatingTabBar } from "../ux004/components/FloatingTabBar";
 import { useDemoNavigation } from "../ux004/navigation/useDemoNavigation";
 import { useDemoAndroidBack } from "../ux004/navigation/useDemoAndroidBack";
 import type { RootTab } from "../ux004/navigation/types";
+import { orderDemoComments, replyRootId, selectSavedPosts } from "../ux004/feed/demoSocial";
+import type { DemoComment, DemoCollection } from "../ux004/feed/demoSocial";
 
 // Legacy local names map to approved UX004 semantic tokens. The full feed
 // layout/navigation upgrade happens in separate A1.2/A2 review slices.
@@ -30,14 +32,14 @@ const C = {
 };
 type IconName = AppIconName;
 type Sheet = "comments" | "save" | "share" | "creator" | "offer" | "booking" | null;
-type Collection = "Inspiration" | "Outfit ideas";
+type Collection = DemoCollection;
 type Offer = { kind: "service" | "product"; title: string; price: string; detail: string };
 type Post = {
   id: string; handle: string; name: string; profession: string; place: string;
   category: string; caption: string; headline: string; slogan: string; icon: string;
   bg: string; accent: string; likes: number; offer: Offer;
 };
-type Comment = { id: string; handle: string; body: string; parentId?: string };
+type Comment = DemoComment;
 
 const POSTS: Post[] = [
   { id: "p1", handle: "mira.stitches", name: "Mira Styles", profession: "Fashion designer",
@@ -94,6 +96,7 @@ function Experience() {
   const [category, setCategory] = useState("All");
   const [selectedTime, setSelectedTime] = useState("11:00 AM");
   const [savedOnly, setSavedOnly] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   // The true FlatList viewport can differ from useWindowDimensions height,
   // especially in landscape letterboxing / Android edge-to-edge mode.
   const [feedViewportHeight, setFeedViewportHeight] = useState(0);
@@ -109,6 +112,7 @@ function Experience() {
     setSheet(null);
     if (savedOnly) {
       setSavedOnly(false);
+      setSelectedCollection(null);
       setIndex(regularFeedIndex.current);
     }
     setScreen(destination);
@@ -119,15 +123,25 @@ function Experience() {
     sheetOpen: sheet !== null,
     onNavigateHome: goHome,
   });
-  const openSavedCollection = () => {
+  const openSavedCollection = (collection: Collection) => {
     if (!savedOnly) regularFeedIndex.current = index;
+    setSelectedCollection(collection);
     setSavedOnly(true);
     setIndex(0);
     setSheet(null);
     setScreen("Home");
   };
+  const returnToForYou = () => {
+    setSavedOnly(false);
+    setSelectedCollection(null);
+    setIndex(regularFeedIndex.current);
+  };
   const current = POSTS.find(p => p.id === chosenPost) || POSTS[0];
-  const visibleFeed = savedOnly ? POSTS.filter(p => (saves[p.id] || []).length > 0) : POSTS;
+  const visibleFeed = savedOnly ? selectSavedPosts(POSTS, saves, selectedCollection) : POSTS;
+  const currentComments = comments[current.id] || [];
+  const orderedComments = orderDemoComments(currentComments);
+  const replyTarget = currentComments.find(note => note.id === replyTo);
+  const savedCollectionsForPost = saves[current.id] || [];
   const explore = useMemo(() => POSTS.filter(p =>
     (category === "All" || p.category === category) &&
     (p.name + " " + p.profession + " " + p.offer.title + " " + p.place).toLowerCase().includes(search.toLowerCase())
@@ -280,7 +294,7 @@ function Experience() {
         const nextHeight = Math.round(event.nativeEvent.layout.height);
         if (nextHeight > 0) setFeedViewportHeight(prev => prev === nextHeight ? prev : nextHeight);
       }}
-      key={`${savedOnly ? "saved" : feed}:${Math.round(pageHeight)}`}
+      key={`${savedOnly ? "saved-" + selectedCollection : feed}:${Math.round(pageHeight)}`}
       data={visibleFeed} keyExtractor={p => p.id}
       initialScrollIndex={Math.min(index, Math.max(0, visibleFeed.length - 1))}
       renderItem={({ item, index: i }) => feedCard(item, i)}
@@ -292,8 +306,11 @@ function Experience() {
         if (!savedOnly) regularFeedIndex.current = next;
       }}
       ListEmptyComponent={<View style={styles.emptyDark}>
-        <I name="bookmark-outline" size={40}/><Text style={styles.whiteTitle}>Your saved feed is empty</Text>
-        <Button title="Return to For You" onPress={() => setSavedOnly(false)} />
+        <I name="bookmark-outline" size={40}/>
+        <Text style={styles.whiteTitle}>
+          {selectedCollection ? "No posts in " + selectedCollection + " yet" : "Your saved feed is empty"}
+        </Text>
+        <Button title="Return to For You" onPress={returnToForYou} />
       </View>} />
     : screen === "Explore" ? <View style={[styles.lightPage, { paddingTop: insets.top + 18 }]}>
       <Text style={styles.pageTitle}>Explore</Text>
@@ -341,7 +358,8 @@ function Experience() {
         <View style={{ flex: 1 }}><Text style={styles.youTitle}>Demo guest</Text><Text style={styles.youMeta}>Offline preview · Not signed in</Text></View></View>
       <Text style={styles.sectionHeading}>Your collections</Text>
       {(["Inspiration","Outfit ideas"] as const).map(collection =>
-        <Pressable key={collection} onPress={openSavedCollection}
+        <Pressable key={collection} onPress={() => openSavedCollection(collection)}
+          accessibilityRole="button" accessibilityLabel={"Open " + collection + " saved posts"}
           style={styles.collectionRow}>
           <I name="bookmark-outline" color={C.ink}/>
           <Text style={styles.collectionName}>{collection}</Text>
@@ -372,20 +390,31 @@ function Experience() {
                 style={styles.sheetCloseTarget} accessibilityLabel="Close sheet"><I name="close" color={C.ink}/></Pressable>
             </View>
             {sheet === "comments" && <>
+              <Text style={styles.commentsSummary}>
+                {currentComments.length} demo {currentComments.length === 1 ? "comment" : "comments"} · Only saved in this session
+              </Text>
               <ScrollView style={{ maxHeight: 325 }} keyboardShouldPersistTaps="handled">
-                {(comments[current.id]||[]).length === 0 ? <Text style={styles.mutedText}>Be the first to comment.</Text> :
-                  (comments[current.id]||[]).map(note => <View key={note.id} style={[styles.commentRow, note.parentId ? { marginLeft: 27 } : null]}>
+                {orderedComments.length === 0 ? <Text style={styles.mutedText}>Be the first to comment.</Text> :
+                  orderedComments.map(note => <View key={note.id} style={[styles.commentRow, note.parentId ? styles.commentReplyRow : null]}>
                     <View style={styles.commentAvatar}><I name="person" size={17} color={C.ink}/></View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.commentName}>@{note.handle}</Text>
+                      <Text style={styles.commentName}>@{note.handle}{note.parentId ? " · reply" : ""}</Text>
                       <Text style={styles.commentBody}>{note.body}</Text>
-                      <Pressable onPress={() => setReplyTo(note.id)}><Text style={styles.reply}>Reply</Text></Pressable>
+                      <Pressable accessibilityRole="button" accessibilityLabel={"Reply to @" + note.handle}
+                        style={styles.replyTarget} onPress={() => setReplyTo(replyRootId(currentComments, note.id))}>
+                        <Text style={styles.reply}>Reply</Text>
+                      </Pressable>
                     </View>
                   </View>)}
               </ScrollView>
-              {replyTo ? <Pressable onPress={() => setReplyTo(null)}><Text style={styles.reply}>Replying to comment · Cancel</Text></Pressable> : null}
+              {replyTarget ? <View style={styles.replyContext}>
+                <Text style={styles.replyContextText}>Replying to @{replyTarget.handle} · demo only</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel="Cancel demo reply" style={styles.cancelReplyTarget}
+                  onPress={() => setReplyTo(null)}><Text style={styles.reply}>Cancel</Text></Pressable>
+              </View> : null}
               <View style={styles.composer}><TextInput value={commentText} onChangeText={setCommentText}
-                placeholder="Write a comment..." placeholderTextColor={C.muted}
+                placeholder={replyTarget ? "Reply to @" + replyTarget.handle + "..." : "Write a comment..."}
+                placeholderTextColor={C.muted} maxLength={500}
                 returnKeyType="send" onSubmitEditing={addComment}
                 style={styles.commentInput} accessibilityLabel="Demo comment"/>
                 <Pressable onPress={addComment} accessibilityRole="button"
@@ -394,12 +423,20 @@ function Experience() {
             {sheet === "save" && <><Text style={styles.mutedText}>Organize your saved inspiration. Saved only on this screen until the app closes.</Text>
               {(["Inspiration","Outfit ideas"] as const).map(collection => {
                 const enabled = (saves[current.id] || []).includes(collection);
-                return <Pressable key={collection} onPress={() => toggleSave(current.id, collection)} style={styles.sheetChoice}>
+                return <Pressable key={collection} onPress={() => toggleSave(current.id, collection)}
+                  accessibilityRole="checkbox" accessibilityState={{ checked: enabled }}
+                  accessibilityLabel={collection + (enabled ? " · saved locally" : " · add to local collection")}
+                  style={[styles.sheetChoice, enabled && styles.sheetChoiceSelected]}>
                   <I name={enabled ? "checkbox" : "square-outline"} color={C.ink}/>
                   <Text style={styles.choiceText}>{collection}</Text>
-                  <Text style={styles.mutedText}>{enabled ? "Saved" : "Add"}</Text>
+                  <Text style={styles.mutedText}>{enabled ? "Saved ✓" : "Add"}</Text>
                 </Pressable>;
               })}
+              <Text style={styles.saveFeedback}>
+                {savedCollectionsForPost.length
+                  ? "Saved locally to " + savedCollectionsForPost.join(" and ") + "."
+                  : "Not saved to any collection."}
+              </Text>
               <Button title="Done" onPress={close}/>
             </>}
             {sheet === "share" && <><Text style={styles.mutedText}>Share the idea, not a live booking link. This is fictional content.</Text>
@@ -517,6 +554,12 @@ const styles = StyleSheet.create({
   button: { backgroundColor: C.lime, marginTop: 13, borderRadius: radii.button, paddingVertical: 16, paddingHorizontal: 16, alignItems: "center" },
   buttonText: { fontWeight: "900", fontSize: 14, color: C.ink, textAlign: "center" },
   commentRow: { flexDirection: "row", gap: 11, marginBottom: 18 },
+  commentReplyRow: { marginLeft: 25, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: C.muted },
+  commentsSummary: { color: C.muted, fontSize: 12, marginBottom: 13, lineHeight: 18 },
+  replyTarget: { minHeight: layout.minTapTarget, alignSelf: "flex-start", justifyContent: "center" },
+  replyContext: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8, paddingHorizontal: 10, backgroundColor: "#E8EDE2", borderRadius: 12 },
+  replyContextText: { color: C.ink, flex: 1, fontSize: 12, fontWeight: "700" },
+  cancelReplyTarget: { minHeight: layout.minTapTarget, justifyContent: "center", paddingHorizontal: 10 },
   commentAvatar: { backgroundColor: "#DCEACF", width: 37, height: 37, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   commentName: { fontSize: 13, color: C.ink, fontWeight: "800" },
   commentBody: { marginTop: 5, fontSize: 13, color: C.ink },
@@ -525,6 +568,8 @@ const styles = StyleSheet.create({
   commentInput: { flex: 1, minHeight: layout.minTapTarget, color: C.ink, fontSize: 15 },
   sendTarget: { minHeight: layout.minTapTarget, minWidth: layout.minTapTarget, alignItems: "center", justifyContent: "center" },
   sheetChoice: { flexDirection: "row", gap: 14, backgroundColor: C.white, padding: 17, borderRadius: 14, marginTop: 12, alignItems: "center" },
+  sheetChoiceSelected: { borderWidth: 2, borderColor: C.ink, padding: 15 },
+  saveFeedback: { color: C.muted, fontSize: 12, lineHeight: 18, marginTop: 12 },
   choiceText: { color: C.ink, fontWeight: "800", fontSize: 14, flex: 1 },
   creatorPanel: { flexDirection: "row", gap: 15, alignItems: "center", marginTop: 8, marginBottom: 20 },
   creatorAvatar: { width: 78, height: 78, borderRadius: 40, alignItems: "center", justifyContent: "center" },

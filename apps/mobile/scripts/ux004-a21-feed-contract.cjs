@@ -62,7 +62,7 @@ check("Approved A1 acceptance, original controls and safe disconnected demo are 
  assert.match(demo,/initialScrollIndex=\{Math\.min\(index,/);
  assert.match(demo,/regularFeedIndex\.current/);
  assert.match(demo,/onRequestClose=\{requestDismissSheet\}/);
- assert.match(demo,/onPress=\{openSavedCollection\}/);
+ assert.match(demo,/onPress=\{\(\) => openSavedCollection\(collection\)\}/);
  assert.match(demo,/Publishing is disabled in the offline preview/);
  assert.match(demo,/No real availability is checked and no booking will be created/);
  assert.match(demo,/Shopping and checkout are disabled in this demo/);
