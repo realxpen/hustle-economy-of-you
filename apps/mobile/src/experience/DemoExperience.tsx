@@ -390,20 +390,31 @@ function Experience() {
                 style={styles.sheetCloseTarget} accessibilityLabel="Close sheet"><I name="close" color={C.ink}/></Pressable>
             </View>
             {sheet === "comments" && <>
+              <Text style={styles.commentsSummary}>
+                {currentComments.length} demo {currentComments.length === 1 ? "comment" : "comments"} · Only saved in this session
+              </Text>
               <ScrollView style={{ maxHeight: 325 }} keyboardShouldPersistTaps="handled">
-                {(comments[current.id]||[]).length === 0 ? <Text style={styles.mutedText}>Be the first to comment.</Text> :
-                  (comments[current.id]||[]).map(note => <View key={note.id} style={[styles.commentRow, note.parentId ? { marginLeft: 27 } : null]}>
+                {orderedComments.length === 0 ? <Text style={styles.mutedText}>Be the first to comment.</Text> :
+                  orderedComments.map(note => <View key={note.id} style={[styles.commentRow, note.parentId ? styles.commentReplyRow : null]}>
                     <View style={styles.commentAvatar}><I name="person" size={17} color={C.ink}/></View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.commentName}>@{note.handle}</Text>
+                      <Text style={styles.commentName}>@{note.handle}{note.parentId ? " · reply" : ""}</Text>
                       <Text style={styles.commentBody}>{note.body}</Text>
-                      <Pressable onPress={() => setReplyTo(note.id)}><Text style={styles.reply}>Reply</Text></Pressable>
+                      <Pressable accessibilityRole="button" accessibilityLabel={"Reply to @" + note.handle}
+                        style={styles.replyTarget} onPress={() => setReplyTo(replyRootId(currentComments, note.id))}>
+                        <Text style={styles.reply}>Reply</Text>
+                      </Pressable>
                     </View>
                   </View>)}
               </ScrollView>
-              {replyTo ? <Pressable onPress={() => setReplyTo(null)}><Text style={styles.reply}>Replying to comment · Cancel</Text></Pressable> : null}
+              {replyTarget ? <View style={styles.replyContext}>
+                <Text style={styles.replyContextText}>Replying to @{replyTarget.handle} · demo only</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel="Cancel demo reply" style={styles.cancelReplyTarget}
+                  onPress={() => setReplyTo(null)}><Text style={styles.reply}>Cancel</Text></Pressable>
+              </View> : null}
               <View style={styles.composer}><TextInput value={commentText} onChangeText={setCommentText}
-                placeholder="Write a comment..." placeholderTextColor={C.muted}
+                placeholder={replyTarget ? "Reply to @" + replyTarget.handle + "..." : "Write a comment..."}
+                placeholderTextColor={C.muted} maxLength={500}
                 returnKeyType="send" onSubmitEditing={addComment}
                 style={styles.commentInput} accessibilityLabel="Demo comment"/>
                 <Pressable onPress={addComment} accessibilityRole="button"
