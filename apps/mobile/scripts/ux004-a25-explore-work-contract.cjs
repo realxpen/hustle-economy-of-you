@@ -77,7 +77,7 @@ check("Explore work handoff safely restores the correct normal Feed page", () =>
 });
 
 check("Explore keeps separate accessible profile and See work actions without nesting", () => {
-  const start = demo.indexOf("explore.map(post => <View key={post.id} style={styles.exploreCard}>");
+  const start = demo.indexOf("visibleExplore.map(post => <View key={post.id} style={styles.exploreCard}>");
   const end = demo.indexOf("</View>)}", start);
   assert.ok(start >= 0 && end > start, "Explore cards must have a separate wrapper");
   const segment = demo.slice(start, end);
