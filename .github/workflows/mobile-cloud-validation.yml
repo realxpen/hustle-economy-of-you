@@ -60,6 +60,8 @@ jobs:
         run: node apps/mobile/scripts/ux004-a23-offer-contract.cjs
       - name: Validate UX004-A2.4 cumulative Feed and social integration
         run: node apps/mobile/scripts/ux004-a24-integration-contract.cjs
+      - name: Validate UX004-A2.5 Explore to Feed work navigation
+        run: node apps/mobile/scripts/ux004-a25-explore-work-contract.cjs
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
       - name: Bundle offline Android demo with Metro (no EAS build credits)
