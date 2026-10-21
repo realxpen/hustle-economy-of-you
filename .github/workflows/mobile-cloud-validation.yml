@@ -70,6 +70,8 @@ jobs:
         run: node apps/mobile/scripts/ux004-a28-saved-filter-contract.cjs
       - name: Validate UX004-A2.9 saved work by named collection
         run: node apps/mobile/scripts/ux004-a29-collection-filter-contract.cjs
+      - name: Validate connected mobile Explore search record contract and safe links
+        run: node apps/mobile/scripts/mobile-a31-connected-search-contract.cjs
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
       - name: Bundle offline Android demo with Metro (no EAS build credits)
