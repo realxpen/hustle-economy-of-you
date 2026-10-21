@@ -97,6 +97,7 @@ function Experience() {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [exploreSavedOnly, setExploreSavedOnly] = useState(false);
   const [selectedTime, setSelectedTime] = useState("11:00 AM");
   const [savedOnly, setSavedOnly] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
@@ -146,10 +147,16 @@ function Experience() {
   const replyTarget = currentComments.find(note => note.id === replyTo);
   const savedCollectionsForPost = saves[current.id] || [];
   const explore = useMemo(() => filterDemoExplorePosts(POSTS, search, category), [category, search]);
-  const hasExploreFilters = Boolean(search.trim()) || category !== "All";
+  // Saved-only mode intersects the existing category/text search; both use
+  // the same in-memory per-post collections as Feed and the You tab.
+  const visibleExplore = useMemo(() => exploreSavedOnly
+    ? selectSavedPosts(explore, saves, null) : explore, [explore, saves, exploreSavedOnly]);
+  const exploreSavedCount = useMemo(() => selectSavedPosts(POSTS, saves, null).length, [saves]);
+  const hasExploreFilters = Boolean(search.trim()) || category !== "All" || exploreSavedOnly;
   function resetExploreFilters() {
     setSearch("");
     setCategory("All");
+    setExploreSavedOnly(false);
   }
 
   function open(type: Sheet, post: Post) {
@@ -348,20 +355,32 @@ function Experience() {
             <Text style={[styles.categoryText, category === cat && { color: C.white }]}>{cat}</Text>
           </Pressable>)}
       </ScrollView>
+      <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: exploreSavedOnly }}
+        accessibilityLabel="Show only locally saved sample work"
+        accessibilityHint="Combines with search and skill filters. Saves last only this session."
+        onPress={() => setExploreSavedOnly(old => !old)}
+        style={[styles.exploreSavedFilter, exploreSavedOnly && styles.exploreSavedFilterActive]}>
+        <I name={exploreSavedOnly ? "checkbox" : "square-outline"} color={C.ink} size={20}/>
+        <Text style={styles.exploreSavedFilterText}>Saved work only</Text>
+        <Text style={styles.exploreSavedFilterCount}>{exploreSavedCount} saved</Text>
+      </Pressable>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomReserve }}>
         <Text style={styles.sectionHeading}>Featured Hustlers <Text style={styles.sampleLabel}>· Demo</Text></Text>
         <Text style={styles.exploreResultsCount} accessibilityLiveRegion="polite">
-          {explore.length} fictional {explore.length === 1 ? "result" : "results"} · Local sample work
+          {visibleExplore.length} fictional {visibleExplore.length === 1 ? "result" : "results"} · Local sample work
         </Text>
-        {explore.length === 0 ? <View style={styles.exploreEmpty}>
-          <Text style={styles.mutedText}>No fictional work matches your search and skill filter.</Text>
+        {visibleExplore.length === 0 ? <View style={styles.exploreEmpty}>
+          <Text style={styles.mutedText}>
+            {exploreSavedOnly ? "No locally saved sample work matches these filters. Save work in Explore or clear filters."
+              : "No fictional work matches your search and skill filter."}
+          </Text>
           {hasExploreFilters && <Pressable accessibilityRole="button"
-            accessibilityLabel="Clear Explore search and skill filters"
+            accessibilityLabel="Clear Explore search and filters"
             onPress={resetExploreFilters} style={styles.exploreResetTarget}>
             <Text style={styles.exploreResetText}>Clear search and filters</Text>
           </Pressable>}
         </View> :
-          explore.map(post => <View key={post.id} style={styles.exploreCard}>
+          visibleExplore.map(post => <View key={post.id} style={styles.exploreCard}>
             <Pressable accessibilityRole="button" accessibilityLabel={"Open sample profile for " + post.name}
               onPress={() => open("creator", post)} style={styles.exploreIdentity}>
               <View style={[styles.exploreImage, { backgroundColor: post.bg }]}>
@@ -599,6 +618,11 @@ const styles = StyleSheet.create({
   explorePrice: { color: C.ink, fontSize: 13, fontWeight: "800", marginTop: 7 },
   exploreWorkPreview: { color: C.muted, fontSize: 12, lineHeight: 18, marginTop: 6 },
   exploreResultsCount: { color: C.muted, fontSize: 12, marginBottom: 12 },
+  exploreSavedFilter: { minHeight: layout.minTapTarget, flexDirection: "row", alignItems: "center",
+    gap: 9, paddingHorizontal: 14, backgroundColor: C.white, borderRadius: 15, marginTop: 12 },
+  exploreSavedFilterActive: { backgroundColor: "#DCECCF" },
+  exploreSavedFilterText: { flex: 1, color: C.ink, fontSize: 13, fontWeight: "800" },
+  exploreSavedFilterCount: { color: C.muted, fontSize: 12, fontWeight: "700" },
   exploreEmpty: { gap: 11, paddingBottom: 20 },
   exploreResetTarget: { minHeight: layout.minTapTarget, backgroundColor: C.white,
     borderRadius: 14, alignItems: "center", justifyContent: "center" },
