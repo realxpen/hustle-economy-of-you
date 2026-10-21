@@ -1,6 +1,8 @@
 # Hustle — Next recovery and activation milestones
 
-Prepared: 2026-10-19. Updated: 2026-10-21. Status: **FRESH BACKUP AND NATIVE DATABASE/FILE RESTORE PASSED; AUTH/ACCESS AND PRODUCTION ACTIVATION REMAIN PENDING**.
+Prepared: 2026-10-19. Updated: 2026-10-21. Status: **ACTUAL BACKUP RESTORE AND ORIGINAL ACCOUNT/PRIVATE ACCESS PASSED; MIGRATION EQUIVALENCE AND PRODUCTION ACTIVATION PENDING**.
+
+Latest evidence supersedes older private-access-pending statements below: [run 39650103698 attempt 3](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39650103698/attempts/3) passed native import, ten file hashes/Storage API reads, original password sign-in/refresh, six private proofs with other-user/anonymous/public-route denial, metadata/policy/ledger preservation and cleanup. Independently downloaded report SHA-256: `11dd47b5f900f6b1fac932033f3a4a73ca8032fe60c53e82152a271dffe9bc89`. No production access; full recovery unverified. Next is [the saved native migration audit](HUSTLE_NATIVE_MIGRATION_AUDIT.md), not another backup/access setup. Actual schema comparison and restored-data migration rehearsal have not run.
 
 ## Completed baseline
 

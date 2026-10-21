@@ -5,6 +5,8 @@ State: **READ-ONLY PREPARED / NOT ACTIVATED**. No database DDL, Prisma migration
 
 ## Current preparation record — 2026-10-21
 
+Latest evidence: [actual native backup access run 39650103698 attempt 3](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39650103698/attempts/3) **PASSED**. Ten original file hashes/API reads, one restored account login/refresh, six private proof permission checks, original metadata/policy preservation and cleanup are verified. Older private-access-pending statements below are superseded. [The saved native migration audit](HUSTLE_NATIVE_MIGRATION_AUDIT.md) is next; actual schema comparison, restored-data migration rehearsal and production activation remain pending. No live ledger repair or DDL is authorized.
+
 The fresh October 20 encrypted backup and local native database/file restore have **passed**; see the exact set/report fingerprints and limitations in [the recovery plan](HUSTLE_FULL_RECOVERY_AND_ACTIVATION_PLAN.md). Do not repeat the older backup instructions below to restart this stage. The separate real login/private-proof API rehearsal has **not run** because its private credentials are not connected to an approved runtime. The owner requested agent-run engineering checks; use [the generated cloud contract](HUSTLE_AUTOMATED_RECOVERY_CHECKS.md) and continue independent review rather than assigning terminal work. Full recovery and production activation remain unverified.
 
 A new metadata-only query ran inside `BEGIN READ ONLY` against the existing Hustle project. It read migration names/status, object/column existence and aggregate role privileges, without reading application/Auth user rows or changing the source. Results:

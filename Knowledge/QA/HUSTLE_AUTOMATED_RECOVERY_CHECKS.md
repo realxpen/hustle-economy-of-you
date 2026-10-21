@@ -1,6 +1,8 @@
 # Hustle — Agent-run recovery engineering checks
 
-Date: 2026-10-21. Status: **GENERATED CLOUD RECOVERY CONTRACT PASSED; ACTUAL PRIVATE BACKUP LOGIN/ACCESS PENDING SECURE RUNTIME ACCESS**.
+Date: 2026-10-21. Status: **GENERATED AND ACTUAL PRIVATE BACKUP LOGIN/ACCESS CONTRACTS PASSED**.
+
+Latest evidence supersedes private-access-pending statements below: [run 39650103698 attempt 3](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39650103698/attempts/3) passed the exact October 20 native backup, ten original files/API reads, original account login/refresh, six private proof permission checks and cleanup. Independently downloaded JSON report SHA-256 `11dd47b5f900f6b1fac932033f3a4a73ca8032fe60c53e82152a271dffe9bc89`. Next: [saved native migration audit](HUSTLE_NATIVE_MIGRATION_AUDIT.md). Full disaster recovery and production activation remain unverified.
 
 ## Owner workflow
 

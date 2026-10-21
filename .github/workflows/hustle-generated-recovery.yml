@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/hustle-generated-recovery.yml'
       - '.github/workflows/hustle-native-backup-access.yml'
+      - '.github/workflows/hustle-native-migration-audit.yml'
       - 'scripts/recovery/native_contract/**'
       - 'apps/api/prisma/**'
       - 'Knowledge/QA/HUSTLE_AUTOMATED_RECOVERY_CHECKS.md'
@@ -13,6 +14,7 @@ on:
     paths:
       - '.github/workflows/hustle-generated-recovery.yml'
       - '.github/workflows/hustle-native-backup-access.yml'
+      - '.github/workflows/hustle-native-migration-audit.yml'
       - 'scripts/recovery/native_contract/**'
       - 'apps/api/prisma/**'
   workflow_dispatch:
@@ -46,7 +48,7 @@ jobs:
           PYTHONWARNINGS: error::ResourceWarning
         run: |
           python -m pip install --disable-pip-version-check --only-binary=:all: --require-hashes -r requirements.lock
-          python -m unittest -v test_restore.py test_access.py test_cloud_contract.py test_private_cloud.py
+          python -m unittest -v test_restore.py test_access.py test_cloud_contract.py test_private_cloud.py test_migration_audit.py
 
   generated-native-api:
     name: Generated PostgreSQL 17 restore, login and private-file permissions
@@ -67,6 +69,7 @@ jobs:
         run: |
           python scripts/recovery/native_contract/cloud_contract.py
           python scripts/recovery/native_contract/private_fixture.py
+          python scripts/recovery/native_contract/migration_audit.py
       - name: Record the tested scope
         if: always()
         env:
@@ -75,5 +78,5 @@ jobs:
           {
             echo "Generated recovery contract: $CONTRACT_STATUS"
             echo 'Generated data only; no production credentials, private backup or account prompts.'
-            echo 'Actual October 20 backup login/access and full disaster recovery remain unverified.'
+            echo 'This run is generated-only; actual private-backup acceptance is recorded separately. Full disaster recovery remains unverified.'
           } >> "$GITHUB_STEP_SUMMARY"
