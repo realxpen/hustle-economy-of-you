@@ -375,12 +375,26 @@ function Experience() {
               </View>
               <I name="chevron-forward" color={C.ink} size={20}/>
             </Pressable>
-            <Pressable accessibilityRole="button"
-              accessibilityLabel={"See fictional work by " + post.name + " in Feed"}
-              accessibilityHint="Opens the matching illustrated sample post in For You"
-              onPress={() => openWorkInFeed(post.id)} style={styles.exploreWorkTarget}>
-              <Text style={styles.exploreWorkText}>See work ↗</Text>
-            </Pressable>
+            <View style={styles.exploreActions}>
+              <Pressable accessibilityRole="button"
+                accessibilityLabel={"See fictional work by " + post.name + " in Feed"}
+                accessibilityHint="Opens the matching illustrated sample post in For You"
+                onPress={() => openWorkInFeed(post.id)} style={styles.exploreWorkTarget}>
+                <Text style={styles.exploreWorkText}>See work ↗</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button"
+                accessibilityLabel={"Manage local saved collections for " + post.name}
+                accessibilityState={{ selected: (saves[post.id] || []).length > 0 }}
+                accessibilityHint={(saves[post.id] || []).length
+                  ? "Saved locally to " + saves[post.id].join(" and ") + ". Opens collections."
+                  : "Choose Inspiration or Outfit ideas. Nothing saved to a server."}
+                onPress={() => open("save", post)} style={styles.exploreSaveTarget}>
+                <I name={(saves[post.id] || []).length ? "bookmark" : "bookmark-outline"} color={C.ink} size={17}/>
+                <Text style={styles.exploreWorkText}>
+                  {(saves[post.id] || []).length ? "Saved ✓" : "Save work"}
+                </Text>
+              </Pressable>
+            </View>
           </View>)}
         <View style={styles.demoNotice}><I name="information-circle-outline" color={C.ink}/><Text style={styles.demoNoticeText}>These are fictional examples. Map locations and real availability are not connected.</Text></View>
       </ScrollView>
@@ -571,8 +585,13 @@ const styles = StyleSheet.create({
   categoryText: { fontWeight: "800", color: C.ink, fontSize: 13 },
   exploreCard: { backgroundColor: C.white, borderRadius: 18, marginBottom: 11, padding: 11, gap: 7 },
   exploreIdentity: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 83 },
-  exploreWorkTarget: { alignItems: "center", justifyContent: "center", minHeight: layout.minTapTarget,
+  exploreActions: { flexDirection: "row", alignItems: "stretch",
     borderTopWidth: 1, borderTopColor: "#E8EDE4" },
+  exploreWorkTarget: { flex: 1, alignItems: "center", justifyContent: "center",
+    minHeight: layout.minTapTarget },
+  exploreSaveTarget: { flex: 1, flexDirection: "row", gap: 6, alignItems: "center",
+    justifyContent: "center", minHeight: layout.minTapTarget,
+    borderLeftWidth: 1, borderLeftColor: "#E8EDE4" },
   exploreWorkText: { color: C.ink, fontSize: 13, fontWeight: "800" },
   exploreImage: { width: 75, height: 83, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   exploreTitle: { color: C.ink, fontWeight: "900", fontSize: 15 },
