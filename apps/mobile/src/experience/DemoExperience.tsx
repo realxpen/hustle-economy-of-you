@@ -423,12 +423,20 @@ function Experience() {
             {sheet === "save" && <><Text style={styles.mutedText}>Organize your saved inspiration. Saved only on this screen until the app closes.</Text>
               {(["Inspiration","Outfit ideas"] as const).map(collection => {
                 const enabled = (saves[current.id] || []).includes(collection);
-                return <Pressable key={collection} onPress={() => toggleSave(current.id, collection)} style={styles.sheetChoice}>
+                return <Pressable key={collection} onPress={() => toggleSave(current.id, collection)}
+                  accessibilityRole="checkbox" accessibilityState={{ checked: enabled }}
+                  accessibilityLabel={collection + (enabled ? " · saved locally" : " · add to local collection")}
+                  style={[styles.sheetChoice, enabled && styles.sheetChoiceSelected]}>
                   <I name={enabled ? "checkbox" : "square-outline"} color={C.ink}/>
                   <Text style={styles.choiceText}>{collection}</Text>
-                  <Text style={styles.mutedText}>{enabled ? "Saved" : "Add"}</Text>
+                  <Text style={styles.mutedText}>{enabled ? "Saved ✓" : "Add"}</Text>
                 </Pressable>;
               })}
+              <Text style={styles.saveFeedback}>
+                {savedCollectionsForPost.length
+                  ? "Saved locally to " + savedCollectionsForPost.join(" and ") + "."
+                  : "Not saved to any collection."}
+              </Text>
               <Button title="Done" onPress={close}/>
             </>}
             {sheet === "share" && <><Text style={styles.mutedText}>Share the idea, not a live booking link. This is fictional content.</Text>
@@ -546,6 +554,12 @@ const styles = StyleSheet.create({
   button: { backgroundColor: C.lime, marginTop: 13, borderRadius: radii.button, paddingVertical: 16, paddingHorizontal: 16, alignItems: "center" },
   buttonText: { fontWeight: "900", fontSize: 14, color: C.ink, textAlign: "center" },
   commentRow: { flexDirection: "row", gap: 11, marginBottom: 18 },
+  commentReplyRow: { marginLeft: 25, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: C.muted },
+  commentsSummary: { color: C.muted, fontSize: 12, marginBottom: 13, lineHeight: 18 },
+  replyTarget: { minHeight: layout.minTapTarget, alignSelf: "flex-start", justifyContent: "center" },
+  replyContext: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8, paddingHorizontal: 10, backgroundColor: "#E8EDE2", borderRadius: 12 },
+  replyContextText: { color: C.ink, flex: 1, fontSize: 12, fontWeight: "700" },
+  cancelReplyTarget: { minHeight: layout.minTapTarget, justifyContent: "center", paddingHorizontal: 10 },
   commentAvatar: { backgroundColor: "#DCEACF", width: 37, height: 37, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   commentName: { fontSize: 13, color: C.ink, fontWeight: "800" },
   commentBody: { marginTop: 5, fontSize: 13, color: C.ink },
@@ -554,6 +568,8 @@ const styles = StyleSheet.create({
   commentInput: { flex: 1, minHeight: layout.minTapTarget, color: C.ink, fontSize: 15 },
   sendTarget: { minHeight: layout.minTapTarget, minWidth: layout.minTapTarget, alignItems: "center", justifyContent: "center" },
   sheetChoice: { flexDirection: "row", gap: 14, backgroundColor: C.white, padding: 17, borderRadius: 14, marginTop: 12, alignItems: "center" },
+  sheetChoiceSelected: { borderWidth: 2, borderColor: C.ink, padding: 15 },
+  saveFeedback: { color: C.muted, fontSize: 12, lineHeight: 18, marginTop: 12 },
   choiceText: { color: C.ink, fontWeight: "800", fontSize: 14, flex: 1 },
   creatorPanel: { flexDirection: "row", gap: 15, alignItems: "center", marginTop: 8, marginBottom: 20 },
   creatorAvatar: { width: 78, height: 78, borderRadius: 40, alignItems: "center", justifyContent: "center" },
