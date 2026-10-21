@@ -46,7 +46,7 @@ assert.match(demo, /regularFeedIndex\.current/);
 assert.match(demo, /initialScrollIndex=\{Math\.min\(index,/);
 assert.match(demo, /if \(!savedOnly\) regularFeedIndex\.current = next;/);
 assert.match(demo, /setIndex\(regularFeedIndex\.current\)/);
-assert.match(demo, /onPress=\{openSavedCollection\}/);
+assert.match(demo, /onPress=\{\(\) => openSavedCollection\(collection\)\}/);
 assert.match(demo, /onPress=\{\(\) => selectRootTab\("Explore"\)\}/);
 assert.match(demo, /paddingBottom: bottomReserve/);
 assert.match(demo, /bottom: bottomReserve/);
