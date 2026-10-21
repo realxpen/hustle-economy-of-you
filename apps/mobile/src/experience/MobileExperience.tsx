@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Modal,
+  ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Linking, Modal,
   Platform, Pressable, ScrollView, Share, StatusBar, StyleSheet, Text,
   TextInput, useWindowDimensions, View
 } from 'react-native';
@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { syncMobileAccount } from '../lib/account';
 import { mobileApi, type FeedItem, type FeedTab, type Offer, type PostComment, type SearchResult, type BookingSlot } from './feed-api';
+import { connectedSearchWebLink, describeMobileSearchResult } from '../ux004/discovery/connectedSearchResult';
 
 const C = { dark: '#121714', lime: '#C9F26B', paper: '#F7F6F2', white: '#FFFFFF', muted: '#727A70', card: '#E9EEE4' };
 type Screen = 'Home' | 'Explore' | 'Inbox' | 'You';
@@ -84,6 +85,8 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
+  const searchSeq = useRef(0);
   const [bookingDate, setBookingDate] = useState(() => new Date(Date.now() + 86_400_000).toISOString().slice(0, 10));
   const [slots, setSlots] = useState<BookingSlot[]>([]);
   const [slotMode, setSlotMode] = useState('');
@@ -184,12 +187,40 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     } catch (err) { Alert.alert('Comment not sent', err instanceof Error ? err.message : 'Try again.'); }
     finally { setWorking(false); }
   }
-  async function performSearch() {
-    if (!searchText.trim()) { setSearchResults([]); return; }
-    setSearchError(''); setSearchLoading(true);
-    try { const result = await mobileApi.search(token, searchText.trim()); setSearchResults(result.items); }
-    catch (err) { setSearchResults([]); setSearchError(err instanceof Error ? err.message : 'Search failed.'); }
-    finally { setSearchLoading(false); }
+  // Invalidate pending responses whenever the query changes, so a slower
+  // previous request cannot overwrite the user's latest results or errors.
+  useEffect(() => () => { searchSeq.current += 1; }, [token]);
+  function editSearch(next: string) {
+    searchSeq.current += 1;
+    setSearchText(next);
+    setSearchResults([]);
+    setSearchError('');
+    setHasSearched(false);
+    setSearchLoading(false);
+  }
+  async function runSearch(input: string) {
+    const query = input.trim();
+    const seq = ++searchSeq.current;
+    setSearchText(input);
+    setSearchResults([]);
+    setSearchError('');
+    setHasSearched(Boolean(query));
+    if (!query) { setSearchLoading(false); return; }
+    setSearchLoading(true);
+    try {
+      const result = await mobileApi.search(token, query);
+      if (seq === searchSeq.current) setSearchResults(result.items);
+    } catch (err) {
+      if (seq === searchSeq.current) setSearchError(err instanceof Error ? err.message : 'Search failed.');
+    } finally {
+      if (seq === searchSeq.current) setSearchLoading(false);
+    }
+  }
+  async function openSearchResult(item: SearchResult) {
+    const url = connectedSearchWebLink(item, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL);
+    if (!url) return;
+    try { await Linking.openURL(url); }
+    catch { Alert.alert('Public page unavailable', 'Could not open this Hustle page in your browser.'); }
   }
   const offerService = active?.services.find(s => s.id === offerId) || null;
   useEffect(() => {
@@ -279,14 +310,41 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
           ListFooterComponent={loadingMore ? <ActivityIndicator color={C.lime} /> : feedError ? <Pressable onPress={() => void fetchMore()}><Text style={styles.errorSmall}>{feedError} · Retry</Text></Pressable> : null} /> : null}
     {screen === 'Explore' && <View style={[styles.lightPage, { paddingTop: insets.top + 18 }]}>
       <Text style={styles.pageTitle}>Explore</Text><Text style={styles.subline}>Find skills, people, services and products.</Text>
-      <View style={styles.searchRow}><Icon name="search" color={C.dark} size={20} /><TextInput accessibilityLabel="Search Hustle" placeholder="Try 'tailor in Lagos'" placeholderTextColor={C.muted} style={styles.searchInput} value={searchText} onChangeText={setSearchText} onSubmitEditing={() => void performSearch()} returnKeyType="search"/><Pressable onPress={() => void performSearch()}><Icon name="arrow-forward" color={C.dark} size={20}/></Pressable></View>
-      <ScrollView keyboardShouldPersistTaps="handled"><Text style={styles.sectionTitle}>Browse by skill</Text><View style={styles.chips}>{['Beauty','Fashion','Home','Media','Digital'].map(category => <Pressable key={category} style={styles.chip} onPress={() => { setSearchText(category); setSearchLoading(true); mobileApi.search(token, category).then(p => setSearchResults(p.items)).catch(e => setSearchError(String(e.message || e))).finally(() => setSearchLoading(false)); }}><Text style={styles.chipText}>{category}</Text></Pressable>)}</View>
+      <View style={styles.searchRow}><Icon name="search" color={C.dark} size={20} /><TextInput accessibilityLabel="Search Hustle" placeholder="Try 'tailor in Lagos'" placeholderTextColor={C.muted} style={styles.searchInput} value={searchText} onChangeText={editSearch} onSubmitEditing={() => void runSearch(searchText)} returnKeyType="search"/><Pressable accessibilityRole="button" accessibilityLabel="Search published Hustle records"
+          onPress={() => void runSearch(searchText)} style={styles.searchSubmit}>
+          <Icon name="arrow-forward" color={C.dark} size={20}/>
+        </Pressable></View>
+      <ScrollView keyboardShouldPersistTaps="handled"><Text style={styles.sectionTitle}>Browse by skill</Text><View style={styles.chips}>{['Beauty','Fashion','Home','Media','Digital'].map(category => <Pressable key={category} style={styles.chip} accessibilityRole="button"
+            accessibilityLabel={"Search skill " + category}
+            onPress={() => void runSearch(category)}><Text style={styles.chipText}>{category}</Text></Pressable>)}</View>
         <Text style={styles.sectionTitle}>Nearby discovery</Text><View style={styles.mapPlaceholder}><Icon name="map-outline" color="#354C38" size={34}/><Text style={styles.mapText}>Live map not connected</Text><Text style={styles.meta}>Search works now. Map pins require a location provider and verified coordinates.</Text></View>
-        <Text style={styles.sectionTitle}>Search results</Text>{searchLoading ? <ActivityIndicator /> : searchError ? <Text style={styles.meta}>{searchError}</Text> : searchResults.length ? searchResults.map(result => {
-          const record = result.value as { service?: Offer; product?: Offer; owner?: { displayName?: string }; post?: { caption?: string } };
-          const title = record.service?.title || record.product?.title || record.owner?.displayName || record.post?.caption || result.kind;
-          return <View style={styles.resultCard} key={result.kind + result.id}><Icon name="sparkles-outline" color={C.dark}/><View style={{ flex: 1 }}><Text style={styles.resultTitle}>{title}</Text><Text style={styles.meta}>{result.kind} · Hustle</Text></View></View>;
-        }) : <Text style={styles.meta}>Search for a skill or select a category to find published Hustlers.</Text>}</ScrollView>
+        <Text style={styles.sectionTitle}>Search results</Text>
+        {searchLoading ? <ActivityIndicator accessibilityLabel="Searching published Hustle records" /> :
+          searchError ? <View><Text style={styles.meta}>{searchError}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Retry Hustle search"
+              onPress={() => void runSearch(searchText)} style={styles.searchRetry}>
+              <Text style={styles.searchRetryText}>Retry search</Text>
+            </Pressable></View> :
+          searchResults.length ? searchResults.map(result => {
+            const view = describeMobileSearchResult(result);
+            const url = connectedSearchWebLink(result, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL);
+            return <Pressable key={result.kind + result.id} style={styles.resultCard}
+              accessibilityRole="link" accessibilityState={{ disabled: !url }}
+              accessibilityLabel={view.kindLabel + ": " + view.title}
+              accessibilityHint={url ? "Opens the public Hustle page in your browser"
+                : "Public page opening is unavailable in this build"}
+              disabled={!url} onPress={() => void openSearchResult(result)}>
+              <Icon name="sparkles-outline" color={C.dark}/>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.resultTitle} numberOfLines={2}>{view.title}</Text>
+                <Text style={styles.meta} numberOfLines={2}>{view.kindLabel} · {view.detail}</Text>
+                <Text style={styles.meta}>{url ? "View public page ↗" : "Public link unavailable"}</Text>
+              </View>
+            </Pressable>;
+          }) : <Text style={styles.meta}>
+            {hasSearched ? "No published matches for this search. Try a different skill or name."
+              : "Search for a skill or select a category to find published Hustlers."}
+          </Text>}</ScrollView>
     </View>}
     {(screen === 'Inbox' || screen === 'You') && <View style={[styles.lightPage, { paddingTop: insets.top + 18 }]}><Text style={styles.pageTitle}>{screen}</Text><Text style={styles.subline}>{screen === 'You' ? session.user.email || 'Your Hustle identity' : 'Messages'}</Text><Text style={styles.meta}>{screen === 'Inbox' ? 'Messaging UI will use the authenticated Hustle messaging API in a later mobile milestone.' : 'One account. Client capability first. Hustler and Agent capabilities unlock on the same account.'}</Text>{screen === 'You' ? <Action onPress={() => void onSignOut()}>Sign out</Action> : null}</View>}
     <View style={[styles.nav, { bottom: Math.max(10, insets.bottom) }]}>
@@ -361,7 +419,10 @@ const styles = StyleSheet.create({
   navItem: { width: 52, height: 43, borderRadius: 23, alignItems: 'center', justifyContent: 'center' }, navSelected: { backgroundColor: C.lime },
   lightPage: { flex: 1, backgroundColor: C.paper, paddingHorizontal: 23 }, pageTitle: { fontSize: 29, fontWeight: '900', color: C.dark },
   subline: { color: C.muted, marginTop: 8, marginBottom: 18 }, searchRow: { height: 50, backgroundColor: C.white, paddingHorizontal: 15, borderRadius: 16, flexDirection: 'row', alignItems: 'center' },
-  searchInput: { flex: 1, marginLeft: 8, color: C.dark }, sectionTitle: { fontSize: 19, fontWeight: '800', marginVertical: 20, color: C.dark },
+  searchInput: { flex: 1, marginLeft: 8, color: C.dark },
+  searchSubmit: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  searchRetry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  searchRetryText: { fontWeight: '800', color: C.dark }, sectionTitle: { fontSize: 19, fontWeight: '800', marginVertical: 20, color: C.dark },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, chip: { backgroundColor: '#DFECCF', padding: 14, borderRadius: 16 },
   chipText: { fontSize: 13, fontWeight: '800', color: C.dark }, mapPlaceholder: { height: 160, backgroundColor: '#E6EDDE', borderRadius: 18, justifyContent: 'center', alignItems: 'center', gap: 6, padding: 16 },
   mapText: { fontWeight: '800', color: '#354C38' }, meta: { fontSize: 12, color: C.muted, lineHeight: 18, marginTop: 9 },
