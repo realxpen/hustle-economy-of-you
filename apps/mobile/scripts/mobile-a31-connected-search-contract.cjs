@@ -15,6 +15,10 @@ const repo = path.resolve(mobile,"../..");
 const read = p => fs.readFileSync(path.join(repo,p),"utf8");
 const helperPath = path.join(mobile,"src/ux004/discovery/connectedSearchResult.ts");
 const helperSource = fs.readFileSync(helperPath,"utf8");
+const modelImport = helperSource.match(/import type \{ SearchResult \} from "([^"]+)"/);
+assert.ok(modelImport, "Helper must import actual connected feed-api SearchResult type");
+assert.ok(fs.existsSync(path.resolve(path.dirname(helperPath),modelImport[1]+".ts")),
+  "Actual TypeScript import path must resolve (transpile-only Node tests erase type imports)");
 const app = read("apps/mobile/src/experience/MobileExperience.tsx");
 const client = read("apps/mobile/src/experience/feed-api.ts");
 const server = read("apps/api/src/search/search.service.ts");
