@@ -55,6 +55,7 @@ jobs:
           node apps/mobile/scripts/ux004-a22-social-contract.cjs
           node apps/mobile/scripts/ux004-a23-offer-contract.cjs
           node apps/mobile/scripts/ux004-a24-integration-contract.cjs
+          node apps/mobile/scripts/ux004-a25-explore-work-contract.cjs
           node apps/mobile/scripts/cloud-preview-config-gate.cjs
           npm run typecheck --workspace=@hustle/mobile
       - name: Prevent duplicate React dispatcher crash before queuing EAS
