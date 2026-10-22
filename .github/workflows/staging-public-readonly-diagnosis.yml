@@ -1,0 +1,25 @@
+name: Hustle Hosted Staging Read-Only HTTP Diagnosis
+
+on:
+  pull_request:
+    paths:
+      - "scripts/staging/public-readonly-health.cjs"
+      - ".github/workflows/staging-public-readonly-diagnosis.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  anonymous-diagnosis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Probe only approved isolated HTTPS host, GET-only
+        run: node scripts/staging/public-readonly-health.cjs
