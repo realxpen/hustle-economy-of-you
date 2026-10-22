@@ -31,6 +31,14 @@ export type SearchResult = {
   owner?: { displayName?: string | null; location?: string | null };
 };
 export type SearchPage = { items: SearchResult[]; hasMore: boolean; nextCursor: string | null };
+export type SearchTab = 'top' | 'people' | 'posts' | 'services' | 'products';
+
+/** The backend owns each tab's ranking and cursor; no client-side result slicing. */
+export function searchTabPath(tab: SearchTab, query: string, cursor?: string | null) {
+  const route = tab === 'top' ? '/search' : '/search/' + tab;
+  return route + '?q=' + encodeURIComponent(query) + '&limit=16'
+    + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '');
+}
 
 const base = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api/v1').replace(/\/$/, '');
 async function api<T>(token: string, path: string, method = 'GET', body?: unknown): Promise<T> {
@@ -57,6 +65,8 @@ export const mobileApi = {
     api<FeedPage>(token, '/feed/' + tab + '?limit=8' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '')),
   search: (token: string, query: string) =>
     api<SearchPage>(token, '/search?q=' + encodeURIComponent(query) + '&limit=16'),
+  searchTab: (token: string, tab: SearchTab, query: string, cursor?: string | null) =>
+    api<SearchPage>(token, searchTabPath(tab, query, cursor)),
   discussion: (token: string, postId: string) =>
     api<PostDiscussion>(token, '/posts/' + encodeURIComponent(postId) + '/interactions'),
   like: (token: string, postId: string, enabled: boolean) =>
