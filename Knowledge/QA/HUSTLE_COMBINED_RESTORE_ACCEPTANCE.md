@@ -1,5 +1,9 @@
 # Combined saved-restore acceptance
 
+## Actual combined acceptance — PASSED
+
+Verified actual saved-backup acceptance completed 2026-10-22T00:52:02Z: [run 39701670350](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39701670350), tested commit `083458676d5b196c63bce3c708aafee4cf07856a`. Independently downloaded the aggregate report and verified its ZIP SHA-256 `1d31790522aa2ebb92efe90d3802648e8588bb39b6b63b20da9ee75bf27fac35`; report SHA-256 `f500548bf9a2f2ea6df129b2c3bf668e9da11a50c07dc70dcad7e90cf80a09cf`. Both generated and protected private jobs passed. The original October 20 backup/inventory anchors matched. Nine historical contracts and nine historical resolutions passed; five pending migrations deployed, 41 successful migrations checked, all original Prisma rows retained including the reviewed legacy checksum, Supabase history unchanged, and a second deploy was a no-op. All 93 original non-Prisma table fingerprints survived deployment. The real application/payment sandbox, non-bypass booking concurrency/extensions, original owner login/refresh, six private proofs and owner/other-user/anonymous/public-route denial checks passed; all ten original files were rehashed and read through the API. There were zero original public-file fixtures, so this run provides no positive original-public-file evidence. Temporary containers and encrypted staging were removed. Production was neither accessed nor changed; no real money moved. This closes the specified saved-copy engineering acceptance phase without owner terminal work. It does not authorize production history changes/deployment or verify all accounts, MFA/OAuth/old sessions, later live writes, external configuration or full disaster recovery.
+
 Owner request, 2026-10-21: run the remaining engineering tests together without owner terminal work. Prior native login/file, nine-schema and five-SQL milestones are complete; this extends them rather than asking the owner to repeat setup.
 
 ## Scope and architecture
@@ -16,7 +20,7 @@ All plaintext remains in owned network-disabled containers with RAM-backed writa
 
 Generated and private results must remain distinct. Passing this run proves this saved dataset's specified migration/tooling, server service/HTTP sandbox flows, concurrent capacity and post-migration Auth/Storage behavior. UI smoke/typechecks/builds remain covered by Foundation CI. It does not test every mobile/device journey, MFA/OAuth, old sessions, every original account, external configuration recovery, real money movement, current live data or full disaster recovery. Production schema/history changes and deployment retain separate gates. The backup was non-atomic and predates any later live writes.
 
-Actual combined run: **NOT RUN** until its report has been independently downloaded and verified. A failure is diagnosed by the agent; no owner terminal handoff.
+Actual combined run: **PASSED**, independently downloaded and verified as recorded above. Earlier failed attempts below are superseded by the final passing run.
 
 The reused application suite also supports populated restores: it snapshots the initial 7/30-day analytics and notification counts, then asserts the exact changes produced by its generated identities. Unrelated existing activity is retained. The combined runner inserts a generated pre-existing observation in its owned clone before that suite starts, so generated CI exercises a nonzero baseline. No production service logic, permissions or source records are changed by this test correction.
 
