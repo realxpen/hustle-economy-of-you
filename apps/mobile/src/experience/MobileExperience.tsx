@@ -11,6 +11,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { syncMobileAccount } from '../lib/account';
 import { mobileApi, type FeedItem, type FeedTab, type Offer, type PostComment, type SearchResult, type SearchTab, type BookingSlot } from './feed-api';
 import { connectedSearchWebLink, describeMobileSearchResult } from '../ux004/discovery/connectedSearchResult';
+import { appendUniqueSearchResults } from '../ux004/discovery/connectedSearchPagination';
 
 const C = { dark: '#121714', lime: '#C9F26B', paper: '#F7F6F2', white: '#FFFFFF', muted: '#727A70', card: '#E9EEE4' };
 const SEARCH_TABS: ReadonlyArray<{ id: SearchTab; label: string }> = [
@@ -261,10 +262,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     try {
       const page = await mobileApi.searchTab(token, tab, query, cursor);
       if (seq !== searchSeq.current) return;
-      setSearchResults(old => {
-        const seen = new Set(old.map(item => item.kind + ':' + item.id));
-        return old.concat(page.items.filter(item => !seen.has(item.kind + ':' + item.id)));
-      });
+      setSearchResults(old => appendUniqueSearchResults(old, page.items));
       setSearchCursor(page.nextCursor);
       setSearchHasMore(page.hasMore);
     } catch (err) {
