@@ -154,7 +154,14 @@ def applications(database,runtime):
 const server=net.createServer(s=>{const d=net.connect(5432,'127.0.0.1');s.pipe(d);d.pipe(s);s.on('error',()=>d.destroy());d.on('error',()=>s.destroy());});
 server.listen(55439,'127.0.0.1',()=>{const c=spawn(process.execPath,['/app/scripts/payment-sandbox/run.mjs'],{stdio:'inherit'});c.on('exit',code=>server.close(()=>process.exit(code===0?0:1)));});"""
     runtime.execute(['-e',proxy],SANDBOX_URL,'APPLICATION_SANDBOX',timeout=420)
+    # Financial tables deliberately lack API-role table access. Verify no
+    # attempts were created through the separate guarded local administrator,
+    # retaining the application's original non-bypass privileges.
+    attempts_sql='BEGIN READ ONLY; SELECT count(*) FROM public."PaymentAttempt"; COMMIT;'
+    attempts_before=pending.sandbox_sql(database,attempts_sql)
     raw=runtime.execute(['/app/scripts/recovery/native_contract/application_acceptance.cjs'],API_URL,'BOOKING_CONCURRENCY')
+    core.require(pending.sandbox_sql(database,attempts_sql)==attempts_before,'ACCEPTANCE_FUNDING_ATTEMPTS',
+                 'Booking acceptance/start checks unexpectedly created a financial attempt.')
     expected={'last_slot_race_passed':True,'extension_race_and_conflict_passed':True,'participant_guards_passed':True,
               'unfunded_start_denied':True,'non_bypass_api_role':True}
     core.require(json.loads(raw)==expected,'ACCEPTANCE_APPLICATION_REPORT','The application result had unexpected fields.')

@@ -41,7 +41,7 @@ async function main(){
  stage='OCCUPIED_SLOT';await rejected(()=>service.accept(sellerIdentity,loserId,{}),409);
  assert.equal((await db.booking.findUniqueOrThrow({where:{id:loserId}})).status,'REQUESTED');
  stage='FUNDING_GUARD';await rejected(()=>service.start(sellerIdentity,winner.id),409);
- assert.equal(await db.paymentAttempt.count({where:{subjectType:'BOOKING',subjectId:winner.id}}),0);
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:winner.id}})).status,'PAYMENT_PENDING');
  assert.equal(await db.notification.count({where:{eventKey:`booking:${winner.id}:PAYMENT_PENDING`}}),1);
  // Free work exercises start/extension without inventing a paid funding event.
  stage='FREE_START';await db.service.update({where:{id:offer.id},data:{priceMinor:0}});
