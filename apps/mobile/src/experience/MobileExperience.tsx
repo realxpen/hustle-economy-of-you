@@ -9,11 +9,13 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { syncMobileAccount } from '../lib/account';
-import { mobileApi, type FeedItem, type FeedTab, type Offer, type PostComment, type SearchResult, type SearchTab, type BookingSlot } from './feed-api';
+import { mobileApi, type FeedItem, type FeedTab, type Offer, type PostComment, type SearchResult, type SearchTab, type BookingSlot, type SlotPage } from './feed-api';
 import { connectedSearchWebLink, describeMobileSearchResult } from '../ux004/discovery/connectedSearchResult';
 import { appendUniqueSearchResults } from '../ux004/discovery/connectedSearchPagination';
 import { currentSearchOffer, getSearchHustler, matchedPublishedOffers, searchHustlerPublicLink }
   from '../ux004/discovery/connectedOpportunity';
+import { currentEnquirySlots, enquiryNextDays, enquiryServiceId, enquirySlotLabel }
+  from '../ux004/discovery/connectedOpportunityAvailability';
 
 const C = { dark: '#121714', lime: '#C9F26B', paper: '#F7F6F2', white: '#FFFFFF', muted: '#727A70', card: '#E9EEE4' };
 const SEARCH_TABS: ReadonlyArray<{ id: SearchTab; label: string }> = [
@@ -96,6 +98,12 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
   const [opportunityMatches, setOpportunityMatches] = useState<SearchResult[]>([]);
   const [enquiryDraft, setEnquiryDraft] = useState('');
   const [enquiryReviewed, setEnquiryReviewed] = useState(false);
+  const [enquiryDate, setEnquiryDate] = useState(() => enquiryNextDays()[0]);
+  const [enquirySlotPage, setEnquirySlotPage] = useState<SlotPage | null>(null);
+  const [enquirySelectedSlot, setEnquirySelectedSlot] = useState<BookingSlot | null>(null);
+  const [enquirySlotLoading, setEnquirySlotLoading] = useState(false);
+  const [enquirySlotError, setEnquirySlotError] = useState('');
+  const enquirySlotsSeq = useRef(0);
   const [searchText, setSearchText] = useState('');
   const [searchTab, setSearchTab] = useState<SearchTab>('top');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -283,6 +291,52 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
       }
     }
   }
+  // A read-only GET may return after the user changes service/date or dismisses
+  // the sheet. Clear its prior information before any new provider/day lookup.
+  useEffect(() => () => { enquirySlotsSeq.current += 1; }, [token]);
+  function clearEnquirySlots() {
+    enquirySlotsSeq.current += 1;
+    setEnquirySlotPage(null);
+    setEnquirySelectedSlot(null);
+    setEnquirySlotError('');
+    setEnquirySlotLoading(false);
+    setEnquiryReviewed(false);
+  }
+  function startEnquiryPreview() {
+    clearEnquirySlots();
+    setEnquiryDate(enquiryNextDays()[0]);
+    setEnquiryDraft('');
+    setOpportunityStage('enquiry');
+  }
+  function chooseEnquiryDate(date: string) {
+    if (enquiryDate === date) return;
+    clearEnquirySlots();
+    setEnquiryDate(date);
+  }
+  async function checkEnquiryAvailability() {
+    const serviceId = enquiryServiceId(opportunitySelectedOffer);
+    if (!serviceId || opportunityStage !== 'enquiry') return;
+    const date = enquiryDate;
+    const seq = ++enquirySlotsSeq.current;
+    setEnquirySlotPage(null);
+    setEnquirySelectedSlot(null);
+    setEnquirySlotError('');
+    setEnquirySlotLoading(true);
+    setEnquiryReviewed(false);
+    try {
+      // Existing authenticated, read-only GET /bookings/slots. No hold or write.
+      const page = await mobileApi.slots(token, serviceId, date);
+      if (seq !== enquirySlotsSeq.current) return;
+      if (page.date !== date) throw new Error('Availability response did not match the requested day.');
+      setEnquirySlotPage(page);
+    } catch (err) {
+      if (seq === enquirySlotsSeq.current) setEnquirySlotError(
+        err instanceof Error ? err.message : 'Availability is temporarily unavailable.'
+      );
+    } finally {
+      if (seq === enquirySlotsSeq.current) setEnquirySlotLoading(false);
+    }
+  }
   function openOpportunity(item: SearchResult) {
     setOpportunitySource(item);
     setOpportunitySelectedOffer(item.kind === 'service' || item.kind === 'product' ? item : null);
@@ -290,7 +344,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     // represented as the provider's full catalogue or proof of post attachment.
     setOpportunityMatches(matchedPublishedOffers(searchResults, item));
     setEnquiryDraft('');
-    setEnquiryReviewed(false);
+    clearEnquirySlots();
     setOpportunityStage('profile');
   }
   function closeOpportunity() {
@@ -299,7 +353,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     setOpportunitySelectedOffer(null);
     setOpportunityMatches([]);
     setEnquiryDraft('');
-    setEnquiryReviewed(false);
+    clearEnquirySlots();
   }
   async function openSearchResult(item: SearchResult) {
     const url = connectedSearchWebLink(item, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL);
@@ -319,6 +373,9 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     ? searchHustlerPublicLink(opportunitySource, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL) : null;
   const opportunityPublicOffer = opportunitySelectedOffer
     ? connectedSearchWebLink(opportunitySelectedOffer, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL) : null;
+  const enquiryAvailableSlots = currentEnquirySlots(enquirySlotPage);
+  const enquirySlotTime = enquirySelectedSlot && enquirySlotPage
+    ? enquirySlotLabel(enquirySelectedSlot.startAt, enquirySlotPage.timezone) : null;
   const offerService = active?.services.find(s => s.id === offerId) || null;
   useEffect(() => {
     if (sheet !== 'booking' || !offerService) return;
@@ -566,7 +623,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                 </Text>
                 <Action secondary onPress={() => setOpportunityStage('profile')}>Back to Hustler profile</Action>
                 {opportunitySelectedOffer?.kind === 'service' && opportunityOffer && <Action
-                  onPress={() => { setEnquiryDraft(''); setEnquiryReviewed(false); setOpportunityStage('enquiry'); }}>
+                  onPress={startEnquiryPreview}>
                   Prepare a booking enquiry
                 </Action>}
                 <Action secondary disabled={!opportunityPublicOffer} onPress={() => {
@@ -580,6 +637,64 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                   Describe what you need. This is a local preview only — nothing will be sent,
                   booked or charged.
                 </Text>
+                <Text style={styles.opportunitySectionTitle}>Check published service availability</Text>
+                <Text style={styles.meta}>
+                  Times come from Hustle's authenticated schedule service when checked.
+                  Displayed times can change and are not reserved.
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                  style={{ flexGrow: 0, marginTop: 8 }}>
+                  {enquiryNextDays().map(date => <Pressable key={date}
+                    accessibilityRole="button" accessibilityState={{ selected: enquiryDate === date }}
+                    accessibilityLabel={"Choose calendar day " + date}
+                    onPress={() => chooseEnquiryDate(date)}
+                    style={[styles.dateChoice, enquiryDate === date && styles.selectedDate]}>
+                    <Text style={[styles.chipText, enquiryDate === date && { color: C.white }]}>
+                      {date.slice(5)}
+                    </Text>
+                  </Pressable>)}
+                </ScrollView>
+                <Action secondary disabled={enquirySlotLoading || !enquiryServiceId(opportunitySelectedOffer)}
+                  onPress={() => void checkEnquiryAvailability()}>
+                  {enquirySlotLoading ? 'Checking schedule…' : enquirySlotPage ? 'Refresh available times' : 'Check available times'}
+                </Action>
+                {!enquiryServiceId(opportunitySelectedOffer) && <Text style={styles.meta}>
+                  This service record has no matching canonical ID, so its schedule cannot be checked.
+                </Text>}
+                {enquirySlotLoading && <ActivityIndicator accessibilityLabel="Checking service appointment times"/>}
+                {Boolean(enquirySlotError) && <Text style={styles.meta} accessibilityLiveRegion="polite">
+                  Could not check available times: {enquirySlotError}. Try again.
+                </Text>}
+                {enquirySlotPage?.mode === 'APPOINTMENT' && <>
+                  <Text style={styles.meta}>
+                    {enquiryAvailableSlots.length
+                      ? "Listed appointment starts · " + enquirySlotPage.timezone + " · not reserved"
+                      : "No available appointment starts were returned for this day."}
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                    style={{ flexGrow: 0, marginTop: 8 }}>
+                    {enquiryAvailableSlots.map(slot => {
+                      const label = enquirySlotLabel(slot.startAt, enquirySlotPage.timezone);
+                      return label ? <Pressable key={slot.startAt}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: enquirySelectedSlot?.startAt === slot.startAt }}
+                        accessibilityLabel={"Prefer " + label + ", not reserved"}
+                        onPress={() => { setEnquirySelectedSlot(slot); setEnquiryReviewed(false); }}
+                        style={[styles.dateChoice, enquirySelectedSlot?.startAt === slot.startAt && styles.selectedDate]}>
+                        <Text style={[styles.chipText, enquirySelectedSlot?.startAt === slot.startAt && { color: C.white }]}>
+                          {label}
+                        </Text>
+                      </Pressable> : null;
+                    })}
+                  </ScrollView>
+                </>}
+                {enquirySlotPage && enquirySlotPage.mode !== 'APPOINTMENT' && <Text style={styles.meta}>
+                  {enquirySlotPage.mode === 'WORK_QUEUE'
+                    ? 'This service uses a work queue, not appointment slots.'
+                    : enquirySlotPage.mode === 'CONSULTATION'
+                      ? 'This service uses consultation scheduling, not public appointment slots.'
+                      : 'This service does not publish appointment slots through this endpoint.'}
+                </Text>}
                 <TextInput accessibilityLabel="Describe your booking enquiry"
                   multiline maxLength={1200} style={styles.requirements}
                   placeholder="What service do you need, and when would you prefer?"
@@ -593,6 +708,11 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                   accessibilityLiveRegion="polite">
                   <Text style={styles.resultTitle}>Enquiry prepared — not sent</Text>
                   <Text style={styles.opportunityDescription}>{enquiryDraft.trim()}</Text>
+                  <Text style={styles.meta}>
+                    {enquirySlotTime
+                      ? 'Preferred appointment: ' + enquiryDate + ', ' + enquirySlotTime + ' (not reserved)'
+                      : 'No confirmed appointment time selected; scheduling must be agreed with the provider.'}
+                  </Text>
                   <Text style={styles.meta}>
                     No provider has received this enquiry. Submission remains disabled pending
                     nonproduction booking acceptance.
