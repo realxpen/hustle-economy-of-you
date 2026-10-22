@@ -1,0 +1,79 @@
+name: Hustle Free Isolated Connected API Acceptance
+
+# This is an ephemeral, GitHub-runner-only staging analogue.
+# It NEVER uses live Supabase auth, Vercel, EAS or external secrets.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/experience/free-isolated-connected-api.cjs"
+      - ".github/workflows/hustle-free-isolated-connected-api.yml"
+      - "apps/api/src/search/**"
+      - "apps/api/src/booking/**"
+      - "apps/api/src/auth/**"
+      - "apps/api/prisma/**"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-free-connected-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  disposable-connected-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: sandbox_only
+          POSTGRES_DB: hustle_payment_sandbox
+        ports:
+          - 127.0.0.1:55439:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hustle_payment_sandbox"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:sandbox_only@127.0.0.1:55439/hustle_payment_sandbox?schema=public
+      # Product booking-write and finance providers remain OFF.
+      EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Require disposable localhost-only database
+        shell: bash
+        run: |
+          node -e 'const u=new URL(process.env.DATABASE_URL);if(process.env.NODE_ENV!=="test"||u.hostname!=="127.0.0.1"||u.port!=="55439"||u.pathname!=="/hustle_payment_sandbox")process.exit(1)'
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY VERCEL_TOKEN EXPO_TOKEN; do
+            if [[ -n "${!name:-}" ]]; then echo "::error::Unexpected external credential environment"; exit 1; fi
+          done
+      - name: Install locked workspaces
+        run: npm ci
+      - name: Create compatibility roles only inside throwaway Postgres
+        shell: bash
+        run: |
+          PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -f scripts/payment-sandbox/supabase-compat.sql
+      - name: Resolve already-represented historical Story policy migration
+        run: npx prisma migrate resolve --applied 20260917130500_phase16b_story_rls_hardening --schema=apps/api/prisma/schema.prisma
+      - name: Apply actual API migrations to disposable database
+        run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+      - name: Compile the real NestJS application
+        run: npm run build --workspace=@hustle/api
+      - name: Validate actual local HTTP search and booking slot reads
+        run: node scripts/experience/free-isolated-connected-api.cjs
+      - name: Confirm no external deployment occurred
+        run: echo "Only disposable localhost NestJS/PostgreSQL were exercised; no phone/staging Supabase auth or Vercel deployment."

@@ -1,0 +1,45 @@
+# Hustle — Free, isolated connected-API acceptance
+
+**Prepared:** October 22, 2026  
+**State:** Code ready for cloud test; successful execution must be confirmed from PR workflow logs.  
+**Cost target:** Existing GitHub hosted runner and throwaway PostgreSQL service, with **no new hosted database or billing agreement**.
+
+## Why this is the safe first staging step
+
+The owner explicitly authorized a **free, test-only Hustle environment** while keeping existing real data and payment systems untouched. Inspection of the connected Supabase account found that `MONIFlow` and `hustle-economy of you` already occupy two active projects in the user's Supabase organization; `Personal OS` is inactive. Supabase's free tier allows two active projects across organizations owned/administered by a user. Do not pause, repurpose or modify those apps merely to create a Hustle staging copy, and do not silently incur a third project's cost. Other providers such as Neon could supply isolated Postgres but **not a new independent Supabase Auth instance** required by the current connected Expo app.
+
+A separate, accessible, deployed HTTPS environment with real test sign-up remains a *different milestone*. This first stage creates an **ephemeral localhost-only** API test environment in a GitHub Actions runner, detached from all existing cloud account resources. It exercises the actual NestJS HTTP routes and Prisma migrations on PostgreSQL rather than merely parsing source or fabricating an API response.
+
+## Implementation
+
+Workflow: `.github/workflows/hustle-free-isolated-connected-api.yml`, triggered by relevant source PRs or an explicit manual dispatch.
+
+Test runner: `scripts/experience/free-isolated-connected-api.cjs`.
+
+- Launches a fresh PostgreSQL 16 container at **127.0.0.1:55439/hustle_payment_sandbox** inside the isolated Actions job and refuses every other database endpoint.
+- Reuses the existing isolated Supabase-compatibility DDL and the actual existing Prisma migrations. Never applies migrations to a hosted database.
+- Builds the **actual NestJS API**, imports its Search and Booking controllers, then binds it exclusively to **127.0.0.1** on an ephemeral port; the server never becomes public or accessible from a phone.
+- Installs two process-local synthetic bearer identities for the test runner **by temporarily overriding the auth service prototype inside that Node process**. This substitution is never compiled into product modules, API configuration, production deployments, or mobile preview. It does **not** prove real Supabase authentication, email confirmation or connected mobile login.
+- Creates disposable Client and ACTIVE Hustler rows, a published professional profile, actual published post/service/product records and both appointment/work-queue modes.
+- Makes real HTTP GET calls to the protected Search Top/People/Posts/Services/Products endpoints, verifies unauthorized/invalid-token rejection, canonical owner links, a real cursor page, and publication visibility.
+- Makes read-only HTTP GET calls to real `/bookings/slots` for an appointment day and work-queue mode; asserts date, timezone, backend-derived starts and capacities.
+- Asserts the database holds **zero Booking, PaymentAttempt, Escrow and SystemEvent records** after the journey. No Booking POST or payment request is ever issued.
+- Fails closed if the database URL, runtime mode, presence of production/provider tokens or HTTP destination differs from the approved localhost-only test fixture. Server and database are destroyed after the Actions job.
+
+## Evidence levels
+
+| Gate | What it proves | Not proved |
+|---|---|---|
+| Offline UX004 demos + Mobile Cloud CI | Static/source/pure-helper UX and Android compilation | Real signed-in interactions |
+| **Free isolated connected API acceptance** | Actual NestJS routing + authorization gate with synthetic local tokens, actual PostgreSQL migrations, published Search records, read-only schedule responses | Live Supabase Auth, hosted HTTPS, Android physical/device UI |
+| Future hosted test environment | Authorized nonproduction API, real test sign-in, separate nonproduction DB and test media | Production payments/custody |
+| Future approved connected Android preview | Installed Android app, sign-in → discovery → enquiry flow against approved staging | Real money without separately verified provider authority |
+
+**Never describe this ephemeral test runner as a permanent staging server or publicly reachable preview URL.** No new Vercel, Neon, or Supabase project was created by this change. Do not consume Expo EAS credits without further explicit owner approval.
+
+## Further decisions after successful CI
+
+- Resolve or plan around the Vercel preview quota in [issue #176](https://github.com/realxpen/hustle-economy-of-you/issues/176) without modifying production deployment protections.
+- Confirm an isolated **free** hosted auth+database project can become available (or find a free self-hosted authentication alternative), with a production-independent HTTPS API. Do not mix test identities with Hustle's existing live Supabase project.
+- Only then trigger the separately approved connected Expo build workflow, preserving `EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS=false`, and complete real physical Android acceptance from [issue #179](https://github.com/realxpen/hustle-economy-of-you/issues/179).
+- Record observed actual workflow run and exact commit before declaring this gate green.
