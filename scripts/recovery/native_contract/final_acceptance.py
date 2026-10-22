@@ -86,6 +86,8 @@ class Runtime(core.Database):
                 print((result.stdout+b'\n'+result.stderr).decode('utf8',errors='replace')[-5000:],flush=True)
             codes=re.findall(rb'\bP[0-9]{4}\b',result.stdout+b'\n'+result.stderr)
             suffix='_'+codes[0].decode() if codes else ''
+            source_line=re.search(rb'(?m)^SANDBOX_FAILURE_LINE:([0-9]{1,4})\b',result.stderr)
+            if source_line:suffix+='_LINE_'+source_line[1].decode()
             probe=re.search(rb'APPLICATION_ACCEPTANCE_FAILED:(ROLE|FIXTURES|PARTICIPANT_GUARDS|LAST_SLOT_RACE|OCCUPIED_SLOT|FUNDING_GUARD|FREE_START|EXTENSION_RACE|EXTENSION_CONFLICT|COMPLETE):',result.stderr)
             if probe:suffix+='_'+probe[1].decode()
             raise core.RestoreError('ACCEPTANCE_'+stage+suffix,'The isolated '+stage.lower().replace('_',' ')+' check failed; no private output was printed.')
@@ -165,23 +167,33 @@ def upgrade(database,runtime,historical,scopes,expected,affected,*,generated=Fal
 def applications(database,runtime):
     # access_contracts retains its fixed clone name and original SQL guards.
     pending.access_contracts(database)
+    # Ensure the application assertions genuinely tolerate pre-existing data.
+    # Generated marker lives only in the owned test clone, never the source DB.
+    pending.sandbox_sql(database,'''INSERT INTO public."SystemEvent"("id","name","source")
+        VALUES('generated-existing-activity','feed.view','web');''')
     # Forward only inside the isolated namespace to retain the existing suite's
     # exact postgres@127.0.0.1:55439/hustle_payment_sandbox connection guard.
     proxy="""const net=require('node:net'),{spawn}=require('node:child_process');
 const server=net.createServer(s=>{const d=net.connect(5432,'127.0.0.1');s.pipe(d);d.pipe(s);s.on('error',()=>d.destroy());d.on('error',()=>s.destroy());});
 server.listen(55439,'127.0.0.1',()=>{const c=spawn(process.execPath,['/app/scripts/payment-sandbox/run.mjs'],{stdio:'inherit'});c.on('exit',code=>server.close(()=>process.exit(code===0?0:1)));});"""
-    runtime.execute(['-e',proxy],SANDBOX_URL,'APPLICATION_SANDBOX',timeout=420)
+    failures=[]
+    try:runtime.execute(['-e',proxy],SANDBOX_URL,'APPLICATION_SANDBOX',timeout=420)
+    except core.RestoreError as error:failures.append(error.code)
     # Financial tables deliberately lack API-role table access. Verify no
     # attempts were created through the separate guarded local administrator,
     # retaining the application's original non-bypass privileges.
     attempts_sql='BEGIN READ ONLY; SELECT count(*) FROM public."PaymentAttempt"; COMMIT;'
-    attempts_before=pending.sandbox_sql(database,attempts_sql)
-    raw=runtime.execute(['/app/scripts/recovery/native_contract/application_acceptance.cjs'],API_URL,'BOOKING_CONCURRENCY')
-    core.require(pending.sandbox_sql(database,attempts_sql)==attempts_before,'ACCEPTANCE_FUNDING_ATTEMPTS',
-                 'Booking acceptance/start checks unexpectedly created a financial attempt.')
     expected={'last_slot_race_passed':True,'extension_race_and_conflict_passed':True,'participant_guards_passed':True,
               'unfunded_start_denied':True,'non_bypass_api_role':True}
-    core.require(json.loads(raw)==expected,'ACCEPTANCE_APPLICATION_REPORT','The application result had unexpected fields.')
+    try:
+        attempts_before=pending.sandbox_sql(database,attempts_sql)
+        raw=runtime.execute(['/app/scripts/recovery/native_contract/application_acceptance.cjs'],API_URL,'BOOKING_CONCURRENCY')
+        core.require(pending.sandbox_sql(database,attempts_sql)==attempts_before,'ACCEPTANCE_FUNDING_ATTEMPTS',
+                     'Booking acceptance/start checks unexpectedly created a financial attempt.')
+        core.require(json.loads(raw)==expected,'ACCEPTANCE_APPLICATION_REPORT','The application result had unexpected fields.')
+        print('BOOKING CONCURRENCY CHECKS PASSED: last slot, funding guard, extensions and participants.',flush=True)
+    except core.RestoreError as error:failures.append(error.code)
+    if failures:raise core.RestoreError('ACCEPTANCE_APPLICATION_CHECKS','Independent application checks failed: '+', '.join(failures))
 
 
 def api_checks(stack,folder,inputs,reference):
@@ -258,7 +270,10 @@ def private_contract(folder,inputs):
         print('[1/3] Rehearsing Prisma resolve/deploy and original data/schema checks.',flush=True)
         tables,rows,legacy_count=upgrade(stack.database,runtime,historical,scopes,expected,affected)
         print('[2/3] Running the real application sandbox and concurrent API-role Booking checks.',flush=True)
-        applications(stack.database,runtime)
+        failures=[]
+        try:applications(stack.database,runtime)
+        except core.RestoreError as error:
+            failures.append(error.code+': '+error.message)
         core.require(pending.fingerprints(stack.database,tables)==rows,'ACCEPTANCE_CLONE','Application tests changed the original restored database.')
         app_tables=[dict(t,columns=[c for c in t['columns'] if
             not (t['schema']=='storage' and t['table']=='objects' and c=='last_accessed_at')])
@@ -266,9 +281,16 @@ def private_contract(folder,inputs):
         app_rows=pending.fingerprints(stack.database,app_tables)
         history=ledger(stack.database)
         print('[3/3] Recovering files and testing original login/refresh and Storage access after migration.',flush=True)
-        proof_count,public_count=api_checks(stack,folder,inputs,reference)
+        api_passed=False
+        try:
+            proof_count,public_count=api_checks(stack,folder,inputs,reference)
+            api_passed=True
+        except core.RestoreError as error:
+            failures.append(error.code+': '+error.message)
         core.require(pending.fingerprints(stack.database,app_tables)==app_rows and ledger(stack.database)==history,
                      'ACCEPTANCE_API_ROWS','Post-migration API tests changed original application/Storage/history rows.')
+        if api_passed:print('POST-MIGRATION AUTH/STORAGE CHECKS PASSED: original owner login/refresh, file bytes and privacy boundaries.',flush=True)
+        if failures:raise core.RestoreError('ACCEPTANCE_STAGE_FAILURES','Independent checks completed without a passing report: '+'; '.join(failures))
         return {'original_non_prisma_tables_hashed':len(tables),'private_proofs_verified':proof_count,'public_files_verified':public_count,
                 'reviewed_legacy_live_media_checksum_count':legacy_count}
     finally:
