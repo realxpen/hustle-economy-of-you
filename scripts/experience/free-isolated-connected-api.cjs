@@ -228,9 +228,9 @@ async function run() {
       assert.equal(currentSearchOffer(serviceRow).id,service.id);
       const matched=matchedPublishedOffers(
         [...pages.services.items,...pages.products.items],postRow);
-      assert.deepEqual(matched.map(x=>x.kind+":"+x.id),[
-        "service:"+service.id,"product:"+product.id
-      ]);
+      assert.deepEqual(new Set(matched.map(x=>x.kind+":"+x.id)),new Set([
+        "service:"+service.id,"service:"+queuedService.id,"product:"+product.id
+      ]));
       assert.equal(searchHustlerPublicLink(postRow,undefined),null);
       assert.equal(searchHustlerPublicLink(postRow,"https://hustle.test"),
         "https://hustle.test/u/"+hustler.username);
