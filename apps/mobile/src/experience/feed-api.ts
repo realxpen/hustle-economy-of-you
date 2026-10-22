@@ -16,7 +16,20 @@ export type PostComment = { id: string; body: string; parentId: string | null; c
 export type PostDiscussion = { comments: PostComment[]; commentCount: number; likeCount: number; saveCount: number };
 export type BookingSlot = { startAt: string; endAt: string | null; available: boolean; remainingCapacity: number };
 export type SlotPage = { mode: string; date: string; timezone: string; slots: BookingSlot[] };
-export type SearchResult = { kind: string; id: string; value: Record<string, unknown> };
+/** SearchService.publicResult spreads canonical value fields onto each result. */
+export type SearchResult = {
+  kind: 'person' | 'post' | 'service' | 'product';
+  id: string;
+  url?: string | null;
+  person?: {
+    displayName?: string | null; username?: string | null; location?: string | null;
+    professionalProfile?: { headline?: string | null; primarySkill?: string | null } | null;
+  };
+  post?: { caption?: string | null; category?: string | null; location?: string | null };
+  service?: Offer & { category?: string | null; location?: string | null };
+  product?: Offer & { category?: string | null };
+  owner?: { displayName?: string | null; location?: string | null };
+};
 export type SearchPage = { items: SearchResult[]; hasMore: boolean; nextCursor: string | null };
 
 const base = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api/v1').replace(/\/$/, '');
