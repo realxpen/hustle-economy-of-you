@@ -23,7 +23,9 @@ The live bootstrap diagnostic isolated an ESM/CommonJS import failure before env
 - Fresh password sign-in and protected session restoration passed. The disposable session was then expired in the child database; the same hosted API rejected it with 401.
 - Cleanup read-back: zero auth users, password accounts, sessions, application Users/capabilities, Bookings, PaymentAttempts and EscrowRecords. The private temporary session file was removed. Both migration histories remain 41 application / 1 auth successful entries. The retired disabled-bootstrap URL was cleared from the staging secret store.
 
-Next: review/merge PR #197, prepare the connected preview build, and verify the actual native login/messaging journey on a device. Public hosted authentication success does not establish native SecureStore/UI acceptance, populated discovery, booking operation or production readiness. Historical sections below predate this verified deployment and must not restart the completed credential/hosted-auth milestone.
+The next connected preview is included in the same PR #197: EAS profile `isolated-staging` pins public API/auth configuration and disables demo/booking writes. The separate `Hustle Staging` package (`com.hustle.economyofyou.preview.staging`) coexists with earlier previews. The credential-free GitHub native workflow compiles an internal-test-signed arm64 Android release, verifies its manifest/signature and publishes the APK, SHA-256 and exact-source build metadata. Its current green run/artifact is the delivery authority; configuration or Metro export alone is not proof of an APK. No Expo credits, production signing credentials or app-store release are required by this workflow.
+
+Next: review/merge PR #197 and verify the actual native login/messaging journey on a device using an allowlisted disposable identity. Public hosted authentication success does not establish native SecureStore/UI acceptance, populated discovery, booking operation or production readiness. Historical sections below predate this verified deployment and must not restart the completed credential/hosted-auth milestone.
 
 ## Host ownership and immovable safety boundary
 

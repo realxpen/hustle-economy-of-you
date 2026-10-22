@@ -12,18 +12,19 @@ module.exports = ({ config }) => {
     ...(projectId ? { extra: { ...config.extra, eas: { ...config.extra?.eas, projectId } } } : {})
   };
   if (!isPreview) return base;
+  const isStaging = process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE === "isolated-staging";
   return {
     ...base,
     owner: "xpen",
-    name: "Hustle Preview",
+    name: isStaging ? "Hustle Staging" : "Hustle Preview",
     scheme: "hustle-preview",
     android: {
       ...base.android,
-      package: "com.hustle.economyofyou.preview"
+      package: isStaging ? "com.hustle.economyofyou.preview.staging" : "com.hustle.economyofyou.preview"
     },
     ios: {
       ...base.ios,
-      bundleIdentifier: "com.hustle.economyofyou.preview"
+      bundleIdentifier: isStaging ? "com.hustle.economyofyou.preview.staging" : "com.hustle.economyofyou.preview"
     }
   };
 };

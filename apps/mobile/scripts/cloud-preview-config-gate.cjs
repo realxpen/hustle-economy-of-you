@@ -9,7 +9,9 @@ const build = require("../eas.json").build;
 const makeConfig = require("../app.config.js");
 const oldVariant = process.env.APP_VARIANT;
 const oldProject = process.env.EXPO_PROJECT_ID;
+const oldScope = process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE;
 try {
+  delete process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE;
   process.env.APP_VARIANT = "preview";
   process.env.EXPO_PROJECT_ID = "eb9df9ee-5f3b-4e90-b9dc-36a770d00c25"; // test fixture only
   const preview = makeConfig({ config: base });
@@ -56,7 +58,21 @@ try {
   assert.match(workflow, /EXPO_PROJECT_ID: b52b03ef-37f1-4bdf-ab42-5c80e5988ec4/);
   assert.doesNotMatch(workflow, /vars.EXPO_PROJECT_ID|secrets.EXPO_PROJECT_ID/);
   assert.doesNotMatch(workflow, /e2e-android|e2e-ios|workflow:run|maestro/i);
-  assert.deepEqual(Object.keys(build).sort(), ["demo", "ios-simulator", "preview"]);
+  assert.deepEqual(Object.keys(build).sort(), ["demo", "ios-simulator", "isolated-staging", "preview"]);
+  const stage = build["isolated-staging"];
+  assert.equal(stage.extends, "preview");
+  assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER, "expo-better-auth");
+  assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_AUTH_URL, "https://hustle-isolated-staging-api.vercel.app/api/auth");
+  assert.equal(stage.env.EXPO_PUBLIC_API_URL, "https://hustle-isolated-staging-api.vercel.app/api/v1");
+  assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_DEMO, "false");
+  assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS, "false");
+  process.env.APP_VARIANT = "preview";
+  process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE = stage.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE;
+  const connected = makeConfig({ config: base });
+  assert.equal(connected.name, "Hustle Staging");
+  assert.equal(connected.android.package, "com.hustle.economyofyou.preview.staging");
+  assert.equal(connected.ios.bundleIdentifier, "com.hustle.economyofyou.preview.staging");
+  assert.equal(connected.scheme, "hustle-preview");
   assert.equal(build.demo.env.EXPO_PUBLIC_HUSTLE_DEMO, "true");
   assert.equal(build.demo.env.EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES, "false");
   assert.equal(build.demo.env.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS, "false");
@@ -69,4 +85,6 @@ try {
   else process.env.APP_VARIANT = oldVariant;
   if (oldProject === undefined) delete process.env.EXPO_PROJECT_ID;
   else process.env.EXPO_PROJECT_ID = oldProject;
+  if (oldScope === undefined) delete process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE;
+  else process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE = oldScope;
 }
