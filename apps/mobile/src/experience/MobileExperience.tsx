@@ -16,6 +16,8 @@ import { currentSearchOffer, getSearchHustler, matchedPublishedOffers, searchHus
   from '../ux004/discovery/connectedOpportunity';
 import { currentEnquirySlots, enquiryNextDays, enquiryServiceId, enquirySlotLabel }
   from '../ux004/discovery/connectedOpportunityAvailability';
+import { consultationWebLink, createEnquiryDelivery, prepareEnquiryMessage, type Delivery }
+  from '../ux004/discovery/enquiryConsultation';
 
 const C = { dark: '#121714', lime: '#C9F26B', paper: '#F7F6F2', white: '#FFFFFF', muted: '#727A70', card: '#E9EEE4' };
 const SEARCH_TABS: ReadonlyArray<{ id: SearchTab; label: string }> = [
@@ -104,6 +106,8 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
   const [enquirySlotLoading, setEnquirySlotLoading] = useState(false);
   const [enquirySlotError, setEnquirySlotError] = useState('');
   const enquirySlotsSeq = useRef(0);
+  const enquiryDelivery = useRef(createEnquiryDelivery(mobileApi));
+  const [enquiryDeliveryState, setEnquiryDeliveryState] = useState<Delivery>({ status: 'idle' });
   const [searchText, setSearchText] = useState('');
   const [searchTab, setSearchTab] = useState<SearchTab>('top');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -293,7 +297,15 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
   }
   // A read-only GET may return after the user changes service/date or dismisses
   // the sheet. Clear its prior information before any new provider/day lookup.
-  useEffect(() => () => { enquirySlotsSeq.current += 1; }, [token]);
+  useEffect(() => () => {
+    enquirySlotsSeq.current += 1;
+    enquiryDelivery.current.invalidate();
+  }, [token]);
+  function resetEnquiryDelivery() {
+    enquiryDelivery.current.invalidate();
+    enquiryDelivery.current = createEnquiryDelivery(mobileApi);
+    setEnquiryDeliveryState({ status: 'idle' });
+  }
   function clearEnquirySlots() {
     enquirySlotsSeq.current += 1;
     setEnquirySlotPage(null);
@@ -303,6 +315,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     setEnquiryReviewed(false);
   }
   function startEnquiryPreview() {
+    resetEnquiryDelivery();
     clearEnquirySlots();
     setEnquiryDate(enquiryNextDays()[0]);
     setEnquiryDraft('');
@@ -338,6 +351,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     }
   }
   function openOpportunity(item: SearchResult) {
+    resetEnquiryDelivery();
     setOpportunitySource(item);
     setOpportunitySelectedOffer(item.kind === 'service' || item.kind === 'product' ? item : null);
     // This is just the currently returned published-result slice; it is NOT
@@ -348,12 +362,48 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     setOpportunityStage('profile');
   }
   function closeOpportunity() {
+    const status = enquiryDelivery.current.snapshot().status;
+    if (['opening', 'sending', 'uncertain'].includes(status)) {
+      Alert.alert('Leave this enquiry?', 'A message attempt may still arrive. Check the conversation before sending another enquiry.',
+        [{ text: 'Stay', style: 'cancel' }, { text: 'Leave', onPress: dismissOpportunity }]);
+      return;
+    }
+    dismissOpportunity();
+  }
+  function dismissOpportunity() {
+    resetEnquiryDelivery();
     setOpportunityStage(null);
     setOpportunitySource(null);
     setOpportunitySelectedOffer(null);
     setOpportunityMatches([]);
     setEnquiryDraft('');
     clearEnquirySlots();
+  }
+  function confirmEnquiryMessage() {
+    if (process.env.EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES !== 'true' || !enquiryReviewed) return;
+    const message = prepareEnquiryMessage(opportunitySelectedOffer, enquiryDraft, enquirySlotPage, enquirySelectedSlot);
+    if (!message) return;
+    const attempt = enquiryDelivery.current;
+    Alert.alert('Send enquiry as message?',
+      'To ' + (opportunitySelectedOffer?.owner?.displayName || 'this service provider') + '\n\n' + message.text,
+      [{ text: 'Cancel', style: 'cancel' }, { text: 'Send message', onPress: () => {
+        if (attempt !== enquiryDelivery.current) return;
+        // deliver locks synchronously before its first await, so double taps do
+        // not create multiple POSTs. Never retry a message after uncertain delivery.
+        const result = attempt.deliver(token, message);
+        setEnquiryDeliveryState(attempt.snapshot());
+        void result.then(state => {
+          if (attempt === enquiryDelivery.current) setEnquiryDeliveryState(state);
+        });
+      } }]);
+  }
+  async function openEnquiryConversation() {
+    const id = enquiryDeliveryState.conversationId;
+    const serviceId = enquiryServiceId(opportunitySelectedOffer);
+    const url = id && serviceId ? consultationWebLink(id, serviceId, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL) : null;
+    if (!url) return;
+    try { await Linking.openURL(url); }
+    catch { Alert.alert('Conversation unavailable', 'Could not open the conversation. Your enquiry has not been resent.'); }
   }
   async function openSearchResult(item: SearchResult) {
     const url = connectedSearchWebLink(item, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL);
@@ -376,6 +426,10 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
   const enquiryAvailableSlots = currentEnquirySlots(enquirySlotPage);
   const enquirySlotTime = enquirySelectedSlot && enquirySlotPage
     ? enquirySlotLabel(enquirySelectedSlot.startAt, enquirySlotPage.timezone) : null;
+  const enquiryCanSend = process.env.EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES === 'true';
+  const enquiryAttemptStarted = !['idle', 'failed'].includes(enquiryDeliveryState.status);
+  const enquiryConversationUrl = enquiryDeliveryState.conversationId && enquiryServiceId(opportunitySelectedOffer)
+    ? consultationWebLink(enquiryDeliveryState.conversationId, enquiryServiceId(opportunitySelectedOffer)!, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL) : null;
   const offerService = active?.services.find(s => s.id === offerId) || null;
   useEffect(() => {
     if (sheet !== 'booking' || !offerService) return;
@@ -570,7 +624,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
           <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
             <View style={styles.handle}/>
             <SheetTitle title={opportunityStage === 'profile' ? 'Hustler profile'
-              : opportunityStage === 'offer' ? 'Published offer' : 'Booking enquiry preview'}
+              : opportunityStage === 'offer' ? 'Published offer' : 'Service enquiry'}
               onClose={closeOpportunity}/>
             {opportunitySource && opportunityHustler && <ScrollView
               style={{ maxHeight: 430 }} keyboardShouldPersistTaps="handled">
@@ -634,8 +688,8 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                 <Text style={styles.resultTitle}>{opportunityOffer?.title || 'Service enquiry'}</Text>
                 <Text style={styles.meta}>For {opportunityHustler.name}</Text>
                 <Text style={styles.opportunityDescription}>
-                  Describe what you need. This is a local preview only — nothing will be sent,
-                  booked or charged.
+                  Describe what you need. Review first; nothing is sent until you confirm Send message.
+                  This enquiry does not book, reserve or charge anything.
                 </Text>
                 <Text style={styles.opportunitySectionTitle}>Check published service availability</Text>
                 <Text style={styles.meta}>
@@ -645,6 +699,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}
                   style={{ flexGrow: 0, marginTop: 8 }}>
                   {enquiryNextDays().map(date => <Pressable key={date}
+                    disabled={enquiryAttemptStarted}
                     accessibilityRole="button" accessibilityState={{ selected: enquiryDate === date }}
                     accessibilityLabel={"Choose calendar day " + date}
                     onPress={() => chooseEnquiryDate(date)}
@@ -654,7 +709,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                     </Text>
                   </Pressable>)}
                 </ScrollView>
-                <Action secondary disabled={enquirySlotLoading || !enquiryServiceId(opportunitySelectedOffer)}
+                <Action secondary disabled={enquiryAttemptStarted || enquirySlotLoading || !enquiryServiceId(opportunitySelectedOffer)}
                   onPress={() => void checkEnquiryAvailability()}>
                   {enquirySlotLoading ? 'Checking schedule…' : enquirySlotPage ? 'Refresh available times' : 'Check available times'}
                 </Action>
@@ -676,6 +731,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                     {enquiryAvailableSlots.map(slot => {
                       const label = enquirySlotLabel(slot.startAt, enquirySlotPage.timezone);
                       return label ? <Pressable key={slot.startAt}
+                        disabled={enquiryAttemptStarted}
                         accessibilityRole="button"
                         accessibilityState={{ selected: enquirySelectedSlot?.startAt === slot.startAt }}
                         accessibilityLabel={"Prefer " + label + ", not reserved"}
@@ -696,6 +752,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                       : 'This service does not publish appointment slots through this endpoint.'}
                 </Text>}
                 <TextInput accessibilityLabel="Describe your booking enquiry"
+                  editable={!enquiryAttemptStarted}
                   multiline maxLength={1200} style={styles.requirements}
                   placeholder="What service do you need, and when would you prefer?"
                   value={enquiryDraft} onChangeText={value => {
@@ -706,7 +763,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                 </Action>
                 {enquiryReviewed && <View style={styles.opportunitySection}
                   accessibilityLiveRegion="polite">
-                  <Text style={styles.resultTitle}>Enquiry prepared — not sent</Text>
+                  <Text style={styles.resultTitle}>{enquiryAttemptStarted ? 'Enquiry message review' : 'Enquiry prepared — not sent'}</Text>
                   <Text style={styles.opportunityDescription}>{enquiryDraft.trim()}</Text>
                   <Text style={styles.meta}>
                     {enquirySlotTime
@@ -714,11 +771,32 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                       : 'No confirmed appointment time selected; scheduling must be agreed with the provider.'}
                   </Text>
                   <Text style={styles.meta}>
-                    No provider has received this enquiry. Submission remains disabled pending
-                    nonproduction booking acceptance.
+                    {enquiryAttemptStarted ? 'See delivery status below. Do not send another copy until you check the conversation.'
+                      : 'No provider has received this enquiry. Sending a message is separate from requesting a booking.'}
                   </Text>
+                  {!enquiryAttemptStarted && <Action disabled={!enquiryCanSend || !prepareEnquiryMessage(
+                    opportunitySelectedOffer, enquiryDraft, enquirySlotPage, enquirySelectedSlot)}
+                    onPress={confirmEnquiryMessage}>Send enquiry as message</Action>}
+                  {!enquiryCanSend && <Text style={styles.meta}>Message sending is disabled in this build. Your draft stays on this screen.</Text>}
                 </View>}
-                <Action secondary onPress={() => { clearEnquirySlots(); setOpportunityStage('offer'); }}>Back to service</Action>
+                {enquiryDeliveryState.status !== 'idle' && <View style={styles.opportunitySection} accessibilityLiveRegion="polite">
+                  <Text style={styles.resultTitle}>{enquiryDeliveryState.status === 'sent'
+                    ? 'Enquiry sent as a message — not booked'
+                    : enquiryDeliveryState.status === 'uncertain' ? 'Delivery uncertain — check the conversation'
+                      : enquiryDeliveryState.status === 'failed' ? 'Conversation could not open — no message attempted'
+                        : 'Sending enquiry…'}</Text>
+                  <Text style={styles.meta}>{enquiryDeliveryState.status === 'sent'
+                    ? 'Hustle acknowledged your message. This does not mean the provider has read or accepted it. No appointment is reserved.'
+                    : enquiryDeliveryState.status === 'uncertain'
+                      ? 'The message may have arrived. It will not be resent automatically. Check the conversation before preparing another enquiry.'
+                      : 'Your draft stays here. No booking or payment is created.'}</Text>
+                  {enquiryConversationUrl && <Action secondary onPress={() => void openEnquiryConversation()}>
+                    Open conversation in browser ↗
+                  </Action>}
+                  {enquiryConversationUrl && <Text style={styles.meta}>Browser sign-in is separate. Continue the consultation there; booking remains a separate request.</Text>}
+                </View>}
+                <Action secondary disabled={enquiryAttemptStarted}
+                  onPress={() => { clearEnquirySlots(); setOpportunityStage('offer'); }}>Back to service</Action>
               </>}
             </ScrollView>}
           </View>
@@ -740,7 +818,7 @@ export function MobileExperience(props: { session: Session; onSignOut: () => Pro
     return () => { mounted = false; };
   }, [props.session.access_token, retry]);
   return <SafeAreaProvider>
-    {ready ? <Experience {...props} /> : <View style={styles.emptyDark}>
+    {ready ? <Experience key={props.session.user.id} {...props} /> : <View style={styles.emptyDark}>
       {error ? <><Text style={styles.emptyHeading}>Unable to prepare your Hustle account</Text>
         <Text style={styles.emptyBody}>{error}</Text>
         <Action onPress={() => setRetry(n => n + 1)}>Try again</Action>

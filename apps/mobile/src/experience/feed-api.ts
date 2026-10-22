@@ -16,6 +16,9 @@ export type PostComment = { id: string; body: string; parentId: string | null; c
 export type PostDiscussion = { comments: PostComment[]; commentCount: number; likeCount: number; saveCount: number };
 export type BookingSlot = { startAt: string; endAt: string | null; available: boolean; remainingCapacity: number };
 export type SlotPage = { mode: string; date: string; timezone: string; slots: BookingSlot[] };
+export type DirectConversation = { id: string; viewer: { userId: string }; otherParticipant: { id: string } | null };
+export type ConsultationMessage = { id: string; conversationId: string; senderId: string; text: string | null;
+  context: { type: string; id: string } | null };
 /** SearchService.publicResult spreads canonical value fields onto each result. */
 export type SearchResult = {
   kind: 'person' | 'post' | 'service' | 'product';
@@ -46,10 +49,11 @@ export function searchTabPath(tab: SearchTab, query: string, cursor?: string | n
 }
 
 const base = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api/v1').replace(/\/$/, '');
-async function api<T>(token: string, path: string, method = 'GET', body?: unknown): Promise<T> {
+async function api<T>(token: string, path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {
   if (!token) throw new Error('Sign in to use Hustle.');
   const response = await fetch(base + path, {
     method,
+    signal,
     headers: {
       Authorization: 'Bearer ' + token,
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
@@ -65,7 +69,19 @@ async function api<T>(token: string, path: string, method = 'GET', body?: unknow
   }
   return response.json() as Promise<T>;
 }
+// An aborted POST may already have committed. Callers must classify that result
+// as uncertain and never automatically resend the message.
+async function consultationApi<T>(token: string, path: string, body: unknown): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+  try { return await api<T>(token, path, 'POST', body, controller.signal); }
+  finally { clearTimeout(timeout); }
+}
 export const mobileApi = {
+  openDirect: (token: string, recipientUserId: string) =>
+    consultationApi<{ conversation: DirectConversation }>(token, '/messaging/conversations/direct', { recipientUserId }),
+  sendEnquiry: (token: string, conversationId: string, input: { text: string; contextType: 'SERVICE'; contextId: string }) =>
+    consultationApi<ConsultationMessage>(token, '/messaging/conversations/' + encodeURIComponent(conversationId) + '/messages', input),
   feed: (token: string, tab: FeedTab, cursor?: string | null) =>
     api<FeedPage>(token, '/feed/' + tab + '?limit=8' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '')),
   search: (token: string, query: string) =>
