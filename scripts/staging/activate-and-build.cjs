@@ -43,11 +43,13 @@ async function provisionRuntime(db, apiPassword, authPassword) {
     await db.$transaction(async tx => {
       const rows = await tx.$queryRawUnsafe('SELECT count(*)::int AS n FROM public._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL');
       if (rows[0].n !== 41) throw Error("STAGING_MIGRATION_COUNT_REJECTED");
+      const existing = await tx.$queryRawUnsafe("SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname IN ('hustle_api','hustle_auth_runtime')");
+      if (existing.some(role => role.rolsuper || role.rolbypassrls)) throw Error("STAGING_RUNTIME_ROLE_UNSAFE");
       // Passwords are generated hexadecimal, validated above; never printed.
-      await tx.$executeRawUnsafe(`ALTER ROLE hustle_api LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS PASSWORD '${apiPassword}'`);
+      await tx.$executeRawUnsafe(`ALTER ROLE hustle_api LOGIN NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD '${apiPassword}'`);
       const roles = await tx.$queryRawUnsafe("SELECT 1 FROM pg_roles WHERE rolname='hustle_auth_runtime'");
       if (!roles.length) await tx.$executeRawUnsafe("CREATE ROLE hustle_auth_runtime NOLOGIN");
-      await tx.$executeRawUnsafe(`ALTER ROLE hustle_auth_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS PASSWORD '${authPassword}'`);
+      await tx.$executeRawUnsafe(`ALTER ROLE hustle_auth_runtime LOGIN NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD '${authPassword}'`);
       await tx.$executeRawUnsafe("GRANT USAGE ON SCHEMA hustle_auth TO hustle_auth_runtime");
       await tx.$executeRawUnsafe('GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE hustle_auth."user", hustle_auth.session, hustle_auth.account, hustle_auth.verification, hustle_auth."rateLimit" TO hustle_auth_runtime');
     });

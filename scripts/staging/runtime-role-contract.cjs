@@ -31,4 +31,4 @@ async function asRole(role, schema, task) {
     }
   });
   console.log("PASS: actual restricted runtime logins, auth CRUD and cross-schema/DDL denials.");
-})().catch(() => { console.error("RUNTIME_ROLE_CONTRACT_FAILED"); process.exitCode = 1; }).finally(() => db.$disconnect());
+})().catch(error => { console.error("RUNTIME_ROLE_CONTRACT_FAILED", error.code, error.meta?.code, error.meta?.message); process.exitCode = 1; }).finally(() => db.$disconnect());
