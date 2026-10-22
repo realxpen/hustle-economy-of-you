@@ -4,7 +4,7 @@
     "deploymentEnabled": false
   },
   "framework": null,
-  "buildCommand": "npm run prisma:generate && npm run build",
+  "buildCommand": "if [ \"$HUSTLE_RUNTIME_SCOPE\" = \"isolated-staging\" ]; then node ../../scripts/staging/activate-and-build.cjs; else npm run prisma:generate && npm run build; fi",
   "rewrites": [
     {
       "source": "/",
