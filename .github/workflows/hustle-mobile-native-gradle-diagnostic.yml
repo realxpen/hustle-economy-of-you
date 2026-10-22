@@ -89,8 +89,51 @@ jobs:
           apk=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
           test -s "$apk"
           unzip -tq "$apk" >/dev/null
-          unzip -Z1 "$apk" | grep -Eq '^classes([0-9]+)?\.dex$'
-          unzip -Z1 "$apk" | grep -Eq '^assets/index\.android\.bundle$'
+          unzip -Z1 "$apk" > /tmp/hustle-connected-apk-contents.txt
+          grep -Eq '^classes([0-9]+)?\.dex
+          mkdir -p /tmp/hustle-connected-output
+          cp "$apk" /tmp/hustle-connected-output/hustle-connected-staging-internal.apk
+          sha256sum /tmp/hustle-connected-output/hustle-connected-staging-internal.apk | tee /tmp/hustle-connected-output/SHA256SUMS.txt
+          {
+            echo "Source commit: $GITHUB_SHA"
+            echo "Mode: connected isolated staging (not offline demo)"
+            echo "Identity: com.hustle.economyofyou.preview"
+            echo "Distribution: internal Android APK, debug signing material (NOT Play Store)"
+            echo "Hosted authentication/device test: NOT VERIFIED by APK compilation"
+            echo "Booking/payment providers: DISABLED"
+          } > /tmp/hustle-connected-output/BUILD-INFO.txt
+          cat /tmp/hustle-connected-output/BUILD-INFO.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload installable internal test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hustle-connected-staging-apk-${{ github.sha }}
+          path: /tmp/hustle-connected-output/
+          retention-days: 7
+          if-no-files-found: error
+          compression-level: 0
+ /tmp/hustle-connected-apk-contents.txt
+          grep -Eq '^assets/index\.android\.bundle
+          mkdir -p /tmp/hustle-connected-output
+          cp "$apk" /tmp/hustle-connected-output/hustle-connected-staging-internal.apk
+          sha256sum /tmp/hustle-connected-output/hustle-connected-staging-internal.apk | tee /tmp/hustle-connected-output/SHA256SUMS.txt
+          {
+            echo "Source commit: $GITHUB_SHA"
+            echo "Mode: connected isolated staging (not offline demo)"
+            echo "Identity: com.hustle.economyofyou.preview"
+            echo "Distribution: internal Android APK, debug signing material (NOT Play Store)"
+            echo "Hosted authentication/device test: NOT VERIFIED by APK compilation"
+            echo "Booking/payment providers: DISABLED"
+          } > /tmp/hustle-connected-output/BUILD-INFO.txt
+          cat /tmp/hustle-connected-output/BUILD-INFO.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload installable internal test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hustle-connected-staging-apk-${{ github.sha }}
+          path: /tmp/hustle-connected-output/
+          retention-days: 7
+          if-no-files-found: error
+          compression-level: 0
+ /tmp/hustle-connected-apk-contents.txt
           mkdir -p /tmp/hustle-connected-output
           cp "$apk" /tmp/hustle-connected-output/hustle-connected-staging-internal.apk
           sha256sum /tmp/hustle-connected-output/hustle-connected-staging-internal.apk | tee /tmp/hustle-connected-output/SHA256SUMS.txt
