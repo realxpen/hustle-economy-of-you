@@ -18,6 +18,17 @@ export const NEON_STAGING = Object.freeze({
   ]
 });
 
+/**
+ * Only this authorized disposable Neon child has the application and Expo
+ * session schemas. The parent staging branch intentionally remains empty.
+ * Never infer a default branch or permit the older parent database host.
+ */
+export const NEON_EXPO_CHILD = Object.freeze({
+  branchId: "br-dark-sunset-zay33p1s",
+  host: "ep-cold-smoke-za8u3vsm.c-2.eu-west-2.aws.neon.tech",
+  poolerHost: "ep-cold-smoke-za8u3vsm-pooler.c-2.eu-west-2.aws.neon.tech"
+});
+
 export const EXPO_STAGING_AUTH_URL = "https://hustle-isolated-staging-api.vercel.app/api/auth";
 
 function validateStagingDatabase(value: string | undefined, schema: string) {
@@ -25,7 +36,8 @@ function validateStagingDatabase(value: string | undefined, schema: string) {
   try { url = new URL(value ?? ""); }
   catch { throw new Error("Isolated staging database URL invalid"); }
   if (!["postgresql:", "postgres:"].includes(url.protocol) ||
-      !NEON_STAGING.hosts.includes(url.hostname) || url.pathname !== "/hustle_staging" ||
+      ![NEON_EXPO_CHILD.host, NEON_EXPO_CHILD.poolerHost].some(host => host === url.hostname) || url.pathname !== "/hustle_staging" ||
+      url.username !== "hustle_child_api" ||
       !["require", "verify-full"].includes(url.searchParams.get("sslmode") ?? "") ||
       (url.searchParams.get("schema") ?? "public") !== schema ||
       !url.username || !url.password || url.hash || url.port) {
@@ -41,13 +53,15 @@ export function validateApiRuntimeEnvironment(env: NodeJS.ProcessEnv = process.e
     }
     if (env.HUSTLE_AUTH_PROVIDER === "neon-managed" || env.HUSTLE_AUTH_PROVIDER === "expo-better-auth" ||
         env.NEON_AUTH_BASE_URL || env.NEON_AUTH_JWKS_URL || env.STAGING_AUTH_DATABASE_URL ||
-        env.BETTER_AUTH_URL || env.BETTER_AUTH_SECRET || env.HUSTLE_STAGING_PROJECT_ID) {
+        env.BETTER_AUTH_URL || env.BETTER_AUTH_SECRET || env.HUSTLE_STAGING_PROJECT_ID ||
+        env.HUSTLE_STAGING_BRANCH_ID) {
       throw new Error("Staging authentication cannot run outside isolated staging");
     }
     return "production";
   }
   if (env.HUSTLE_AUTH_PROVIDER !== "expo-better-auth" ||
       env.HUSTLE_STAGING_PROJECT_ID !== NEON_STAGING.projectId ||
+      env.HUSTLE_STAGING_BRANCH_ID !== NEON_EXPO_CHILD.branchId ||
       env.BETTER_AUTH_URL !== EXPO_STAGING_AUTH_URL || env.NEON_AUTH_BASE_URL || env.NEON_AUTH_JWKS_URL ||
       !env.BETTER_AUTH_SECRET || env.BETTER_AUTH_SECRET.length < 32 ||
       !env.HUSTLE_STAGING_TEST_EMAILS?.split(",").every(email => /^[^\s,@]+@[^\s,@]+\.[^\s,@]+$/.test(email.trim()))) {

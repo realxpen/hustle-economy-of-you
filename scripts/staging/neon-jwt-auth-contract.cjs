@@ -19,7 +19,7 @@ Module._extensions[".ts"] = (m,filename) => {
 };
 const { NeonStagingAuthService } = require(path.join(root,"apps/api/src/auth/neon-staging-auth.service.ts"));
 const { ExpoStagingAuthService } = require(path.join(root,"apps/api/src/auth/expo-staging-auth.service.ts"));
-const { NEON_STAGING, EXPO_STAGING_AUTH_URL, validateApiRuntimeEnvironment, chooseHustleAuthPort } =
+const { NEON_STAGING, NEON_EXPO_CHILD, EXPO_STAGING_AUTH_URL, validateApiRuntimeEnvironment, chooseHustleAuthPort } =
   require(path.join(root,"apps/api/src/auth/staging-auth-selection.ts"));
 const production = readFileSync(path.join(root,"apps/api/src/auth/supabase-auth.service.ts"),"utf8");
 const authModule = readFileSync(path.join(root,"apps/api/src/auth/auth.module.ts"),"utf8");
@@ -106,13 +106,14 @@ function check(name,fn) {
   const env = {
     HUSTLE_RUNTIME_SCOPE:"isolated-staging",HUSTLE_AUTH_PROVIDER:"expo-better-auth",
     HUSTLE_STAGING_PROJECT_ID:NEON_STAGING.projectId,
+    HUSTLE_STAGING_BRANCH_ID:NEON_EXPO_CHILD.branchId,
     BETTER_AUTH_URL:EXPO_STAGING_AUTH_URL,
     BETTER_AUTH_SECRET:"generated-contract-only-secret-32-characters",
     HUSTLE_STAGING_TEST_EMAILS:"test@example.invalid",
-    STAGING_AUTH_DATABASE_URL:"postgresql://nonsecret:placeholder@"+NEON_STAGING.hosts[0]+"/hustle_staging?sslmode=require&schema=hustle_auth",
+    STAGING_AUTH_DATABASE_URL:"postgresql://hustle_child_api:placeholder@"+NEON_EXPO_CHILD.host+"/hustle_staging?sslmode=require&schema=hustle_auth",
     EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS:"false",
     HUSTLE_FINANCIAL_PROVIDERS_ENABLED:"false",
-    DATABASE_URL:"postgresql://nonsecret:placeholder@"+NEON_STAGING.hosts[0]+
+    DATABASE_URL:"postgresql://hustle_child_api:placeholder@"+NEON_EXPO_CHILD.host+
       "/hustle_staging?sslmode=require"
   };
   await check("Runtime identity enforces exact Neon project, PostgreSQL TLS and disabled commerce",()=>{
@@ -127,6 +128,9 @@ function check(name,fn) {
       ["HUSTLE_STAGING_TEST_EMAILS",""],
       ["STAGING_AUTH_DATABASE_URL",env.DATABASE_URL],
       ["HUSTLE_STAGING_PROJECT_ID","another-project"],
+      ["HUSTLE_STAGING_BRANCH_ID","br-wrong-branch"],
+      ["DATABASE_URL","postgresql://hustle_child_api:placeholder@"+NEON_STAGING.hosts[0]+"/hustle_staging?sslmode=require"],
+      ["DATABASE_URL","postgresql://hustle_staging_owner:placeholder@"+NEON_EXPO_CHILD.host+"/hustle_staging?sslmode=require"],
       ["NEON_AUTH_BASE_URL","https://evil.example"],
       ["NEON_AUTH_JWKS_URL","https://evil.example/jwks"],
       ["SUPABASE_URL","https://production.supabase.co"],

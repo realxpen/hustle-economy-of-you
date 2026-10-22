@@ -1,0 +1,33 @@
+name: Hustle Staging Vercel Auth and API Boundary
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/api/index.ts"
+      - "apps/api/vercel.json"
+      - "apps/api/src/auth/staging-auth-selection.ts"
+      - "scripts/staging/vercel-auth-route-contract.cjs"
+      - ".github/workflows/hustle-vercel-staging-boundary.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  route-and-runtime-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install locked dependencies only
+        run: npm ci
+      - name: Verify actual Vercel TS handler, staging auth rewrites and production denial
+        run: node scripts/staging/vercel-auth-route-contract.cjs
+      - name: Compile actual NestJS/Expo Better Auth integration
+        run: npm run typecheck --workspace=@hustle/api

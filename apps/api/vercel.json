@@ -7,6 +7,14 @@
   "buildCommand": "npm run prisma:generate && npm run build",
   "rewrites": [
     {
+      "source": "/api/auth",
+      "destination": "/api?__hustle_auth_path="
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api?__hustle_auth_path=:path*"
+    },
+    {
       "source": "/",
       "destination": "/api?__hustle_path="
     },
