@@ -24,9 +24,19 @@ if(require.main === module){
     assert.notEqual(CHILD,PARENT,"Child must never equal permanent staging parent");
     assert.ok(CHILD.startsWith("br-")&&PARENT.startsWith("br-"));
     assert.ok(PROJECT.startsWith("summer-sound-"));
-    for(const name of ["DATABASE_URL","SUPABASE_SERVICE_ROLE_KEY","VERCEL_TOKEN","EXPO_TOKEN",
+    // The existing isolated PG17 workflow requires its OWN localhost URL.
+    // Accept that one exact CI fixture; refuse any real hosted credentials.
+    const ciUrl=new URL(process.env.DATABASE_URL||"invalid:");
+    assert.equal(ciUrl.protocol,"postgresql:");
+    assert.equal(ciUrl.hostname,"127.0.0.1");
+    assert.equal(ciUrl.port,"55441");
+    assert.equal(ciUrl.username,"postgres");
+    assert.equal(ciUrl.password,"projection_ci_only");
+    assert.equal(ciUrl.pathname,"/hustle_neon_projection");
+    assert.equal(ciUrl.searchParams.get("schema"),"public");
+    for(const name of ["SUPABASE_SERVICE_ROLE_KEY","SUPABASE_URL","VERCEL_TOKEN","EXPO_TOKEN",
       "NEON_AUTH_BASE_URL","NEON_AUTH_JWKS_URL","HUSTLE_STAGING_PROJECT_ID"]){
-      assert.ok(!process.env[name],"Forbidden external database/provider credentials in safety audit: "+name);
+      assert.ok(!process.env[name],"Forbidden external provider credentials in safety audit: "+name);
     }
     const audit=JSON.parse(fs.readFileSync(path.join(PROJECTION,"projection-audit.json"),"utf8"));
     assert.equal(audit.total,41);
