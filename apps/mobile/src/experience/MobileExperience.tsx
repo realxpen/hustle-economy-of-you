@@ -718,7 +718,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                     nonproduction booking acceptance.
                   </Text>
                 </View>}
-                <Action secondary onPress={() => setOpportunityStage('offer')}>Back to service</Action>
+                <Action secondary onPress={() => { clearEnquirySlots(); setOpportunityStage('offer'); }}>Back to service</Action>
               </>}
             </ScrollView>}
           </View>
