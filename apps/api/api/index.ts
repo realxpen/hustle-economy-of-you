@@ -3,6 +3,29 @@ import { NestFactory } from "@nestjs/core";
 
 let serverPromise: Promise<any> | null = null;
 
+/**
+ * Safe operational diagnostics: only emit known failure categories, never
+ * exception messages, URLs, database credentials or request information.
+ */
+function bootstrapFailureCategory(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (message === "Wrong isolated staging authentication issuer or project") return "STAGING_AUTH_CONFIGURATION";
+  if (message === "Isolated staging database URL invalid" ||
+      message === "Wrong isolated staging database target, schema or TLS configuration") return "STAGING_DATABASE_CONFIGURATION";
+  if (message === "Booking submission and financial providers must be disabled") return "UNSAFE_STAGING_FEATURE_FLAGS";
+  if (message === "External provider credentials forbidden in isolated staging") return "FORBIDDEN_EXTERNAL_PROVIDER";
+  if (message === "Unsupported Hustle runtime scope" ||
+      message === "Staging authentication cannot run outside isolated staging") return "INVALID_RUNTIME_SCOPE";
+  return "UNCLASSIFIED_BOOTSTRAP_ERROR";
+}
+
+function logBootstrapFailure(stage: "startup" | "request", error: unknown) {
+  console.error("HUSTLE_API_BOOTSTRAP_DIAGNOSTIC", {
+    stage,
+    category: bootstrapFailureCategory(error)
+  });
+}
+
 async function createServer() {
   try {
     // The Vercel handler does NOT execute src/main.ts. Check the exact child
@@ -25,7 +48,7 @@ async function createServer() {
     await app.init();
     return app.getHttpAdapter().getInstance();
   } catch (error) {
-    console.error("HUSTLE_API_BOOTSTRAP_ERROR", error);
+    logBootstrapFailure("startup", error);
     throw error;
   }
 }
@@ -87,7 +110,7 @@ export default async function handler(request: any, response: any) {
     const server = await getServer();
     return server(request, response);
   } catch (error) {
-    console.error("HUSTLE_API_REQUEST_ERROR", error);
+    logBootstrapFailure("request", error);
     if (!response.headersSent) {
       return response.status(500).json({
         error: {
