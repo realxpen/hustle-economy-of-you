@@ -95,6 +95,14 @@ async function main() {
 
   try {
     assert.equal((await prisma.$queryRawUnsafe("SELECT current_database() AS db"))[0].db, "hustle_payment_sandbox");
+    // A restored sandbox can already contain real activity. Assert exact fixture
+    // deltas against the starting read model instead of assuming an empty DB.
+    const baseline7 = await analytics.overview("7");
+    const baseline30 = await analytics.overview("30");
+    const initialReviewAlerts = await prisma.notification.count({ where: { kind: "REVIEW" } });
+    const initialLiveAlerts = await prisma.notification.count({ where: { kind: "LIVE" } });
+    const plusCounts = (base, delta) => Object.fromEntries(Object.entries(delta).map(([key, value]) =>
+      [key, typeof value === "number" ? (base?.[key] ?? 0) + value : plusCounts(base?.[key], value)]));
     const testId = randomUUID();
     const buyerSubject = `sandbox-buyer-${testId}`;
     const sellerSubject = `sandbox-seller-${testId}`;
@@ -403,7 +411,7 @@ async function main() {
       () => reviews.create(by, { subjectType: "ORDER", subjectId: orderId, rating: 5, body: "Duplicate" }),
       "Buyer cannot publish a duplicate verified review"
     );
-    assert.equal(await prisma.notification.count({ where: { kind: "REVIEW" } }), 1);
+    assert.equal(await prisma.notification.count({ where: { kind: "REVIEW" } }), initialReviewAlerts + 1);
 
     // Followed-host Live alerts are emitted only on first valid DRAFT→LIVE.
     // Existing bilateral UserBlock edges prevent one party from getting alerted.
@@ -421,7 +429,7 @@ async function main() {
     });
     const plannedLive = await live.create(se, { title: "Disposable Seller Live" });
     await expectRejected(() => live.start(by, plannedLive.id), "Buyer cannot start seller Live");
-    assert.equal(await prisma.notification.count({ where: { kind: "LIVE" } }), 0);
+    assert.equal(await prisma.notification.count({ where: { kind: "LIVE" } }), initialLiveAlerts);
     await live.start(se, plannedLive.id);
     await expectRejected(() => live.start(se, plannedLive.id), "Live cannot start twice");
     assert.equal(await prisma.notification.count({
@@ -443,15 +451,17 @@ async function main() {
     assert.equal(unauthorizedAnalytics.status, 401, "Admin Analytics must reject unauthenticated callers");
 
     const analyticsSnapshot = await analytics.overview("7");
-    assert.equal(analyticsSnapshot.authoritative.placedOrders, 1);
-    assert.equal(analyticsSnapshot.authoritative.paidOrders, 1);
-    assert.equal(analyticsSnapshot.authoritative.completedOrders, 1);
-    assert.equal(analyticsSnapshot.authoritative.appliedPayments, 1);
-    assert.equal(analyticsSnapshot.authoritative.verifiedReviews, 1);
-    assert.equal(analyticsSnapshot.authoritative.sentMessages, 0);
+    assert.equal(analyticsSnapshot.authoritative.placedOrders, baseline7.authoritative.placedOrders + 1);
+    assert.equal(analyticsSnapshot.authoritative.paidOrders, baseline7.authoritative.paidOrders + 1);
+    assert.equal(analyticsSnapshot.authoritative.completedOrders, baseline7.authoritative.completedOrders + 1);
+    assert.equal(analyticsSnapshot.authoritative.appliedPayments, baseline7.authoritative.appliedPayments + 1);
+    assert.equal(analyticsSnapshot.authoritative.verifiedReviews, baseline7.authoritative.verifiedReviews + 1);
+    assert.equal(analyticsSnapshot.authoritative.sentMessages, baseline7.authoritative.sentMessages);
     assert.equal(analyticsSnapshot.timeline.length, 7);
-    assert.equal(analyticsSnapshot.timeline.reduce((sum, row) => sum + row.ordersPaid, 0), 1);
-    assert.equal(analyticsSnapshot.timeline.reduce((sum, row) => sum + row.verifiedReviews, 0), 1);
+    assert.equal(analyticsSnapshot.timeline.reduce((sum, row) => sum + row.ordersPaid, 0),
+      baseline7.timeline.reduce((sum, row) => sum + row.ordersPaid, 0) + 1);
+    assert.equal(analyticsSnapshot.timeline.reduce((sum, row) => sum + row.verifiedReviews, 0),
+      baseline7.timeline.reduce((sum, row) => sum + row.verifiedReviews, 0) + 1);
     assert.equal(analyticsSnapshot.observation.trustLevel, "CLIENT_REPORTED");
     assert.equal(analyticsSnapshot.authoritative.trustLevel, "CANONICAL_RECORDS");
     await expectRejected(() => analytics.overview("2"), "Unsupported analytics window must be rejected");
@@ -462,9 +472,9 @@ async function main() {
       data: { name: "feed.view", source: "web", payload: { postId: "disposable-post" } }
     });
     const withView = await analytics.overview("30");
-    assert.equal(withView.observation.events["feed.view"], 1);
-    assert.equal(withView.authoritative.placedOrders, 1);
-    assert.equal(withView.authoritative.verifiedReviews, 1);
+    assert.equal(withView.observation.events["feed.view"], (baseline30.observation.events["feed.view"] ?? 0) + 1);
+    assert.equal(withView.authoritative.placedOrders, baseline30.authoritative.placedOrders + 1);
+    assert.equal(withView.authoritative.verifiedReviews, baseline30.authoritative.verifiedReviews + 1);
     // Phase21B: authenticated, optional attribution. Existing platform
     // observation should continue normally, but without consent there must
     // never be an attributionEligible marker or linked report.
@@ -536,16 +546,16 @@ async function main() {
     assert.equal(linkedCheckout.orders.length, 1);
 
     const linkedOverview = await analytics.overview("7");
-    assert.deepEqual(linkedOverview.attribution.bookings, {
+    assert.deepEqual(linkedOverview.attribution.bookings, plusCounts(baseline7.attribution.bookings, {
       consentingOutcomes: 1,
       linkedOutcomes: 1,
       byLastEligibleClick: { feed: 1, search: 0, marketplace: 0 }
-    });
-    assert.deepEqual(linkedOverview.attribution.orders, {
+    }));
+    assert.deepEqual(linkedOverview.attribution.orders, plusCounts(baseline7.attribution.orders, {
       consentingOutcomes: 1,
       linkedOutcomes: 1,
       byLastEligibleClick: { feed: 0, search: 0, marketplace: 1 }
-    });
+    }));
 
     // A fresh opt-out excludes all account-level associations. A later opt-in
     // starts a new timeline and must NEVER backfill old clicked offers.
@@ -553,12 +563,12 @@ async function main() {
     assert.equal((await consent.status(by)).enabled, false);
     assert.equal((await consent.clickMetadata(buyer.id, "feed.service_clicked")).attributionEligible, undefined);
     const optedOutOverview = await analytics.overview("7");
-    assert.equal(optedOutOverview.attribution.bookings.consentingOutcomes, 0);
-    assert.equal(optedOutOverview.attribution.orders.linkedOutcomes, 0);
+    assert.equal(optedOutOverview.attribution.bookings.consentingOutcomes, baseline7.attribution.bookings.consentingOutcomes);
+    assert.equal(optedOutOverview.attribution.orders.linkedOutcomes, baseline7.attribution.orders.linkedOutcomes);
     await consent.set(by, { enabled: true });
     const restartedOverview = await analytics.overview("7");
-    assert.equal(restartedOverview.attribution.bookings.consentingOutcomes, 0);
-    assert.equal(restartedOverview.attribution.orders.linkedOutcomes, 0);
+    assert.equal(restartedOverview.attribution.bookings.consentingOutcomes, baseline7.attribution.bookings.consentingOutcomes);
+    assert.equal(restartedOverview.attribution.orders.linkedOutcomes, baseline7.attribution.orders.linkedOutcomes);
 
     // A genuinely new offer tap and new Booking after re-enabling are eligible.
     await feed.capture(by, {
@@ -571,9 +581,9 @@ async function main() {
       requestedStartAt: new Date(Date.now() + 172_800_000).toISOString()
     });
     const currentOverview = await analytics.overview("7");
-    assert.equal(currentOverview.attribution.bookings.consentingOutcomes, 1);
-    assert.equal(currentOverview.attribution.bookings.linkedOutcomes, 1);
-    assert.equal(currentOverview.attribution.orders.linkedOutcomes, 0);
+    assert.equal(currentOverview.attribution.bookings.consentingOutcomes, baseline7.attribution.bookings.consentingOutcomes + 1);
+    assert.equal(currentOverview.attribution.bookings.linkedOutcomes, baseline7.attribution.bookings.linkedOutcomes + 1);
+    assert.equal(currentOverview.attribution.orders.linkedOutcomes, baseline7.attribution.orders.linkedOutcomes);
 
 
     // P0 reserve-before-dispatch. Dedicated disposable localhost PostgreSQL,

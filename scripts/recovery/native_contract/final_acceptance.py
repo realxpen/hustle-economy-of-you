@@ -165,6 +165,10 @@ def upgrade(database,runtime,historical,scopes,expected,affected,*,generated=Fal
 def applications(database,runtime):
     # access_contracts retains its fixed clone name and original SQL guards.
     pending.access_contracts(database)
+    # Ensure the application assertions genuinely tolerate pre-existing data.
+    # Generated marker lives only in the owned test clone, never the source DB.
+    pending.sandbox_sql(database,'''INSERT INTO public."SystemEvent"("id","name","source")
+        VALUES('generated-existing-activity','feed.view','web');''')
     # Forward only inside the isolated namespace to retain the existing suite's
     # exact postgres@127.0.0.1:55439/hustle_payment_sandbox connection guard.
     proxy="""const net=require('node:net'),{spawn}=require('node:child_process');
