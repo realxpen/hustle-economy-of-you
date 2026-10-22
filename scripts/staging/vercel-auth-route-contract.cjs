@@ -45,7 +45,7 @@ Module._extensions[".ts"]=(mod,filename)=>{
   }});
   mod._compile(result.outputText,filename);
 };
-function request(query){return {query,url:"/api",method:"GET"};}
+function request(query,method="GET"){return {query,url:"/api",method};}
 function response(){
   return {code:null,payload:null,headersSent:false,
     status(v){this.code=v;return this;},
@@ -56,7 +56,7 @@ function response(){
   const h=require(resolve(root,"apps/api/api/index.ts")).default;
   assert.equal(typeof h,"function");
   const a=response();
-  await h(request({__hustle_auth_path:"sign-in/email",next:"ok"}),a);
+  await h(request({__hustle_auth_path:"sign-in/email",next:"ok"},"POST"),a);
   assert.equal(a.code,200);
   assert.deepEqual(a.payload,{via:"expo-better-auth",url:"/api/auth/sign-in/email?next=ok"});
   assert.equal(nestCreates,0,"Better Auth route must never trigger Nest's body parser");
@@ -71,6 +71,27 @@ function response(){
   assert.equal(authStarts,1);
   currentScope="isolated-staging";
   console.log("PASS: production scope cannot expose staging /api/auth");
+
+  for (const path of ["bookings","payments","media/upload","orders","admin/operations/cases","new-feature"]) {
+    const denied=response();
+    await h(request({__hustle_path:path},"POST"),denied);
+    assert.equal(denied.code,403,path);
+    assert.equal(denied.payload.error.code,"STAGING_ROUTE_DISABLED");
+  }
+  const deniedAuth=response();
+  await h(request({__hustle_auth_path:"delete-user"},"POST"),deniedAuth);
+  assert.equal(deniedAuth.code,403);
+  assert.equal(nestCreates,0,"Disabled routes never initialize application or database");
+  assert.equal(authStarts,1,"Disabled routes never invoke Better Auth");
+  const {stagingRequestGate}=require(resolve(root,"apps/api/src/staging-request-policy.ts"));
+  let passed=false;
+  const deniedStandalone=response();
+  stagingRequestGate({method:"POST",url:"/api/v1/bookings?ignored=true"},deniedStandalone,()=>{passed=true;});
+  assert.equal(deniedStandalone.code,403);
+  assert.equal(passed,false);
+  stagingRequestGate({method:"POST",url:"/api/v1/auth/sync"},response(),()=>{passed=true;});
+  assert.equal(passed,true);
+  console.log("PASS: hosted and standalone gates deny commerce, uploads and unknown mutations before handlers");
 
   const nest=response();
   await h(request({__hustle_path:"search/services",q:"tailoring"}),nest);

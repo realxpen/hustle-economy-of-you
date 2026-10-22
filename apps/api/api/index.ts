@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
+import { stagingRequestAllowed } from "../src/staging-request-policy";
 
 let serverPromise: Promise<any> | null = null;
 
@@ -79,6 +80,13 @@ export default async function handler(request: any, response: any) {
       .filter(Boolean)
       .map((segment) => encodeURIComponent(decodeURIComponent(segment)))
       .join("/");
+
+    const canonicalPath = `${isAuthRequest ? "/api/auth" : "/api/v1"}${normalizedPath ? `/${normalizedPath}` : ""}`;
+    if (scope === "isolated-staging" && !stagingRequestAllowed(request.method, canonicalPath)) {
+      return response.status(403).json({ error: {
+        code: "STAGING_ROUTE_DISABLED", message: "This action is unavailable in isolated staging."
+      } });
+    }
 
     const search = new URLSearchParams();
     for (const [key, raw] of Object.entries(request.query ?? {})) {
