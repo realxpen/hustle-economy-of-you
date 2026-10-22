@@ -1,0 +1,93 @@
+name: Hustle Isolated Neon PG17 Migration Preflight
+
+# A local disposable PostgreSQL 17 rehearsal, NOT a Neon connection.
+# Never add hosted database credentials or approval-free deployment steps.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/hustle-neon-pg17-migration-preflight.yml"
+      - "scripts/staging/pg17-migration-contract.cjs"
+      - "apps/api/prisma/**"
+      - "scripts/payment-sandbox/supabase-compat.sql"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rehearse-application-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: pg17_ci_only
+          POSTGRES_DB: hustle_payment_sandbox
+        ports:
+          - 127.0.0.1:55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hustle_payment_sandbox"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:pg17_ci_only@127.0.0.1:55440/hustle_payment_sandbox?schema=public
+      PGPASSWORD: pg17_ci_only
+      PGHOST: 127.0.0.1
+      PGPORT: "55440"
+      PGUSER: postgres
+      PGDATABASE: hustle_payment_sandbox
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Fail closed outside disposable PostgreSQL 17
+        shell: bash
+        run: |
+          node scripts/staging/pg17-migration-contract.cjs preflight
+          psql -v ON_ERROR_STOP=1 -Atqc "SELECT current_setting('server_version_num')" | grep -E '^17[0-9]{4}$'
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Create fictional Neon managed-auth schema fixture only in disposable Postgres
+        shell: bash
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE SCHEMA neon_auth;
+          CREATE TABLE neon_auth."user" (id text PRIMARY KEY, email text);
+          CREATE TABLE neon_auth.jwks (id text PRIMARY KEY);
+          INSERT INTO neon_auth."user" VALUES ('synthetic-neon-user', 'invalid@example.invalid');
+          SQL
+          pg_dump --schema-only --schema=neon_auth > /tmp/hustle-auth-schema-before.sql
+          sed -i '/^\\restrict /d; /^\\unrestrict /d' /tmp/hustle-auth-schema-before.sql
+          psql -v ON_ERROR_STOP=1 -Atqc 'SELECT COUNT(*) FROM neon_auth."user"' | grep -x 1
+      - name: Run existing disposable Supabase-compatibility fixtures locally only
+        run: psql -v ON_ERROR_STOP=1 -f scripts/payment-sandbox/supabase-compat.sql
+      - name: Rehearse recorded Story policy recovery against clean PG17
+        run: npx prisma migrate resolve --applied 20260917130500_phase16b_story_rls_hardening --schema=apps/api/prisma/schema.prisma
+      - name: Apply all remaining actual Prisma migrations to scratch PostgreSQL 17
+        run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+      - name: Validate migration ledger, data emptiness and managed-auth preservation
+        shell: bash
+        run: |
+          node scripts/staging/pg17-migration-contract.cjs verify
+          pg_dump --schema-only --schema=neon_auth > /tmp/hustle-auth-schema-after.sql
+          sed -i '/^\\restrict /d; /^\\unrestrict /d' /tmp/hustle-auth-schema-after.sql
+          diff -u /tmp/hustle-auth-schema-before.sql /tmp/hustle-auth-schema-after.sql
+          psql -v ON_ERROR_STOP=1 -Atqc 'SELECT COUNT(*) FROM neon_auth."user"' | grep -x 1
+      - name: Assert anonymous database role cannot read Hustle users
+        shell: bash
+        run: |
+          if psql -v ON_ERROR_STOP=1 -qc 'SET ROLE anon; SELECT * FROM public."User"' > /tmp/anon-table-output 2>&1; then
+            echo "::error::Anon role unexpectedly read application users"
+            exit 1
+          fi
+          echo "PASS: anon lacks direct access to Hustle application users"
+      - name: Record limited gate scope
+        run: echo "PASS local PG17 migration rehearsal only; hosted Neon schema and managed Auth unchanged"
