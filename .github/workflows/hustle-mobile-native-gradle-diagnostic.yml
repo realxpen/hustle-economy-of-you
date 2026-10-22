@@ -1,8 +1,15 @@
-name: Hustle Android Native Gradle Diagnostic (free CI)
+name: Hustle Connected Android Preview APK (free CI)
 
-# Android native compiler reproduction without EAS credits, tokens or app distribution.
+# Reuses the previously verified Gradle build path. Produces a standalone
+# INTERNAL TEST APK, never a store/production release or a paid EAS build.
 on:
   pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'package-lock.json'
+      - '.github/workflows/hustle-mobile-native-gradle-diagnostic.yml'
+  push:
+    branches: [main]
     paths:
       - 'apps/mobile/**'
       - 'package-lock.json'
@@ -12,21 +19,30 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: hustle-connected-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  android-native:
+  connected-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     env:
       CI: '1'
       APP_VARIANT: preview
-      EXPO_PUBLIC_HUSTLE_DEMO: 'true'
+      EXPO_PUBLIC_HUSTLE_DEMO: 'false'
+      EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE: isolated-staging
+      EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER: expo-better-auth
+      EXPO_PUBLIC_HUSTLE_AUTH_URL: https://hustle-isolated-staging-api.vercel.app/api/auth
+      EXPO_PUBLIC_API_URL: https://hustle-isolated-staging-api.vercel.app/api/v1
       EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: 'false'
-      EXPO_PUBLIC_API_URL: https://hustle-offline-demo.invalid/api/v1
-      EXPO_PUBLIC_SUPABASE_URL: https://hustle-offline-demo.invalid
-      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_demo_not_a_real_key
+      EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES: 'true'
+      HUSTLE_FINANCIAL_PROVIDERS_ENABLED: 'false'
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -38,50 +54,60 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools'
-      - name: Install exact monorepo dependencies
+      - name: Install locked monorepo dependencies
         run: npm ci
-      - name: Check Expo native package compatibility (diagnostic)
-        working-directory: apps/mobile
-        shell: bash
+      - name: Verify connected preview identity, isolation and source contracts
         run: |
-          npx expo install --check || echo "::warning::Expo dependency check reported incompatibilities; see diagnostics above."
-      - name: Identify malformed Expo autolinked module metadata
+          node apps/mobile/scripts/connected-android-apk-contract.cjs
+          node apps/mobile/scripts/cloud-preview-config-gate.cjs
+          node apps/mobile/scripts/mobile-experience-contract.mjs
+          node apps/mobile/scripts/react-singleton-contract.cjs
+          npm run typecheck --workspace=@hustle/mobile
+      - name: Verify Expo SDK54 Android autolinking
         working-directory: apps/mobile
         shell: bash
         run: |
           npx expo-modules-autolinking resolve --platform android --json > /tmp/hustle-autolink-modules.json
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const v = JSON.parse(fs.readFileSync('/tmp/hustle-autolink-modules.json', 'utf8'));
-          const mods = Array.isArray(v.modules) ? v.modules : [];
-          console.log('Expo autolink module count:', mods.length);
-          const broken = [];
-          mods.forEach((m, i) => {
-            const projects = m.projects || [];
-            console.log('module [' + i + ']:', m.packageName, m.packageVersion, 'projects:', projects.map(p => ({ name: p.name, publicationVersionPresent: !!p.publication?.version })));
-            for (const p of projects) {
-              if (p.publication && !p.publication.version) broken.push({ name: m.packageName, moduleIndex: i, project: p.name });
-            }
-          });
-          if (broken.length) {
-            console.error('Malformed Expo Android module publication metadata:', JSON.stringify(broken));
-            process.exitCode = 1;
-          }
-          NODE
-      - name: Generate a fresh Android project without signing or EAS
+          node scripts/check-native-autolinking.cjs /tmp/hustle-autolink-modules.json
+      - name: Bundle connected Android JavaScript
+        working-directory: apps/mobile
+        run: npx expo export --platform android --output-dir /tmp/hustle-connected-android-metro --clear
+      - name: Generate isolated Android preview project
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --clean --non-interactive
-      - name: Compile offline demo Android release in GitHub cloud
+      - name: Compile standalone internal Android release APK
         working-directory: apps/mobile/android
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --stacktrace --no-daemon --max-workers=2 --warning-mode=summary 2>&1 | tee /tmp/hustle-native-gradle-diagnostic.log
-      - name: Upload sanitized diagnostic metadata (no APK)
-        if: failure()
+          ./gradlew :app:assembleRelease --no-daemon --max-workers=2 --warning-mode=summary
+      - name: Verify APK package and record build provenance
         shell: bash
         run: |
-          echo "Native Gradle diagnostic failed. The Gradle job log is available in GitHub Actions."
-          echo "### Android compiler diagnosis" >> "$GITHUB_STEP_SUMMARY"
-          echo "Inspect **Compile offline demo Android release in GitHub cloud** for the first Gradle failure and root-cause message. No EAS build credits were used." >> "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
+          apk=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          test -s "$apk"
+          unzip -tq "$apk" >/dev/null
+          unzip -Z1 "$apk" | grep -Eq '^classes([0-9]+)?\.dex$'
+          unzip -Z1 "$apk" | grep -Eq '^assets/index\.android\.bundle$'
+          mkdir -p /tmp/hustle-connected-output
+          cp "$apk" /tmp/hustle-connected-output/hustle-connected-staging-internal.apk
+          sha256sum /tmp/hustle-connected-output/hustle-connected-staging-internal.apk | tee /tmp/hustle-connected-output/SHA256SUMS.txt
+          {
+            echo "Source commit: $GITHUB_SHA"
+            echo "Mode: connected isolated staging (not offline demo)"
+            echo "Identity: com.hustle.economyofyou.preview"
+            echo "Distribution: internal Android APK, debug signing material (NOT Play Store)"
+            echo "Hosted authentication/device test: NOT VERIFIED by APK compilation"
+            echo "Booking/payment providers: DISABLED"
+          } > /tmp/hustle-connected-output/BUILD-INFO.txt
+          cat /tmp/hustle-connected-output/BUILD-INFO.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload installable internal test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hustle-connected-staging-apk-${{ github.sha }}
+          path: /tmp/hustle-connected-output/
+          retention-days: 7
+          if-no-files-found: error
+          compression-level: 0
