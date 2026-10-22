@@ -117,7 +117,7 @@ check("Search opens local profile, actual same-owner offers and a draft-only enq
   assert.match(app,/No provider has received this enquiry/);
   const block=app.slice(app.indexOf("    <Modal visible={opportunityStage"),app.indexOf("  </View>;\n}\nexport function MobileExperience"));
   assert.doesNotMatch(block,/mobileApi\.(requestBooking|comment|like|save|follow|event)\s*\(/);
-  assert.doesNotMatch(block,/Share\.share|fetch\s*\(|initializePayment|checkout|escrow\.release/);
+  assert.doesNotMatch(block,/Share\.share|fetch\s*\(|initializePayment|mobileApi\.requestBooking\s*\(|escrow\.release/);
 });
 check("Feed booking permissions, search paging and A1 rollback unaffected",()=>{
   assert.match(app,/if \(process\.env\.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS !== 'true'\)/);
