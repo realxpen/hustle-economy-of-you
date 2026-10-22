@@ -7,12 +7,15 @@ export function isExpoStagingSelected() {
 }
 
 export function validateExpoStagingConfiguration() {
-  if (process.env.APP_VARIANT !== "preview" && process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE !== "isolated-staging") {
+  if (process.env.APP_VARIANT !== "preview" ||
+      process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE !== "isolated-staging" ||
+      process.env.EXPO_PUBLIC_HUSTLE_DEMO === "true") {
     throw new Error("The test login requires the isolated preview app.");
   }
   if (process.env.EXPO_PUBLIC_API_URL !== "https://hustle-isolated-staging-api.vercel.app/api/v1" ||
       process.env.EXPO_PUBLIC_HUSTLE_AUTH_URL !== "https://hustle-isolated-staging-api.vercel.app/api/auth" ||
-      process.env.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS !== "false") {
+      process.env.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS !== "false" ||
+      process.env.EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES !== "true") {
     throw new Error("The isolated test login is not configured.");
   }
 }

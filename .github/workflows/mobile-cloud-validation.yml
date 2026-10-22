@@ -31,7 +31,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Validate mobile experience integration
-        run: node apps/mobile/scripts/mobile-experience-contract.mjs
+        run: |
+          node apps/mobile/scripts/mobile-experience-contract.mjs
+          node apps/mobile/scripts/staging-device-readiness-contract.cjs
       - name: Check cloud EAS preview configuration safeguards
         run: node apps/mobile/scripts/cloud-preview-config-gate.cjs
       - name: Verify offline demo safety and synthetic interaction coverage
