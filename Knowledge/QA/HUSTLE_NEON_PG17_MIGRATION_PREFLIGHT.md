@@ -16,7 +16,7 @@ These are read-only observations. No production Supabase database, real data, Ne
 
 ## Why schema cannot simply be copied or blindly deployed
 
-The actual `apps/api/prisma/migrations` contains **40** chronological migration directories (last: 2026-10-16 marketplace casework API access). They create Hustle's application tables and operational `hustle_api` database role/RLS policies.
+The actual `apps/api/prisma/migrations` contains **41** chronological migration directories (last: 2026-10-16 marketplace casework API access). They create Hustle's application tables and operational `hustle_api` database role/RLS policies.
 
 Some historic SQL assumes **Supabase-specific** database roles, `auth.uid()`, `storage.*` objects and storage policy management. Those are not automatically present in an independent Neon PG17 project. The existing passing PostgreSQL 16 offline runner creates a *deliberately fictional* compatibility fixture guarded to local `hustle_payment_sandbox`, and resolves one historic overlapping Story RLS migration in its disposable Prisma ledger. That fixture **must not** be applied unmodified to Neon staging: its credentials, object permissions, storage mocks and role choices need separate review.
 
@@ -44,3 +44,7 @@ Workflow: `.github/workflows/hustle-neon-pg17-migration-preflight.yml`.
 - [ ] Deploy the isolated API and staging-only mobile login, then finish real Android UX acceptance. No Expo EAS build or production rollout is authorized by this rehearsal.
 
 See [issue #179](https://github.com/realxpen/hustle-economy-of-you/issues/179) for signed-in staging acceptance and [issue #176](https://github.com/realxpen/hustle-economy-of-you/issues/176) for the separate Vercel preview quota.
+
+## First exact-head rehearsal evidence and harmless comparator fix
+
+[Run #39761941255](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39761941255) executed all **41** actual migrations on disposable PostgreSQL 17 and validated **61** application/Prisma tables; empty User/Booking/PaymentAttempt/EscrowRecord/SystemEvent records; fictional auth schema intact. Its final `diff` initially failed because the runner's PostgreSQL 18 `pg_dump` emitted fresh randomized `\\restrict` markers in each otherwise identical schema file. The pipeline now strips only these non-schema dump control markers before comparison, without suppressing actual SQL/DDL differences. The corrected head requires fresh PASS evidence before owner merge.
