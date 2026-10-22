@@ -6,12 +6,14 @@ import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { CapabilityGuard } from "./capability.guard";
 import { SupabaseAuthService } from "./supabase-auth.service";
+import { chooseHustleAuthPort } from "./staging-auth-selection";
 
 @Module({
   controllers: [AuthController],
   providers: [
     SupabaseAuthService,
-    { provide: AUTH_PORT, useExisting: SupabaseAuthService },
+    { provide: AUTH_PORT, inject: [SupabaseAuthService],
+      useFactory: (supabase: SupabaseAuthService) => chooseHustleAuthPort(supabase) },
     AuthGuard,
     AdminGuard,
     CapabilityGuard,

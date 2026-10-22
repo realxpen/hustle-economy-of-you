@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
+import { validateApiRuntimeEnvironment } from "./auth/staging-auth-selection";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 
 async function bootstrap() {
@@ -12,6 +13,8 @@ async function bootstrap() {
     }
   }
 
+  // Fail before Nest initializes Prisma or any provider integration.
+  validateApiRuntimeEnvironment(process.env);
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   app.setGlobalPrefix("api/v1");
 
