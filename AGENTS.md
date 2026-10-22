@@ -16,6 +16,17 @@ Before meaningful implementation read, in order:
 
 Implementation follows `Knowledge → Specification → Architecture → Experience → Code → Test → Validate`.
 
+## Mandatory autonomous milestone execution
+
+**Default mode: build, integrate, test, and deliver the largest coherent authorized milestone—not one tiny change per conversation.** Read and follow [Hustle Autonomous Development & Rapid Execution Protocol](Knowledge/Technical/HUSTLE_AUTONOMOUS_DEVELOPMENT_PROTOCOL.md) before implementation work.
+
+- Founder directives such as "continue", "next", "build", and "fix it" authorize ordinary technical implementation through the maximum safe, coherent end-to-end batch supported by connected tools.
+- Own technical execution: inspect code, implement all affected layers, add automated tests, debug, rerun checks, and prepare a reviewable PR without requesting permission for each routine step.
+- Prefer complete user journeys and integrated milestones over excessive micro-PRs or fragmented screens; split only for real review, safety, or dependency reasons.
+- Avoid asking the founder to run terminal commands when available tools or CI can run the checks. Only involve the founder for genuine product judgments, credentials, restricted permissions, or required approvals.
+- Report concise evidence of what is implemented, tested, proposed, merged, deployed, and still blocked. Never imply unrun tests passed, or that asynchronous work continues without an active mechanism.
+- Existing product rules, security controls, production/database/payment gates, and required review/approval boundaries remain binding; speed never overrides them.
+
 ## Binding product rules
 - Product name is Hustle.
 - Mobile-first and Nigeria-first.
