@@ -17,7 +17,7 @@ The existing free GitHub native Gradle diagnostic builds a standalone **internal
 - The prebuilt internal release uses the generated Android template's **debug signing**, never a Play Store upload or production release.
 
 ## Delivery / test path
-1. Review this PR's cloud `Hustle Connected Android Preview APK (free CI)`, `Hustle Mobile Cloud CI` and `Hustle Foundation CI` checks.
+1. Review this PR's cloud `Hustle Android Native Gradle Diagnostic (free CI)`, `Hustle Mobile Cloud CI` and `Hustle Foundation CI` checks.
 2. If green, the latest PR job's `hustle-connected-staging-apk-<commit>` artifact is available under that GitHub Actions run. After owner review/merge, the `main` push builds the same artifact for the merged revision.
 3. Download the artifact ZIP from the GitHub Actions run and extract the APK. Installing the APK (Android's explicit sideload consent) and using a real phone are physical acceptance tasks; CI does not pretend to perform them.
 4. On a genuine phone: launch, view isolated invited-email sign-in, register an allowlisted disposable account, sign out, relaunch, sign in, reopen app and verify persistence/session denial. After authentication, exercise real feed, Explore/service, enquiry messaging and denied/disabled booking/payment actions. No production account or money.
