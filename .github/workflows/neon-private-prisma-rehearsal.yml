@@ -1,0 +1,63 @@
+name: Hustle Private Neon Prisma Rehearsal
+on:
+  pull_request:
+    paths:
+      - scripts/staging/neon-private-prisma-rehearsal.cjs
+      - .github/workflows/neon-private-prisma-rehearsal.yml
+  workflow_dispatch:
+    inputs:
+      approved_disposable_neon_test:
+        description: Run only the reviewed temporary Neon child test
+        type: boolean
+        required: true
+        default: false
+      reviewed_commit:
+        description: Exact reviewed main commit SHA
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: hustle-private-neon-rehearsal
+  cancel-in-progress: false
+jobs:
+  public-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node scripts/staging/neon-private-prisma-rehearsal.cjs --offline
+  private-child-only:
+    needs: public-guards
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.approved_disposable_neon_test && inputs.reviewed_commit == github.sha
+    environment: neon-rehearsal
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace=@hustle/api
+      - name: Actual Prisma and generated login checks on the exact disposable child
+        env:
+          HUSTLE_REHEARSAL_BRANCH: br-mute-rain-zamdwv8j
+          HUSTLE_NEON_REHEARSAL_DATABASE_URL: ${{ secrets.HUSTLE_NEON_REHEARSAL_DATABASE_URL }}
+          BETTER_AUTH_TELEMETRY: "0"
+        run: node scripts/staging/neon-private-prisma-rehearsal.cjs
+      - name: Upload sanitized aggregate report only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-child-prisma-report
+          path: /tmp/hustle-neon-private-report/report.json
+          if-no-files-found: ignore
+          retention-days: 7
