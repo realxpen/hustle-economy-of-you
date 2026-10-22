@@ -129,7 +129,7 @@ check("Search uses truthful pagination and explicit accessible load-more or retr
 
 check("A3.1 regression remains present and only apps/mobile changes needed",()=>{
   assert.ok(oldContract.includes("connectedSearchWebLink"));
-  assert.ok(oldContract.includes("Public link unavailable"));
+  assert.ok(oldContract.includes("Public offer link unavailable"));
   assert.match(app,/EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS !== 'true'/);
   assert.doesNotMatch(app,/createClient\(|initializePayment\(|escrow\.release/);
   assert.match(qa,/Runtime acceptance: PENDING/);
