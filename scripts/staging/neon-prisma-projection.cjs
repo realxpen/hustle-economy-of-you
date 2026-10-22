@@ -74,7 +74,7 @@ function projectSql(name,sql) {
       "Refuse changed role bootstrap assumptions");
     sql=sql.replace("CREATE ROLE hustle_api LOGIN;","CREATE ROLE hustle_api NOLOGIN;");
   }
-  const roleRefs=sql.match(/\b(?:anon|authenticated)\b/g) || [];
+  const roleRefs=noSqlComments(sql).match(/\b(?:anon|authenticated)\b/g) || [];
   if(roleRefs.length) {
     assert.ok(DENIED_ROLES.has(name),"Unexpected Supabase role in migration: "+name);
     const before=sql;
@@ -96,8 +96,8 @@ function projectSql(name,sql) {
 function run(dest) {
   if(process.env.NODE_ENV!=="test" || !dest)throw Error("Projection generation is only enabled in test mode");
   const abs=path.resolve(dest);
-  if(abs.startsWith(path.join(root,"apps")) || abs.startsWith(path.join(root,"infra")) ||
-     abs===input || abs==="/" || abs===root)throw Error("Refusing to overwrite application or source directory");
+  if(abs!=="/tmp/hustle-neon-application-projection")
+    throw Error("Projection writes only to an isolated CI scratch directory");
   assert.equal(dirs.length,41,"Historical migration list changed: review projection");
   const changed=[];
   fs.mkdirSync(path.join(abs,"migrations"),{recursive:true});
