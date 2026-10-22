@@ -86,6 +86,8 @@ class Runtime(core.Database):
                 print((result.stdout+b'\n'+result.stderr).decode('utf8',errors='replace')[-5000:],flush=True)
             codes=re.findall(rb'\bP[0-9]{4}\b',result.stdout+b'\n'+result.stderr)
             suffix='_'+codes[0].decode() if codes else ''
+            source_line=re.search(rb'(?m)^SANDBOX_FAILURE_LINE:([0-9]{1,4})\b',result.stderr)
+            if source_line:suffix+='_LINE_'+source_line[1].decode()
             probe=re.search(rb'APPLICATION_ACCEPTANCE_FAILED:(ROLE|FIXTURES|PARTICIPANT_GUARDS|LAST_SLOT_RACE|OCCUPIED_SLOT|FUNDING_GUARD|FREE_START|EXTENSION_RACE|EXTENSION_CONFLICT|COMPLETE):',result.stderr)
             if probe:suffix+='_'+probe[1].decode()
             raise core.RestoreError('ACCEPTANCE_'+stage+suffix,'The isolated '+stage.lower().replace('_',' ')+' check failed; no private output was printed.')

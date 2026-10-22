@@ -28,10 +28,10 @@ class AcceptanceTests(unittest.TestCase):
 
     def test_private_child_output_is_never_in_error(self):
         runtime=final.Runtime(MagicMock())
-        result=SimpleNamespace(returncode=1,stdout=b'private-value P3018',stderr=b'private SQL')
+        result=SimpleNamespace(returncode=1,stdout=b'private-value P3018',stderr=b'SANDBOX_FAILURE_LINE:456\nprivate SQL')
         with patch.object(runtime,'guard'),patch.object(final.access,'private_run',return_value=result),self.assertRaises(final.core.RestoreError) as raised:
             runtime.execute([],final.DEPLOY_URL,'PRISMA')
-        self.assertEqual(raised.exception.code,'ACCEPTANCE_PRISMA_P3018')
+        self.assertEqual(raised.exception.code,'ACCEPTANCE_PRISMA_P3018_LINE_456')
         self.assertNotIn('private-value',raised.exception.message)
         self.assertNotIn('private SQL',raised.exception.message)
 

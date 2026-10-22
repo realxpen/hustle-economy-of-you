@@ -1049,6 +1049,10 @@ async function main() {
 }
 
 main().catch(error => {
+  // Public source location only. The private restore runner may expose this
+  // classification while suppressing assertion values and all raw errors.
+  const location = error instanceof Error ? error.stack?.match(/run\.mjs:(\d{1,4}):\d+/) : null;
+  if (location) console.error(`SANDBOX_FAILURE_LINE:${location[1]}`);
   console.error("FAILED: isolated payment sandbox assertions:", error instanceof Error ? error.message : error);
   process.exitCode = 1;
 });
