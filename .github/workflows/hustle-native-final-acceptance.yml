@@ -1,0 +1,102 @@
+name: Hustle Combined Saved Upgrade Acceptance
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/hustle-native-final-acceptance.yml'
+      - 'scripts/recovery/native_contract/final_acceptance.py'
+      - 'scripts/recovery/native_contract/test_final_acceptance.py'
+      - 'scripts/recovery/native_contract/application_acceptance.cjs'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type TEST_SAVED_UPGRADE to run combined migration, application and API checks on the saved copy'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.event_name == 'workflow_dispatch' && 'hustle-private-native-backup-access' || format('combined-upgrade-pr-{0}', github.event.pull_request.number) }}
+  cancel-in-progress: false
+
+jobs:
+  generated-gate:
+    if: ${{ github.event_name == 'pull_request' || (github.ref == 'refs/heads/main' && inputs.confirm == 'TEST_SAVED_UPGRADE') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Install locked code and build the real API without private inputs
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build --workspace=@hustle/api
+      - name: Test combined guards, cleanup and aggregate report
+        working-directory: scripts/recovery/native_contract
+        run: python -m unittest -v test_final_acceptance.py
+      - name: Rehearse real Prisma deployment and application concurrency on generated data
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONUNBUFFERED: '1'
+        run: python scripts/recovery/native_contract/final_acceptance.py --generated
+      - name: Verify temporary-container cleanup
+        if: always()
+        run: |
+          PYTHONPATH=scripts/recovery/native_contract python -c 'import cloud_contract; cloud_contract.assert_clean()'
+
+  private-acceptance:
+    needs: generated-gate
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.confirm == 'TEST_SAVED_UPGRADE' }}
+    environment: hustle-cloud-recovery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Prepare locked public code and dependencies before exposing private inputs
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build --workspace=@hustle/api
+          python -m pip install --disable-pip-version-check --only-binary=:all: --require-hashes -r scripts/recovery/native_contract/requirements.lock
+          PYTHONPATH=scripts/recovery/native_contract python -c 'import final_acceptance; final_acceptance.preflight()'
+      - name: Check migration tooling, application behavior and post-upgrade login/file access
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONUNBUFFERED: '1'
+          HUSTLE_GENERATED_GATE: passed
+          HUSTLE_ACCEPTANCE_CONFIRM: ${{ inputs.confirm }}
+          HUSTLE_RESTORE_DRIVE_SA_JSON: ${{ secrets.HUSTLE_RESTORE_DRIVE_SA_JSON }}
+          HUSTLE_NATIVE_BACKUP_PASSPHRASE: ${{ secrets.HUSTLE_NATIVE_BACKUP_PASSPHRASE }}
+          HUSTLE_RECOVERY_OWNER_EMAIL: ${{ secrets.HUSTLE_RECOVERY_OWNER_EMAIL }}
+          HUSTLE_RECOVERY_OWNER_PASSWORD: ${{ secrets.HUSTLE_RECOVERY_OWNER_PASSWORD }}
+        run: python scripts/recovery/native_contract/final_acceptance.py
+      - name: Verify temporary-container cleanup
+        if: always()
+        run: |
+          PYTHONPATH=scripts/recovery/native_contract python -c 'import cloud_contract; cloud_contract.assert_clean()'
+      - name: Keep the aggregate acceptance result
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hustle-combined-acceptance
+          path: ${{ runner.temp }}/hustle-combined-acceptance.json
+          if-no-files-found: error
+          retention-days: 7
