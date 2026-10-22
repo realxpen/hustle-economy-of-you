@@ -1,0 +1,25 @@
+name: Hustle Neon Isolated Staging Health Contract
+on:
+  pull_request:
+    paths:
+      - "infra/neon/staging/health/**"
+      - "scripts/staging/neon-health-contract.mjs"
+      - ".github/workflows/neon-staging-health.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-health-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify isolated public hosting readiness reports no auth or API acceptance
+        run: node scripts/staging/neon-health-contract.mjs
