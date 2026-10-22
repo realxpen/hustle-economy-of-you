@@ -39,6 +39,8 @@ jobs:
       TARGET: ${{ inputs.target }}
       # No booking writes, store submission, custody or production payment capability.
       EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: "false"
+      EXPO_PUBLIC_HUSTLE_DEMO: "false"
+      EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

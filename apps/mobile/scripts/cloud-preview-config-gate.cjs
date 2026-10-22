@@ -25,6 +25,8 @@ try {
   assert.equal(build.preview.environment, "preview");
   assert.equal(build.preview.android.buildType, "apk");
   assert.equal(build.preview.env.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS, "false");
+  assert.equal(build.preview.env.EXPO_PUBLIC_HUSTLE_DEMO, "false");
+  assert.equal(build.preview.env.EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES, "true");
   assert.equal(build["ios-simulator"].ios.simulator, true);
   process.env.APP_VARIANT = "production";
   delete process.env.EXPO_PROJECT_ID;
@@ -56,6 +58,7 @@ try {
   assert.doesNotMatch(workflow, /e2e-android|e2e-ios|workflow:run|maestro/i);
   assert.deepEqual(Object.keys(build).sort(), ["demo", "ios-simulator", "preview"]);
   assert.equal(build.demo.env.EXPO_PUBLIC_HUSTLE_DEMO, "true");
+  assert.equal(build.demo.env.EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES, "false");
   assert.equal(build.demo.env.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS, "false");
   assert.doesNotMatch(workflow, /--auto-submit/);
   assert.doesNotMatch(workflow, /\n\s+push:/);
