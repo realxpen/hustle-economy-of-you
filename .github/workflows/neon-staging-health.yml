@@ -1,9 +1,10 @@
-name: Hustle Neon Isolated Staging Health Contract
+name: Hustle Free Staging Health and Isolation Contracts
 on:
   pull_request:
     paths:
-      - "infra/neon/staging/health/**"
+      - "infra/neon/staging/**"
       - "scripts/staging/neon-health-contract.mjs"
+      - "scripts/staging/neon-isolation-config-contract.mjs"
       - ".github/workflows/neon-staging-health.yml"
   workflow_dispatch:
 
@@ -23,3 +24,5 @@ jobs:
           node-version: "22"
       - name: Verify isolated public hosting readiness reports no auth or API acceptance
         run: node scripts/staging/neon-health-contract.mjs
+      - name: Refuse wrong database, Supabase auth or financial provider flags
+        run: node scripts/staging/neon-isolation-config-contract.mjs
