@@ -1,5 +1,7 @@
 # ADR-0069 — Free, isolated Hustle staging database, identity and deployment boundaries
 
+**Authentication update (2026-10-22):** Owner approved ADR-0070, replacing only this staging Managed Auth design with self-managed Better Auth plus the official Expo plugin. Database/project/free-tier and production isolation decisions remain. The managed JWKS verifier remains tested historical source, not the selected staging AuthPort.
+
 **Status:** Accepted staging-resource direction by owner; implementation **PARTIAL**, no connected staging API or Android acceptance  
 **Date:** 2026-10-22  
 **Scope:** Nonproduction infrastructure only; **production remains Supabase Auth/PostgreSQL, without code or data migration**.

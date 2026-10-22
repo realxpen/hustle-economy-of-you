@@ -16,6 +16,7 @@ module.exports = ({ config }) => {
     ...base,
     owner: "xpen",
     name: "Hustle Preview",
+    scheme: "hustle-preview",
     android: {
       ...base.android,
       package: "com.hustle.economyofyou.preview"

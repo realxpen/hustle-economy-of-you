@@ -5,8 +5,16 @@ import { SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } fro
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase, isMobileAuthConfigured } from "./src/lib/supabase";
 import { syncMobileAccount } from "./src/lib/account";
+import { isExpoStagingSelected } from "./src/lib/staging-auth";
+import { StagingSignIn } from "./src/experience/StagingSignIn";
 
 export default function App() {
+  if (process.env.EXPO_PUBLIC_HUSTLE_DEMO === "true") return <DemoExperience />;
+  if (isExpoStagingSelected()) return <StagingSignIn />;
+  return <SupabaseApp />;
+}
+
+function SupabaseApp() {
   const demo = process.env.EXPO_PUBLIC_HUSTLE_DEMO === "true";
   const configured = isMobileAuthConfigured();
   const [session, setSession] = useState<Session | null>(null);
