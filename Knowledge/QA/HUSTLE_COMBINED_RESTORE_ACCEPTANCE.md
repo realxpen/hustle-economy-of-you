@@ -20,6 +20,8 @@ Actual combined run: **NOT RUN** until its report has been independently downloa
 
 The reused application suite also supports populated restores: it snapshots the initial 7/30-day analytics and notification counts, then asserts the exact changes produced by its generated identities. Unrelated existing activity is retained. The combined runner inserts a generated pre-existing observation in its owned clone before that suite starts, so generated CI exercises a nonzero baseline. No production service logic, permissions or source records are changed by this test correction.
 
+Once migration and original-data integrity checks pass, independent application/concurrency/API checks are all attempted even if an earlier application assertion fails. A fingerprint mismatch still stops the sequence. Any failed stage prevents a passing report; only fixed classifications/public source-line numbers leave the private runner. This collects actionable results together without weakening the final gate.
+
 ## Actual first run and reviewed historical file revision
 
 [Run 39698866444](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39698866444) passed its generated gate, restored the private backup, then stopped before pending deployment because `20260918110000_phase17b_native_live_media` carried an older checksum. Cleanup passed. Git history shows original commit `f8b85fb` (2026-09-18) and retry-safety edit `ea61062` (2026-10-04): only conditional creation/drop-and-recreate guards were added; table/index/FK/RLS/grant/policy definitions stayed the same.

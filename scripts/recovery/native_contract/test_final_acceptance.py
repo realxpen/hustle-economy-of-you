@@ -96,5 +96,29 @@ class AcceptanceTests(unittest.TestCase):
         with patch.object(Path,'read_bytes',return_value=b'unknown SQL'),self.assertRaises(final.core.RestoreError):
             final.verify_live_media_reference(expected,expected)
 
+    def test_sandbox_failure_still_runs_booking_checks_but_never_passes(self):
+        runtime=MagicMock()
+        good={'last_slot_race_passed':True,'extension_race_and_conflict_passed':True,'participant_guards_passed':True,
+              'unfunded_start_denied':True,'non_bypass_api_role':True}
+        runtime.execute.side_effect=[final.core.RestoreError('GENERATED_FAILURE','Generated fixture'),json.dumps(good).encode()]
+        with patch.object(final.pending,'access_contracts'),patch.object(final.pending,'sandbox_sql',return_value=b'0'),\
+             self.assertRaises(final.core.RestoreError) as raised:
+            final.applications(MagicMock(),runtime)
+        self.assertEqual(runtime.execute.call_count,2)
+        self.assertEqual(raised.exception.code,'ACCEPTANCE_APPLICATION_CHECKS')
+
+    def test_application_failure_still_checks_apis_if_original_database_is_unchanged(self):
+        stack=MagicMock()
+        with patch.object(final,'reference_contract',return_value=({}, {}, {}, [])),patch.object(final.access,'Stack',return_value=stack),\
+             patch.object(final,'Runtime'),patch.object(final.core,'read_reference',return_value={}),patch.object(final.core,'compare_database'),\
+             patch.object(final.pending,'prepare_database_owner'),patch.object(final,'upgrade',return_value=([],{},1)),\
+             patch.object(final,'applications',side_effect=final.core.RestoreError('GENERATED_FAILURE','Generated fixture')),\
+             patch.object(final.pending,'fingerprints',return_value={}),patch.object(final,'ledger',return_value=[]),\
+             patch.object(final,'api_checks',return_value=(6,2)) as api,patch.object(final.core,'cleanup_all'),\
+             self.assertRaises(final.core.RestoreError) as raised:
+            final.private_contract(Path('/generated'),SimpleNamespace(backup_passphrase='generated'))
+        api.assert_called_once()
+        self.assertEqual(raised.exception.code,'ACCEPTANCE_STAGE_FAILURES')
+
 
 if __name__=='__main__':unittest.main()
