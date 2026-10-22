@@ -1,7 +1,7 @@
 # Hustle — Free, isolated connected-API acceptance
 
 **Prepared:** October 22, 2026  
-**State:** Code ready for cloud test; successful execution must be confirmed from PR workflow logs.  
+**State:** Original isolated API HTTP acceptance PASS on [run #39706352409](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39706352409); Foundation CI [#39706352389](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39706352389) PASS; PR #180 merged. Follow-up Expo mobile-adapter runtime acceptance below requires its own exact-head green run.  
 **Cost target:** Existing GitHub hosted runner and throwaway PostgreSQL service, with **no new hosted database or billing agreement**.
 
 ## Why this is the safe first staging step
@@ -43,3 +43,17 @@ Test runner: `scripts/experience/free-isolated-connected-api.cjs`.
 - Confirm an isolated **free** hosted auth+database project can become available (or find a free self-hosted authentication alternative), with a production-independent HTTPS API. Do not mix test identities with Hustle's existing live Supabase project.
 - Only then trigger the separately approved connected Expo build workflow, preserving `EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS=false`, and complete real physical Android acceptance from [issue #179](https://github.com/realxpen/hustle-economy-of-you/issues/179).
 - Record observed actual workflow run and exact commit before declaring this gate green.
+
+## A3.5 — Connected Expo adapter against actual temporary NestJS (follow-up)
+
+**Status: PENDING exact-head CI until the new run finishes.** The existing API-only sandbox succeeded but previously did not execute the real Expo `mobileApi.searchTab` or `mobileApi.slots` functions. Pure TypeScript source contracts had been run independently with synthetic JSON; they did not prove the mobile HTTP client and real NestJS server agreed at runtime.
+
+The follow-up imports, transpiles and invokes the *actual* unchanged TypeScript modules from `apps/mobile/src/experience/feed-api.ts` and the unchanged `apps/mobile/src/ux004/discovery/` helpers **inside the localhost-only GitHub runner**:
+
+1. The real adapter queries all four typed Search endpoints and Top, with bearer tokens known only to the ephemeral test process. It checks published person/post/service/product cards and API identities against the actual disposable PostgreSQL records.
+2. A post's canonical owner is followed to real returned published service and product rows. The pure in-app helpers verify owner `id` matching, offer details and safe canonical web links (without making outside HTTP calls or assuming a configured Web URL).
+3. The real mobile `slots` adapter reads an appointment service's returned day/timezone/capacity and a work-queue service's non-slot mode. The actual connected enquiry helper handles safe available slots and timezone labels, not fabricated response data.
+4. The adapter rejects invalid bearer and missing bearer credentials. Previous zero-booking, zero-payment, zero-escrow and zero-event assertions still apply. Network access remains guarded to localhost HTTP GET only.
+5. This is **not** a React Native emulator, live Expo app installation, native navigation/UI automation, production Supabase auth, public staging URL or a legitimate permission to book anything. No new native packages, cloud services, temporary external secrets or mobile release.
+
+Because this A3.5 slice improves the test runner rather than product code, the same existing `Hustle Free Isolated Connected API Acceptance` workflow is triggered on its PR. Any failure must be fixed on the branch and rerun before manual review/merge. A PASS means the connected mobile **read-model/HTTP adapter** works against our real localhost NestJS API with synthetic scoped identity only.
