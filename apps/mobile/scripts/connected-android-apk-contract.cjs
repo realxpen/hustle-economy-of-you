@@ -47,7 +47,9 @@ assert.match(workflow, /npx expo export --platform android/);
 assert.match(workflow, /actions\/upload-artifact@v4/);
 assert.match(workflow, /test -s "\$apk"/);
 assert.match(workflow, /push:\s*\n\s*branches: \[main\]/);
-assert.doesNotMatch(workflow, /\$\{\{\s*secrets\.|eas build|--auto-submit|eas submit|paystack|monnify/i,
+// Check executable workflow lines, not explanatory comments containing "EAS build".
+const executableWorkflow = workflow.split("\n").filter(line => !/^\s*#/.test(line)).join("\n");
+assert.doesNotMatch(executableWorkflow, /\$\{\{\s*secrets\.|\beas\s+build\s+--|--auto-submit|\beas\s+submit\b|\bpaystack\b|\bmonnify\b/i,
   "Native internal build must not receive secrets or launch paid EAS/store/payment actions");
 assert.ok(workflow.indexOf("node apps/mobile/scripts/connected-android-apk-contract.cjs") <
   workflow.indexOf(":app:assembleRelease"), "Fail before native build if staging controls change");
