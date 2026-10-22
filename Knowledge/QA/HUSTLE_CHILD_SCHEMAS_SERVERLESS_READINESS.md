@@ -1,7 +1,31 @@
 # Hustle staging — real child schemas and serverless API gate
 
 **Verification date:** 2026-10-22  
-**State:** Actual child-branch schemas **APPLIED AND READ-VERIFIED**. Vercel serverless route + environment fix submitted for CI and manual review. **No public connected staging deployment or installed Android evidence yet.**
+**State:** Child API **DEPLOYED; HOSTED AUTHENTICATION ACCEPTANCE PASSED**. Implementation is proposed in PR #197, not merged. Physical Android/iOS acceptance remains unverified.
+
+## Latest credential and runtime reconciliation — 2026-10-22
+
+The founder explicitly authorized enabling the child database's restricted login, storing its password only in the dedicated Vercel staging secret store, and completing hosted tests. `hustle_child_api` is now LOGIN, with membership only in `hustle_api`; both sensitive Prisma URLs target the pinned child with their separate `public` and `hustle_auth` schemas. No credentials were committed or printed. This supersedes the historical NOLOGIN/credential-transfer block below.
+
+Read-back confirms no superuser, RLS bypass, database/schema creation or role-administration rights. Direct role-context SQL checks deny managed `neon_auth` access, auth migration-ledger access and `PaymentAttempt` reads. An existing excessive auth-ledger grant was revoked; neither migration ledger is accessible to the runtime role. No migration or parent-branch change was performed in this reconciliation.
+
+[PR #197](https://github.com/realxpen/hustle-economy-of-you/pull/197) keeps the merged child guard and serverless auth routing, adds fail-closed HTTP write gates to both entry points, and adds exact-commit hosted acceptance. It does not include #190's incompatible parent-target activation script. API build, API/mobile typechecks, actual-handler routing/denial contracts and isolation/JWT contracts passed locally. Hosted acceptance passed as recorded below; GitHub merge checks must be checked on the current PR head.
+
+The live bootstrap diagnostic isolated an ESM/CommonJS import failure before environment validation. Vercel explicitly documents `NODE_OPTIONS=--experimental-require-module` for this case: <https://vercel.com/docs/functions/runtimes/node-js/advanced-node-configuration>. This setting is configured only on the dedicated staging project. No EAS credits or physical-device acceptance are claimed.
+
+### Actual hosted acceptance evidence
+
+- Dedicated project: `prj_1zba0YSCmWxYxkKQApt8JGAgVTHW`; [public health](https://hustle-isolated-staging-api.vercel.app/api/v1/health).
+- Verified deployment: `dpl_Ht4q2CpyQ68owggTeRZXukS1y5Sx`, exact source `3e00361ea4f6e19087fce98bed2596c32a1a05d5`.
+- Actual HTTPS health returned 200, exact isolated scope/revision, and connected restricted database.
+- Booking, payments, orders, uploads, admin and unknown POST routes returned 403 with `STAGING_ROUTE_DISABLED`. Anonymous and random-token account reads returned 401.
+- Uninvited registration returned 403. The single allowlisted disposable identity signed up, synchronized into the application, read its protected account, signed out and was rejected with the revoked token.
+- Fresh password sign-in and protected session restoration passed. The disposable session was then expired in the child database; the same hosted API rejected it with 401.
+- Cleanup read-back: zero auth users, password accounts, sessions, application Users/capabilities, Bookings, PaymentAttempts and EscrowRecords. The private temporary session file was removed. Both migration histories remain 41 application / 1 auth successful entries. The retired disabled-bootstrap URL was cleared from the staging secret store.
+
+The next connected preview is included in the same PR #197: EAS profile `isolated-staging` pins public API/auth configuration and disables demo/booking writes. The separate `Hustle Staging` package (`com.hustle.economyofyou.preview.staging`) coexists with earlier previews. The credential-free GitHub native workflow compiles an internal-test-signed arm64 Android release, verifies its manifest/signature and publishes the APK, SHA-256 and exact-source build metadata. Its current green run/artifact is the delivery authority; configuration or Metro export alone is not proof of an APK. No Expo credits, production signing credentials or app-store release are required by this workflow.
+
+Next: review/merge PR #197 and verify the actual native login/messaging journey on a device using an allowlisted disposable identity. Public hosted authentication success does not establish native SecureStore/UI acceptance, populated discovery, booking operation or production readiness. Historical sections below predate this verified deployment and must not restart the completed credential/hosted-auth milestone.
 
 ## Host ownership and immovable safety boundary
 

@@ -31,7 +31,7 @@ export class FoundationService {
     const auth = this.authState();
     const storage: State = process.env.STORAGE_PROVIDER && process.env.STORAGE_PROVIDER !== "unconfigured" ? "connected" : "not_configured";
     const degraded = [database, redis].includes("unavailable");
-    return {service:"hustle-api",status:degraded?"degraded":"ok",environment:process.env.NODE_ENV ?? "development",timestamp:new Date().toISOString(),dependencies:{database,redis,auth,storage}};
+    return {...(process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging" ? {scope:"isolated-staging",revision:process.env.VERCEL_GIT_COMMIT_SHA ?? null} : {}),service:"hustle-api",status:degraded?"degraded":"ok",environment:process.env.NODE_ENV ?? "development",timestamp:new Date().toISOString(),dependencies:{database,redis,auth,storage}};
   }
 
   foundationStatus(){

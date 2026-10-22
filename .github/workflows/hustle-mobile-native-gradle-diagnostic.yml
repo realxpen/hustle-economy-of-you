@@ -1,6 +1,6 @@
-name: Hustle Android Native Gradle Diagnostic (free CI)
+name: Hustle Connected Android Preview (free CI)
 
-# Android native compiler reproduction without EAS credits, tokens or app distribution.
+# Internal test APK only. No EAS credits, tokens, store signing or publication.
 on:
   pull_request:
     paths:
@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: hustle-connected-android-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   android-native:
     runs-on: ubuntu-latest
@@ -19,14 +23,18 @@ jobs:
     env:
       CI: '1'
       APP_VARIANT: preview
-      EXPO_PUBLIC_HUSTLE_DEMO: 'true'
+      EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE: isolated-staging
+      EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER: expo-better-auth
+      EXPO_PUBLIC_HUSTLE_AUTH_URL: https://hustle-isolated-staging-api.vercel.app/api/auth
+      EXPO_PUBLIC_HUSTLE_DEMO: 'false'
+      EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES: 'true'
       EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: 'false'
-      EXPO_PUBLIC_API_URL: https://hustle-offline-demo.invalid/api/v1
-      EXPO_PUBLIC_SUPABASE_URL: https://hustle-offline-demo.invalid
-      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_demo_not_a_real_key
+      EXPO_PUBLIC_API_URL: https://hustle-isolated-staging-api.vercel.app/api/v1
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -40,6 +48,8 @@ jobs:
           packages: 'platform-tools'
       - name: Install exact monorepo dependencies
         run: npm ci
+      - name: Verify isolated identity and configuration
+        run: node apps/mobile/scripts/cloud-preview-config-gate.cjs
       - name: Check Expo native package compatibility (diagnostic)
         working-directory: apps/mobile
         shell: bash
@@ -68,20 +78,33 @@ jobs:
             process.exitCode = 1;
           }
           NODE
-      - name: Generate a fresh Android project without signing or EAS
+      - name: Generate a fresh Android project without release credentials or EAS
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --clean --non-interactive
-      - name: Compile offline demo Android release in GitHub cloud
+      - name: Compile connected staging Android release in GitHub cloud
         working-directory: apps/mobile/android
         shell: bash
         run: |
           set -o pipefail
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --stacktrace --no-daemon --max-workers=2 --warning-mode=summary 2>&1 | tee /tmp/hustle-native-gradle-diagnostic.log
+          ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a --stacktrace --no-daemon --max-workers=2 --warning-mode=summary 2>&1 | tee /tmp/hustle-native-gradle-diagnostic.log
+      - name: Verify signed staging package and prepare installable artifact
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node apps/mobile/scripts/package-staging-apk.cjs apps/mobile/android/app/build/outputs/apk/release/app-release.apk /tmp/hustle-connected-android
+      - name: Upload internal connected APK and checksum
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hustle-connected-staging-android
+          path: /tmp/hustle-connected-android/
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload sanitized diagnostic metadata (no APK)
         if: failure()
         shell: bash
         run: |
           echo "Native Gradle diagnostic failed. The Gradle job log is available in GitHub Actions."
           echo "### Android compiler diagnosis" >> "$GITHUB_STEP_SUMMARY"
-          echo "Inspect **Compile offline demo Android release in GitHub cloud** for the first Gradle failure and root-cause message. No EAS build credits were used." >> "$GITHUB_STEP_SUMMARY"
+          echo "Inspect **Compile connected staging Android release in GitHub cloud** for the first Gradle failure and root-cause message. No EAS build credits were used." >> "$GITHUB_STEP_SUMMARY"

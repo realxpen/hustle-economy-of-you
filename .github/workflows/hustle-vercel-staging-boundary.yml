@@ -6,6 +6,8 @@ on:
       - "apps/api/api/index.ts"
       - "apps/api/vercel.json"
       - "apps/api/src/auth/staging-auth-selection.ts"
+      - "apps/api/src/staging-request-policy.ts"
+      - "apps/api/src/main.ts"
       - "scripts/staging/vercel-auth-route-contract.cjs"
       - ".github/workflows/hustle-vercel-staging-boundary.yml"
   workflow_dispatch:
