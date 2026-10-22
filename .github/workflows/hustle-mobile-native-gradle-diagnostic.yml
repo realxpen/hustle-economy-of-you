@@ -1,4 +1,4 @@
-name: Hustle Connected Android Preview APK (free CI)
+name: Hustle Android Native Gradle Diagnostic (free CI)
 
 # Reuses the previously verified Gradle build path. Produces a standalone
 # INTERNAL TEST APK, never a store/production release or a paid EAS build.
@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  connected-apk:
+  android-native:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
