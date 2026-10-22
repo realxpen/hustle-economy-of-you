@@ -49,7 +49,8 @@ class AcceptanceTests(unittest.TestCase):
     def test_history_mismatch_prevents_resolve_and_deploy(self):
         database,runtime=MagicMock(),MagicMock()
         with patch.object(final.audit,'snapshot',return_value={}),patch.object(final.audit,'compare',return_value=[{'schema_contract_matched':True}]),\
-             patch.object(final.pending,'verify_source_pending'),patch.object(final,'ledger',return_value=[]),self.assertRaises(final.core.RestoreError):
+             patch.object(final,'verify_live_media_reference'),patch.object(final.pending,'verify_source_pending'),\
+             patch.object(final,'ledger',return_value=[]),self.assertRaises(final.core.RestoreError):
             final.upgrade(database,runtime,{}, {}, {}, [],generated=True)
         runtime.prisma.assert_not_called()
 
@@ -69,7 +70,7 @@ class AcceptanceTests(unittest.TestCase):
         stack.cleanup.assert_called_once()
 
     def test_report_whitelist_and_explicit_limits(self):
-        result={'original_non_prisma_tables_hashed':93,'private_proofs_verified':6,'public_files_verified':2}
+        result={'original_non_prisma_tables_hashed':93,'private_proofs_verified':6,'public_files_verified':2,'reviewed_legacy_live_media_checksum_count':1}
         with patch.dict(os.environ,{'GITHUB_SHA':'a'*40}):
             report=final.report(result)
             self.assertEqual(report['successful_prisma_migrations'],41)
@@ -78,6 +79,22 @@ class AcceptanceTests(unittest.TestCase):
             self.assertFalse(report['full_disaster_recovery_verified'])
             for bad in ({**result,'email':'private'},{**result,'private_proofs_verified':0}):
                 with self.assertRaises(final.core.RestoreError):final.report(bad)
+
+    def test_exact_original_live_media_checksum_needs_schema_proof(self):
+        row={'id':'generated','migration_name':final.LIVE_MEDIA_MIGRATION,'checksum':final.LIVE_MEDIA_ORIGINAL_SHA,
+             'finished_at':'generated','rolled_back_at':None}
+        with self.assertRaises(final.core.RestoreError):final.verify_history([row],(final.LIVE_MEDIA_MIGRATION,))
+        self.assertEqual(final.verify_history([row],(final.LIVE_MEDIA_MIGRATION,),legacy_schema_verified=True),1)
+        with self.assertRaises(final.core.RestoreError):
+            final.verify_history([dict(row,checksum='0'*64)],(final.LIVE_MEDIA_MIGRATION,),legacy_schema_verified=True)
+
+    def test_live_media_schema_and_both_sql_digests_are_fail_closed(self):
+        expected={'relation:LiveMediaPresence':{'rls':True,'grants':['api']}}
+        final.verify_live_media_reference(expected,copy.deepcopy(expected))
+        for actual in ({},{'relation:LiveMediaPresence':{'rls':False,'grants':['api']}}):
+            with self.assertRaises(final.core.RestoreError):final.verify_live_media_reference(expected,actual)
+        with patch.object(Path,'read_bytes',return_value=b'unknown SQL'),self.assertRaises(final.core.RestoreError):
+            final.verify_live_media_reference(expected,expected)
 
 
 if __name__=='__main__':unittest.main()
