@@ -12,6 +12,8 @@ import { syncMobileAccount } from '../lib/account';
 import { mobileApi, type FeedItem, type FeedTab, type Offer, type PostComment, type SearchResult, type SearchTab, type BookingSlot } from './feed-api';
 import { connectedSearchWebLink, describeMobileSearchResult } from '../ux004/discovery/connectedSearchResult';
 import { appendUniqueSearchResults } from '../ux004/discovery/connectedSearchPagination';
+import { currentSearchOffer, getSearchHustler, matchedPublishedOffers, searchHustlerPublicLink }
+  from '../ux004/discovery/connectedOpportunity';
 
 const C = { dark: '#121714', lime: '#C9F26B', paper: '#F7F6F2', white: '#FFFFFF', muted: '#727A70', card: '#E9EEE4' };
 const SEARCH_TABS: ReadonlyArray<{ id: SearchTab; label: string }> = [
@@ -21,6 +23,7 @@ const SEARCH_TABS: ReadonlyArray<{ id: SearchTab; label: string }> = [
 ];
 type Screen = 'Home' | 'Explore' | 'Inbox' | 'You';
 type Sheet = 'comments' | 'save' | 'share' | 'creator' | 'service' | 'product' | 'booking' | null;
+type OpportunityStage = 'profile' | 'offer' | 'enquiry' | null;
 type FeedSelection = FeedTab | 'live';
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 function Icon({ name, color = '#fff', size = 25 }: { name: IconName; color?: string; size?: number }) {
@@ -87,6 +90,12 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
   const [discussionLoading, setDiscussionLoading] = useState(false);
   const [draft, setDraft] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [opportunityStage, setOpportunityStage] = useState<OpportunityStage>(null);
+  const [opportunitySource, setOpportunitySource] = useState<SearchResult | null>(null);
+  const [opportunitySelectedOffer, setOpportunitySelectedOffer] = useState<SearchResult | null>(null);
+  const [opportunityMatches, setOpportunityMatches] = useState<SearchResult[]>([]);
+  const [enquiryDraft, setEnquiryDraft] = useState('');
+  const [enquiryReviewed, setEnquiryReviewed] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [searchTab, setSearchTab] = useState<SearchTab>('top');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -274,12 +283,42 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
       }
     }
   }
+  function openOpportunity(item: SearchResult) {
+    setOpportunitySource(item);
+    setOpportunitySelectedOffer(item.kind === 'service' || item.kind === 'product' ? item : null);
+    // This is just the currently returned published-result slice; it is NOT
+    // represented as the provider's full catalogue or proof of post attachment.
+    setOpportunityMatches(matchedPublishedOffers(searchResults, item));
+    setEnquiryDraft('');
+    setEnquiryReviewed(false);
+    setOpportunityStage('profile');
+  }
+  function closeOpportunity() {
+    setOpportunityStage(null);
+    setOpportunitySource(null);
+    setOpportunitySelectedOffer(null);
+    setOpportunityMatches([]);
+    setEnquiryDraft('');
+    setEnquiryReviewed(false);
+  }
   async function openSearchResult(item: SearchResult) {
     const url = connectedSearchWebLink(item, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL);
     if (!url) return;
     try { await Linking.openURL(url); }
     catch { Alert.alert('Public page unavailable', 'Could not open this Hustle page in your browser.'); }
   }
+  async function openHustlerProfile(item: SearchResult) {
+    const url = searchHustlerPublicLink(item, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL);
+    if (!url) return;
+    try { await Linking.openURL(url); }
+    catch { Alert.alert('Public profile unavailable', 'Could not open this Hustler profile in your browser.'); }
+  }
+  const opportunityHustler = opportunitySource ? getSearchHustler(opportunitySource) : null;
+  const opportunityOffer = opportunitySelectedOffer ? currentSearchOffer(opportunitySelectedOffer) : null;
+  const opportunityPublicProfile = opportunitySource
+    ? searchHustlerPublicLink(opportunitySource, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL) : null;
+  const opportunityPublicOffer = opportunitySelectedOffer
+    ? connectedSearchWebLink(opportunitySelectedOffer, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL) : null;
   const offerService = active?.services.find(s => s.id === offerId) || null;
   useEffect(() => {
     if (sheet !== 'booking' || !offerService) return;
@@ -405,17 +444,16 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
             const view = describeMobileSearchResult(result);
             const url = connectedSearchWebLink(result, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL);
             return <Pressable key={result.kind + result.id} style={styles.resultCard}
-              accessibilityRole="link" accessibilityState={{ disabled: !url }}
-              accessibilityLabel={view.kindLabel + ": " + view.title}
-              accessibilityHint={url ? "Opens the public Hustle page in your browser"
-                : "Public page opening is unavailable in this build"}
-              disabled={!url} onPress={() => void openSearchResult(result)}>
+              accessibilityRole="button" accessibilityLabel={"Review " + view.kindLabel + ": " + view.title}
+              accessibilityHint="Opens the Hustler profile and published work preview inside Hustle"
+              onPress={() => openOpportunity(result)}>
               <Icon name="sparkles-outline" color={C.dark}/>
               <View style={{ flex: 1 }}>
                 <Text style={styles.resultTitle} numberOfLines={2}>{view.title}</Text>
                 <Text style={styles.meta} numberOfLines={2}>{view.kindLabel} · {view.detail}</Text>
-                <Text style={styles.meta}>{url ? "View public page ↗" : "Public link unavailable"}</Text>
+                <Text style={styles.meta}>{url ? "Review · Public page available" : "Review in Hustle"}</Text>
               </View>
+              <Icon name="chevron-forward" color={C.dark} size={20}/>
             </Pressable>;
           }) : <Text style={styles.meta}>
             {hasSearched ? "No published matches for this search. Try a different skill or name."
@@ -462,6 +500,107 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
             {slotMode === 'APPOINTMENT' && !slotLoading && slots.length === 0 ? <Text style={styles.meta}>No available slots for this day.</Text> : null}
             <TextInput accessibilityLabel="Project requirements" style={styles.requirements} multiline placeholder="Describe the work you need..." value={requirements} onChangeText={setRequirements}/>
             <Action disabled={working || !chosenSlot || !requirements.trim()} onPress={bookingRequest}>Request booking</Action><Text style={styles.meta}>Booking submission is disabled by default. No payment or escrow action occurs here.</Text></>}
+          </View>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
+    <Modal visible={opportunityStage !== null} transparent animationType="slide"
+      onRequestClose={closeOpportunity}>
+      <View style={styles.modalRoot}>
+        <Pressable style={styles.scrim} accessibilityRole="button"
+          accessibilityLabel="Dismiss Hustler preview" onPress={closeOpportunity}/>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={styles.handle}/>
+            <SheetTitle title={opportunityStage === 'profile' ? 'Hustler profile'
+              : opportunityStage === 'offer' ? 'Published offer' : 'Booking enquiry preview'}
+              onClose={closeOpportunity}/>
+            {opportunitySource && opportunityHustler && <ScrollView
+              style={{ maxHeight: 430 }} keyboardShouldPersistTaps="handled">
+              {opportunityStage === 'profile' && <>
+                <Text style={styles.resultTitle}>{opportunityHustler.name}</Text>
+                {opportunityHustler.username && <Text style={styles.meta}>@{opportunityHustler.username}</Text>}
+                <Text style={styles.meta}>{[
+                  opportunityHustler.skill, opportunityHustler.headline, opportunityHustler.location
+                ].filter(Boolean).join(' · ') || 'Published Hustler profile'}</Text>
+                {opportunityHustler.summary && <Text style={styles.opportunityDescription}>{opportunityHustler.summary}</Text>}
+                {opportunityHustler.contactVerified !== null && <Text style={styles.meta}>
+                  {opportunityHustler.contactVerified ? 'Contact verification recorded'
+                    : 'Contact verification not recorded'}
+                </Text>}
+                {opportunitySource.kind === 'post' && <View style={styles.opportunitySection}>
+                  <Text style={styles.resultTitle}>Work that brought you here</Text>
+                  <Text style={styles.opportunityDescription}>{opportunitySource.post?.caption || 'Published work'}</Text>
+                </View>}
+                <Text style={styles.opportunitySectionTitle}>Published offers in these search results</Text>
+                {opportunityMatches.length ? opportunityMatches.map(offerResult => {
+                  const offer = currentSearchOffer(offerResult);
+                  return <Pressable key={offerResult.kind + ':' + offerResult.id}
+                    accessibilityRole="button" accessibilityLabel={"Review " + offerResult.kind + ": " + (offer?.title || 'Published offer')}
+                    onPress={() => { setOpportunitySelectedOffer(offerResult); setOpportunityStage('offer'); }}
+                    style={styles.opportunityItem}>
+                    <Text style={styles.resultTitle}>{offer?.title || 'Published offer'}</Text>
+                    <Text style={styles.meta}>
+                      {offerResult.kind === 'service' ? 'Service' : 'Product'} · {offer ? formatPrice(offer) : 'Price unavailable'}
+                    </Text>
+                  </Pressable>;
+                }) : <Text style={styles.meta}>
+                  No offers were included in these search results. This does not mean the Hustler has none.
+                </Text>}
+                <Action secondary disabled={!opportunityPublicProfile}
+                  onPress={() => void openHustlerProfile(opportunitySource)}>
+                  {opportunityPublicProfile ? 'View full public profile ↗' : 'Public profile link unavailable'}
+                </Action>
+              </>}
+              {opportunityStage === 'offer' && <>
+                <Text style={styles.resultTitle}>{opportunityOffer?.title || 'Published offer unavailable'}</Text>
+                <Text style={styles.meta}>By {opportunityHustler.name}</Text>
+                {opportunityOffer && <Text style={styles.price}>{formatPrice(opportunityOffer)}</Text>}
+                {opportunityOffer?.description && <Text style={styles.opportunityDescription}>
+                  {opportunityOffer.description}
+                </Text>}
+                <Text style={styles.meta}>
+                  {opportunitySelectedOffer?.kind === 'service'
+                    ? 'Published service information. Availability and final booking terms are not confirmed.'
+                    : 'Product stock, variants and checkout are not confirmed in this mobile preview.'}
+                </Text>
+                <Action secondary onPress={() => setOpportunityStage('profile')}>Back to Hustler profile</Action>
+                {opportunitySelectedOffer?.kind === 'service' && opportunityOffer && <Action
+                  onPress={() => { setEnquiryDraft(''); setEnquiryReviewed(false); setOpportunityStage('enquiry'); }}>
+                  Prepare a booking enquiry
+                </Action>}
+                <Action secondary disabled={!opportunityPublicOffer} onPress={() => {
+                  if (opportunitySelectedOffer) void openSearchResult(opportunitySelectedOffer);
+                }}>{opportunityPublicOffer ? 'View full public offer ↗' : 'Public offer link unavailable'}</Action>
+              </>}
+              {opportunityStage === 'enquiry' && opportunitySelectedOffer?.kind === 'service' && <>
+                <Text style={styles.resultTitle}>{opportunityOffer?.title || 'Service enquiry'}</Text>
+                <Text style={styles.meta}>For {opportunityHustler.name}</Text>
+                <Text style={styles.opportunityDescription}>
+                  Describe what you need. This is a local preview only — nothing will be sent,
+                  booked or charged.
+                </Text>
+                <TextInput accessibilityLabel="Describe your booking enquiry"
+                  multiline maxLength={1200} style={styles.requirements}
+                  placeholder="What service do you need, and when would you prefer?"
+                  value={enquiryDraft} onChangeText={value => {
+                    setEnquiryDraft(value); setEnquiryReviewed(false);
+                  }}/>
+                <Action disabled={!enquiryDraft.trim()} onPress={() => setEnquiryReviewed(true)}>
+                  Review enquiry draft
+                </Action>
+                {enquiryReviewed && <View style={styles.opportunitySection}
+                  accessibilityLiveRegion="polite">
+                  <Text style={styles.resultTitle}>Enquiry prepared — not sent</Text>
+                  <Text style={styles.opportunityDescription}>{enquiryDraft.trim()}</Text>
+                  <Text style={styles.meta}>
+                    No provider has received this enquiry. Submission remains disabled pending
+                    nonproduction booking acceptance.
+                  </Text>
+                </View>}
+                <Action secondary onPress={() => setOpportunityStage('offer')}>Back to service</Action>
+              </>}
+            </ScrollView>}
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -537,5 +676,11 @@ const styles = StyleSheet.create({
   comment: { flexDirection: 'row', gap: 12, paddingVertical: 9 }, commentBody: { color: C.dark, fontSize: 14, marginTop: 4 },
   composer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E9EEE5', borderRadius: 25, paddingHorizontal: 16, marginTop: 14 },
   price: { fontSize: 22, fontWeight: '900', marginVertical: 12, color: C.dark }, dateChoice: { padding: 13, borderRadius: 13, backgroundColor: '#E7ECE5', marginRight: 9 },
-  selectedDate: { backgroundColor: C.dark }, requirements: { backgroundColor: C.white, minHeight: 74, marginTop: 8, padding: 13, borderRadius: 14, color: C.dark, textAlignVertical: 'top' }
+  selectedDate: { backgroundColor: C.dark },
+  opportunitySection: { padding: 14, backgroundColor: C.white, borderRadius: 16, marginTop: 12 },
+  opportunitySectionTitle: { color: C.dark, fontWeight: '800', fontSize: 15, marginTop: 16 },
+  opportunityItem: { minHeight: 48, backgroundColor: C.white, borderRadius: 14,
+    padding: 14, marginTop: 9, justifyContent: 'center' },
+  opportunityDescription: { color: C.dark, fontSize: 14, lineHeight: 21, marginTop: 12 },
+  requirements: { backgroundColor: C.white, minHeight: 74, marginTop: 8, padding: 13, borderRadius: 14, color: C.dark, textAlignVertical: 'top' }
 });
