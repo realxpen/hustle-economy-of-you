@@ -1,4 +1,5 @@
 import './mobile-a32-search-tabs-contract.cjs';
+import './mobile-a33-connected-opportunity-contract.cjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const app = readFileSync(new URL('../App.tsx', import.meta.url), 'utf8');
