@@ -174,6 +174,105 @@ async function run() {
     assert.equal((await get("/bookings/slots?serviceId=missing&date="+future)).status,400);
     console.log("PASS: Real authenticated GET appointment timezone/capacity and non-appointment mode");
 
+    // Execute the REAL Expo app's connected TypeScript API adapter and
+    // opportunity/availability projection against this loopback Nest server.
+    // This catches drift hidden by source-string or synthetic-response tests.
+    process.env.EXPO_PUBLIC_API_URL=origin+"/api/v1";
+    const fs=require("node:fs");
+    const ModuleRuntime=require("node:module");
+    const typescript=requireFromRoot("typescript");
+    const oldTsHandler=ModuleRuntime._extensions[".ts"];
+    ModuleRuntime._extensions[".ts"]=(mod,filename)=>{
+      const source=fs.readFileSync(filename,"utf8");
+      const compiled=typescript.transpileModule(source,{
+        compilerOptions:{
+          target:typescript.ScriptTarget.ES2020,
+          module:typescript.ModuleKind.CommonJS,
+          strict:true
+        },
+        reportDiagnostics:true
+      });
+      assert.equal((compiled.diagnostics||[]).filter(d=>
+        d.category===typescript.DiagnosticCategory.Error).length,0,
+        "Mobile helper transpilation: "+filename);
+      mod._compile(compiled.outputText,filename);
+    };
+    try {
+      const {mobileApi}=requireFromRoot("./apps/mobile/src/experience/feed-api.ts");
+      const {describeMobileSearchResult,connectedSearchWebLink}=requireFromRoot(
+        "./apps/mobile/src/ux004/discovery/connectedSearchResult.ts");
+      const {getSearchHustler,matchedPublishedOffers,currentSearchOffer,
+        searchHustlerPublicLink}=requireFromRoot(
+          "./apps/mobile/src/ux004/discovery/connectedOpportunity.ts");
+      const {enquiryServiceId,currentEnquirySlots,enquirySlotLabel}=requireFromRoot(
+        "./apps/mobile/src/ux004/discovery/connectedOpportunityAvailability.ts");
+      const {appendUniqueSearchResults}=requireFromRoot(
+        "./apps/mobile/src/ux004/discovery/connectedSearchPagination.ts");
+
+      const pages={};
+      for(const tab of ["people","posts","services","products"]) {
+        pages[tab]=await mobileApi.searchTab(clientToken,tab,"tailoring");
+        assert.ok(Array.isArray(pages[tab].items),"actual mobile adapter "+tab+" array");
+        assert.equal(pages[tab].hasMore, false);
+      }
+      const providerRow=pages.people.items.find(x=>x.kind==="person"&&x.id===hustler.id);
+      const postRow=pages.posts.items.find(x=>x.kind==="post"&&x.id===post.id);
+      const serviceRow=pages.services.items.find(x=>x.kind==="service"&&x.id===service.id);
+      const productRow=pages.products.items.find(x=>x.kind==="product"&&x.id===product.id);
+      assert.ok(providerRow&&postRow&&serviceRow&&productRow,"mobile actually receives all types");
+      assert.equal(describeMobileSearchResult(serviceRow).title,"Tailor a test outfit");
+      assert.equal(describeMobileSearchResult(productRow).title,"Tailoring fabric sample");
+      assert.equal(getSearchHustler(providerRow).id,hustler.id);
+      assert.equal(getSearchHustler(postRow).id,hustler.id);
+      assert.equal(getSearchHustler(serviceRow).id,hustler.id);
+      assert.equal(currentSearchOffer(serviceRow).id,service.id);
+      const matched=matchedPublishedOffers(
+        [...pages.services.items,...pages.products.items],postRow);
+      assert.deepEqual(new Set(matched.map(x=>x.kind+":"+x.id)),new Set([
+        "service:"+service.id,"service:"+queuedService.id,"product:"+product.id
+      ]));
+      assert.equal(searchHustlerPublicLink(postRow,undefined),null);
+      assert.equal(searchHustlerPublicLink(postRow,"https://hustle.test"),
+        "https://hustle.test/u/"+hustler.username);
+      assert.equal(connectedSearchWebLink(serviceRow,"https://hustle.test"),
+        "https://hustle.test/services/"+service.id);
+      assert.equal(connectedSearchWebLink(serviceRow,"http://untrusted.example"),null);
+      console.log("PASS: Real Expo mobile adapter → published search → canonical Hustler/offer projection");
+
+      const mobileFirst=await mobileApi.searchTab(clientToken,"top","tailoring");
+      assert.ok(mobileFirst.items.length>0);
+      const smallPathSearch=await mobileApi.searchTab(clientToken,"top","tailoring");
+      assert.equal(smallPathSearch.items[0].id,mobileFirst.items[0].id);
+      const merged=appendUniqueSearchResults(mobileFirst.items,mobileFirst.items);
+      assert.equal(merged.length,mobileFirst.items.length);
+      await assert.rejects(()=>mobileApi.searchTab("incorrect","top","tailoring"),
+        /Hustle request failed|Invalid|token|Unauthorized/i);
+      await assert.rejects(()=>mobileApi.searchTab("","top","tailoring"),
+        /Sign in to use Hustle/);
+      console.log("PASS: Mobile query adapter, stable search order, duplicate guard and invalid-token denial");
+
+      assert.equal(enquiryServiceId(serviceRow),service.id);
+      assert.equal(enquiryServiceId(productRow),null);
+      const mobileSlots=await mobileApi.slots(clientToken,
+        enquiryServiceId(serviceRow),future);
+      assert.equal(mobileSlots.mode,"APPOINTMENT");
+      assert.equal(mobileSlots.date,future);
+      assert.equal(mobileSlots.timezone,"Africa/Lagos");
+      const available=currentEnquirySlots(mobileSlots);
+      assert.ok(available.every(x=>x.available&&x.remainingCapacity>0));
+      if(available.length)assert.ok(enquirySlotLabel(
+        available[0].startAt,mobileSlots.timezone));
+      const mobileQueue=await mobileApi.slots(clientToken,queuedService.id,future);
+      assert.equal(mobileQueue.mode,"WORK_QUEUE");
+      assert.deepEqual(currentEnquirySlots(mobileQueue),[]);
+      console.log("PASS: Real Expo mobile slots adapter → actual schedule → safe unsent-enquiry time projection");
+    } finally {
+      if(oldTsHandler)ModuleRuntime._extensions[".ts"]=oldTsHandler;
+      else delete ModuleRuntime._extensions[".ts"];
+      delete process.env.EXPO_PUBLIC_API_URL;
+    }
+
+
     assert.equal(await prisma.booking.count(),0);
     assert.equal(await prisma.paymentAttempt.count(),0);
     assert.equal(await prisma.escrowRecord.count(),0);
