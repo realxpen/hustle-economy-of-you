@@ -10,6 +10,14 @@ let serverPromise: Promise<any> | null = null;
  */
 function bootstrapFailureCategory(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
+  if (/Cannot find (module|package)/.test(message)) {
+    if (message.includes("@hustle/staging-auth-client")) return "MISSING_GENERATED_AUTH_CLIENT";
+    if (message.includes("staging-auth-selection")) return "MISSING_RUNTIME_SELECTION_MODULE";
+    if (message.includes("expo-staging-auth.service")) return "MISSING_AUTH_SERVICE_MODULE";
+    return "MISSING_RUNTIME_MODULE";
+  }
+  if (/PrismaClient.*(initialize|generated)|@prisma\/client did not initialize/.test(message)) return "PRISMA_CLIENT_NOT_GENERATED";
+  if (message.includes("ERR_REQUIRE_ESM") || message.includes("require() of ES Module")) return "ESM_RUNTIME_INCOMPATIBILITY";
   if (message === "Wrong isolated staging authentication issuer or project") return "STAGING_AUTH_CONFIGURATION";
   if (message === "Isolated staging database URL invalid" ||
       message === "Wrong isolated staging database target, schema or TLS configuration") return "STAGING_DATABASE_CONFIGURATION";
@@ -20,10 +28,13 @@ function bootstrapFailureCategory(error: unknown): string {
   return "UNCLASSIFIED_BOOTSTRAP_ERROR";
 }
 
-function logBootstrapFailure(stage: "startup" | "request", error: unknown) {
+function logBootstrapFailure(stage: "startup" | "request", error: unknown, phase?: string) {
+  const name = error instanceof Error && ["Error", "TypeError", "SyntaxError", "ReferenceError", "PrismaClientInitializationError"].includes(error.name) ? error.name : "OtherError";
   console.error("HUSTLE_API_BOOTSTRAP_DIAGNOSTIC", {
     stage,
-    category: bootstrapFailureCategory(error)
+    category: bootstrapFailureCategory(error),
+    name,
+    phase
   });
 }
 
@@ -69,9 +80,12 @@ function firstString(value: unknown): string | undefined {
 }
 
 export default async function handler(request: any, response: any) {
+  let phase = "environment-import";
   try {
     const { validateApiRuntimeEnvironment } = await import("../src/auth/staging-auth-selection");
+    phase = "environment-validation";
     const scope = validateApiRuntimeEnvironment(process.env);
+    phase = "route-normalization";
     const authPath = firstString(request.query?.__hustle_auth_path);
     const isAuthRequest = authPath !== undefined;
     const forwardedPath = isAuthRequest ? authPath : firstString(request.query?.__hustle_path) ?? "";
@@ -106,19 +120,22 @@ export default async function handler(request: any, response: any) {
         return response.status(404).json({ error: { code: "NOT_FOUND" } });
       }
       request.url = `/api/auth${normalizedPath ? `/${normalizedPath}` : ""}${search.size ? `?${search.toString()}` : ""}`;
+      phase = "auth-handler-import";
       const [{ getExpoStagingAuth }, { toNodeHandler }] = await Promise.all([
         import("../src/auth/expo-staging-auth.service"),
         import("better-auth/node")
       ]);
+      phase = "auth-handler-initialization";
       return toNodeHandler(getExpoStagingAuth())(request, response);
     }
 
     request.url = `/api/v1${normalizedPath ? `/${normalizedPath}` : ""}${search.size ? `?${search.toString()}` : ""}`;
 
+    phase = "nest-bootstrap";
     const server = await getServer();
     return server(request, response);
   } catch (error) {
-    logBootstrapFailure("request", error);
+    logBootstrapFailure("request", error, phase);
     if (!response.headersSent) {
       return response.status(500).json({
         error: {
