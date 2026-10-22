@@ -176,7 +176,7 @@ async function run() {
 
     assert.equal(await prisma.booking.count(),0);
     assert.equal(await prisma.paymentAttempt.count(),0);
-    assert.equal(await prisma.escrow.count(),0);
+    assert.equal(await prisma.escrowRecord.count(),0);
     assert.equal(await prisma.systemEvent.count(),0);
     assert.ok(client.id && product.id && post.id);
     console.log("PASS: No booking, payments, escrow or search analytics were created");
