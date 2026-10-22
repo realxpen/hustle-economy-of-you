@@ -41,6 +41,9 @@ jobs:
       DATABASE_URL: postgresql://postgres:sandbox_only@127.0.0.1:55439/hustle_payment_sandbox?schema=public
       MONIFLOW_SANDBOX_TEST_URL: http://127.0.0.1:4093
       MONIFLOW_SANDBOX_INBOX_ENABLED: "true"
+      BMONI_PARTNER_ONBOARDING_ENABLED: "false"
+      BMONI_WEBHOOK_EVIDENCE_TEST_ENABLED: "false"
+      AUTHENTICATED_SANDBOX_DEMO_ENABLED: "false"
 
     steps:
       - name: Checkout Hustle
@@ -49,10 +52,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: realxpen/moniflow
-          # Reviewed MONIFlow durable test-only outbox PR #7 SHA, immutable isolated-test pin.
-          # No MONIFlow mainline deployment or real provider access.
-          ref: 323cd2d0473977fc8a0d2febf6c5b1c05c5a6e32
+          # Pinned to the exact audited MONIFlow MVP app/API source used to
+          # produce the two successful 2026-10-22 internal Android RC builds.
+          # Independent of workflow-only release commits and mutable main.
+          # No MONIFlow deployment or live BMONI provider access.
+          ref: 64f79a765ad1df043958415366eb25974e547b2d
           path: _moniflow
+
+      - name: Assert immutable MONIFlow MVP source and closed BMONI boundaries
+        working-directory: _moniflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "64f79a765ad1df043958415366eb25974e547b2d"
+          test "$BMONI_PARTNER_ONBOARDING_ENABLED" = "false"
+          test "$BMONI_WEBHOOK_EVIDENCE_TEST_ENABLED" = "false"
+          test "$AUTHENTICATED_SANDBOX_DEMO_ENABLED" = "false"
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -106,6 +121,9 @@ jobs:
             API_PORT=4093 \
             DATABASE_URL="file:$RUNNER_TEMP/moniflow_partner_sandbox.db" \
             FINANCIAL_PROVIDER=moniflow-sandbox \
+            BMONI_PARTNER_ONBOARDING_ENABLED=false \
+            BMONI_WEBHOOK_EVIDENCE_TEST_ENABLED=false \
+            AUTHENTICATED_SANDBOX_DEMO_ENABLED=false \
             PARTNER_HUSTLE_SANDBOX_ENABLED=true \
             PARTNER_HUSTLE_HMAC_SECRET="$MONIFLOW_PARTNER_HMAC_SECRET" \
               pnpm --filter @moniflow/api start \
