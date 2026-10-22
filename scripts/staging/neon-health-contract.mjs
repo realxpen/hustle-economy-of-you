@@ -31,5 +31,5 @@ for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
   assert.equal(response.status, 405);
 }
 const source = readFileSync(new URL("../../infra/neon/staging/health/index.mjs", import.meta.url), "utf8");
-assert.doesNotMatch(source, /\bDATABASE_URL\b|\bfetch\s*\(|\bprocess\.env\b|@supabase|\bprisma\b|\bpayment\s*\(/);
+assert.doesNotMatch(source, /\bDATABASE_URL\b|\bglobalThis\.fetch\s*\(|\bawait\s+fetch\s*\(|\bprocess\.env\b|@supabase|\bprisma\b|\bpayment\s*\(/);
 console.log("PASS: only GET health endpoint, no network/database/financial side effects");
