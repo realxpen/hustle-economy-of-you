@@ -74,7 +74,50 @@ async function check(name, fn) { await fn(); console.log(`PASS: ${name}`); }
     await database.session.updateMany({ data: { expiresAt: new Date(Date.now() - 60_000) } });
     await assert.rejects(() => port.verifyAccessToken(body.token));
   });
-  console.log("PASS: Local database-backed Expo server integration. Physical native SecureStore/device acceptance remains separate.");
+  await check("Password rate limits persist in PostgreSQL and reject excess attempts", async () => {
+    let limited = false;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const r = await request("/sign-in/email", { email, password: "deliberately-wrong-password" }, { "expo-origin": "hustle-preview://" });
+      if (r.status === 429) { limited = true; break; }
+      assert.equal(r.status, 401);
+    }
+    assert.ok(limited);
+    assert.ok(await database.rateLimit.count() > 0);
+    // Reset only the disposable fixture's counters for the independent native-client scenario.
+    await database.rateLimit.deleteMany();
+  });
+  await check("Official Expo client persists cookies, restores after client recreation and clears sign-out", async () => {
+    const { createAuthClient } = await import("better-auth/client");
+    const { expoClient } = await import("@better-auth/expo/client");
+    const values = new Map();
+    const storage = {
+      getItem: key => values.get(key) ?? null,
+      setItem: (key, value) => { values.set(key, value); },
+      deleteItem: key => { values.delete(key); },
+      getItemAsync: async key => values.get(key) ?? null,
+      setItemAsync: async (key, value) => { values.set(key, value); },
+      deleteItemAsync: async key => { values.delete(key); }
+    };
+    const makeClient = () => createAuthClient({ baseURL, plugins: [expoClient({
+      scheme: "hustle-preview", storagePrefix: "hustle-staging", cookiePrefix: "hustle-staging",
+      storage, disableCache: true
+    })] });
+    const first = makeClient();
+    const signed = await first.signIn.email({ email, password });
+    assert.equal(signed.error, null);
+    assert.ok(await first.getCookie());
+    const restored = makeClient();
+    const session = await restored.getSession({ query: { disableCookieCache: true } });
+    assert.equal(session.error, null);
+    assert.equal(session.data.user.id, subject);
+    const restoredToken = session.data.session.token;
+    assert.equal((await port.verifyAccessToken(restoredToken)).subject, subject);
+    assert.equal((await restored.signOut()).error, null);
+    await assert.rejects(() => port.verifyAccessToken(restoredToken));
+    assert.equal((await makeClient().getSession()).data, null);
+    assert.ok(!await restored.getCookie());
+  });
+  console.log("PASS: Database-backed Expo server/client integration with fixture native bindings. Physical SecureStore/device acceptance remains separate.");
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   await app?.close(); await database.$disconnect();
 });

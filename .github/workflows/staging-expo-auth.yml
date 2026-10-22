@@ -40,7 +40,7 @@ jobs:
       - name: Apply genuine Prisma auth migrations to disposable PostgreSQL 17
         run: npx prisma migrate deploy --schema=apps/api/staging-auth/prisma/schema.prisma
       - name: Test actual password login, origin, persistence and revocation
-        run: node scripts/staging/expo-auth-integration.cjs
+        run: node --import ./scripts/staging/expo-native-fixtures.mjs scripts/staging/expo-auth-integration.cjs
       - run: npm run typecheck --workspace=@hustle/mobile
       - name: Bundle native staging login with SDK54 Metro
         working-directory: apps/mobile

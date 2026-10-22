@@ -16,4 +16,6 @@ Local Nest build, API/mobile TypeScript, staging environment/adversarial legacy-
 
 This workspace has no usable Docker daemon or non-root PostgreSQL runtime. Database integration runs on the GitHub service container, without owner terminal work or private credentials. Hosted Neon migrations, API deployment, real native SecureStore/session restoration and physical-device UX are not established by compilation. Existing saved-backup acceptance is already complete and is not repeated here.
 
+Initial [PostgreSQL 17 run 39764349893](https://github.com/realxpen/hustle-economy-of-you/actions/runs/39764349893) on `c41085828962f21af46d5beecd847b0fb09fb9b6` passed the genuine Prisma auth migration, all six Nest HTTP/password/session checks and mobile TypeScript. A follow-up adds a seventh check executing the real Expo client plugin with fixture native bindings and in-memory SecureStore-compatible storage, including client recreation and sign-out. That is explicitly not physical SecureStore or a device test; its new head needs fresh CI evidence.
+
 Full app staging additionally needs the reviewed application migration/bootstrap plan for Supabase-specific historical Storage SQL. Do not run the disposable payment-sandbox bootstrap on hosted Neon. Uploaded-file services, SMTP/password recovery, OAuth/MFA and production cutover are outside this auth acceptance.
