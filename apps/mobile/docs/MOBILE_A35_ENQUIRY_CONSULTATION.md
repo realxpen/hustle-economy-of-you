@@ -1,12 +1,12 @@
 # Mobile A3.5 — Service enquiry to consultation
 
-Status: implementation prepared; runtime acceptance PENDING. No Expo APK or deployment is produced by this change.
+Status: implementation merged in #181; owner authorized enabling enquiry messaging on 2026-10-22. The connected EAS `preview` profile now sets `EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES=true` and `EXPO_PUBLIC_HUSTLE_DEMO=false`; iOS simulator inherits this profile. The offline `demo` profile explicitly disables messaging. Runtime acceptance remains PENDING. These build-time flags require a new app build to reach an installed device; changing them does not update an existing APK.
 
 ## Knowledge and specification
 
 Following merged A3.4 (#178), an enquiry can be prepared but reaches no provider. Reuse ADR-0009's canonical participant-owned direct conversation and Service context; do not introduce another enquiry database or booking model. The existing Web conversation supports a validated `/bookings/new/:serviceId` return path (ADR-0063/consultation continuity). Booking, reservation, payment and provider activation remain separate gates.
 
-- The connected enquiry remains local by default. `EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES=true` explicitly enables messaging in a separately approved build; this PR changes no environment/profile value.
+- The owner-approved connected preview enables `EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES=true`. Review and native send confirmation still precede each message. Other builds without the flag retain their local draft behavior.
 - Review first, then confirm the named recipient and exact message via a deliberate native alert. Only that action opens/reuses the direct conversation and sends one text message with canonical SERVICE context. No writes on typing, review, availability reads or navigation.
 - Include optional still-future backend-listed appointment preference, timezone and ISO instant as text with **not reserved** wording. Otherwise state scheduling must be agreed. Search results and prices are not copied into authoritative transaction state.
 - Validate the returned conversation's counterpart/viewer before sending and validate the exact message acknowledgement before displaying **sent**. Blocked/unpublished/service authorization remains server-owned.
@@ -16,7 +16,7 @@ Following merged A3.4 (#178), an enquiry can be prepared but reaches no provider
 
 ## Architecture and experience
 
-Pure `enquiryConsultation.ts` prepares the message and owns a dependency-injected one-attempt delivery state machine. The existing mobile API adapter gains only the two existing messaging POSTs with a 20-second client timeout. `MobileExperience` owns in-memory draft/review/delivery state. No API/schema/dependency changes. Default-off shipping and offline A1/A2 behavior remain unchanged. Enquiry review states distinguish not sent, sending, acknowledged sent, and uncertain. Editing cannot re-arm a completed/uncertain message attempt.
+Pure `enquiryConsultation.ts` prepares the message and owns a dependency-injected one-attempt delivery state machine. The existing mobile API adapter gains only the two existing messaging POSTs with a 20-second client timeout. `MobileExperience` owns in-memory draft/review/delivery state. No API/schema/dependency changes. Connected preview messaging is enabled; offline A1/A2 behavior remains unchanged. Enquiry review states distinguish not sent, sending, acknowledged sent, and uncertain. Editing cannot re-arm a completed/uncertain message attempt.
 
 ## Validation
 

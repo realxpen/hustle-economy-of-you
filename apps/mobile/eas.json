@@ -9,6 +9,8 @@
       "environment": "preview",
       "env": {
         "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_HUSTLE_DEMO": "false",
+        "EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES": "true",
         "EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS": "false"
       },
       "android": {
@@ -27,6 +29,7 @@
       "env": {
         "APP_VARIANT": "preview",
         "EXPO_PUBLIC_HUSTLE_DEMO": "true",
+        "EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES": "false",
         "EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS": "false",
         "EXPO_PUBLIC_API_URL": "https://hustle-offline-demo.invalid/api/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "https://hustle-offline-demo.invalid",
