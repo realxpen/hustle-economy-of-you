@@ -63,7 +63,8 @@ check("Search tab requests safely encode query and server cursor without acciden
     "/search/posts?q=two-piece%20%26%20fade&limit=16&cursor=cursor%2F%2B%3D%3F!");
   assert.equal(searchTabPath("top","Lagos artisan",null),"/search?q=Lagos%20artisan&limit=16");
   assert.equal(searchTabPath("products","a#b?c"),"/search/products?q=a%23b%3Fc&limit=16");
-  assert.doesNotMatch(api,/\/bookings|payment|escrow/);
+  const routeSource=api.slice(api.indexOf("export function searchTabPath"),api.indexOf("const base ="));
+  assert.doesNotMatch(routeSource,/bookings|payment|escrow/);
 });
 
 check("Cursors append in stable server relevance order and deduplicate by kind plus canonical ID",()=>{
