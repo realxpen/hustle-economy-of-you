@@ -6,6 +6,8 @@ on:
   pull_request:
     paths:
       - "scripts/staging/neon-prisma-projection.cjs"
+      - "scripts/staging/activate-and-build.cjs"
+      - "scripts/staging/runtime-role-contract.cjs"
       - "scripts/staging/neon-projection-contract.cjs"
       - "scripts/staging/neon-child-branch-approval-contract.cjs"
       - ".github/workflows/hustle-neon-prisma-projection.yml"
@@ -69,7 +71,16 @@ jobs:
         run: node scripts/staging/neon-prisma-projection.cjs /tmp/hustle-neon-application-projection
       - name: Audit immutable migration hashes and destructive SQL before ANY future hosted branch application
         run: node scripts/staging/neon-child-branch-approval-contract.cjs
+      - name: Create an isolated non-superuser migration login
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE hustle_staging_bootstrap_20261022 LOGIN CREATEROLE NOSUPERUSER NOBYPASSRLS PASSWORD 'bootstrap_fixture_only';
+          GRANT CREATE ON DATABASE hustle_neon_projection TO hustle_staging_bootstrap_20261022;
+          GRANT USAGE, CREATE ON SCHEMA public TO hustle_staging_bootstrap_20261022;
+          SQL
       - name: Deploy projected migrations exclusively to disposable PG17
+        env:
+          DATABASE_URL: postgresql://hustle_staging_bootstrap_20261022:bootstrap_fixture_only@127.0.0.1:55441/hustle_neon_projection?schema=public
         run: npx prisma migrate deploy --schema=/tmp/hustle-neon-application-projection/schema.prisma
       - name: Verify public app tables, history, roles and unchanged auth fixture
         shell: bash
@@ -82,5 +93,12 @@ jobs:
             echo "::error::Supabase Storage should not be present in isolated Neon schema"
             exit 1
           fi
+      - name: Deploy separate Auth history and test restricted runtime database roles
+        env:
+          DATABASE_URL: postgresql://hustle_staging_bootstrap_20261022:bootstrap_fixture_only@127.0.0.1:55441/hustle_neon_projection?schema=public
+          STAGING_AUTH_DATABASE_URL: postgresql://hustle_staging_bootstrap_20261022:bootstrap_fixture_only@127.0.0.1:55441/hustle_neon_projection?schema=hustle_auth
+        run: |
+          npx prisma migrate deploy --schema=apps/api/staging-auth/prisma/schema.prisma
+          node scripts/staging/runtime-role-contract.cjs
       - name: Report boundaries
         run: echo "PASS staging-only projection on local PostgreSQL 17; hosted Neon and production untouched"

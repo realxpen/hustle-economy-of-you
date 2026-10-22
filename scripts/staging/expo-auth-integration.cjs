@@ -4,7 +4,8 @@ const assert = require("node:assert/strict");
 const { randomBytes } = require("node:crypto");
 const { Module } = require("@nestjs/common");
 const { NestFactory } = require("@nestjs/core");
-const { toNodeHandler } = require("better-auth/node");
+const authRuntime = require("../../apps/api/dist/auth/expo-staging-auth.service");
+const { configureHttpRuntime } = require("../../apps/api/dist/http-runtime");
 const { PrismaClient } = require("../../apps/api/node_modules/@hustle/staging-auth-client");
 const { createExpoStagingAuth, ExpoStagingAuthService } = require("../../apps/api/dist/auth/expo-staging-auth.service");
 const target = new URL(process.env.STAGING_AUTH_DATABASE_URL || "");
@@ -27,8 +28,17 @@ async function check(name, fn) { await fn(); console.log(`PASS: ${name}`); }
   class FixtureModule {}
   Module({})(FixtureModule);
   app = await NestFactory.create(FixtureModule, { logger: false, rawBody: true });
-  app.getHttpAdapter().getInstance().all("/api/auth/*splat", toNodeHandler(auth));
+  authRuntime.getExpoStagingAuth = () => auth;
+  configureHttpRuntime(app, "isolated-staging");
   await app.listen(43181, "127.0.0.1");
+  await check("Hosted HTTP policy denies bookings, finance, uploads and unknown writes before handlers", async () => {
+    for (const path of ["bookings", "payments", "wallet/deposit", "media/upload", "new-feature"]) {
+      const r = await fetch(`http://127.0.0.1:43181/api/v1/${path}`, { method: "POST" });
+      assert.equal(r.status, 403);
+      assert.equal((await r.json()).error.code, "STAGING_ROUTE_DISABLED");
+    }
+    assert.equal((await request("/delete-user", {})).status, 403);
+  });
   await check("Uninvited registration refused without creating an identity", async () => {
     const r = await request("/sign-up/email", { email: "outsider@example.invalid", password, name: "Test" }, { "expo-origin": "hustle-preview://" });
     assert.equal(r.status, 403);

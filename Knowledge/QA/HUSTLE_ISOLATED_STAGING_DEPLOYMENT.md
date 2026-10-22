@@ -1,0 +1,13 @@
+# Isolated staging API deployment
+
+Owner requested proceeding after PR188 and real-Neon run 39772295594 passed. This step targets only Vercel project `prj_1zba0YSCmWxYxkKQApt8JGAgVTHW` and Neon project `summer-sound-54525078`, branch `br-dawn-hat-zag7c5ae`, database `hustle_staging`. No production release, payment activation or mobile build is implied.
+
+Both standalone and Vercel handlers use the same pre-parser authentication mount and HTTP configuration. Vercel explicitly forwards `/api/auth/*` to the Better Auth handler. Runtime environment validation precedes Nest/Prisma initialization. Bootstrap errors omit private exception details.
+
+The staging HTTP allowlist permits invited password login/session/sign-out, account sync/profile, selected discovery reads and canonical text messaging. Other mutations, booking/financial routes and file uploads fail closed before controllers. New routes require an explicit allowlist review. Existing production routes retain their prior behavior.
+
+One-time activation runs the reviewed application-only projection through actual Prisma migrate deploy, then the separate Auth history. It uses a dedicated temporary bootstrap login with CREATE DATABASE SCHEMA and CREATEROLE rights, not the Neon owner credential. That login must be disabled and its encrypted deployment variable cleared after the first build, including failures. Runtime API/Auth passwords are independently generated. `hustle_api` retains non-bypass RLS and existing application grants; `hustle_auth_runtime` gets only schema usage and CRUD on the five Better Auth tables. Neither runtime gets migration-owner or managed Auth access. Original production migrations are untouched.
+
+The isolated Vercel project overrides its build command with `node ../../scripts/staging/activate-and-build.cjs`, root `apps/api`, Node22, source files outside root enabled, framework null. Git automatic deploys stay disabled. The project's stable deployment target does not mean Hustle production. Never put the temporary migration URL in any other project. Runtime and migration URL validators pin the exact staging host/database/schema/roles. Provisioning aborts unless the successful application migration count is 41. A failed partial migration requires diagnosis rather than ledger stamping.
+
+Automated PostgreSQL17 CI now deploys migrations as a non-superuser bootstrap login, tests actual restricted role connections and cross-schema/DDL denial, and exercises shared Nest login middleware plus forbidden writes. Hosted URL availability, real login/account sync, sign-out and disabled route checks remain separate acceptance and must be recorded after deployment. Keep the unused managed Auth catalog unchanged. No paid upgrade or quota bypass.

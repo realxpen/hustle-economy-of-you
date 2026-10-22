@@ -5,23 +5,19 @@ let serverPromise: Promise<any> | null = null;
 
 async function createServer() {
   try {
-    const [{ AppModule }, { AllExceptionsFilter }] = await Promise.all([
+    const { validateApiRuntimeEnvironment } = await import("../src/auth/staging-auth-selection");
+    const scope = validateApiRuntimeEnvironment(process.env);
+    const [{ AppModule }, { configureHttpRuntime }] = await Promise.all([
       import("../src/app.module"),
-      import("../src/common/filters/all-exceptions.filter")
+      import("../src/http-runtime")
     ]);
-    const app = await NestFactory.create(AppModule, { bufferLogs: false });
-
-    app.setGlobalPrefix("api/v1");
-    app.enableCors({
-      origin: [process.env.WEB_ORIGIN, process.env.ADMIN_ORIGIN].filter(Boolean) as string[],
-      credentials: true
-    });
-    app.useGlobalFilters(new AllExceptionsFilter());
+    const app = await NestFactory.create(AppModule, { bufferLogs: false, rawBody: true });
+    configureHttpRuntime(app, scope);
 
     await app.init();
     return app.getHttpAdapter().getInstance();
   } catch (error) {
-    console.error("HUSTLE_API_BOOTSTRAP_ERROR", error);
+    console.error("HUSTLE_API_BOOTSTRAP_ERROR");
     throw error;
   }
 }
@@ -42,7 +38,8 @@ function firstString(value: unknown): string | undefined {
 
 export default async function handler(request: any, response: any) {
   try {
-    const forwardedPath = firstString(request.query?.__hustle_path) ?? "";
+    const authPath = firstString(request.query?.__hustle_auth_path);
+    const forwardedPath = authPath ?? firstString(request.query?.__hustle_path) ?? "";
     const normalizedPath = forwardedPath
       .split("/")
       .filter(Boolean)
@@ -51,7 +48,7 @@ export default async function handler(request: any, response: any) {
 
     const search = new URLSearchParams();
     for (const [key, raw] of Object.entries(request.query ?? {})) {
-      if (key === "__hustle_path") continue;
+      if (key === "__hustle_path" || key === "__hustle_auth_path") continue;
       if (Array.isArray(raw)) {
         for (const value of raw) search.append(key, String(value));
       } else if (raw !== undefined) {
@@ -59,12 +56,12 @@ export default async function handler(request: any, response: any) {
       }
     }
 
-    request.url = `/api/v1${normalizedPath ? `/${normalizedPath}` : ""}${search.size ? `?${search.toString()}` : ""}`;
+    request.url = `${authPath === undefined ? "/api/v1" : "/api/auth"}${normalizedPath ? `/${normalizedPath}` : ""}${search.size ? `?${search.toString()}` : ""}`;
 
     const server = await getServer();
     return server(request, response);
   } catch (error) {
-    console.error("HUSTLE_API_REQUEST_ERROR", error);
+    console.error("HUSTLE_API_REQUEST_ERROR");
     if (!response.headersSent) {
       return response.status(500).json({
         error: {

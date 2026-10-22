@@ -11,6 +11,10 @@
       "destination": "/api?__hustle_path="
     },
     {
+      "source": "/api/auth/:path*",
+      "destination": "/api?__hustle_auth_path=:path*"
+    },
+    {
       "source": "/api/v1",
       "destination": "/api?__hustle_path="
     },
