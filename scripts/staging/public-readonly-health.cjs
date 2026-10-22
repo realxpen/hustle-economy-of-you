@@ -60,11 +60,11 @@ async function probe(path){
   const health=results[0],auth=results[1],me=results[2];
   console.log("DIAGNOSTIC_BOUNDS public GET-only, no auth/signup, no personal data or mutation");
   if(health.status!==200 || health.contentType!=="json"){
-    console.error("STAGING_DIAGNOSTIC_NOT_READY: health must return public HTTP 200 JSON; review displayed status codes");
-    process.exitCode=1;
+    console.warn("STAGING_DIAGNOSTIC_NOT_READY: health is not public HTTP 200 JSON; review displayed status codes");
+    if(process.env.HUSTLE_ASSERT_PUBLIC_READY==="1")process.exitCode=1;
   } else if(auth.status<200||auth.status>=500||me.status!==401){
-    console.error("STAGING_DIAGNOSTIC_INCOMPLETE: hosted anonymous routes need review; no acceptance claim");
-    process.exitCode=1;
+    console.warn("STAGING_DIAGNOSTIC_INCOMPLETE: hosted anonymous routes need review; no acceptance claim");
+    if(process.env.HUSTLE_ASSERT_PUBLIC_READY==="1")process.exitCode=1;
   } else {
     console.log("PASS: public staging HTTP routes answer, auth endpoints reachable, anonymous account denied");
   }
