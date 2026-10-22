@@ -1,5 +1,5 @@
 import type { AuthPort } from "../infrastructure/auth/auth.port";
-import { NeonStagingAuthService } from "./neon-staging-auth.service";
+import { ExpoStagingAuthService } from "./expo-staging-auth.service";
 
 /**
  * Security boundary for an explicitly isolated, disposable Hustle staging API.
@@ -18,22 +18,39 @@ export const NEON_STAGING = Object.freeze({
   ]
 });
 
+export const EXPO_STAGING_AUTH_URL = "https://hustle-isolated-staging-api.vercel.app/api/auth";
+
+function validateStagingDatabase(value: string | undefined, schema: string) {
+  let url: URL;
+  try { url = new URL(value ?? ""); }
+  catch { throw new Error("Isolated staging database URL invalid"); }
+  if (!["postgresql:", "postgres:"].includes(url.protocol) ||
+      !NEON_STAGING.hosts.includes(url.hostname) || url.pathname !== "/hustle_staging" ||
+      !["require", "verify-full"].includes(url.searchParams.get("sslmode") ?? "") ||
+      (url.searchParams.get("schema") ?? "public") !== schema ||
+      !url.username || !url.password || url.hash || url.port) {
+    throw new Error("Wrong isolated staging database target, schema or TLS configuration");
+  }
+}
+
 /** Must be executed before Nest creates any DB connection. */
 export function validateApiRuntimeEnvironment(env: NodeJS.ProcessEnv = process.env): "production" | "isolated-staging" {
   if (env.HUSTLE_RUNTIME_SCOPE !== "isolated-staging") {
     if (env.HUSTLE_RUNTIME_SCOPE && env.HUSTLE_RUNTIME_SCOPE !== "production") {
       throw new Error("Unsupported Hustle runtime scope");
     }
-    if (env.HUSTLE_AUTH_PROVIDER === "neon-managed" || env.NEON_AUTH_BASE_URL || env.NEON_AUTH_JWKS_URL ||
-        env.HUSTLE_STAGING_PROJECT_ID) {
+    if (env.HUSTLE_AUTH_PROVIDER === "neon-managed" || env.HUSTLE_AUTH_PROVIDER === "expo-better-auth" ||
+        env.NEON_AUTH_BASE_URL || env.NEON_AUTH_JWKS_URL || env.STAGING_AUTH_DATABASE_URL ||
+        env.BETTER_AUTH_URL || env.BETTER_AUTH_SECRET || env.HUSTLE_STAGING_PROJECT_ID) {
       throw new Error("Staging authentication cannot run outside isolated staging");
     }
     return "production";
   }
-  if (env.HUSTLE_AUTH_PROVIDER !== "neon-managed" ||
+  if (env.HUSTLE_AUTH_PROVIDER !== "expo-better-auth" ||
       env.HUSTLE_STAGING_PROJECT_ID !== NEON_STAGING.projectId ||
-      env.NEON_AUTH_BASE_URL !== NEON_STAGING.authBaseUrl ||
-      env.NEON_AUTH_JWKS_URL !== NEON_STAGING.jwksUrl) {
+      env.BETTER_AUTH_URL !== EXPO_STAGING_AUTH_URL || env.NEON_AUTH_BASE_URL || env.NEON_AUTH_JWKS_URL ||
+      !env.BETTER_AUTH_SECRET || env.BETTER_AUTH_SECRET.length < 32 ||
+      !env.HUSTLE_STAGING_TEST_EMAILS?.split(",").every(email => /^[^\s,@]+@[^\s,@]+\.[^\s,@]+$/.test(email.trim()))) {
     throw new Error("Wrong isolated staging authentication issuer or project");
   }
   for (const key of [
@@ -47,22 +64,14 @@ export function validateApiRuntimeEnvironment(env: NodeJS.ProcessEnv = process.e
       env.HUSTLE_FINANCIAL_PROVIDERS_ENABLED !== "false") {
     throw new Error("Booking submission and financial providers must be disabled");
   }
-  let url: URL;
-  try { url = new URL(env.DATABASE_URL ?? ""); }
-  catch { throw new Error("Isolated staging database URL invalid"); }
-  if (!["postgresql:", "postgres:"].includes(url.protocol) ||
-      !NEON_STAGING.hosts.includes(url.hostname) ||
-      url.pathname !== "/hustle_staging" ||
-      !["require", "verify-full"].includes(url.searchParams.get("sslmode") ?? "") ||
-      !url.username || !url.password || url.hash || url.port) {
-    throw new Error("Wrong isolated staging database target or TLS configuration");
-  }
+  validateStagingDatabase(env.DATABASE_URL, "public");
+  validateStagingDatabase(env.STAGING_AUTH_DATABASE_URL, "hustle_auth");
   return "isolated-staging";
 }
 
 /** No automatic fallback. Production keeps exactly the existing Supabase AuthPort. */
 export function chooseHustleAuthPort(supabase: AuthPort, env: NodeJS.ProcessEnv = process.env): AuthPort {
   return validateApiRuntimeEnvironment(env) === "isolated-staging"
-    ? new NeonStagingAuthService()
+    ? new ExpoStagingAuthService()
     : supabase;
 }

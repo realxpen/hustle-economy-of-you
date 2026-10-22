@@ -1,0 +1,54 @@
+name: Hustle Isolated Expo Auth
+on:
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "apps/mobile/**"
+      - "package-lock.json"
+      - "scripts/staging/**"
+      - ".github/workflows/staging-expo-auth.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  disposable-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: local-fixture-only
+          POSTGRES_DB: hustle_auth_fixture
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      STAGING_AUTH_DATABASE_URL: postgresql://postgres:local-fixture-only@127.0.0.1:5432/hustle_auth_fixture?schema=hustle_auth
+      BETTER_AUTH_TELEMETRY: "0"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace=@hustle/api
+      - name: Apply genuine Prisma auth migrations to disposable PostgreSQL 17
+        run: npx prisma migrate deploy --schema=apps/api/staging-auth/prisma/schema.prisma
+      - name: Test actual password login, origin, persistence and revocation
+        run: node scripts/staging/expo-auth-integration.cjs
+      - run: npm run typecheck --workspace=@hustle/mobile
+      - name: Bundle native staging login with SDK54 Metro
+        working-directory: apps/mobile
+        env:
+          APP_VARIANT: preview
+          EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE: isolated-staging
+          EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER: expo-better-auth
+          EXPO_PUBLIC_HUSTLE_AUTH_URL: https://hustle-isolated-staging-api.vercel.app/api/auth
+          EXPO_PUBLIC_API_URL: https://hustle-isolated-staging-api.vercel.app/api/v1
+          EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: "false"
+        run: npx expo export --platform android --output-dir /tmp/hustle-staging-auth-metro

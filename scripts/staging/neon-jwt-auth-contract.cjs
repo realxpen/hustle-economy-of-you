@@ -18,7 +18,8 @@ Module._extensions[".ts"] = (m,filename) => {
   m._compile(compiled.outputText,filename);
 };
 const { NeonStagingAuthService } = require(path.join(root,"apps/api/src/auth/neon-staging-auth.service.ts"));
-const { NEON_STAGING, validateApiRuntimeEnvironment, chooseHustleAuthPort } =
+const { ExpoStagingAuthService } = require(path.join(root,"apps/api/src/auth/expo-staging-auth.service.ts"));
+const { NEON_STAGING, EXPO_STAGING_AUTH_URL, validateApiRuntimeEnvironment, chooseHustleAuthPort } =
   require(path.join(root,"apps/api/src/auth/staging-auth-selection.ts"));
 const production = readFileSync(path.join(root,"apps/api/src/auth/supabase-auth.service.ts"),"utf8");
 const authModule = readFileSync(path.join(root,"apps/api/src/auth/auth.module.ts"),"utf8");
@@ -103,10 +104,12 @@ function check(name,fn) {
   });
 
   const env = {
-    HUSTLE_RUNTIME_SCOPE:"isolated-staging",HUSTLE_AUTH_PROVIDER:"neon-managed",
+    HUSTLE_RUNTIME_SCOPE:"isolated-staging",HUSTLE_AUTH_PROVIDER:"expo-better-auth",
     HUSTLE_STAGING_PROJECT_ID:NEON_STAGING.projectId,
-    NEON_AUTH_BASE_URL:NEON_STAGING.authBaseUrl,
-    NEON_AUTH_JWKS_URL:NEON_STAGING.jwksUrl,
+    BETTER_AUTH_URL:EXPO_STAGING_AUTH_URL,
+    BETTER_AUTH_SECRET:"generated-contract-only-secret-32-characters",
+    HUSTLE_STAGING_TEST_EMAILS:"test@example.invalid",
+    STAGING_AUTH_DATABASE_URL:"postgresql://nonsecret:placeholder@"+NEON_STAGING.hosts[0]+"/hustle_staging?sslmode=require&schema=hustle_auth",
     EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS:"false",
     HUSTLE_FINANCIAL_PROVIDERS_ENABLED:"false",
     DATABASE_URL:"postgresql://nonsecret:placeholder@"+NEON_STAGING.hosts[0]+
@@ -118,6 +121,11 @@ function check(name,fn) {
       ["HUSTLE_RUNTIME_SCOPE","production"],
       ["HUSTLE_RUNTIME_SCOPE","wrong"],
       ["HUSTLE_AUTH_PROVIDER","supabase"],
+      ["HUSTLE_AUTH_PROVIDER","neon-managed"],
+      ["BETTER_AUTH_URL","https://foreign.example/api/auth"],
+      ["BETTER_AUTH_SECRET","short"],
+      ["HUSTLE_STAGING_TEST_EMAILS",""],
+      ["STAGING_AUTH_DATABASE_URL",env.DATABASE_URL],
       ["HUSTLE_STAGING_PROJECT_ID","another-project"],
       ["NEON_AUTH_BASE_URL","https://evil.example"],
       ["NEON_AUTH_JWKS_URL","https://evil.example/jwks"],
@@ -135,13 +143,13 @@ function check(name,fn) {
     assert.equal(validateApiRuntimeEnvironment({}),"production");
     assert.equal(validateApiRuntimeEnvironment({HUSTLE_RUNTIME_SCOPE:"production"}),"production");
     assert.throws(()=>validateApiRuntimeEnvironment({HUSTLE_AUTH_PROVIDER:"neon-managed"}));
-    assert.throws(()=>validateApiRuntimeEnvironment({NEON_AUTH_BASE_URL:env.NEON_AUTH_BASE_URL}));
+    assert.throws(()=>validateApiRuntimeEnvironment({NEON_AUTH_BASE_URL:NEON_STAGING.authBaseUrl}));
   });
-  await check("Production Supabase port retained; staging uses Neon without fallback",()=>{
+  await check("Production Supabase port retained; staging uses Expo Better Auth without fallback",()=>{
     const supabase={verifyAccessToken:async()=>({subject:"supabase"})};
     assert.equal(chooseHustleAuthPort(supabase,{}),supabase);
     assert.equal(chooseHustleAuthPort(supabase,{HUSTLE_RUNTIME_SCOPE:"production"}),supabase);
-    assert.ok(chooseHustleAuthPort(supabase,env) instanceof NeonStagingAuthService);
+    assert.ok(chooseHustleAuthPort(supabase,env) instanceof ExpoStagingAuthService);
     assert.throws(()=>chooseHustleAuthPort(supabase,{...env,NEON_AUTH_JWKS_URL:"https://evil"}));
     assert.match(authModule,/chooseHustleAuthPort\(supabase\)/);
     assert.doesNotMatch(authModule,/useExisting: SupabaseAuthService/);

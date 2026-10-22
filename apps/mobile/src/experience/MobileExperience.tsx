@@ -4,7 +4,7 @@ import {
   Platform, Pressable, ScrollView, Share, StatusBar, StyleSheet, Text,
   TextInput, useWindowDimensions, View
 } from 'react-native';
-import type { Session } from '@supabase/supabase-js';
+import type { MobileSession as Session } from '../lib/mobile-session';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
