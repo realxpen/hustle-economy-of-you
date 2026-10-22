@@ -93,21 +93,7 @@ jobs:
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          set -euo pipefail
-          APK=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
-          SIGNER=$(rg --files "$ANDROID_HOME/build-tools" -g apksigner | sort -V | tail -1)
-          AAPT=$(rg --files "$ANDROID_HOME/build-tools" -g aapt | sort -V | tail -1)
-          "$SIGNER" verify "$APK"
-          "$AAPT" dump badging "$APK" > /tmp/hustle-apk-badging.txt
-          rg -q "^package: name='com.hustle.economyofyou.preview.staging'" /tmp/hustle-apk-badging.txt
-          mkdir -p /tmp/hustle-connected-android
-          cp "$APK" /tmp/hustle-connected-android/Hustle-Staging.apk
-          cd /tmp/hustle-connected-android
-          sha256sum Hustle-Staging.apk > Hustle-Staging.apk.sha256
-          node - <<'NODE'
-          const fs=require('node:fs');
-          fs.writeFileSync('build-info.json', JSON.stringify({sourceSha:process.env.SOURCE_SHA,package:'com.hustle.economyofyou.preview.staging',architectures:['arm64-v8a'],authProvider:'expo-better-auth',api:'https://hustle-isolated-staging-api.vercel.app/api/v1',demo:false,bookingWrites:false,enquiryMessages:true,signing:'internal-test-debug-key',physicalDeviceTested:false},null,2)+'\n');
-          NODE
+          node apps/mobile/scripts/package-staging-apk.cjs apps/mobile/android/app/build/outputs/apk/release/app-release.apk /tmp/hustle-connected-android
       - name: Upload internal connected APK and checksum
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
