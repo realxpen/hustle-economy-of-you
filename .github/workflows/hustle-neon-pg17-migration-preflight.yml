@@ -65,6 +65,7 @@ jobs:
           INSERT INTO neon_auth."user" VALUES ('synthetic-neon-user', 'invalid@example.invalid');
           SQL
           pg_dump --schema-only --schema=neon_auth > /tmp/hustle-auth-schema-before.sql
+          sed -i '/^\\restrict /d; /^\\unrestrict /d' /tmp/hustle-auth-schema-before.sql
           psql -v ON_ERROR_STOP=1 -Atqc 'SELECT COUNT(*) FROM neon_auth."user"' | grep -x 1
       - name: Run existing disposable Supabase-compatibility fixtures locally only
         run: psql -v ON_ERROR_STOP=1 -f scripts/payment-sandbox/supabase-compat.sql
@@ -77,6 +78,7 @@ jobs:
         run: |
           node scripts/staging/pg17-migration-contract.cjs verify
           pg_dump --schema-only --schema=neon_auth > /tmp/hustle-auth-schema-after.sql
+          sed -i '/^\\restrict /d; /^\\unrestrict /d' /tmp/hustle-auth-schema-after.sql
           diff -u /tmp/hustle-auth-schema-before.sql /tmp/hustle-auth-schema-after.sql
           psql -v ON_ERROR_STOP=1 -Atqc 'SELECT COUNT(*) FROM neon_auth."user"' | grep -x 1
       - name: Assert anonymous database role cannot read Hustle users
