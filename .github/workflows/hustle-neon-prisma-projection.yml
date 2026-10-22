@@ -7,6 +7,7 @@ on:
     paths:
       - "scripts/staging/neon-prisma-projection.cjs"
       - "scripts/staging/neon-projection-contract.cjs"
+      - "scripts/staging/neon-child-branch-approval-contract.cjs"
       - ".github/workflows/hustle-neon-prisma-projection.yml"
       - "apps/api/prisma/migrations/**"
   workflow_dispatch:
@@ -66,6 +67,8 @@ jobs:
           pg_dump --schema-only --schema=neon_auth | sed '/^\\restrict /d; /^\\unrestrict /d' > /tmp/staged-neon-auth-before.sql
       - name: Project all 41 original migrations into separate temporary schema path
         run: node scripts/staging/neon-prisma-projection.cjs /tmp/hustle-neon-application-projection
+      - name: Audit immutable migration hashes and destructive SQL before ANY future hosted branch application
+        run: node scripts/staging/neon-child-branch-approval-contract.cjs
       - name: Deploy projected migrations exclusively to disposable PG17
         run: npx prisma migrate deploy --schema=/tmp/hustle-neon-application-projection/schema.prisma
       - name: Verify public app tables, history, roles and unchanged auth fixture
