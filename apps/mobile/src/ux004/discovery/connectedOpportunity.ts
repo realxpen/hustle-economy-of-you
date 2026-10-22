@@ -4,6 +4,7 @@
  * Neither identity matching nor a search match proves an offer/post attachment.
  */
 import type { SearchResult } from "../../experience/feed-api";
+import { connectedSearchWebLink } from "./connectedSearchResult";
 
 export type SearchHustler = {
   id: string | null;
@@ -51,4 +52,14 @@ export function currentSearchOffer(item: SearchResult) {
   if (item.kind === "service") return item.service || null;
   if (item.kind === "product") return item.product || null;
   return null;
+}
+
+/** Canonical public /u path based on the *returned* username, no arbitrary URL. */
+export function searchHustlerPublicLink(source: SearchResult, webOrigin?: string): string | null {
+  const hustler = getSearchHustler(source);
+  if (!hustler.username || !hustler.id) return null;
+  return connectedSearchWebLink({
+    kind: "person", id: hustler.id, person: { username: hustler.username },
+    url: "/u/" + hustler.username
+  }, webOrigin);
 }
