@@ -24,6 +24,10 @@ PRISMA_TABLE='public."_prisma_migrations"'
 API_URL='postgresql://hustle_api@127.0.0.1:5432/hustle_payment_sandbox?schema=public&connection_limit=5'
 DEPLOY_URL='postgresql://postgres@127.0.0.1:5432/postgres?schema=public&connection_limit=2'
 SANDBOX_URL='postgresql://postgres:sandbox_only@127.0.0.1:55439/hustle_payment_sandbox?schema=public'
+LIVE_MEDIA_MIGRATION='20260918110000_phase17b_native_live_media'
+LIVE_MEDIA_ORIGINAL_SHA='f519cdd9f270fbc0659126b6358fc4e486241b1988c0497a9034459d0ba50d4d'
+LIVE_MEDIA_CURRENT_SHA='a1491c455613ffe8d80a085c91d00b2222bd1dcb816f5290363d11a4baf40a23'
+LIVE_MEDIA_ORIGINAL=Path(__file__).with_name('fixtures')/'live-media-original.sql'
 
 
 class Runtime(core.Database):
@@ -102,35 +106,48 @@ def ledger(database):
     return json.loads(access.private_sql(database,'BEGIN READ ONLY; SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY id),\'[]\'::jsonb) FROM '+PRISMA_TABLE+' m; COMMIT;'))
 
 
-def verify_history(rows,expected):
+def verify_live_media_reference(historical,actual):
+    core.require(hashlib.sha256(LIVE_MEDIA_ORIGINAL.read_bytes()).hexdigest()==LIVE_MEDIA_ORIGINAL_SHA
+        and hashlib.sha256((audit.MIGRATIONS/LIVE_MEDIA_MIGRATION/'migration.sql').read_bytes()).hexdigest()==LIVE_MEDIA_CURRENT_SHA,
+        'ACCEPTANCE_LIVE_MEDIA_REVISION','The two reviewed live-media SQL revisions changed.')
+    key='relation:LiveMediaPresence'
+    core.require(key in historical and actual.get(key)==historical[key],
+                 'ACCEPTANCE_LIVE_MEDIA_SCHEMA','The original live-media relation did not match the evaluated reference, including ownership, grants and RLS.')
+
+
+def verify_history(rows,expected,*,legacy_schema_verified=False):
     successful=[r for r in rows if r.get('finished_at') is not None and r.get('rolled_back_at') is None]
     _,hashes=audit.inventory()
     core.require(len(successful)==len(expected) and {r['migration_name'] for r in successful}==set(expected),
                  'ACCEPTANCE_HISTORY','The successful Prisma migration names did not match the reviewed stage.')
-    different=[r['migration_name'] for r in successful if r['checksum']!=hashes[r['migration_name']]]
+    legacy=[r for r in successful if legacy_schema_verified and r['migration_name']==LIVE_MEDIA_MIGRATION
+            and r['checksum']==LIVE_MEDIA_ORIGINAL_SHA and hashes[LIVE_MEDIA_MIGRATION]==LIVE_MEDIA_CURRENT_SHA]
+    different=[r['migration_name'] for r in successful if r['checksum']!=hashes[r['migration_name']] and r not in legacy]
     core.require(not different,'ACCEPTANCE_HISTORY_CHECKSUM','Reviewed migration checksum mismatch: '+', '.join(sorted(different)))
     core.require(all(r.get('finished_at') is not None or r.get('rolled_back_at') is not None for r in rows),
                  'ACCEPTANCE_HISTORY_FAILED','An unresolved failed migration blocks this rehearsal.')
+    return len(legacy)
 
 
 def upgrade(database,runtime,historical,scopes,expected,affected,*,generated=False):
     before_schema=audit.snapshot(database)
+    verify_live_media_reference(historical,before_schema)
     core.require(all(r['schema_contract_matched'] for r in audit.compare(historical,before_schema,scopes)),
                  'ACCEPTANCE_HISTORICAL','A historical schema contract differed; history was not resolved.')
     baseline,hashes=audit.inventory()
     pending.pending_sql() # Exact five original SHA-256 pins remain mandatory.
     pending.verify_source_pending(database)
     rows_before=ledger(database)
-    verify_history(rows_before,baseline)
+    legacy_count=verify_history(rows_before,baseline,legacy_schema_verified=True)
     table_list=pending.original_tables(database)
     unchanged=[t for t in table_list if (t['schema'],t['table'])!=('public','_prisma_migrations')]
     receipts=pending.fingerprints(database,unchanged)
     supabase=access.private_sql(database,'BEGIN READ ONLY; SELECT jsonb_agg(to_jsonb(m) ORDER BY version) FROM supabase_migrations.schema_migrations m; COMMIT;') if not generated else None
     for name in audit.HISTORICAL:runtime.prisma('resolve','--applied',name)
-    verify_history(ledger(database),baseline+audit.HISTORICAL)
+    verify_history(ledger(database),baseline+audit.HISTORICAL,legacy_schema_verified=True)
     runtime.prisma('deploy')
     rows_after=ledger(database)
-    verify_history(rows_after,baseline+audit.HISTORICAL+audit.PENDING)
+    verify_history(rows_after,baseline+audit.HISTORICAL+audit.PENDING,legacy_schema_verified=True)
     by_id={r['id']:r for r in rows_after}
     core.require(all(by_id.get(r['id'])==r for r in rows_before),'ACCEPTANCE_OLD_HISTORY','An original Prisma history row changed.')
     runtime.prisma('deploy')
@@ -142,7 +159,7 @@ def upgrade(database,runtime,historical,scopes,expected,affected,*,generated=Fal
     if not generated:
         core.require(access.private_sql(database,'BEGIN READ ONLY; SELECT jsonb_agg(to_jsonb(m) ORDER BY version) FROM supabase_migrations.schema_migrations m; COMMIT;')==supabase,
                      'ACCEPTANCE_SUPABASE_HISTORY','Supabase history changed during the rehearsal.')
-    return unchanged,receipts
+    return unchanged,receipts,legacy_count
 
 
 def applications(database,runtime):
@@ -196,6 +213,12 @@ def reference_contract():
     try:
         database.start()
         historical,scopes,_=audit.reference_contract(database)
+        # On GENERATED data only, prove the exact 2026-09-18 revision and the
+        # retry-safe 2026-10-04 revision evaluate to the same complete catalog.
+        verify_live_media_reference(historical,historical)
+        access.private_sql(database,'SET ROLE postgres; DROP TABLE public."LiveMediaPresence";\n'+LIVE_MEDIA_ORIGINAL.read_text())
+        core.require(audit.snapshot(database)==historical,'ACCEPTANCE_LIVE_MEDIA_EQUIVALENCE',
+                     'The original live-media SQL did not reproduce the current reference.')
         expected,affected=pending.pending_reference(database,historical)
         return historical,scopes,expected,affected
     finally:database.cleanup()
@@ -212,7 +235,11 @@ def generated_contract():
         runtime.start()
         baseline,_=audit.inventory()
         for name in baseline:runtime.prisma('resolve','--applied',name)
-        tables,rows=upgrade(database,runtime,historical,scopes,expected,affected,generated=True)
+        # Reproduce the saved history without ever rewriting an actual row.
+        access.private_sql(database,'UPDATE public."_prisma_migrations" SET checksum='+access.sql_literal(LIVE_MEDIA_ORIGINAL_SHA)
+            +' WHERE migration_name='+access.sql_literal(LIVE_MEDIA_MIGRATION)+';')
+        tables,rows,legacy_count=upgrade(database,runtime,historical,scopes,expected,affected,generated=True)
+        core.require(legacy_count==1,'ACCEPTANCE_GENERATED_LEGACY','The original-checksum fixture was not exercised.')
         applications(database,runtime)
         core.require(pending.fingerprints(database,tables)==rows,'ACCEPTANCE_CLONE','Application tests changed the original generated database.')
     finally:core.cleanup_all([database,runtime])
@@ -229,7 +256,7 @@ def private_contract(folder,inputs):
         pending.prepare_database_owner(stack.database)
         runtime.start()
         print('[1/3] Rehearsing Prisma resolve/deploy and original data/schema checks.',flush=True)
-        tables,rows=upgrade(stack.database,runtime,historical,scopes,expected,affected)
+        tables,rows,legacy_count=upgrade(stack.database,runtime,historical,scopes,expected,affected)
         print('[2/3] Running the real application sandbox and concurrent API-role Booking checks.',flush=True)
         applications(stack.database,runtime)
         core.require(pending.fingerprints(stack.database,tables)==rows,'ACCEPTANCE_CLONE','Application tests changed the original restored database.')
@@ -242,7 +269,8 @@ def private_contract(folder,inputs):
         proof_count,public_count=api_checks(stack,folder,inputs,reference)
         core.require(pending.fingerprints(stack.database,app_tables)==app_rows and ledger(stack.database)==history,
                      'ACCEPTANCE_API_ROWS','Post-migration API tests changed original application/Storage/history rows.')
-        return {'original_non_prisma_tables_hashed':len(tables),'private_proofs_verified':proof_count,'public_files_verified':public_count}
+        return {'original_non_prisma_tables_hashed':len(tables),'private_proofs_verified':proof_count,'public_files_verified':public_count,
+                'reviewed_legacy_live_media_checksum_count':legacy_count}
     finally:
         try:core.cleanup_all([runtime])
         finally:stack.cleanup()
@@ -264,15 +292,17 @@ def guard():
 
 
 def report(result):
-    core.require(set(result)=={'original_non_prisma_tables_hashed','private_proofs_verified','public_files_verified'}
+    core.require(set(result)=={'original_non_prisma_tables_hashed','private_proofs_verified','public_files_verified','reviewed_legacy_live_media_checksum_count'}
         and all(type(v) is int and 0<=v<1000 for v in result.values())
         and result['original_non_prisma_tables_hashed']>0 and 0<result['private_proofs_verified']<=10
         and result['private_proofs_verified']+result['public_files_verified']<=10,'ACCEPTANCE_REPORT','Invalid aggregate acceptance result.')
+    core.require(result['reviewed_legacy_live_media_checksum_count'] in (0,1),'ACCEPTANCE_REPORT','Unexpected legacy revision count.')
     return dict(result,format='hustle-combined-native-acceptance-v1',backup_set_id=core.SET_ID,
         inventory_sha256=core.INVENTORY_SHA256,repository_sha=os.environ['GITHUB_SHA'],
         checked_at=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         historical_contracts_matched=9,prisma_historical_resolutions=9,prisma_pending_deployed=5,
         successful_prisma_migrations=41,original_prisma_rows_preserved=True,supabase_ledger_unchanged=True,
+        reviewed_live_media_revisions_schema_equivalent=True,original_legacy_checksum_not_rewritten=True,
         original_non_prisma_rows_preserved_through_deploy=True,second_deploy_noop=True,
         migrated_schema_defaults_and_permissions_passed=True,application_sandbox_suite_passed=True,
         non_bypass_api_booking_race_and_extensions_passed=True,original_files_rehashed_and_api_read=10,
