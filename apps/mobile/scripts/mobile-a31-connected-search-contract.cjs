@@ -96,10 +96,11 @@ check("Connected mobile Explore uses real flattened read models and guarded brow
   assert.match(app,/import \{ connectedSearchWebLink, describeMobileSearchResult \} from/);
   assert.match(app,/const view = describeMobileSearchResult\(result\)/);
   assert.match(app,/const url = connectedSearchWebLink\(result, process\.env\.EXPO_PUBLIC_PUBLIC_WEB_URL\)/);
-  assert.match(app,/disabled=\{!url\} onPress=\{\(\) => void openSearchResult\(result\)\}/);
-  assert.match(app,/accessibilityRole="link" accessibilityState=\{\{ disabled: !url \}\}/);
+  assert.match(app,/onPress=\{\(\) => openOpportunity\(result\)\}/);
+  assert.match(app,/disabled=\{!opportunityPublicOffer\}/);
+  assert.match(app,/accessibilityRole="button" accessibilityLabel=\{"Review " \+ view\.kindLabel/);
   assert.match(app,/await Linking\.openURL\(url\)/);
-  assert.match(app,/Public link unavailable/);
+  assert.match(app,/Public offer link unavailable/);
   assert.doesNotMatch(app,/result\.value as/);
   assert.doesNotMatch(app,/https?:\/\/hustle\.example/);
   assert.doesNotMatch(app,/result\.value\?/);

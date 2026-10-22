@@ -124,12 +124,12 @@ check("Search uses truthful pagination and explicit accessible load-more or retr
   assert.match(app,/onPress=\{\(\) => void loadSearchMore\(\)\}/);
   assert.match(app,/searchLoadMore: \{ minHeight: 48/);
   assert.match(app,/hasSearched \? "No published matches for this search/);
-  assert.match(app,/disabled=\{!url\} onPress=\{\(\) => void openSearchResult\(result\)\}/);
+  assert.match(app,/onPress=\{\(\) => openOpportunity\(result\)\}/);
 });
 
 check("A3.1 regression remains present and only apps/mobile changes needed",()=>{
   assert.ok(oldContract.includes("connectedSearchWebLink"));
-  assert.ok(oldContract.includes("Public link unavailable"));
+  assert.ok(oldContract.includes("Public offer link unavailable"));
   assert.match(app,/EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS !== 'true'/);
   assert.doesNotMatch(app,/createClient\(|initializePayment\(|escrow\.release/);
   assert.match(qa,/Runtime acceptance: PENDING/);

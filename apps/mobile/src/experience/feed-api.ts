@@ -22,13 +22,18 @@ export type SearchResult = {
   id: string;
   url?: string | null;
   person?: {
-    displayName?: string | null; username?: string | null; location?: string | null;
-    professionalProfile?: { headline?: string | null; primarySkill?: string | null } | null;
+    id?: string; displayName?: string | null; username?: string | null;
+    bio?: string | null; location?: string | null; verified?: boolean;
+    professionalProfile?: { headline?: string | null; primarySkill?: string | null; professionalSummary?: string | null } | null;
   };
   post?: { caption?: string | null; category?: string | null; location?: string | null };
   service?: Offer & { category?: string | null; location?: string | null };
   product?: Offer & { category?: string | null };
-  owner?: { displayName?: string | null; location?: string | null };
+  owner?: {
+    id?: string; displayName?: string | null; username?: string | null;
+    bio?: string | null; verified?: boolean; location?: string | null;
+    professionalProfile?: { headline?: string | null; primarySkill?: string | null; professionalSummary?: string | null } | null;
+  };
 };
 export type SearchPage = { items: SearchResult[]; hasMore: boolean; nextCursor: string | null };
 export type SearchTab = 'top' | 'people' | 'posts' | 'services' | 'products';
