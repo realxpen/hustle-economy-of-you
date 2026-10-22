@@ -36,7 +36,7 @@ function validateStagingDatabase(value: string | undefined, schema: string) {
   try { url = new URL(value ?? ""); }
   catch { throw new Error("Isolated staging database URL invalid"); }
   if (!["postgresql:", "postgres:"].includes(url.protocol) ||
-      ![NEON_EXPO_CHILD.host, NEON_EXPO_CHILD.poolerHost].includes(url.hostname) || url.pathname !== "/hustle_staging" ||
+      ![NEON_EXPO_CHILD.host, NEON_EXPO_CHILD.poolerHost].some(host => host === url.hostname) || url.pathname !== "/hustle_staging" ||
       url.username !== "hustle_child_api" ||
       !["require", "verify-full"].includes(url.searchParams.get("sslmode") ?? "") ||
       (url.searchParams.get("schema") ?? "public") !== schema ||
