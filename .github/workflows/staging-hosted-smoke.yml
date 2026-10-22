@@ -1,0 +1,21 @@
+name: Hustle Hosted Isolated Staging Smoke
+on:
+  pull_request:
+    paths:
+      - "scripts/staging/hosted-smoke.cjs"
+      - ".github/workflows/staging-hosted-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  hosted-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify exact deployed staging revision and disposable login over public HTTPS
+        env:
+          HUSTLE_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/staging/hosted-smoke.cjs
