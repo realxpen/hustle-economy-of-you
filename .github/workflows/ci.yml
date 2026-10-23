@@ -83,6 +83,10 @@ jobs:
           NODE_PATH: /tmp/hustle-smoke/node_modules
           HUSTLE_SMOKE_REPORT_PATH: /tmp/hustle-local-web-smoke.json
         run: node scripts/responsive/local-smoke.cjs
+      - name: Smoke test installed iPhone PWA interface and icon routes
+        env:
+          NODE_PATH: /tmp/hustle-smoke/node_modules
+        run: node scripts/responsive/pwa-standalone-smoke.cjs
       - name: Interactive local Service to Booking UI regression
         env:
           NODE_PATH: /tmp/hustle-smoke/node_modules
