@@ -42,7 +42,7 @@ export function NativeCreate({ token, active, onPublished }: {
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       <Text style={styles.eyebrow}>YOUR WORK / REAL PREVIEW</Text>
       <Text style={styles.title}>Show what you can do.</Text>
-      <Text style={styles.body}>Publish a real skill demonstration. This creates an owner-authorized post, attaches one public image and asks Hustle to publish it. No invented posts.</Text>
+      <Text style={styles.body}>Publish a real skill demonstration. This creates an owner-authorized post, attaches one public image and asks Hustle to publish it. Others will see it in discovery; your own posts appear under My posts.</Text>
       <View style={styles.notice}>
         <Text style={styles.info}>First release accepts an image you already host via HTTPS. Photo uploads, video uploads, payments and booking are not enabled in this test.</Text>
       </View>
