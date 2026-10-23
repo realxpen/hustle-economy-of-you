@@ -28,6 +28,7 @@ jobs:
     env:
       CI: '1'
       APP_VARIANT: preview
+      EXPO_PUBLIC_HUSTLE_APP_VARIANT: preview
       EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE: isolated-staging
       EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER: expo-better-auth
       EXPO_PUBLIC_HUSTLE_AUTH_URL: https://hustle-isolated-staging-api.vercel.app/api/auth
