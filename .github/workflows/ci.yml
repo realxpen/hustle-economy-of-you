@@ -76,6 +76,8 @@ jobs:
           done
           cat /tmp/hustle-web-start.log
           exit 1
+      - name: Verify iPhone installability routes and PNG icons
+        run: node scripts/experience/check-iphone-pwa.cjs
       - name: Smoke test local Web at 320–1440 CSS pixels
         env:
           NODE_PATH: /tmp/hustle-smoke/node_modules
