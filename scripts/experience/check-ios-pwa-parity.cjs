@@ -60,6 +60,14 @@ assert.match(explore,/pwaSkills/);
 assert.match(exploreCss,/\(display-mode:standalone\)/);
 assert.match(exploreCss,/background:#F7F6F2/);
 assert.match(exploreCss,/background:#DDF0B8/);
+const creatorCss = read("apps/web/app/products/product-editor.module.css");
+const inboxCss = read("apps/web/app/messages/messages.module.css");
+const youCss = read("apps/web/app/account/page.module.css");
+for (const [name, css] of [["Create", creatorCss], ["Inbox", inboxCss], ["You", youCss]]) {
+  assert.match(css, /\(display-mode:standalone\)/, name + " must follow installed native design");
+  assert.match(css, /#F7F6F2/i, name + " must use cream utility surface");
+  assert.match(css, /#C9F26B/i, name + " must use the lime brand accent");
+}
 const icon=read("apps/web/app/icon.svg");
 assert.match(icon,/<svg[^>]*xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
 assert.match(icon,/fill="#121714"/);
