@@ -100,8 +100,11 @@ export async function authenticatedFetch(
   headers.set("authorization", `Bearer ${accessToken}`);
   if (init?.body) headers.set("content-type", "application/json");
 
+  const emptyStagingPost = isolatedWebMode && init?.method?.toUpperCase() === "POST" && !init.body;
+  if (emptyStagingPost) headers.set("content-type", "application/json");
   const response = await fetch(`${apiBase}${path}`, {
     ...init,
+    body: emptyStagingPost ? "{}" : init?.body,
     headers,
     credentials: isolatedWebMode ? "same-origin" : init?.credentials,
     cache: "no-store"
