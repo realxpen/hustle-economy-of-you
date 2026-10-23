@@ -80,6 +80,8 @@ jobs:
         run: node apps/mobile/scripts/staging-bundled-runtime-contract.cjs
       - name: Execute native inbox delivery and private-state regressions
         run: node apps/mobile/scripts/native-inbox-contract.cjs
+      - name: Verify native creator publishing and isolated staging write limits
+        run: node apps/mobile/scripts/native-creator-publishing-contract.cjs
       - name: Verify dual-architecture test APK packaging safeguards
         run: node apps/mobile/scripts/package-staging-apk-contract.cjs
       - name: Bundle offline Android demo with Metro (no EAS build credits)

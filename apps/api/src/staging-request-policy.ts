@@ -6,6 +6,13 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
       /^\/api\/v1(?:\/(?:health|foundation|auth\/me))?$/.test(path) ||
       /^\/api\/v1\/(?:feed|search|marketplace|services|posts|products|messaging|notifications)(?:\/[A-Za-z0-9_-]+)*$/.test(path);
   }
+  // Non-financial creator tests only. Defaults OFF on all existing servers.
+  // This is a route gate, not authorization: Nest still checks the invited session,
+  // ownership, media completeness, moderation state and publishing lifecycle.
+  if (process.env.HUSTLE_STAGING_CONTENT_PUBLISH_ENABLED === "true" &&
+      method === "POST" &&
+      (path === "/api/v1/posts" ||
+       /^\/api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media|publish)$/.test(path))) return true;
   if (method === "POST") return /^\/api\/auth\/(sign-up\/email|sign-in\/email|sign-out)$/.test(path) ||
     path === "/api/v1/auth/sync" || path === "/api/v1/messaging/conversations/direct" ||
     /^\/api\/v1\/messaging\/conversations\/[A-Za-z0-9_-]+\/(?:messages|read|typing)$/.test(path) ||
