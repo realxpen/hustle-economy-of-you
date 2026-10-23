@@ -33,6 +33,7 @@ function copyCookies(source: Headers, target: Headers) {
   // origin; never let upstream explicitly bind its own domain or rewrite Path.
   const cookies = source.getSetCookie();
   for (const cookie of cookies) {
+    if (!/^(?:__Secure-|__Host-)?hustle-staging\./.test(cookie)) continue;
     const safe = cookie.replace(/;\s*domain=[^;]*/ig, "").replace(/;\s*path=[^;]*/ig, "; Path=/");
     target.append("set-cookie", safe);
   }
@@ -67,7 +68,13 @@ export async function proxyIsolatedRequest(req: NextRequest, segments: string[])
   }
   for (const key of privateHeaders) {
     const value = req.headers.get(key);
-    if (value) headers.set(key, value);
+    if (!value) continue;
+    if (key === "cookie") {
+      const stagingOnly = value.split(";").map(v => v.trim())
+        .filter(v => /^(?:__Secure-|__Host-)?hustle-staging\./.test(v))
+        .join("; ");
+      if (stagingOnly) headers.set("cookie", stagingOnly);
+    } else headers.set(key, value);
   }
   const body = req.method === "POST" ? await req.text() : undefined;
   if (body && body.length > 10_000) return NextResponse.json({message:"Payload too large"}, {status:413});
