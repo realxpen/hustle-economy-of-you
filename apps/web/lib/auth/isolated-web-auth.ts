@@ -38,7 +38,7 @@ export async function stageSignIn(email: string, password: string, create: boole
   const response = await fetch(endpoint + (create ? "sign-up/email" : "sign-in/email"), {
     method:"POST", credentials:"same-origin", cache:"no-store",
     headers:{"content-type":"application/json", accept:"application/json"},
-    body:JSON.stringify({ email:email.trim(),password,...create?{name:"Hustle PWA tester"}:{} })
+    body:JSON.stringify({ email:email.trim(),password,...(create ? {name:"Hustle PWA tester"} : {}) })
   });
   await fromJSON(response);
   const confirmed = await stagingSession();
