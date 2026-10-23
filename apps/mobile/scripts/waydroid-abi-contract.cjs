@@ -8,11 +8,12 @@ const workflow = fs.readFileSync(path.join(root, ".github/workflows/hustle-mobil
 const packaging = fs.readFileSync(path.join(root, "apps/mobile/scripts/package-staging-apk.cjs"), "utf8");
 const stage = require("../eas.json").build["isolated-staging"];
 assert.deepEqual(Object.keys(stage.env).sort(), [
-  "APP_VARIANT", "EXPO_PUBLIC_API_URL", "EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER",
+  "APP_VARIANT", "EXPO_PUBLIC_HUSTLE_APP_VARIANT", "EXPO_PUBLIC_API_URL", "EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER",
   "EXPO_PUBLIC_HUSTLE_AUTH_URL", "EXPO_PUBLIC_HUSTLE_DEMO",
   "EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS", "EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES",
   "EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE"
 ].sort());
+assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT, "preview");
 assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE, "isolated-staging");
 assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER, "expo-better-auth");
 assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_DEMO, "false");
