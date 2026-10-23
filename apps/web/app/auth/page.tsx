@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../../lib/supabase/client";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
+import { StagingWebSignIn } from "./staging-sign-in";
 import { syncHustleAccount } from "../../lib/auth/hustle-account";
 import { onboardingUrlFor, safeAuthNext } from "../../lib/auth/safe-auth-next";
 
@@ -17,7 +19,7 @@ function authErrorMessage(reason: unknown) {
   return "Authentication failed";
 }
 
-export default function AuthPage() {
+function SupabaseAuthPage() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -170,4 +172,8 @@ export default function AuthPage() {
       </section>
     </main>
   );
+}
+
+export default function AuthPage() {
+  return isolatedWebMode ? <StagingWebSignIn/> : <SupabaseAuthPage/>;
 }
