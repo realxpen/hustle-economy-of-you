@@ -3,6 +3,7 @@
 import type { HustleAccount } from "@hustle/types";
 import { authenticatedFetch } from "../api/authenticated-fetch";
 import { getSupabaseBrowserClient } from "../supabase/client";
+import { isolatedWebMode } from "./isolated-web-auth";
 
 let cachedAccount: HustleAccount | null = null;
 let cachedAt = 0;
@@ -18,7 +19,7 @@ function remember(account: HustleAccount) {
 }
 
 function ensureAccountAuthListener() {
-  if (authListenerAttached) return;
+  if (isolatedWebMode || authListenerAttached) return;
   authListenerAttached = true;
   getSupabaseBrowserClient().auth.onAuthStateChange((event) => {
     if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
