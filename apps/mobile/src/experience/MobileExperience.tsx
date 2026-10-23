@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { syncMobileAccount } from '../lib/account';
 import { NativeInbox } from './NativeInbox';
+import { NativeCreate } from './NativeCreate';
 import { mobileApi, type FeedItem, type FeedTab, type Offer, type PostComment, type SearchResult, type SearchTab, type BookingSlot, type SlotPage } from './feed-api';
 import { connectedSearchWebLink, describeMobileSearchResult } from '../ux004/discovery/connectedSearchResult';
 import { appendUniqueSearchResults } from '../ux004/discovery/connectedSearchPagination';
@@ -26,7 +27,7 @@ const SEARCH_TABS: ReadonlyArray<{ id: SearchTab; label: string }> = [
   { id: 'posts', label: 'Posts' }, { id: 'services', label: 'Services' },
   { id: 'products', label: 'Products' }
 ];
-type Screen = 'Home' | 'Explore' | 'Inbox' | 'You';
+type Screen = 'Home' | 'Explore' | 'Create' | 'Inbox' | 'You';
 type Sheet = 'comments' | 'save' | 'share' | 'creator' | 'service' | 'product' | 'booking' | null;
 type OpportunityStage = 'profile' | 'offer' | 'enquiry' | null;
 type FeedSelection = FeedTab | 'live';
@@ -581,12 +582,13 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
           </Pressable>}
         </ScrollView>
     </View>}
+    <NativeCreate key={'create-' + session.user.id} token={token} active={screen === 'Create'}
+      onPublished={() => { setScreen('Home'); void reload(); }}/>
     <NativeInbox key={token} token={token} active={screen === 'Inbox'} target={inboxTarget}/>
     {screen === 'You' && <View style={[styles.lightPage, { paddingTop: insets.top + 18 }]}><Text style={styles.pageTitle}>You</Text><Text style={styles.subline}>{session.user.email || 'Your Hustle identity'}</Text><Text style={styles.meta}>One account. Client capability first. Hustler and Agent capabilities unlock on the same account.</Text><Action onPress={() => void onSignOut()}>Sign out</Action></View>}
     <View style={[styles.nav, { bottom: Math.max(10, insets.bottom) }]}>
       {([['Home','home'],['Explore','search'],['Create','add-circle'],['Inbox','chatbubbles'],['You','person']] as const).map(([label, icon]) => <Pressable key={label} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: label === screen }} onPress={() => {
-        if (label === 'Create') Alert.alert('Create content', 'The mobile publishing workflow is being connected to Hustler permissions.');
-        else setScreen(label);
+        setScreen(label);
       }} style={[styles.navItem, screen === label && styles.navSelected]}><Icon name={icon} color={screen === label ? C.dark : C.white} size={23}/></Pressable>)}
     </View>
     <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
