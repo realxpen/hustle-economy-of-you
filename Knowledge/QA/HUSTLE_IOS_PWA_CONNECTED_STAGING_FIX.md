@@ -25,3 +25,7 @@ The founder installed the original UX004 PWA on iPhone Safari and verified the n
 4. Cross-device peer discovery/content and publishing still require reviewed PRs #200/#202 and independent staging enablement. Do not claim account sync, cookies or iOS Safari behavior works until observed. Native Expo Go/Waydroid remain separate distribution methods.
 
 No migrations, financial providers, production password reuse or unrestricted API paths.
+
+
+## Vercel rate-limit verification (23 October 2026)
+The intended first build on the **public nonproduction** project returned HTTP 402 with provider code \`api-deployments-free-per-day\`. Enabling **only** branch \`fix/ios-pwa-connected-staging-auth\` in \`apps/web/vercel.json\` was also rejected by Vercel for the same team-wide build limit (the GitHub commit shows \`Vercel – hustle-ios-pwa-testing: failure\`). After confirming there is no no-cost Git bypass, the repository returned to \`git.deploymentEnabled=false\`; all deployments are deliberately triggered after rate-limit reset and normal review. Do not interpret the old 200 PWA shell as the new authenticated code.
