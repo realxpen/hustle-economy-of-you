@@ -195,3 +195,54 @@
 @media(max-width:760px) and (prefers-reduced-transparency:reduce){
  .dock{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--h-surface,#fff)}
 }
+
+/* UX004 Hybrid: exactly the Android five-icon dock when installed on iPhone.
+   Browser and desktop retain existing six-destination navigation. */
+.appDock { display: none; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 760px) and (display-mode: standalone) {
+  .dock { display: none; }
+  .appDock {
+    position: fixed; z-index: 101;
+    display: block;
+    left: max(18px, env(safe-area-inset-left, 0px));
+    right: max(18px, env(safe-area-inset-right, 0px));
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    height: 58px;
+    padding: 7px 8px;
+    border-radius: 30px;
+    background: #121714;
+    border: 1px solid rgba(255,255,255,.15);
+    box-shadow: 0 9px 30px rgba(0,0,0,.24);
+  }
+  .appInner {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0,1fr));
+    place-items: center;
+    height: 100%;
+    width: 100%;
+    gap: 4px;
+  }
+  .appLink {
+    display: grid;
+    place-items: center;
+    width: min(100%, 52px);
+    height: 44px;
+    min-height: 44px;
+    color: #fff;
+    border-radius: 23px;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .appLink svg { width: 24px; height: 24px; }
+  .appSelected { color: #121714; background: #C9F26B; }
+  .appLink:focus-visible { outline: 3px solid #C9F26B; outline-offset: 2px; }
+}
+@media (max-width: 355px) and (display-mode: standalone) {
+  .appDock { left: 10px; right: 10px; }
+  .appInner { gap: 1px; }
+}
+@media (display-mode: standalone) and (prefers-reduced-transparency: reduce) {
+  .appDock { box-shadow: none; }
+}
