@@ -3,7 +3,7 @@
 /**
  * Same isolated Better Auth identity as Hustle's connected Android preview.
  * Session cookie is HttpOnly and first-party on the installed PWA origin;
- * bearer tokens are resolved on demand, never persisted in localStorage.
+ * bearer tokens are resolved on demand and never saved in browser storage.
  */
 export const isolatedWebMode = process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH === "true";
 const endpoint = "/api/isolated/auth/";
