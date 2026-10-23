@@ -70,7 +70,12 @@ try {
   process.env.APP_VARIANT = "preview";
   process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE = stage.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE;
   assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT, "preview");
+  delete process.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT;
   assert.throws(() => makeConfig({ config: base }), /public app identities/);
+  process.env.APP_VARIANT = "production";
+  process.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT = "preview";
+  assert.throws(() => makeConfig({ config: base }), /public app identities/);
+  process.env.APP_VARIANT = "preview";
   process.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT = stage.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT;
   const connected = makeConfig({ config: base });
   assert.equal(connected.name, "Hustle Staging");
