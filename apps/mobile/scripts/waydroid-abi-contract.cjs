@@ -25,7 +25,7 @@ assert.match(packaging, /"arm64-v8a", "x86_64"/);
 assert.match(packaging, /"Hustle-Staging-Waydroid\.apk"/);
 assert.match(packaging, /nativeLine\.includes/);
 assert.match(packaging, /apksigner/);
-assert.match(packaging, /assert\.match\(manifest, \^package/);
+assert.match(packaging, /assert\.match\(manifest, \/\^package/);
 assert.match(packaging, /architectures: \[buildArch\]/);
 assert.match(packaging, /sha256/);
 assert.doesNotMatch(workflow, /eas build --platform|--auto-submit|secrets\.EXPO_TOKEN/);
