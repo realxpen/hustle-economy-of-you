@@ -1,5 +1,9 @@
 # Hustle Project State
 
+## Waydroid startup configuration failure — correction in progress (2026-10-23)
+
+Founder launched PR #200's APK and observed the isolated-login configuration fallback. Root cause: the runtime guard depended on Node-only APP_VARIANT, which the installed Expo bundle does not retain. The guard now uses the embedded staging application identity via Expo Constants while retaining exact scope/provider/endpoints/write flags. Twenty production Expo/Babel-transformed tests pass with all build variables removed; existing readiness tests and TypeScript passed. Corrected native rebuild and actual Waydroid sign-in remain pending; earlier successful native packaging was not runtime-startup evidence. See `Knowledge/QA/HUSTLE_ANDROID_FIRST_DEVICE_READINESS.md`.
+
 ## Native consultation inbox — proposed (2026-10-23)
 
 Service enquiry opens a native conversation with paginated inbox/history, replies, visible-message read receipts and foreground refresh through the existing participant-only API. Session-scoped state, stale-response guards and uncertain-send locks prevent private cross-session/thread leakage and automatic duplicate sends. Test APK packaging now verifies both ARM64 and x86_64 for Waydroid. No backend/schema/production changes. Tests/build evidence and device acceptance must be reported separately; see `apps/mobile/docs/NATIVE_INBOX.md`. PR #197 and staging device-readiness #198 are merged; the older “connected build next” note below is superseded. The unpushed prior scratch-only inbox commit was unavailable after workspace reset; this continuation restores its implementation onto current main and reruns verification before delivery.

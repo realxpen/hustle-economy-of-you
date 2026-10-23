@@ -1,13 +1,20 @@
 import { createAuthClient } from "better-auth/react";
 import { expoClient } from "@better-auth/expo/client";
 import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
 
 export function isExpoStagingSelected() {
   return process.env.EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER === "expo-better-auth";
 }
 
 export function validateExpoStagingConfiguration() {
-  if (process.env.APP_VARIANT !== "preview" ||
+  // APP_VARIANT exists in app.config.js, not in the installed JavaScript runtime.
+  // Require the embedded isolated preview identity instead of a Node-only env var.
+  const appId = Platform.OS === "android" ? Constants.expoConfig?.android?.package
+    : Platform.OS === "ios" ? Constants.expoConfig?.ios?.bundleIdentifier : null;
+  if (appId !== "com.hustle.economyofyou.preview.staging" ||
+      process.env.EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER !== "expo-better-auth" ||
       process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE !== "isolated-staging" ||
       process.env.EXPO_PUBLIC_HUSTLE_DEMO === "true") {
     throw new Error("The test login requires the isolated preview app.");

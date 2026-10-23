@@ -76,6 +76,8 @@ jobs:
         run: node apps/mobile/scripts/mobile-a31-connected-search-contract.cjs
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
+      - name: Execute Expo-compiled auth without build-time Node environment
+        run: node apps/mobile/scripts/staging-bundled-runtime-contract.cjs
       - name: Execute native inbox delivery and private-state regressions
         run: node apps/mobile/scripts/native-inbox-contract.cjs
       - name: Verify dual-architecture test APK packaging safeguards
