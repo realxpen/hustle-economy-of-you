@@ -1,8 +1,9 @@
 "use client";
 
 import { getSupabaseBrowserClient } from "../supabase/client";
+import { isolatedWebMode, stagingSession } from "../auth/isolated-web-auth";
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const apiBase = isolatedWebMode ? "/api/isolated/api/v1" : process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 type CachedAuth = {
   accessToken: string;
@@ -33,6 +34,7 @@ function cacheSession(session: {
 }
 
 function ensureAuthListener() {
+  if (isolatedWebMode) return;
   if (authListenerAttached) return;
   authListenerAttached = true;
   getSupabaseBrowserClient().auth.onAuthStateChange((_event, session) => {
@@ -48,6 +50,16 @@ async function resolveAuthenticatedIdentity() {
   }
 
   sessionPromise ??= (async () => {
+    if (isolatedWebMode) {
+      const result = await stagingSession();
+      if (!result.session?.token || !result.user?.id)
+        throw new Error("Sign in to discover real Hustlers.");
+      return cacheSession({
+        access_token: result.session.token,
+        expires_at: new Date(result.session.expiresAt).getTime() / 1000,
+        user: { id: result.user.id }
+      })!;
+    }
     const { data: { session }, error } = await getSupabaseBrowserClient().auth.getSession();
     if (error || !session?.access_token) throw new Error("You need to sign in again");
     const next = cacheSession(session);
@@ -91,6 +103,7 @@ export async function authenticatedFetch(
   const response = await fetch(`${apiBase}${path}`, {
     ...init,
     headers,
+    credentials: isolatedWebMode ? "same-origin" : init?.credentials,
     cache: "no-store"
   });
 
