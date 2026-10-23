@@ -30,7 +30,8 @@ export function normalizeCreatorPost(input: PostInput): PostInput {
   catch { throw new Error('Provide a public HTTPS image link that you own or may share.'); }
   if (url.protocol !== 'https:' || !url.hostname || url.username || url.password ||
       /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(url.hostname) ||
-      url.hostname.endsWith('.local')) {
+      url.hostname.endsWith('.local') || url.hostname.endsWith('.internal') ||
+      url.hostname.startsWith('[') || url.hostname === '0.0.0.0') {
     throw new Error('Use a public HTTPS image link, never a local/private address.');
   }
   return { caption, category, location, imageUrl: url.toString() };
@@ -84,7 +85,7 @@ export function createCreatorPostStore(transport: CreatorPostTransport) {
       }
       const canonical = await transport.get(postId);
       if (canonical.status === 'PUBLISHED') {
-        update({ phase: 'published', notice: 'Already published. Refresh Home to see your work.' });
+        update({ phase: 'published', notice: 'Already published. Others can discover your work; find it in My posts.' });
         return;
       }
       if (canonical.status !== 'DRAFT') throw new Error('Post is not an editable draft.');
@@ -94,9 +95,16 @@ export function createCreatorPostStore(transport: CreatorPostTransport) {
       if (!imageUrls.includes(validated.imageUrl)) await transport.image(postId, validated.imageUrl);
       const result = await transport.publish(postId);
       if (result.id !== postId || result.status !== 'PUBLISHED') throw new Error('Publish acknowledgement is uncertain.');
-      update({ phase: 'published', notice: 'Published to Hustle. Return Home to refresh your feed.' });
-    } catch {
-      update({ phase: 'review', notice: 'Delivery uncertain or publishing unavailable. Your draft may exist. Review My posts before trying again; no automatic resend.' });
+      update({ phase: 'published', notice: 'Published on Hustle. Other people can discover it; find it in My posts.' });
+    } catch (e) {
+      const denied = e instanceof Error && /\(403\)/.test(e.message);
+      // A policy-gate denial happens before Nest creates any post. An unknown
+      // timeout is different: block repeat until the owner list is inspected.
+      if (denied && !postId) {
+        update({ phase: 'idle', notice: 'Creator publishing is not enabled on the isolated test API. No post was created. Your text remains here.' });
+      } else {
+        update({ phase: 'review', notice: 'Delivery uncertain or publishing unavailable. Your draft may exist. Review My posts before trying again; no automatic resend.' });
+      }
     } finally { busy = false; }
   }
   function resume(post: OwnerPost) {
