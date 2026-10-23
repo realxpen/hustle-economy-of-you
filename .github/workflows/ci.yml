@@ -51,6 +51,8 @@ jobs:
         run: node scripts/experience/check-you-account.cjs
       - name: Frictionless navigation and glass UI contracts
         run: node scripts/experience/check-frictionless-glass.cjs
+      - name: Verify iOS Home Screen PWA matches Figma/UX004 and remains online-only
+        run: node scripts/experience/check-ios-pwa-parity.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
