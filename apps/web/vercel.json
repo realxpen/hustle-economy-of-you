@@ -1,10 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
-    "deploymentEnabled": {
-      "*": false,
-      "fix/ios-pwa-connected-staging-auth": true
-    }
+    "deploymentEnabled": false
   },
   "framework": "nextjs",
   "buildCommand": "npm run build",
