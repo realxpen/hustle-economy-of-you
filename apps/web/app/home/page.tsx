@@ -586,6 +586,7 @@ export default function DiscoveryHomePage() {
     <section className={styles.discoverLayout} aria-label="Hustle Discovery">
       <div className={styles.playerColumn}>
         <div className={styles.feedTopBar}>
+          <span className={styles.appWordmark} aria-hidden="true">hustle<span>.</span></span>
           <div className={styles.feedHeading}>
             <strong>Discover<span>.</span></strong>
             <small>Real people. Real work.</small>
