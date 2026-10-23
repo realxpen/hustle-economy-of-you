@@ -606,8 +606,13 @@ export default function DiscoveryHomePage() {
         {meta.coldStart && tab === "for-you" && <p className={styles.coldStart}>Showing recently published work and relevant creators while your discoveries develop.</p>}
 
         {loading && <ExperienceState kind="loading" title="Finding your next discovery…" description="Loading real creators and their work." />}
-        {error && <ExperienceState kind="error" title="Discovery unavailable." description={error}
-          action={{ label: "Try again", onClick: () => void load(tab) }} />}
+        {error && <ExperienceState kind="error"
+          title={/sign in|authentication is not configured/i.test(error)
+            ? "Sign in to discover Hustlers." : "Discovery unavailable."}
+          description={error}
+          action={/sign in|authentication is not configured/i.test(error)
+            ? { label: "Open test sign-in", href: "/auth" }
+            : { label: "Try again", onClick: () => void load(tab) }} />}
         {!loading && !error && items.length === 0 && <ExperienceState kind="empty"
           title={tab === "connections" ? "Your connections feed is ready." : "No published work here yet."}
           description={meta.reason ?? (tab === "connections"
