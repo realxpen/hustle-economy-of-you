@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,11 +19,13 @@ export function NativeCreate({ token, active, onPublished }: {
   const insets = useSafeAreaInsets();
   const [input, setInput] = useState<PostInput>(blank);
   const [showMine, setShowMine] = useState(false);
+  const reported = useRef<string | null>(null);
   useEffect(() => { if (active) void store.list(); }, [active, store]);
   useEffect(() => {
-    if (state.phase !== 'published') return;
+    if (state.phase !== 'published' || !state.postId || reported.current === state.postId) return;
+    reported.current = state.postId;
     onPublished();
-  }, [state.phase, onPublished]);
+  }, [state.phase, state.postId, onPublished]);
   function select(post: OwnerPost) {
     if (post.status !== 'DRAFT') return;
     store.resume(post);
