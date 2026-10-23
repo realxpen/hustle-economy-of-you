@@ -46,9 +46,12 @@ jobs:
         working-directory: apps/mobile
         env:
           APP_VARIANT: preview
+          EXPO_PUBLIC_HUSTLE_APP_VARIANT: preview
           EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE: isolated-staging
           EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER: expo-better-auth
           EXPO_PUBLIC_HUSTLE_AUTH_URL: https://hustle-isolated-staging-api.vercel.app/api/auth
           EXPO_PUBLIC_API_URL: https://hustle-isolated-staging-api.vercel.app/api/v1
           EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: "false"
+          EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES: "true"
+          EXPO_PUBLIC_HUSTLE_DEMO: "false"
         run: npx expo export --platform android --output-dir /tmp/hustle-staging-auth-metro
