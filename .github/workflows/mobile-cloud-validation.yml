@@ -30,6 +30,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
+      - name: Verify native ARM and Waydroid x86 APK build gates
+        run: node apps/mobile/scripts/waydroid-abi-contract.cjs
       - name: Validate mobile experience integration
         run: |
           node apps/mobile/scripts/mobile-experience-contract.mjs
