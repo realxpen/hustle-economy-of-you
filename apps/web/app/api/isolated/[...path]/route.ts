@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { proxyIsolatedRequest } from "../../../lib/api/isolated-web-proxy";
+import { proxyIsolatedRequest } from "../../../../lib/api/isolated-web-proxy";
 
 type Context = { params: Promise<{ path: string[] }> };
 export const runtime = "nodejs";
