@@ -53,6 +53,7 @@ jobs:
           node apps/mobile/scripts/cloud-preview-config-gate.cjs
           node apps/mobile/scripts/staging-device-readiness-contract.cjs
           node apps/mobile/scripts/staging-bundled-runtime-contract.cjs
+          node apps/mobile/scripts/native-creator-publishing-contract.cjs
           npm run typecheck --workspace=@hustle/mobile
       - name: Check Expo native package compatibility (diagnostic)
         working-directory: apps/mobile
