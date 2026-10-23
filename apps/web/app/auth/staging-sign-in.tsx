@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { stageSignIn } from "../../lib/auth/isolated-web-auth";
 import { invalidateAuthenticatedSessionCache } from "../../lib/api/authenticated-fetch";
+import { syncHustleAccount } from "../../lib/auth/hustle-account";
 import styles from "./staging-sign-in.module.css";
 
 export function StagingWebSignIn() {
@@ -21,6 +22,7 @@ export function StagingWebSignIn() {
       await stageSignIn(email,password,creating);
       setPassword("");
       invalidateAuthenticatedSessionCache();
+      await syncHustleAccount();
       router.replace("/home");
       router.refresh();
     } catch {
