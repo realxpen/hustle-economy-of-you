@@ -49,7 +49,7 @@ export function searchTabPath(tab: SearchTab, query: string, cursor?: string | n
 }
 
 const base = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api/v1').replace(/\/$/, '');
-async function api<T>(token: string, path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {
+export async function api<T>(token: string, path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {
   if (!token) throw new Error('Sign in to use Hustle.');
   const response = await fetch(base + path, {
     method,

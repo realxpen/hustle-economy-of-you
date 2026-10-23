@@ -76,6 +76,10 @@ jobs:
         run: node apps/mobile/scripts/mobile-a31-connected-search-contract.cjs
       - name: Check Expo mobile TypeScript
         run: npm run typecheck --workspace=@hustle/mobile
+      - name: Execute native inbox delivery and private-state regressions
+        run: node apps/mobile/scripts/native-inbox-contract.cjs
+      - name: Verify dual-architecture test APK packaging safeguards
+        run: node apps/mobile/scripts/package-staging-apk-contract.cjs
       - name: Bundle offline Android demo with Metro (no EAS build credits)
         working-directory: apps/mobile
         env:
