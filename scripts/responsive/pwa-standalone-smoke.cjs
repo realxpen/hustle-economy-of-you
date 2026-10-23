@@ -24,13 +24,13 @@ const { chromium } = require("playwright");
     // display-mode: standalone. Verify real DOM/routes here, and verify
     // installed-only CSS at source level (with iPhone Safari as final gate).
     await page.goto(root + "/search", { waitUntil: "domcontentloaded" });
-    const nav = page.getByRole("navigation", { name: "Hustle mobile application" });
+    const nav = page.getByRole("navigation", { name: "Hustle mobile application", includeHidden: true });
     assert.equal(await nav.count(), 1, "five-tab native dock must be in the render tree");
     assert.equal(await nav.isVisible(), false, "regular Safari/browser navigation must not be replaced");
     for (const name of ["Home", "Explore", "Create", "Inbox", "You"]) {
-      assert.equal(await nav.getByRole("link", { name }).count(), 1, "missing " + name);
+      assert.equal(await nav.getByRole("link", { name, includeHidden: true }).count(), 1, "missing " + name);
     }
-    assert.equal(await nav.getByRole("link").count(), 5);
+    assert.equal(await nav.getByRole("link", { includeHidden: true }).count(), 5);
     assert.equal(await page.getByRole("navigation", { name: "Hustle main navigation" }).isVisible(), true);
     assert.equal(await page.locator('[class*="pwaExploreTitle"]').count(), 1);
     await page.goto(root + "/home", { waitUntil: "domcontentloaded" });
