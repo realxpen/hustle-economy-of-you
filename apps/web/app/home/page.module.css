@@ -1032,3 +1032,111 @@
     background:var(--h-surface);
   }
 }
+
+/* Figma 02 Home + UX004 Hybrid native parity: installed iPhone PWA only.
+   Reuses the REAL Next feed, cards, events, likes and creator/opportunity APIs. */
+.appWordmark { display: none; }
+@media (max-width:760px) and (display-mode:standalone) {
+  .shell {
+    --h-paper: #121714;
+    --h-ink: #fff;
+    --h-orange: #C9F26B;
+    --h-muted: #B7BDB8;
+    --h-surface: #1C2520;
+    height: 100dvh;
+    background: #121714 !important;
+    color: #fff;
+    padding: 0 !important;
+  }
+  .shell>header { display: none; }
+  .discoverLayout, .playerColumn { width: 100%; max-width: 100%; margin: 0; }
+  .playerColumn { grid-template-rows: auto minmax(0,1fr); }
+  .feedTopBar {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    grid-template-rows: 43px 48px;
+    gap: 0;
+    width: 100%;
+    max-width: 100%;
+    height: calc(97px + env(safe-area-inset-top,0px));
+    min-height: calc(97px + env(safe-area-inset-top,0px));
+    padding: calc(9px + env(safe-area-inset-top,0px)) 19px 0;
+    background: #121714;
+    color: #fff;
+    border: 0;
+  }
+  .appWordmark {
+    display: block;
+    grid-row: 1; grid-column: 1;
+    align-self: center;
+    color: #fff;
+    font-size: 23px;
+    font-weight: 900;
+    letter-spacing: -.05em;
+    line-height: 1;
+  }
+  .appWordmark span { color: #C9F26B; }
+  .feedHeading { display: none; }
+  .tabs {
+    grid-row: 2;
+    grid-column: 1/-1;
+    display: flex;
+    gap: 2px;
+    width: 100%;
+    justify-content: space-around;
+    align-items: stretch;
+  }
+  .tabs button, .tabLink {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 5px;
+    color: #B7BDB8;
+    background: transparent;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    font-size: 13px;
+    text-transform: none;
+  }
+  .tabs .activeTab {
+    background: transparent;
+    color: #fff;
+    border-bottom: 3px solid #C9F26B;
+  }
+  .tabLink { order: -1; }
+  .quickLinks {
+    grid-column: 2; grid-row: 1;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .quickLinks a {
+    display: grid;
+    place-items: center;
+    width: 44px; height: 44px;
+    min-width: 44px; min-height: 44px;
+    color: #fff !important;
+    background: transparent;
+    border: 0;
+    font-size: 21px;
+    box-shadow: none;
+  }
+  .feed { width: 100%; max-width: 100%; background: #121714; }
+  .postCanvas, .mediaRail { background: #121714; border-radius: 0; }
+  .mediaFallback { background: #121714; }
+  .cardBody { padding-bottom: calc(92px + env(safe-area-inset-bottom,0px)); }
+  .actionRail { bottom: calc(var(--post-footer-height,160px) + 90px + env(safe-area-inset-bottom,0px)); }
+  .actionMenuTrigger { bottom: calc(var(--post-footer-height,160px) + 90px + env(safe-area-inset-bottom,0px)); }
+  .actionRail:not(.railCompact) {
+    bottom: calc(var(--post-footer-height,160px) + 90px + env(safe-area-inset-bottom,0px));
+  }
+  .cardBodyOffersOpen { padding-bottom: calc(94px + env(safe-area-inset-bottom,0px)); }
+  .feedFootnote { display: none; }
+  .coldStart { background: #1C2520; color: #F7F6F2; border-color: #475448; }
+}
+@media (max-width:370px) and (display-mode:standalone) {
+  .feedTopBar { padding-inline: 11px; }
+  .tabs button,.tabLink { font-size: 12px; }
+}
