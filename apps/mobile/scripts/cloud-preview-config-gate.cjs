@@ -8,6 +8,7 @@ const base = require("../app.json").expo;
 const build = require("../eas.json").build;
 const makeConfig = require("../app.config.js");
 const oldVariant = process.env.APP_VARIANT;
+const oldPublicVariant = process.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT;
 const oldProject = process.env.EXPO_PROJECT_ID;
 const oldScope = process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE;
 try {
@@ -68,6 +69,9 @@ try {
   assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS, "false");
   process.env.APP_VARIANT = "preview";
   process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE = stage.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE;
+  assert.equal(stage.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT, "preview");
+  assert.throws(() => makeConfig({ config: base }), /public app identities/);
+  process.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT = stage.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT;
   const connected = makeConfig({ config: base });
   assert.equal(connected.name, "Hustle Staging");
   assert.equal(connected.android.package, "com.hustle.economyofyou.preview.staging");
@@ -85,6 +89,8 @@ try {
   else process.env.APP_VARIANT = oldVariant;
   if (oldProject === undefined) delete process.env.EXPO_PROJECT_ID;
   else process.env.EXPO_PROJECT_ID = oldProject;
+  if (oldPublicVariant === undefined) delete process.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT;
+  else process.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT = oldPublicVariant;
   if (oldScope === undefined) delete process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE;
   else process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE = oldScope;
 }
