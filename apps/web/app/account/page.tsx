@@ -72,9 +72,9 @@ export default function AccountPage() {
     setSigningOut(true);
     setError(null);
     try {
-      const { error: authError } = isolatedWebMode
-        ? (await stageSignOut(), { error: null })
-        : await getSupabaseBrowserClient().auth.signOut();
+      const { error: authError } = await (isolatedWebMode
+        ? stageSignOut().then(() => ({ error: null }))
+        : getSupabaseBrowserClient().auth.signOut());
       if (authError) throw authError;
       window.location.assign("/auth");
     } catch (reason) {
