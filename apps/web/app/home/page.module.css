@@ -1140,3 +1140,26 @@
   .feedTopBar { padding-inline: 11px; }
   .tabs button,.tabLink { font-size: 12px; }
 }
+
+/* Observed iPhone Safari 2026-10-23: error state stretched behind the dock.
+   Keep the action in an accessible compact panel above native navigation. */
+@media(max-width:760px) and (display-mode:standalone) {
+  .playerColumn > :global([role="alert"]),
+  .playerColumn > :global([role="status"]) {
+    align-self:start;
+    justify-self:center;
+    box-sizing:border-box;
+    width:calc(100% - 38px);
+    max-width:480px;
+    min-height:0;
+    max-height:min(52dvh,410px);
+    overflow-y:auto;
+    margin:18px auto calc(106px + env(safe-area-inset-bottom,0px));
+    padding:clamp(18px,5vw,25px);
+    border-radius:22px;
+  }
+  .playerColumn > :global([role="alert"]) :global(button),
+  .playerColumn > :global([role="alert"]) :global(a) {
+    min-height:44px;
+  }
+}
