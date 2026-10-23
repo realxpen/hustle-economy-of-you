@@ -18,8 +18,13 @@ concurrency:
 
 jobs:
   android-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [arm64-v8a, x86_64]
+    name: Connected Android (${{ matrix.abi }})
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     env:
       CI: '1'
       APP_VARIANT: preview
@@ -90,17 +95,18 @@ jobs:
         run: |
           set -o pipefail
           chmod +x gradlew
-          ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a --stacktrace --no-daemon --max-workers=2 --warning-mode=summary 2>&1 | tee /tmp/hustle-native-gradle-diagnostic.log
+          ./gradlew :app:assembleRelease -PreactNativeArchitectures=${{ matrix.abi }} --stacktrace --no-daemon --max-workers=2 --warning-mode=summary 2>&1 | tee /tmp/hustle-native-gradle-diagnostic.log
       - name: Verify signed staging package and prepare installable artifact
         shell: bash
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BUILD_ARCH: ${{ matrix.abi }}
         run: |
           node apps/mobile/scripts/package-staging-apk.cjs apps/mobile/android/app/build/outputs/apk/release/app-release.apk /tmp/hustle-connected-android
       - name: Upload internal connected APK and checksum
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: hustle-connected-staging-android
+          name: hustle-connected-staging-${{ matrix.abi }}
           path: /tmp/hustle-connected-android/
           if-no-files-found: error
           retention-days: 7
