@@ -31,4 +31,4 @@ Browser/desktop keeps its existing six-destination web navigation, preserving ol
 3. On iPhone: open the verified HTTPS preview in **Safari**, tap Share → Add to Home Screen → Add, launch the Hustle icon, check dark feed, five-tab dock, cream Explore, Create/Inbox/You, safe areas and swipe scrolling. Do not assume Expo Go and PWA identities are interchangeable.
 4. For separate native iPhone testing, Expo Go SDK54 with an intentionally started Expo development server remains the native track. For Android/Waydroid, use the reviewed native test APK. One design, different runtime packaging.
 
-The initial screen/interaction parity target is **Home, Explore and navigation**. Exact parity of Create, Inbox, You and privileged flows remains subject to existing React Native/Web account and capability implementation.
+Presentation styling now covers all **five** primary routes (Home, Explore, Create, Inbox, You), preserving the existing web functionality in each. Exact component-by-component behavioral parity, including native uploads, native SecureStore login and privileged flows, remains subject to the React Native/Web authentication and capability adapters.
