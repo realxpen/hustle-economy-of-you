@@ -217,3 +217,16 @@
 
 /* Keep the identity hero cinematic while applying frosted chrome. */
 .profileHero{background:linear-gradient(125deg,rgba(18,18,22,.97),rgba(23,20,19,.89));-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+
+/* UX004 native You screen: shared cream utility styling and lime identity mark. */
+@media(max-width:760px) and (display-mode:standalone){
+ .page{background:#F7F6F2;color:#121714;
+   padding-top:calc(18px + env(safe-area-inset-top,0px));
+   padding-bottom:calc(106px + env(safe-area-inset-bottom,0px));}
+ .profileHero{background:#121714;border-color:#26342B;border-radius:23px}
+ .heroGlow{background:radial-gradient(ellipse at 95% -20%,rgba(201,242,107,.2),transparent 60%)}
+ .avatar{background:#C9F26B;color:#121714;box-shadow:0 14px 35px rgba(36,74,31,.12)}
+ .heroOverline{color:#C9F26B}
+ .editProfile{background:#C9F26B;border-color:#C9F26B;color:#121714}
+ .signOut{background:#fff;border-color:#D5DCD0;color:#121714}
+}
