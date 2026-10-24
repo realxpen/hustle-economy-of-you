@@ -8,12 +8,15 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const postAction = /^\/api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media|publish|archive|like|save|share|comments|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
   const postDelete = /^\/api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media\/[A-Za-z0-9_-]+|like|save|comments\/[A-Za-z0-9_-]+|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
   const followAction = /^\/api\/v1\/users\/[A-Za-z0-9_-]+\/follow$/;
+  // Isolated scheduling only: no booking funding, work, escrow or financial mutation.
+  const bookingRead = /^\/api\/v1\/bookings\/(?:client|hustler|availability|slots|duration-insights|[A-Za-z0-9_-]+)$/;
+  const bookingDecision = /^\/api\/v1\/bookings\/[A-Za-z0-9_-]+\/(?:accept|decline|cancel)$/;
   const safetyRead = /^\/api\/v1\/trust-safety\/blocks\/status\/[A-Za-z0-9_-]+$/;
   const safetyBlock = /^\/api\/v1\/trust-safety\/blocks\/[A-Za-z0-9_-]+$/;
   const guestRead = /^\/api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;
   const ownerRead = /^\/api\/v1\/(?:hustler-application|professional-profile|services\/mine(?:\/[A-Za-z0-9_-]+)?|hustler-reviews(?:\/[A-Za-z0-9_-]+)?|profiles\/[A-Za-z0-9_-]+|storefronts\/[A-Za-z0-9_-]+)$/;
   if (method === "GET" || method === "HEAD")
-    return authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || guestRead.test(path) || ownerRead.test(path) || safetyRead.test(path);
+    return authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || guestRead.test(path) || ownerRead.test(path) || safetyRead.test(path) || bookingRead.test(path);
   if (method === "PATCH") return path === "/api/v1/auth/profile";
   if (method === "PUT")
     return path === "/api/v1/hustler-application" || path === "/api/v1/professional-profile" ||
@@ -25,20 +28,21 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
       "/api/v1/professional-profile/publish",
       "/api/v1/professional-profile/unpublish",
       "/api/v1/services",
+      "/api/v1/bookings",
       "/api/v1/posts",
       "/api/v1/feed/events",
       "/api/v1/search/events",
       "/api/v1/marketplace/events"
     ]).has(path) ||
-    postAction.test(path) || followAction.test(path) || safetyBlock.test(path) || path === "/api/v1/trust-safety/reports" ||
+    postAction.test(path) || followAction.test(path) || bookingDecision.test(path) || safetyBlock.test(path) || path === "/api/v1/trust-safety/reports" ||
     /^\/api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/.test(path) ||
     /^\/api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/.test(path) ||
     path === "/api/v1/messaging/conversations/direct" ||
     /^\/api\/v1\/messaging\/conversations\/[A-Za-z0-9_-]+\/(?:messages|read|typing)$/.test(path) ||
     /^\/api\/v1\/messaging\/conversations\/[A-Za-z0-9_-]+\/messages\/[A-Za-z0-9_-]+\/context-opened$/.test(path);
   if (method === "DELETE") return postDelete.test(path) || followAction.test(path) || safetyBlock.test(path);
-  // Never expose proof uploads, account impersonation, commerce writes, orders,
-  // bookings, payments, escrow, wallet, admin changes or deletion in staging.
+  // Never expose booking start/complete/extend, proof uploads, impersonation,
+  // money movement, orders, payment attempts, escrow, wallet or admin writes.
   return false;
 }
 

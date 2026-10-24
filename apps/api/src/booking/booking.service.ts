@@ -275,6 +275,16 @@ export class BookingService {
     }
     this.validateSchedule(confirmedStartAt, confirmedEndAt, "confirmed");
 
+    if (process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging") {
+      // A changed time is a proposal, not client consent. Send it through the
+      // consultation thread and ask the client to issue a revised request.
+      const originalEnd = booking.requestedEndAt?.getTime() ?? null;
+      const proposedEnd = confirmedEndAt?.getTime() ?? null;
+      if (confirmedStartAt.getTime() !== booking.requestedStartAt.getTime() || originalEnd !== proposedEnd) {
+        throw new ConflictException("Discuss alternate times in Messages; the Client must submit a revised request");
+      }
+    }
+
     const paid = booking.agreedPriceMinor > 0;
     const nextStatus = paid ? BookingStatus.PAYMENT_PENDING : BookingStatus.ACCEPTED;
     const now = new Date();
