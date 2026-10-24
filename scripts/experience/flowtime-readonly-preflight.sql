@@ -44,3 +44,53 @@ SELECT tablename,policyname,cmd,roles
 FROM pg_policies WHERE schemaname='public'
 AND tablename IN ('BookingScheduleRevision')
 ORDER BY tablename,policyname;
+
+
+-- FRESH BACKUP READINESS (read-only aggregate snapshot): rerun immediately before
+-- a separately approved production window; this does NOT validate encrypted
+-- backup archives or substitute for a local restore test.
+SELECT
+  (SELECT count(*) FROM auth.users) AS auth_user_count,
+  (SELECT count(*) FROM auth.identities) AS auth_identity_count,
+  (SELECT count(*) FROM storage.buckets) AS storage_bucket_count,
+  (SELECT count(*) FROM storage.objects) AS storage_object_count,
+  (SELECT count(*) FROM public."Refund") AS refund_count,
+  (SELECT count(*) FROM (
+    SELECT "paymentAttemptId"
+    FROM public."Refund"
+    WHERE "status" IN ('REQUESTED', 'PROCESSING', 'SUCCEEDED')
+    GROUP BY "paymentAttemptId"
+    HAVING count(*) > 1
+  ) duplicate_refunds) AS active_refund_conflicts;
+
+-- These objects are intentionally missing or missing hustle_api rights BEFORE
+-- the outstanding additive migrations. After activation, expect API-only RLS
+-- policies and the reviewed role grants; table grants alone are not evidence
+-- that a browser role can read data when RLS is enabled.
+SELECT
+  c.relname AS object_name,
+  c.relrowsecurity AS rls_enabled,
+  has_table_privilege('hustle_api', c.oid, 'SELECT') AS api_can_select,
+  has_table_privilege('hustle_api', c.oid, 'INSERT') AS api_can_insert,
+  has_table_privilege('anon', c.oid, 'SELECT') AS anon_can_select,
+  has_table_privilege('authenticated', c.oid, 'SELECT') AS authenticated_can_select
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public'
+  AND c.relkind = 'r'
+  AND c.relname IN (
+    'MarketplaceCase', 'MarketplaceCaseNote',
+    'FinancialDispatchCommand', 'MoniflowSandboxReceiptObservation',
+    'BookingScheduleRevision'
+  )
+ORDER BY c.relname;
+
+SELECT tablename, policyname, cmd, roles
+FROM pg_policies
+WHERE schemaname = 'public'
+  AND tablename IN (
+    'MarketplaceCase', 'MarketplaceCaseNote',
+    'FinancialDispatchCommand', 'MoniflowSandboxReceiptObservation',
+    'BookingScheduleRevision'
+  )
+ORDER BY tablename, policyname;
