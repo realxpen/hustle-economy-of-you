@@ -55,6 +55,22 @@ try {
   assert.equal(proxy.stagingProxyAllowed(method,path.split("/")),false,method+" "+route);
   assert.equal(api.stagingRequestAllowed(method,"/"+path),false,method+" "+route);
  }
+ // Route handlers must export every method allowed by the proxy and API.
+ // Otherwise Next.js returns 405 before the profile/draft request is proxied.
+ const handler = get("apps/web/app/api/isolated/[...path]/route.ts");
+ for (const method of ["GET", "POST", "PUT", "PATCH"]) {
+   const signature = "export async function " + method + "(req: NextRequest, context: Context) {";
+   assert(handler.includes(signature), method + " handler must be exported to avoid 405");
+   const implementation = handler.split(signature)[1]?.split("\n}")[0] ?? "";
+   assert(implementation.includes("return proxyIsolatedRequest(req, path);"),
+     method + " must pass through staging policy and authenticated proxy");
+ }
+ assert(!handler.includes("export async function DELETE(") &&
+   !handler.includes("export async function OPTIONS("),
+   "Do not expose unrelated method handlers");
+ const profileClient = get("apps/web/lib/auth/hustle-account.ts");
+ assert(profileClient.includes('authenticatedFetch("/auth/profile", { method: "PATCH"'),
+   "Profile onboarding must use the allowed PATCH path");
  for(const p of ["hustler-application","hustler-review","professional-profile","service","storefront"]){
   assert.match(get("apps/web/lib/"+p+".ts"),/import \{ authenticatedFetch \} from "\.\/api\/authenticated-fetch";/);
  }

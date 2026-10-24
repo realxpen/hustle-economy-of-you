@@ -13,3 +13,14 @@ export async function POST(req: NextRequest, context: Context) {
   const { path } = await context.params;
   return proxyIsolatedRequest(req, path);
 }
+
+// Explicit handlers are required by Next's route method dispatcher. The proxy
+// and isolated API separately enforce the route/method allowlists and identity.
+export async function PUT(req: NextRequest, context: Context) {
+  const { path } = await context.params;
+  return proxyIsolatedRequest(req, path);
+}
+export async function PATCH(req: NextRequest, context: Context) {
+  const { path } = await context.params;
+  return proxyIsolatedRequest(req, path);
+}
