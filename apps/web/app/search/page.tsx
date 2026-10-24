@@ -50,6 +50,7 @@ export default function SearchPageScreen() {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<SearchTab>("top");
   const [filters, setFilters] = useState<SearchFilters>(emptyFilters);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [items, setItems] = useState<SearchResult[]>([]);
   const [meta, setMeta] = useState<Pick<SearchPage, "nextCursor" | "hasMore" | "zeroResults">>({ nextCursor: null, hasMore: false, zeroResults: false });
   const [sessionId, setSessionId] = useState("");
@@ -75,8 +76,8 @@ export default function SearchPageScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  async function runSearch(nextTab: SearchTab, cursor: string | null = null, append = false, appliedFilters: SearchFilters = filters) {
-    const normalized = query.trim();
+  async function runSearch(nextTab: SearchTab, cursor: string | null = null, append = false, appliedFilters: SearchFilters = filters, term: string = query) {
+    const normalized = term.trim();
     if (!normalized) {
       setError("Enter what you need to find on Hustle.");
       return;
@@ -160,6 +161,7 @@ export default function SearchPageScreen() {
   }
 
   const resultLabel = useMemo(() => searchedQuery ? `Results for “${searchedQuery}”` : "Search across Hustle", [searchedQuery]);
+  const activeFilterCount = Object.values(filters).filter((value) => value !== "" && value !== false && value !== null && value !== undefined).length;
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Search" />
@@ -175,7 +177,7 @@ export default function SearchPageScreen() {
     <form className={[styles.searchForm, "h-experience-content"].join(" ")} onSubmit={submit}>
       <div className={styles.searchBar} role="search">
         <input type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(null); }} placeholder="Try: full stack developer Lagos" aria-label="Search Hustle" />
-        <button type="submit" disabled={loading || !query.trim()} aria-busy={loading}>{loading ? "Searching…" : "Search Hustle"}</button>
+        <button type="submit" disabled={loading || !query.trim()} aria-busy={loading}><span className={styles.searchButtonLabel}>{loading ? "Searching…" : "Search Hustle"}</span><span aria-hidden="true" className={styles.searchButtonShort}>{loading ? "…" : "Search"}</span></button>
       </div>
     </form>
 
@@ -187,14 +189,24 @@ export default function SearchPageScreen() {
         ["Media", "◉", "media"],
         ["Digital", "✦", "digital"]
       ] as const).map(([label, symbol, term]) =>
-        <Link key={label} href={"/search?q=" + encodeURIComponent(term)}>
+        <button key={label} type="button" disabled={loading} onClick={() => {
+          setQuery(term); setTab("top"); setFilters(emptyFilters); setError(null);
+          setItems([]); setMeta({ nextCursor: null, hasMore: false, zeroResults: false });
+          void runSearch("top", null, false, emptyFilters, term);
+        }}>
           <span aria-hidden="true">{symbol}</span><small>{label}</small>
-        </Link>
+        </button>
       )}
     </nav>
     <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>
 
-    <section className={styles.filters} aria-label="Search filters">
+    <button type="button" className={styles.filterToggle} aria-expanded={filtersExpanded}
+      aria-controls="hustle-explore-filters" onClick={() => setFiltersExpanded(open => !open)}>
+      <span>Refine results{activeFilterCount ? ` · ${activeFilterCount} applied` : ""}</span>
+      <span aria-hidden="true">{filtersExpanded ? "−" : "+"}</span>
+    </button>
+    <section id="hustle-explore-filters" className={`${styles.filters} ${filtersExpanded ? styles.filtersOpen : ""}`}
+      aria-label="Search filters">
       <input aria-label="Filter by category" placeholder="Category" value={filters.category ?? ""} onChange={(event) => setFilters({ ...filters, category: event.target.value })} />
       <input aria-label="Filter by skill" placeholder="Skill" value={filters.skill ?? ""} onChange={(event) => setFilters({ ...filters, skill: event.target.value })} />
       <input aria-label="Filter by location" placeholder="Location" value={filters.location ?? ""} onChange={(event) => setFilters({ ...filters, location: event.target.value })} />
@@ -204,7 +216,7 @@ export default function SearchPageScreen() {
       <select aria-label="Filter by service delivery" value={filters.deliveryMode ?? ""} onChange={(event) => setFilters({ ...filters, deliveryMode: event.target.value })}><option value="">Any service delivery</option><option value="REMOTE">Remote</option><option value="PHYSICAL">Physical</option><option value="BOTH">Both</option></select>
       <select aria-label="Filter by product type" value={filters.productType ?? ""} onChange={(event) => setFilters({ ...filters, productType: event.target.value })}><option value="">Any product type</option><option value="PHYSICAL">Physical product</option><option value="DIGITAL">Digital product</option></select>
       <label className={styles.checkField}><input type="checkbox" checked={Boolean(filters.nearby)} onChange={(event) => setFilters({ ...filters, nearby: event.target.checked })} /> Nearby me</label>
-      <button className={styles.primaryButton} type="button" onClick={() => void runSearch(tab)} disabled={loading || !query.trim()}>Apply filters</button>
+      <button className={styles.primaryButton} type="button" onClick={() => { setFiltersExpanded(false); void runSearch(tab); }} disabled={loading || !query.trim()}>Apply filters</button>
       <button className={styles.resetButton} type="button" disabled={loading} onClick={() => { setFilters(emptyFilters); setError(null); if (query.trim()) void runSearch(tab, null, false, emptyFilters); }}>Clear filters</button>
     </section>
 
