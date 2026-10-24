@@ -1,0 +1,32 @@
+name: Hustle live isolated PWA acceptance (anonymous GET only)
+
+on:
+  pull_request:
+    paths:
+      - scripts/experience/check-live-isolated-pwa.cjs
+      - .github/workflows/hustle-live-isolated-pwa-acceptance.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-live-readonly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-read-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      HUSTLE_LIVE_STAGING_READ_ONLY: GET_ONLY
+      HUSTLE_TESTED_COMMIT: c434f97007092cc0788b18f869999bf698969285
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Anonymous, pinned-host GET-only acceptance
+        run: node scripts/experience/check-live-isolated-pwa.cjs
