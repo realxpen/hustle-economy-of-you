@@ -36,14 +36,17 @@ async function go(){
   for(const ep of ["auth/sign-in/email","auth/sign-up/email","auth/sign-out","api/v1/auth/sync"])
     assert.equal(proxy.stagingProxyAllowed("POST",ep.split("/")),true,ep);
   for(const ep of ["api/v1/payments","api/v1/booking","api/v1/escrow",
-    "api/v1/posts/p1/publish","api/v1/messaging/conversations/direct",
+    "api/v1/posts/p1/upload","api/v1/messaging/conversations/direct",
     "api/v1/admin","auth/forgot-password","auth/revoke-sessions",
     "https:","api/v1/search/../payments"]) {
     for(const method of ["GET","POST","DELETE","PUT","PATCH"])
       assert.equal(proxy.stagingProxyAllowed(method,ep.split("/")),false,method+" "+ep);
   }
   assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","feed","for-you"]),false);
-  assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","posts"]),false);
+  assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","posts"]),true);
+  assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","posts","p1","publish"]),true);
+  assert.equal(proxy.stagingProxyAllowed("DELETE",["api","v1","posts","p1","media","m1"]),true);
+  assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","posts","p1","upload"]),false);
   assert.equal(proxy.stagingProxyAllowed("GET",["api","v1","posts"]),true);
   const fake={method:"POST",headers:new Headers({"origin":"https://malicious.example",
     "content-type":"application/json"}),nextUrl:new URL("https://pwa.example/api/isolated/auth/sign-in/email")};

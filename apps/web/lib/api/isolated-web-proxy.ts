@@ -9,10 +9,13 @@ const STAGING_API_ORIGIN = "https://hustle-isolated-staging-api.vercel.app";
 const prefix = "/api/isolated/";
 const allowedAuthReads = new Set(["get-session", "ok"]);
 const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]);
-const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/[A-Za-z0-9_-]+(?:\/interactions)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/[A-Za-z0-9_-]+)?))$/;
+const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+(?:\/interactions(?:\/me)?)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/[A-Za-z0-9_-]+)?))$/;
 const apiWrite = new Set(["api/v1/auth/sync", "api/v1/hustler-application/submit",
   "api/v1/professional-profile/publish", "api/v1/professional-profile/unpublish", "api/v1/services"]);
-const apiPut = /^api\/v1\/(?:hustler-application|professional-profile|services\/[A-Za-z0-9_-]+)$/;
+const apiPut = /^api\/v1\/(?:hustler-application|professional-profile|services\/[A-Za-z0-9_-]+|posts\/[A-Za-z0-9_-]+)$/;
+const postAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media|publish|archive|like|save|share|comments|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
+const postDelete = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media\/[A-Za-z0-9_-]+|like|save|comments\/[A-Za-z0-9_-]+|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
+const followAction = /^api\/v1\/users\/[A-Za-z0-9_-]+\/follow$/;
 const reviewPost = /^api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/;
 const servicePost = /^api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/;
 
@@ -30,8 +33,11 @@ export function stagingProxyAllowed(method: string, segments: string[]) {
       || method === "POST" && allowedAuthWrites.has(endpoint);
   }
   return method === "GET" && apiRead.test(route) ||
-    method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route)) ||
+    method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route) ||
+      route === "api/v1/posts" || postAction.test(route) || followAction.test(route) ||
+      ["api/v1/feed/events", "api/v1/search/events", "api/v1/marketplace/events"].includes(route)) ||
     method === "PUT" && apiPut.test(route) ||
+    method === "DELETE" && (postDelete.test(route) || followAction.test(route)) ||
     method === "PATCH" && route === "api/v1/auth/profile";
 }
 const privateHeaders = ["authorization", "cookie"];
@@ -67,7 +73,7 @@ export async function proxyIsolatedRequest(req: NextRequest, segments: string[])
     }
   }
   const headers = new Headers({accept:"application/json"});
-  if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
+  if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE") {
     const size = Number(req.headers.get("content-length") || 0);
     if (size > 10_000) return NextResponse.json({message:"Payload too large"}, {status:413});
     headers.set("content-type", "application/json");

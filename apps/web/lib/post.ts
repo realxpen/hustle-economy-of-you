@@ -2,6 +2,8 @@
 
 import type { Product, Service } from "@hustle/types";
 import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch as sharedAuthenticatedFetch } from "./api/authenticated-fetch";
+import { isolatedWebMode } from "./auth/isolated-web-auth";
 
 export type PostStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type PostMediaType = "IMAGE" | "VIDEO";
@@ -139,6 +141,7 @@ async function parseError(response: Response) {
 }
 
 async function authenticatedFetch(path: string, init?: RequestInit) {
+  if (isolatedWebMode) return sharedAuthenticatedFetch(path, init);
   const supabase = getSupabaseBrowserClient();
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session?.access_token) throw new Error("You need to sign in again");
@@ -241,7 +244,9 @@ export async function archivePost(postId: string): Promise<Post> {
 }
 
 export async function getPublicPost(postId: string): Promise<PublicPost> {
-  const response = await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}`, { cache: "no-store" });
+  const response = isolatedWebMode
+    ? await sharedAuthenticatedFetch(`/posts/${encodeURIComponent(postId)}`)
+    : await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}`, { cache: "no-store" });
   if (!response.ok) {
     if (response.status === 404) throw new Error("This post is not currently public.");
     throw new Error(await parseError(response));
@@ -273,12 +278,20 @@ export async function getPublicPost(postId: string): Promise<PublicPost> {
 }
 
 export async function getPostInteractions(postId: string): Promise<PostInteractionSummary> {
-  const response = await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}/interactions`, { cache: "no-store" });
+  const response = isolatedWebMode
+    ? await sharedAuthenticatedFetch(`/posts/${encodeURIComponent(postId)}/interactions`)
+    : await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}/interactions`, { cache: "no-store" });
   if (!response.ok) throw new Error(await parseError(response));
   return response.json() as Promise<PostInteractionSummary>;
 }
 
 export async function getMyPostInteractionState(postId: string): Promise<PostInteractionState | null> {
+  if (isolatedWebMode) {
+    try {
+      const response = await sharedAuthenticatedFetch(`/posts/${encodeURIComponent(postId)}/interactions/me`);
+      return response.json() as Promise<PostInteractionState>;
+    } catch { return null; }
+  }
   const supabase = getSupabaseBrowserClient();
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session?.access_token) return null;

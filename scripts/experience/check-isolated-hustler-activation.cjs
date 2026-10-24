@@ -36,7 +36,16 @@ try {
   ["POST","professional-profile/publish"],["POST","professional-profile/unpublish"],
   ["GET","profiles/username"],["GET","storefronts/username"],["GET","services/mine"],["GET","services/mine/abc"],
   ["POST","services"],["PUT","services/abc"],["POST","services/abc/publish"],
-  ["POST","services/abc/pause"],["PATCH","auth/profile"]
+  ["POST","services/abc/pause"],["PATCH","auth/profile"],
+  ["GET","posts/mine"],["GET","posts/mine/abc"],["GET","posts/abc/interactions/me"],
+  ["POST","posts"],["PUT","posts/abc"],["POST","posts/abc/media"],["POST","posts/abc/publish"],
+  ["POST","posts/abc/archive"],["POST","posts/abc/services/def"],["POST","posts/abc/products/def"],
+  ["DELETE","posts/abc/media/def"],["DELETE","posts/abc/services/def"],
+  ["DELETE","posts/abc/products/def"],["POST","posts/abc/like"],["DELETE","posts/abc/like"],
+  ["POST","posts/abc/save"],["DELETE","posts/abc/save"],["POST","posts/abc/share"],
+  ["POST","posts/abc/comments"],["DELETE","posts/abc/comments/def"],
+  ["POST","users/abc/follow"],["DELETE","users/abc/follow"],
+  ["POST","feed/events"],["POST","search/events"],["POST","marketplace/events"]
  ];
  for(const [method,route] of allowed) {
    const path="api/v1/"+route;
@@ -45,7 +54,7 @@ try {
  }
  const denied=[
   ["POST","hustler-application/proofs"],["POST","hustler-reviews/abc/proofs/def/read-url"],
-  ["POST","posts"],["POST","posts/id/publish"],["DELETE","services/abc"],["GET","admin/operations/users"],
+  ["POST","posts/abc/upload"],["POST","posts/abc/proofs/def"],["DELETE","services/abc"],["GET","admin/operations/users"],
   ["POST","bookings"],["POST","payments"],["POST","escrow/release"],
   ["POST","orders"],["POST","wallet/deposit"],["PATCH","services/abc"],
   ["PUT","hustler-reviews/abc/approve"],["POST","services/abc/delete"]
@@ -58,16 +67,23 @@ try {
  // Route handlers must export every method allowed by the proxy and API.
  // Otherwise Next.js returns 405 before the profile/draft request is proxied.
  const handler = get("apps/web/app/api/isolated/[...path]/route.ts");
- for (const method of ["GET", "POST", "PUT", "PATCH"]) {
+ for (const method of ["GET", "POST", "PUT", "PATCH", "DELETE"]) {
    const signature = "export async function " + method + "(req: NextRequest, context: Context) {";
    assert(handler.includes(signature), method + " handler must be exported to avoid 405");
    const implementation = handler.split(signature)[1]?.split("\n}")[0] ?? "";
    assert(implementation.includes("return proxyIsolatedRequest(req, path);"),
      method + " must pass through staging policy and authenticated proxy");
  }
- assert(!handler.includes("export async function DELETE(") &&
-   !handler.includes("export async function OPTIONS("),
+ assert(!handler.includes("export async function OPTIONS("),
    "Do not expose unrelated method handlers");
+ const postClient = get("apps/web/lib/post.ts");
+ assert(postClient.includes('if (isolatedWebMode) return sharedAuthenticatedFetch(path, init);'),
+   "Post editor must use the staging Better Auth authenticated client");
+ assert(postClient.includes('sharedAuthenticatedFetch(\`/posts/'),
+   "Public post and post interactions must use the staging same-origin proxy");
+ const postApi = get("apps/api/src/post/post.service.ts");
+ assert(postApi.includes('this.isPublicStagingMediaUrl(mediaUrl)'),
+   "Only externally hosted HTTPS media may be attached to staging posts");
  const profileClient = get("apps/web/lib/auth/hustle-account.ts");
  assert(profileClient.includes('authenticatedFetch("/auth/profile", { method: "PATCH"'),
    "Profile onboarding must use the allowed PATCH path");

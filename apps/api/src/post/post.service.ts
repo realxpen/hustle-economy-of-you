@@ -97,6 +97,13 @@ export class PostService {
 
     const storageKey = this.optionalText(input.storageKey, "storageKey", 1200);
     const mediaUrl = this.optionalUrl(input.mediaUrl);
+    // Isolated staging has no private upload storage. Permit only externally
+    // hosted HTTPS media links, not storage keys or private-network URLs.
+    if (process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging") {
+      if (storageKey || !mediaUrl || !this.isPublicStagingMediaUrl(mediaUrl)) {
+        throw new BadRequestException("Staging post media needs a public HTTPS URL; private uploads are unavailable");
+      }
+    }
     if (!storageKey && !mediaUrl) {
       throw new BadRequestException("Provide a storageKey or mediaUrl for post media");
     }
@@ -423,6 +430,17 @@ export class PostService {
       throw new BadRequestException("Invalid post media type");
     }
     return value as PostMediaType;
+  }
+
+  private isPublicStagingMediaUrl(value: string): boolean {
+    try {
+      const url = new URL(value);
+      const host = url.hostname.toLowerCase();
+      if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
+      if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".localhost")) return false;
+      if (host.includes(":") || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return false;
+      return host.includes(".");
+    } catch { return false; }
   }
 
   private optionalUrl(value: unknown): string | null | undefined {
