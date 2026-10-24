@@ -57,6 +57,8 @@ jobs:
         run: node scripts/experience/check-ios-pwa-connected-staging.cjs
       - name: "Regression: Explore and Marketplace share the authenticated staging client"
         run: node scripts/experience/check-isolated-search-client.cjs
+      - name: "Regression: isolated Hustler activation and publishing boundaries"
+        run: node scripts/experience/check-isolated-hustler-activation.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile

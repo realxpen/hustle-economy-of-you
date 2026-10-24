@@ -5,9 +5,8 @@ import type {
   HustlerApplication,
   HustlerApplicationProof
 } from "@hustle/types";
-import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch } from "./api/authenticated-fetch";
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 export interface HustlerReviewApplicant {
   id: string;
@@ -65,46 +64,7 @@ export interface ProofReadUrl {
 }
 
 async function authenticatedReviewFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const {
-    data: { session },
-    error
-  } = await supabase.auth.getSession();
-
-  if (error || !session?.access_token) {
-    throw new Error("Sign in with an authorized reviewer account");
-  }
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    let message = `Hustle API returned ${response.status}`;
-
-    if (text) {
-      try {
-        const body = JSON.parse(text) as {
-          error?: { message?: string };
-          message?: string;
-        };
-        message = body.error?.message ?? body.message ?? message;
-      } catch {
-        message = text;
-      }
-    }
-
-    throw new Error(message);
-  }
-
-  return response;
+  return authenticatedFetch(path, init);
 }
 
 async function readJson<T>(response: Response): Promise<T> {

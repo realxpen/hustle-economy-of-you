@@ -39,6 +39,7 @@ jobs:
           node scripts/experience/check-ios-pwa-parity.cjs
           node scripts/experience/check-ios-pwa-connected-staging.cjs
           node scripts/experience/check-isolated-search-client.cjs
+          node scripts/experience/check-isolated-hustler-activation.cjs
           npm run typecheck --workspace=@hustle/web
       - name: Compile pinned Cloudflare Worker for iPhone PWA
         run: npm run build:vinext --workspace=@hustle/web

@@ -9,8 +9,12 @@ const STAGING_API_ORIGIN = "https://hustle-isolated-staging-api.vercel.app";
 const prefix = "/api/isolated/";
 const allowedAuthReads = new Set(["get-session", "ok"]);
 const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]);
-const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:posts(?:\/[A-Za-z0-9_-]+(?:\/interactions)?)?)|(?:services(?:\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/[A-Za-z0-9_-]+)?))$/;
-const apiWrite = new Set(["api/v1/auth/sync"]);
+const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/[A-Za-z0-9_-]+(?:\/interactions)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/[A-Za-z0-9_-]+)?))$/;
+const apiWrite = new Set(["api/v1/auth/sync", "api/v1/hustler-application/submit",
+  "api/v1/professional-profile/publish", "api/v1/professional-profile/unpublish", "api/v1/services"]);
+const apiPut = /^api\/v1\/(?:hustler-application|professional-profile|services\/[A-Za-z0-9_-]+)$/;
+const reviewPost = /^api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/;
+const servicePost = /^api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/;
 
 export function isIsolatedWebPreviewEnabled() {
   return process.env.HUSTLE_ISOLATED_PWA_GATE === "isolated-staging"
@@ -25,7 +29,10 @@ export function stagingProxyAllowed(method: string, segments: string[]) {
     return method === "GET" && allowedAuthReads.has(endpoint)
       || method === "POST" && allowedAuthWrites.has(endpoint);
   }
-  return method === "GET" && apiRead.test(route) || method === "POST" && apiWrite.has(route);
+  return method === "GET" && apiRead.test(route) ||
+    method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route)) ||
+    method === "PUT" && apiPut.test(route) ||
+    method === "PATCH" && route === "api/v1/auth/profile";
 }
 const privateHeaders = ["authorization", "cookie"];
 function copyCookies(source: Headers, target: Headers) {
@@ -60,7 +67,7 @@ export async function proxyIsolatedRequest(req: NextRequest, segments: string[])
     }
   }
   const headers = new Headers({accept:"application/json"});
-  if (req.method === "POST") {
+  if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
     const size = Number(req.headers.get("content-length") || 0);
     if (size > 10_000) return NextResponse.json({message:"Payload too large"}, {status:413});
     headers.set("content-type", "application/json");
@@ -76,7 +83,7 @@ export async function proxyIsolatedRequest(req: NextRequest, segments: string[])
       if (stagingOnly) headers.set("cookie", stagingOnly);
     } else headers.set(key, value);
   }
-  const body = req.method === "POST" ? await req.text() : undefined;
+  const body = req.method !== "GET" ? await req.text() : undefined;
   if (body && body.length > 10_000) return NextResponse.json({message:"Payload too large"}, {status:413});
   try {
     const upstream = await fetch(url, {
