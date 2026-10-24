@@ -14,6 +14,9 @@ export default defineConfig({
     env: {
       ASSETS: bindings.assets(),
       IMAGES: bindings.images(),
+      // Non-secret staging-only gate. Production must never deploy this Worker.
+      HUSTLE_ISOLATED_PWA_GATE: bindings.text("isolated-staging"),
+      NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: bindings.text("true"),
     },
   }),
 });
