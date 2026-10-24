@@ -37,6 +37,8 @@ try {
   ["GET","profiles/username"],["GET","storefronts/username"],["GET","services/mine"],["GET","services/mine/abc"],
   ["POST","services"],["PUT","services/abc"],["POST","services/abc/publish"],
   ["POST","services/abc/pause"],["PATCH","auth/profile"],
+  ["GET","guest/feed/for-you"],["GET","guest/feed/nearby"],["GET","guest/search"],
+  ["GET","guest/search/people"],["GET","guest/marketplace"],["GET","guest/marketplace/services"],
   ["GET","posts/mine"],["GET","posts/mine/abc"],["GET","posts/abc/interactions/me"],
   ["POST","posts"],["PUT","posts/abc"],["POST","posts/abc/media"],["POST","posts/abc/publish"],
   ["POST","posts/abc/archive"],["POST","posts/abc/services/def"],["POST","posts/abc/products/def"],
@@ -55,6 +57,7 @@ try {
  const denied=[
   ["POST","hustler-application/proofs"],["POST","hustler-reviews/abc/proofs/def/read-url"],
   ["POST","posts/abc/upload"],["POST","posts/abc/proofs/def"],["DELETE","services/abc"],["GET","admin/operations/users"],
+  ["POST","guest/feed/for-you"],["POST","guest/search"],["POST","guest/marketplace"],
   ["POST","bookings"],["POST","payments"],["POST","escrow/release"],
   ["POST","orders"],["POST","wallet/deposit"],["PATCH","services/abc"],
   ["PUT","hustler-reviews/abc/approve"],["POST","services/abc/delete"]
@@ -87,9 +90,15 @@ try {
  const profileClient = get("apps/web/lib/auth/hustle-account.ts");
  assert(profileClient.includes('authenticatedFetch("/auth/profile", { method: "PATCH"'),
    "Profile onboarding must use the allowed PATCH path");
- for(const p of ["hustler-application","hustler-review","professional-profile","service","storefront"]){
+ for(const p of ["hustler-application","hustler-review","professional-profile","service"]){
   assert.match(get("apps/web/lib/"+p+".ts"),/import \{ authenticatedFetch \} from "\.\/api\/authenticated-fetch";/);
  }
+ assert.match(get("apps/web/lib/storefront.ts"),/publicReadFetch/);
+ assert.match(get("apps/web/lib/post.ts"),/publicReadFetch/);
+ assert.match(get("apps/web/lib/feed.ts"),/guest/);
+ assert.match(get("apps/web/lib/search.ts"),/guest/);
+ assert.match(get("apps/web/app/home/page.tsx"),/redirectGuestToAuth/);
+ assert.match(get("apps/web/app/auth/staging-sign-in.tsx"),/safeAuthReturnPath/);
  assert.match(get("apps/api/src/hustler-application/hustler-review.controller.ts"),/@UseGuards\(AuthGuard, AdminGuard\)/);
  assert.match(get("apps/api/src/hustler-application/hustler-review.service.ts"),/assertNotSelfReview\(application.userId, reviewer.id\)/);
  assert.match(get("apps/api/src/hustler-application/hustler-review.service.ts"),/identityVerificationStatus !== VerificationStatus.VERIFIED/);

@@ -10,6 +10,8 @@ import { useParams } from "next/navigation";
 import type { PublicService } from "@hustle/types";
 import { formatServicePrice, getPublicService } from "../../../lib/service";
 import styles from "./page.module.css";
+import { hasViewerSession, authUrl } from "../../../lib/api/public-browsing";
+import type { MouseEvent } from "react";
 
 function isVideo(url: string) {
   return /\.(mp4|webm|mov)(\?|$)/i.test(url);
@@ -42,6 +44,12 @@ export default function PublicServicePage() {
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
   const preparedBookingHref = withSourcePost(`/bookings/new/${encodeURIComponent(service.id)}`, sourcePostId);
   const consultHref = withTransactionReturnTo(`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`, preparedBookingHref);
+  function requireAuthForAction(event: MouseEvent<HTMLAnchorElement>, target: string) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+    event.preventDefault();
+    void hasViewerSession().then(signedIn => window.location.assign(signedIn ? target : authUrl(target)))
+      .catch(() => window.location.assign(authUrl(target)));
+  }
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Service" trail={[{ href: "/marketplace", label: "Marketplace" }]} />
@@ -53,8 +61,8 @@ export default function PublicServicePage() {
         <h1 className="h-experience-heading">{service.title}</h1>
         <strong>{formatServicePrice(service)}</strong>
         <div className={styles.offerActions}>
-          <a className={styles.bookButton} href={preparedBookingHref}>Book this service →</a>
-          <a className={styles.messageButton} href={consultHref}>Message first</a>
+          <a className={styles.bookButton} href={preparedBookingHref} onClick={(event) => requireAuthForAction(event, preparedBookingHref)}>Book this service →</a>
+          <a className={styles.messageButton} href={consultHref} onClick={(event) => requireAuthForAction(event, consultHref)}>Message first</a>
         </div>
       </div>
       <aside className={styles.ownerCard}>
@@ -63,7 +71,7 @@ export default function PublicServicePage() {
         <h2>{owner.displayName ?? `@${owner.username}`}</h2>
         <p>@{owner.username} · {owner.location ?? "Location not set"}</p>
         <div className={styles.badges}><span>HUSTLER</span>{owner.verified && <span>VERIFIED</span>}</div>
-        <a href={consultHref}>Message about this service →</a>
+        <a href={consultHref} onClick={(event) => requireAuthForAction(event, consultHref)}>Message about this service →</a>
         {owner.username && <a href={`/u/${owner.username}`}>View professional identity ↗</a>}
       </aside>
     </section>

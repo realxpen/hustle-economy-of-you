@@ -42,3 +42,17 @@ export class MarketplaceController {
     return this.searchService.marketplace(identity, tab, query);
   }
 }
+
+/** Guest browse exposes only already published services and products. */
+@Controller("guest/marketplace")
+export class GuestMarketplaceController {
+  constructor(private readonly searchService: SearchService) {}
+  @Get()
+  browseAll(@Query() query: DiscoveryQueryInput) {
+    return this.searchService.marketplace(null, "all", query);
+  }
+  @Get(":tab")
+  browseTab(@Param("tab") tab: string, @Query() query: DiscoveryQueryInput) {
+    return this.searchService.marketplace(null, tab, query);
+  }
+}

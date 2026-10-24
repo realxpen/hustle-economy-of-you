@@ -23,6 +23,7 @@ import {
   type PublicPost
 } from "../../../lib/post";
 import styles from "./page.module.css";
+import { authUrl, redirectGuestToAuth } from "../../../lib/api/public-browsing";
 
 export default function PublicPostPage() {
   const params = useParams<{ postId: string }>();
@@ -60,7 +61,7 @@ export default function PublicPostPage() {
 
   function requireViewer() {
     if (viewer) return true;
-    setInteractionError("Sign in with your Hustle account to like, save, follow or comment.");
+    redirectGuestToAuth();
     return false;
   }
 
@@ -202,7 +203,7 @@ export default function PublicPostPage() {
             <button type="button" onClick={sharePost} disabled={busy === "share"}>Share ↗</button>
           </div>
           {notice && <p className={styles.notice}>{notice}</p>}
-          {interactionError && <p className={styles.interactionError}>{interactionError} {!viewer && <a href="/auth">Sign in →</a>}</p>}
+          {interactionError && <p className={styles.interactionError}>{interactionError} {!viewer && <a href={authUrl(`/posts/${params.postId}`)}>Sign in →</a>}</p>}
         </div>
       </div>
 
@@ -215,7 +216,7 @@ export default function PublicPostPage() {
         <p>{hasProfessionalIdentity ? owner.professionalProfile.headline ?? owner.professionalProfile.professionalSummary ?? owner.bio : owner.bio ?? "Hustle user"}</p>
         {hasProfessionalIdentity && <div className={styles.skills}>{[owner.professionalProfile.primarySkill, ...owner.professionalProfile.secondarySkills].filter(Boolean).map((skill) => <span key={skill ?? "skill"}>{skill}</span>)}</div>}
         <div className={styles.followLine}><span>{interactions.followerCount} follower{interactions.followerCount === 1 ? "" : "s"}</span>{!viewer?.isCreator && <button type="button" onClick={toggleFollow} disabled={busy === "follow"}>{viewer?.followingCreator ? "Following" : "Follow"}</button>}</div>
-        {!viewer?.isCreator && <a className={styles.profileLink} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=POST&contextId=${encodeURIComponent(post.id)}`}>Message about this post →</a>}
+        {!viewer?.isCreator && <a className={styles.profileLink} href={viewer ? `/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=POST&contextId=${encodeURIComponent(post.id)}` : authUrl(`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=POST&contextId=${encodeURIComponent(post.id)}`)}>Message about this post →</a>}
         {hasProfessionalIdentity && owner.username && <a className={styles.profileLink} href={`/u/${owner.username}`}>View professional storefront →</a>}
       </aside>
     </section>
@@ -255,7 +256,7 @@ export default function PublicPostPage() {
 
     <section className={styles.comments}>
       <div className={styles.sectionHeading}><small>CONVERSATION</small><h2>{interactions.commentCount} comment{interactions.commentCount === 1 ? "" : "s"}</h2></div>
-      {viewer ? <form className={styles.commentForm} onSubmit={submitComment}><textarea maxLength={1200} rows={3} value={commentBody} onChange={(event) => setCommentBody(event.target.value)} placeholder="Add useful context, ask a question, or respond to this post…" /><button type="submit" disabled={busy === "comment" || !commentBody.trim()}>{busy === "comment" ? "Posting…" : "Post comment"}</button></form> : <div className={styles.signInPrompt}><span>Join the conversation with your Hustle identity.</span><a href="/auth">Sign in →</a></div>}
+      {viewer ? <form className={styles.commentForm} onSubmit={submitComment}><textarea maxLength={1200} rows={3} value={commentBody} onChange={(event) => setCommentBody(event.target.value)} placeholder="Add useful context, ask a question, or respond to this post…" /><button type="submit" disabled={busy === "comment" || !commentBody.trim()}>{busy === "comment" ? "Posting…" : "Post comment"}</button></form> : <div className={styles.signInPrompt}><span>Join the conversation with your Hustle identity.</span><a href={authUrl(`/posts/${params.postId}`)}>Sign in →</a></div>}
       <div className={styles.commentList}>
         {interactions.comments.length === 0 && <p className={styles.muted}>No comments yet.</p>}
         {interactions.comments.map((comment) => <article key={comment.id} className={comment.parentId ? styles.replyComment : styles.commentCard}>

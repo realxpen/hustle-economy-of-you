@@ -6,7 +6,7 @@ import type {
   Service
 } from "@hustle/types";
 import { authenticatedFetch } from "./api/authenticated-fetch";
-import { isolatedWebMode } from "./auth/isolated-web-auth";
+import { publicReadFetch } from "./api/public-browsing";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
@@ -66,9 +66,7 @@ export async function deleteService(serviceId: string): Promise<{ deleted: true;
 }
 
 export async function getPublicService(serviceId: string): Promise<PublicService> {
-  const response = isolatedWebMode
-    ? await authenticatedFetch(`/services/${encodeURIComponent(serviceId)}`)
-    : await fetch(`${apiBase}/services/${encodeURIComponent(serviceId)}`, { cache: "no-store" });
+  const response = await publicReadFetch(`/services/${encodeURIComponent(serviceId)}`);
   if (!response.ok) {
     if (response.status === 404) throw new Error("This service is not currently public.");
     throw new Error(await parseError(response));

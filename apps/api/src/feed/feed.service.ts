@@ -103,24 +103,24 @@ export class FeedService {
   constructor(private readonly prisma: PrismaService, private readonly consent: AttributionConsentService) {}
 
   async list(
-    identity: AuthIdentity,
+    identity: AuthIdentity | null,
     tabInput: string | undefined,
     cursorInput?: string,
     limitInput?: string,
     locationInput?: string
   ) {
-    const viewer = await this.requireViewer(identity);
+    const viewer = identity ? await this.requireViewer(identity) : null;
     const tab = this.parseTab(tabInput);
     const limit = this.parseLimit(limitInput);
-    const viewerLocation = this.normalizeOptionalLocation(locationInput) ?? viewer.location;
+    const viewerLocation = this.normalizeOptionalLocation(locationInput) ?? viewer?.location ?? null;
 
-    const [categoryAffinity, followingRows] = await Promise.all([
+    const [categoryAffinity, followingRows] = viewer ? await Promise.all([
       this.loadCategoryAffinity(viewer.id),
       this.prisma.userFollow.findMany({
         where: { followerId: viewer.id },
         select: { followingId: true }
       })
-    ]);
+    ]) : [new Map<string, number>(), [] as Array<{ followingId: string }>];
     const followingIds = new Set(followingRows.map((row) => row.followingId));
 
     if (tab === "connections" && followingIds.size === 0) {
@@ -131,7 +131,8 @@ export class FeedService {
         hasMore: false,
         viewerLocation,
         coldStart: categoryAffinity.size === 0,
-        reason: "No followed creators yet"
+        reason: viewer ? "No followed creators yet" : "Sign in and follow creators to build Connections",
+        guest: !viewer
       };
     }
 
@@ -140,9 +141,8 @@ export class FeedService {
         status: PostStatus.PUBLISHED,
         professionalProfile: {
           is: {
-            userId: tab === "connections"
-              ? { in: [...followingIds] }
-              : { not: viewer.id }
+            ...(tab === "connections" ? { userId: { in: [...followingIds] } }
+              : viewer ? { userId: { not: viewer.id } } : {})
           }
         }
       },
@@ -172,7 +172,7 @@ export class FeedService {
     const page = hasMore ? window.slice(0, limit) : window;
     const postIds = page.map((item) => item.candidate.id);
 
-    const [viewerLikes, viewerSaves] = postIds.length > 0
+    const [viewerLikes, viewerSaves] = viewer && postIds.length > 0
       ? await Promise.all([
           this.prisma.postLike.findMany({
             where: { userId: viewer.id, postId: { in: postIds } },
@@ -201,7 +201,8 @@ export class FeedService {
       nextCursor: hasMore && last ? this.encodeCursor(last) : null,
       hasMore,
       viewerLocation,
-      coldStart: categoryAffinity.size === 0 && followingIds.size === 0
+      coldStart: categoryAffinity.size === 0 && followingIds.size === 0,
+      guest: !viewer
     };
   }
 

@@ -42,3 +42,17 @@ export class SearchController {
     return this.searchService.search(identity, tab, query);
   }
 }
+
+/** Read-only public search; observation writes still require a registered viewer. */
+@Controller("guest/search")
+export class GuestSearchController {
+  constructor(private readonly searchService: SearchService) {}
+  @Get()
+  searchTop(@Query() query: DiscoveryQueryInput) {
+    return this.searchService.search(null, "top", query);
+  }
+  @Get(":tab")
+  searchTab(@Param("tab") tab: string, @Query() query: DiscoveryQueryInput) {
+    return this.searchService.search(null, tab, query);
+  }
+}

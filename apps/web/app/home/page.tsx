@@ -4,7 +4,7 @@ import { ExperienceHeader } from "../../components/navigation/experience-header"
 import { ExperienceState } from "../../components/experience/experience-state";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { OfferQuickView } from "../../components/commerce/offer-quick-view";
 import { captureFeedEvent, getFeedPage, type FeedItem, type FeedPage, type FeedTab } from "../../lib/feed";
 import {
@@ -19,6 +19,7 @@ import {
 import { formatProductPrice } from "../../lib/product";
 import { formatServicePrice } from "../../lib/service";
 import styles from "./page.module.css";
+import { redirectGuestToAuth } from "../../lib/api/public-browsing";
 
 const tabs: Array<{ id: FeedTab; label: string; note: string }> = [
   { id: "for-you", label: "For You", note: "Relevant people and content, even with zero connections." },
@@ -125,6 +126,7 @@ function MediaRail({ item, eager }: { item: FeedItem; eager: boolean }) {
 function FeedCard({
   item,
   tab,
+  guest,
   position,
   sessionId,
   onChange,
@@ -132,6 +134,7 @@ function FeedCard({
 }: {
   item: FeedItem;
   tab: FeedTab;
+  guest: boolean;
   position: number;
   sessionId: string;
   onChange: (next: FeedItem) => void;
@@ -271,6 +274,7 @@ function FeedCard({
   }, [item.post.id, position, sessionId, tab]);
 
   async function toggleLike() {
+    if (guest) { redirectGuestToAuth(); return; }
     if (working === "like") return;
     const wasLiked = item.viewer.liked;
     const optimistic: FeedItem = {
@@ -297,6 +301,7 @@ function FeedCard({
   }
 
   async function toggleSave() {
+    if (guest) { redirectGuestToAuth(); return; }
     if (working === "save") return;
     const wasSaved = item.viewer.saved;
     const optimistic: FeedItem = {
@@ -323,6 +328,7 @@ function FeedCard({
   }
 
   async function toggleFollow() {
+    if (guest) { redirectGuestToAuth(); return; }
     if (working === "follow") return;
     const wasFollowing = item.viewer.following;
     setWorking("follow");
@@ -488,14 +494,14 @@ function FeedCard({
 }
 
 export default function DiscoveryHomePage() {
-  const router = useRouter();
   const [tab, setTab] = useState<FeedTab>("for-you");
   const [items, setItems] = useState<FeedItem[]>([]);
-  const [meta, setMeta] = useState<Pick<FeedPage, "nextCursor" | "hasMore" | "viewerLocation" | "coldStart" | "reason">>({
+  const [meta, setMeta] = useState<Pick<FeedPage, "nextCursor" | "hasMore" | "viewerLocation" | "coldStart" | "reason" | "guest">>({
     nextCursor: null,
     hasMore: false,
     viewerLocation: null,
-    coldStart: false
+    coldStart: false,
+    guest: false
   });
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -529,14 +535,15 @@ export default function DiscoveryHomePage() {
         hasMore: page.hasMore,
         viewerLocation: page.viewerLocation,
         coldStart: page.coldStart,
-        reason: page.reason
+        reason: page.reason,
+        guest: page.guest
       });
     } catch (reason) {
       if (version !== requestVersion.current) return;
       const message = reason instanceof Error ? reason.message : "Could not load discovery feed";
       if (append) setPageError(message);
       else setError(message);
-      if (message.toLowerCase().includes("sign in")) setTimeout(() => router.replace("/auth"), 900);
+      // Failed public browsing requests never force sign-in.
     } finally {
       if (append) paginationInFlight.current = false;
       if (version === requestVersion.current) {
@@ -544,12 +551,12 @@ export default function DiscoveryHomePage() {
         setLoadingMore(false);
       }
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (!sessionId) return;
     setItems([]);
-    setMeta({ nextCursor: null, hasMore: false, viewerLocation: null, coldStart: false });
+    setMeta({ nextCursor: null, hasMore: false, viewerLocation: null, coldStart: false, guest: false });
     if (feedRef.current) feedRef.current.scrollTop = 0;
     void load(tab);
   }, [load, sessionId, tab]);
@@ -641,7 +648,7 @@ export default function DiscoveryHomePage() {
           }}>
           {items.map((item, index) => <FeedCard
             key={tab + "-" + item.post.id} item={item} tab={tab} position={index}
-            sessionId={sessionId} onChange={replaceItem} onCreatorFollowChange={updateCreatorFollow}
+            sessionId={sessionId} guest={Boolean(meta.guest)} onChange={replaceItem} onCreatorFollowChange={updateCreatorFollow}
           />)}
           {meta.hasMore && <div className={styles.paginationFrame}>
             {pageError && <p className={styles.paginationError} role="alert">{pageError} · Retry when ready.</p>}

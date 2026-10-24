@@ -48,6 +48,13 @@ async function go(){
   assert.equal(proxy.stagingProxyAllowed("DELETE",["api","v1","posts","p1","media","m1"]),true);
   assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","posts","p1","upload"]),false);
   assert.equal(proxy.stagingProxyAllowed("GET",["api","v1","posts"]),true);
+  for (const route of ["guest/feed/for-you", "guest/feed/nearby", "guest/search",
+    "guest/search/people", "guest/marketplace", "guest/marketplace/services"]) {
+    const segments=("api/v1/"+route).split("/");
+    assert.equal(proxy.stagingProxyAllowed("GET",segments),true,"public read "+route);
+    for(const method of ["POST","PUT","PATCH","DELETE"])
+      assert.equal(proxy.stagingProxyAllowed(method,segments),false,"public write denied "+route);
+  }
   const fake={method:"POST",headers:new Headers({"origin":"https://malicious.example",
     "content-type":"application/json"}),nextUrl:new URL("https://pwa.example/api/isolated/auth/sign-in/email")};
   const response=await proxy.proxyIsolatedRequest(fake,["auth","sign-in","email"]);

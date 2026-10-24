@@ -19,14 +19,21 @@ const transpiled = ts.transpileModule(source, {
   compilerOptions: {module: ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}
 }).outputText;
 const requests = [];
+let guest = false;
 const mod = new Module(file,module);
 mod.filename=file;
 mod.paths=Module._nodeModulePaths(path.dirname(file));
 const req = mod.require.bind(mod);
-mod.require = name => name === "./api/authenticated-fetch"
+mod.require = name => name === "./api/public-browsing"
+  ? {hasViewerSession: async () => !guest, publicReadFetch: async (url) => {
+      requests.push({url});
+      return {ok:true,json:async()=>({mode:url.includes("/marketplace")?"marketplace":"search",
+        tab:"top",query:null,filters:{},items:[],nextCursor:null,hasMore:false,zeroResults:true})};
+    }}
+  : name === "./api/authenticated-fetch"
   ? {authenticatedFetch: async (url,init) => {
       requests.push({url,init});
-      return {json: async () => ({mode:url.startsWith("/marketplace")?"marketplace":"search",
+      return {ok:true,json: async () => ({mode:url.startsWith("/marketplace")?"marketplace":"search",
         tab:"top",query:null,filters:{},items:[],nextCursor:null,hasMore:false,zeroResults:true})};
     }}
   : req(name);
@@ -52,6 +59,15 @@ mod._compile(transpiled,file);
    await t.getMarketplacePage(tab,{q:"tailor",limit:8});
    assert(requests.at(-1).url.startsWith(tab==="all"?"/marketplace?":"/marketplace/"+tab+"?"));
  }
+ guest = true;
+ for(const tab of ["top","people","services"]){
+   await t.getSearchPage(tab,{q:"plumber",limit:5});
+   const url=requests.at(-1).url;
+   assert(url.startsWith(tab==="top"?"/guest/search?":"/guest/search/"+tab+"?"),url);
+ }
+ await t.getMarketplacePage("all",{q:"tailor"});
+ assert(requests.at(-1).url.startsWith("/guest/marketplace?"));
+ guest = false;
  await t.captureSearchObservation("search.performed",{query:"barber",sessionId:"fixture"});
  assert.equal(requests.at(-1).url,"/search/events");
  assert.equal(requests.at(-1).init.method,"POST");

@@ -4,6 +4,7 @@ import type { Product, Service } from "@hustle/types";
 import { getSupabaseBrowserClient } from "./supabase/client";
 import { authenticatedFetch as sharedAuthenticatedFetch } from "./api/authenticated-fetch";
 import { isolatedWebMode } from "./auth/isolated-web-auth";
+import { publicReadFetch } from "./api/public-browsing";
 
 export type PostStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type PostMediaType = "IMAGE" | "VIDEO";
@@ -244,9 +245,7 @@ export async function archivePost(postId: string): Promise<Post> {
 }
 
 export async function getPublicPost(postId: string): Promise<PublicPost> {
-  const response = isolatedWebMode
-    ? await sharedAuthenticatedFetch(`/posts/${encodeURIComponent(postId)}`)
-    : await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}`, { cache: "no-store" });
+  const response = await publicReadFetch(`/posts/${encodeURIComponent(postId)}`);
   if (!response.ok) {
     if (response.status === 404) throw new Error("This post is not currently public.");
     throw new Error(await parseError(response));
@@ -278,9 +277,7 @@ export async function getPublicPost(postId: string): Promise<PublicPost> {
 }
 
 export async function getPostInteractions(postId: string): Promise<PostInteractionSummary> {
-  const response = isolatedWebMode
-    ? await sharedAuthenticatedFetch(`/posts/${encodeURIComponent(postId)}/interactions`)
-    : await fetch(`${apiBase}/posts/${encodeURIComponent(postId)}/interactions`, { cache: "no-store" });
+  const response = await publicReadFetch(`/posts/${encodeURIComponent(postId)}/interactions`);
   if (!response.ok) throw new Error(await parseError(response));
   return response.json() as Promise<PostInteractionSummary>;
 }

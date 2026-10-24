@@ -2,6 +2,7 @@
 
 import type { Product, Service } from "@hustle/types";
 import { authenticatedFetch } from "./api/authenticated-fetch";
+import { hasViewerSession, publicReadFetch } from "./api/public-browsing";
 import type { PostMedia } from "./post";
 
 export type FeedTab = "for-you" | "nearby" | "connections";
@@ -66,6 +67,7 @@ export interface FeedPage {
   hasMore: boolean;
   viewerLocation: string | null;
   coldStart: boolean;
+  guest?: boolean;
   reason?: string;
 }
 
@@ -111,9 +113,13 @@ export async function getFeedPage(
   params.set("limit", String(options.limit ?? 8));
   if (options.location?.trim()) params.set("location", options.location.trim());
 
-  const response = await authenticatedFetch(`/feed/${tab}?${params.toString()}`);
+  const signedIn = await hasViewerSession();
+  const response = signedIn
+    ? await authenticatedFetch(`/feed/${tab}?${params.toString()}`)
+    : await publicReadFetch(`/guest/feed/${tab}?${params.toString()}`);
+  if (!response.ok) throw new Error(`Hustle feed returned ${response.status}`);
   const page = await response.json() as FeedPage;
-  return normalizeFeedPage(page);
+  return normalizeFeedPage({ ...page, guest: !signedIn });
 }
 
 export async function captureFeedEvent(input: CaptureFeedEventInput) {

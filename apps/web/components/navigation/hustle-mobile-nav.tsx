@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 
 import { getUnreadNotificationCount } from "../../lib/notifications";
 import styles from "./hustle-mobile-nav.module.css";
+import { authUrl, hasViewerSession } from "../../lib/api/public-browsing";
+import type { MouseEvent } from "react";
 
 type NavIcon = "discover" | "search" | "create" | "market" | "messages" | "activity" | "identity";
 const items: ReadonlyArray<{ href: string; label: string; icon: NavIcon }> = [
@@ -74,6 +76,14 @@ export function HustleMobileNav() {
 
   if (hidden) return null;
 
+  function requireAccount(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+    if (!["/posts/new", "/messages", "/notifications", "/account"].includes(href)) return;
+    event.preventDefault();
+    void hasViewerSession().then(signedIn => window.location.assign(signedIn ? href : authUrl(href)))
+      .catch(() => window.location.assign(authUrl(href)));
+  }
+
   return <>
     <nav className={styles.dock} aria-label="Hustle main navigation">
     <div className={styles.inner}>
@@ -82,6 +92,7 @@ export function HustleMobileNav() {
         const count = item.icon === "activity" && unread && unread > 0 ? Math.min(unread, 99) : null;
         return <Link
           href={item.href}
+          onClick={(event) => requireAccount(event, item.href)}
           key={item.href}
           className={current ? `${styles.link} ${styles.selected}` : styles.link}
           aria-current={current ? "page" : undefined}
@@ -100,7 +111,7 @@ export function HustleMobileNav() {
     <div className={styles.appInner}>
       {mobileAppItems.map(item => {
         const current = isActive(pathname, item.href);
-        return <Link href={item.href} key={item.href}
+        return <Link href={item.href} onClick={(event) => requireAccount(event, item.href)} key={item.href}
           className={current ? `${styles.appLink} ${styles.appSelected}` : styles.appLink}
           aria-label={item.label} aria-current={current ? "page" : undefined}>
           <Icon name={item.icon}/>
