@@ -47,7 +47,12 @@ try {
   ["POST","posts/abc/save"],["DELETE","posts/abc/save"],["POST","posts/abc/share"],
   ["POST","posts/abc/comments"],["DELETE","posts/abc/comments/def"],
   ["POST","users/abc/follow"],["DELETE","users/abc/follow"],
-  ["POST","feed/events"],["POST","search/events"],["POST","marketplace/events"]
+  ["POST","feed/events"],["POST","search/events"],["POST","marketplace/events"],
+  ["GET","messaging/conversations"],["GET","messaging/conversations/c1"],
+  ["GET","messaging/conversations/c1/messages"],["GET","messaging/conversations/c1/typing"],
+  ["POST","messaging/conversations/direct"],["POST","messaging/conversations/c1/messages"],
+  ["POST","messaging/conversations/c1/read"],["POST","messaging/conversations/c1/typing"],
+  ["POST","messaging/conversations/c1/messages/m1/context-opened"]
  ];
  for(const [method,route] of allowed) {
    const path="api/v1/"+route;
@@ -58,6 +63,7 @@ try {
   ["POST","hustler-application/proofs"],["POST","hustler-reviews/abc/proofs/def/read-url"],
   ["POST","posts/abc/upload"],["POST","posts/abc/proofs/def"],["DELETE","services/abc"],["GET","admin/operations/users"],
   ["POST","guest/feed/for-you"],["POST","guest/search"],["POST","guest/marketplace"],
+  ["POST","messaging/conversations/c1/attachments"],["DELETE","messaging/conversations/c1"],
   ["POST","bookings"],["POST","payments"],["POST","escrow/release"],
   ["POST","orders"],["POST","wallet/deposit"],["PATCH","services/abc"],
   ["PUT","hustler-reviews/abc/approve"],["POST","services/abc/delete"]
@@ -84,6 +90,9 @@ try {
    "Post editor must use the staging Better Auth authenticated client");
  assert(postClient.includes('sharedAuthenticatedFetch(\`/posts/'),
    "Public post and post interactions must use the staging same-origin proxy");
+ assert.match(get("apps/web/lib/messaging.ts"),/if \(isolatedWebMode\) throw new Error\("Private file attachments/);
+ assert.match(get("apps/web/app/messages/start/page.tsx"),/openDirectConversation\(userId\)/);
+ assert.match(get("apps/web/app/messages/[conversationId]/page.tsx"),/sendMessage\(conversationId/);
  const postApi = get("apps/api/src/post/post.service.ts");
  assert(postApi.includes('this.isPublicStagingMediaUrl(mediaUrl)'),
    "Only externally hosted HTTPS media may be attached to staging posts");

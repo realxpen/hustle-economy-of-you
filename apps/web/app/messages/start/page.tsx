@@ -5,6 +5,7 @@ import { safeTransactionReturnTo, transactionReturnLabel } from "../../../lib/tr
 import { openDirectConversation, type MessageContextType } from "../../../lib/messaging";
 import { authUrlFor } from "../../../lib/auth/safe-auth-next";
 import styles from "../messages.module.css";
+import { hasViewerSession } from "../../../lib/api/public-browsing";
 
 const allowedContextTypes = new Set<MessageContextType>(["POST", "SERVICE", "PRODUCT"]);
 
@@ -36,9 +37,16 @@ export default function StartMessagePage() {
     }
 
     const contextType = rawType && allowedContextTypes.has(rawType) ? rawType : null;
-    void openDirectConversation(userId)
-      .then(({ conversation }) => {
-        if (!active) return;
+    void hasViewerSession().then((signedIn) => {
+      if (!signedIn) { window.location.assign(authUrlFor(window.location.pathname + window.location.search)); return null; }
+      return openDirectConversation(userId);
+    }).then((result) => {
+        if (!result) return result;
+        return result;
+      })
+      .then((result) => {
+        if (!active || !result) return;
+        const { conversation } = result;
         const nextParams = new URLSearchParams();
         if (contextType && contextId) {
           nextParams.set("contextType", contextType);

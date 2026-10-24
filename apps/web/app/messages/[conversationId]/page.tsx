@@ -24,6 +24,7 @@ import {
   type MessagingMessage
 } from "../../../lib/messaging";
 import styles from "../messages.module.css";
+import { isolatedWebMode } from "../../../lib/auth/isolated-web-auth";
 
 function formatTime(value: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -345,6 +346,7 @@ export default function ConversationPage() {
   function chooseFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     if (!file) return;
+    if (isolatedWebMode) { setError("File attachments are not yet available in isolated staging."); event.target.value = ""; return; }
     if (file.size > 25 * 1024 * 1024) {
       setError("Attachment must be 25 MB or smaller");
       event.target.value = "";
@@ -483,7 +485,7 @@ export default function ConversationPage() {
       <a href={returnTo}>← {transactionReturnLabel(returnTo)}</a>
       <span>{returnTo.startsWith("/bookings/new/") ? "Continue your prepared Booking request when you are ready. Your draft stays in this browser tab and has not been submitted." : "This conversation is for coordination. Only the original transaction page confirms status and payment."}</span>
     </div>}
-    {conversationId && other && <div style={{ padding: "14px 18px 0" }}>
+    {conversationId && other && !isolatedWebMode && <div style={{ padding: "14px 18px 0" }}>
       <ConversationSafetyActions
         conversationId={conversationId}
         targetUserId={other.id}
@@ -553,14 +555,14 @@ export default function ConversationPage() {
             <button type="button" onClick={() => setSelectedFile(null)}>Remove</button>
           </div>}
           <div className={styles.composeRow}>
-            <label className={styles.attachButton}>
+            {!isolatedWebMode && <label className={styles.attachButton}>
               <input
                 type="file"
                 onChange={chooseFile}
                 accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/zip"
               />
               Attach
-            </label>
+            </label>}
             <textarea
               rows={2}
               aria-label="Message text"
@@ -572,7 +574,7 @@ export default function ConversationPage() {
             />
             <button type="submit" disabled={!canSend || sending}>{sending ? "Sending…" : "Send"}</button>
           </div>
-          <p className={styles.notice}>Ctrl/⌘ + Enter to send · Attachments up to 25 MB · Private files are available only to conversation participants.</p>
+          <p className={styles.notice}>{isolatedWebMode ? "Consultation preview · Text and linked services only. Files, bookings and payments are disabled in isolated staging." : "Ctrl/⌘ + Enter to send · Attachments up to 25 MB · Private files are available only to conversation participants."}</p>
         </form>
       </div>
     </div>

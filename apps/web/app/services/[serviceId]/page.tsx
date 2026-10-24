@@ -11,6 +11,7 @@ import type { PublicService } from "@hustle/types";
 import { formatServicePrice, getPublicService } from "../../../lib/service";
 import styles from "./page.module.css";
 import { hasViewerSession, authUrl } from "../../../lib/api/public-browsing";
+import { isolatedWebMode } from "../../../lib/auth/isolated-web-auth";
 import type { MouseEvent } from "react";
 
 function isVideo(url: string) {
@@ -61,7 +62,7 @@ export default function PublicServicePage() {
         <h1 className="h-experience-heading">{service.title}</h1>
         <strong>{formatServicePrice(service)}</strong>
         <div className={styles.offerActions}>
-          <a className={styles.bookButton} href={preparedBookingHref} onClick={(event) => requireAuthForAction(event, preparedBookingHref)}>Book this service →</a>
+          {!isolatedWebMode && <a className={styles.bookButton} href={preparedBookingHref} onClick={(event) => requireAuthForAction(event, preparedBookingHref)}>Book this service →</a>}
           <a className={styles.messageButton} href={consultHref} onClick={(event) => requireAuthForAction(event, consultHref)}>Message first</a>
         </div>
       </div>
@@ -90,7 +91,7 @@ export default function PublicServicePage() {
         <div><small>MODE</small><strong>{service.deliveryMode}</strong></div>
         <div><small>LOCATION</small><strong>{service.location ?? "Remote"}</strong></div>
         <div><small>AVAILABILITY</small><strong>{service.availabilityNote}</strong></div>
-        <p>Bookings preserve the Service terms and schedule. Paid work is funded only after authoritative payment confirmation.</p>
+        <p>{isolatedWebMode ? "Start a consultation in Messages. Booking and payment are not enabled in isolated staging." : "Bookings preserve the Service terms and schedule. Paid work is funded only after authoritative payment confirmation."}</p>
       </aside>
     </section>
 
