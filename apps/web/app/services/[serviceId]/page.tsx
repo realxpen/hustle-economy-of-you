@@ -62,7 +62,7 @@ export default function PublicServicePage() {
         <h1 className="h-experience-heading">{service.title}</h1>
         <strong>{formatServicePrice(service)}</strong>
         <div className={styles.offerActions}>
-          <a className={styles.bookButton} href={preparedBookingHref} onClick={(event) => requireAuthForAction(event, preparedBookingHref)}>{isolatedWebMode ? "Request a time (test) →" : "Book this service →"}</a>
+          <a className={styles.bookButton} href={preparedBookingHref} onClick={isolatedWebMode ? undefined : (event) => requireAuthForAction(event, preparedBookingHref)}>{isolatedWebMode ? "Request a time (test) →" : "Book this service →"}</a>
           <a className={styles.messageButton} href={consultHref} onClick={(event) => requireAuthForAction(event, consultHref)}>Message first</a>
         </div>
       </div>

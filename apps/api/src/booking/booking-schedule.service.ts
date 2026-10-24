@@ -203,13 +203,15 @@ export class BookingScheduleService {
   }
 
   async checkAvailability(
-    identity: AuthIdentity,
+    identity: AuthIdentity | null,
     input: { serviceId?: unknown; startAt?: unknown; endAt?: unknown }
   ) {
-    const user = await this.prisma.user.findUnique({
-      where: { authSubject: identity.subject }, select: { id: true }
-    });
-    if (!user) throw new BadRequestException("Hustle account is not synchronized");
+    if (identity) {
+      const user = await this.prisma.user.findUnique({
+        where: { authSubject: identity.subject }, select: { id: true }
+      });
+      if (!user) throw new BadRequestException("Hustle account is not synchronized");
+    }
     if (typeof input.serviceId !== "string" || !input.serviceId.trim()) {
       throw new BadRequestException("serviceId is required");
     }
@@ -305,11 +307,13 @@ export class BookingScheduleService {
     return formatted.date === date && formatted.clock === clock ? new Date(resolved) : null;
   }
 
-  async listSlots(identity: AuthIdentity, serviceId: string, date: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { authSubject: identity.subject }, select: { id: true }
-    });
-    if (!user) throw new BadRequestException("Sign in to inspect availability");
+  async listSlots(identity: AuthIdentity | null, serviceId: string, date: string) {
+    if (identity) {
+      const user = await this.prisma.user.findUnique({
+        where: { authSubject: identity.subject }, select: { id: true }
+      });
+      if (!user) throw new BadRequestException("Hustle account is not synchronized");
+    }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) ||
         Number.isNaN(Date.parse(date + "T00:00:00Z")) ||
         new Date(date + "T00:00:00Z").toISOString().slice(0, 10) !== date) {

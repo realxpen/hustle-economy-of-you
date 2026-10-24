@@ -7,6 +7,8 @@ import {
 } from "@nestjs/common";
 import {
   BookingStatus,
+  BookingOperationMode,
+  MessageContextType,
   NotificationKind,
   Capability,
   CapabilityStatus,
@@ -173,6 +175,7 @@ export class BookingService {
         priceMinor: true,
         currency: true,
         pricingType: true,
+        bookingMode: true,
         professionalProfile: {
           select: { userId: true }
         }
@@ -192,6 +195,19 @@ export class BookingService {
 
     if (conversationId) {
       await this.requireDirectConversationForPair(conversationId, client.id, hustlerUserId);
+    }
+    if (process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging" &&
+        service.bookingMode === BookingOperationMode.CONSULTATION) {
+      if (!conversationId) {
+        throw new BadRequestException("Consult this Hustler before requesting a time for this Service");
+      }
+      const linkedMessage = await this.prisma.message.findFirst({
+        where: { conversationId, contextType: MessageContextType.SERVICE, contextId: service.id },
+        select: { id: true }
+      });
+      if (!linkedMessage) {
+        throw new BadRequestException("Discuss this Service in Messages first, then send a booking request");
+      }
     }
 
     const serviceTitleSnapshot = service.title.trim();
@@ -748,7 +764,9 @@ export class BookingService {
           || booking.fundedAt !== null,
         phase: paid ? "PHASE_13" : null,
         message: paid && booking.status === BookingStatus.PAYMENT_PENDING
-          ? "Payment is required before work begins. Phase 13 will provide authoritative funding confirmation."
+          ? process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging"
+            ? "Staging schedule accepted. Payment, deposits and starting paid work are disabled."
+            : "Payment is required before work begins. Phase 13 will provide authoritative funding confirmation."
           : null
       },
       nextAction: this.nextAction(booking, viewerRole)
@@ -777,7 +795,9 @@ export class BookingService {
             ? "Start work"
             : "Waiting for Hustler to start work";
       case BookingStatus.PAYMENT_PENDING:
-        return "Accepted. Payment is required before work begins";
+        return process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging"
+          ? "Time accepted for staging only. No funding or work can begin."
+          : "Accepted. Payment is required before work begins";
       case BookingStatus.FUNDED:
         return viewerRole === "HUSTLER" ? "Start work" : "Funding confirmed. Waiting for work to begin";
       case BookingStatus.IN_PROGRESS:

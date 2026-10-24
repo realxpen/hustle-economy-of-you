@@ -12,6 +12,7 @@ const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]
 const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+(?:\/interactions(?:\/me)?)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/[A-Za-z0-9_-]+)?))$/;
 const apiWrite = new Set(["api/v1/auth/sync", "api/v1/hustler-application/submit",
   "api/v1/professional-profile/publish", "api/v1/professional-profile/unpublish", "api/v1/services"]);
+const guestSlots = /^api\/v1\/guest\/bookings\/(?:availability|slots)$/;
 const bookingRead = /^api\/v1\/bookings\/(?:client|hustler|availability|slots|duration-insights|[A-Za-z0-9_-]+)$/;
 const bookingDecision = /^api\/v1\/bookings\/[A-Za-z0-9_-]+\/(?:accept|decline|cancel)$/;
 const guestRead = /^api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;
@@ -41,7 +42,7 @@ export function stagingProxyAllowed(method: string, segments: string[]) {
     return method === "GET" && allowedAuthReads.has(endpoint)
       || method === "POST" && allowedAuthWrites.has(endpoint);
   }
-  return method === "GET" && (apiRead.test(route) || guestRead.test(route) || messagingRead.test(route) || bookingRead.test(route) || safetyRead.test(route)) ||
+  return method === "GET" && (apiRead.test(route) || guestRead.test(route) || messagingRead.test(route) || bookingRead.test(route) || guestSlots.test(route) || safetyRead.test(route)) ||
     method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route) ||
       route === "api/v1/bookings" || bookingDecision.test(route) ||
       route === "api/v1/posts" || postAction.test(route) || followAction.test(route) || messagingWrite.test(route) || safetyBlock.test(route) || route === "api/v1/trust-safety/reports" ||
