@@ -7,6 +7,7 @@ import type {
   SaveProductVariantInput
 } from "@hustle/types";
 import { getSupabaseBrowserClient } from "./supabase/client";
+import { publicReadFetch } from "./api/public-browsing";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
@@ -124,7 +125,7 @@ export async function deleteProduct(productId: string): Promise<{ deleted: true;
 }
 
 export async function getPublicProduct(productId: string): Promise<PublicProduct> {
-  const response = await fetch(`${apiBase}/products/${encodeURIComponent(productId)}`, { cache: "no-store" });
+  const response = await publicReadFetch(`/products/${encodeURIComponent(productId)}`);
   if (!response.ok) {
     if (response.status === 404) throw new Error("This product is not currently public.");
     throw new Error(await parseError(response));

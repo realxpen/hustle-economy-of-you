@@ -6,6 +6,7 @@ import { stageSignIn } from "../../lib/auth/isolated-web-auth";
 import { invalidateAuthenticatedSessionCache } from "../../lib/api/authenticated-fetch";
 import { syncHustleAccount } from "../../lib/auth/hustle-account";
 import styles from "./staging-sign-in.module.css";
+import { safeAuthReturnPath } from "../../lib/api/public-browsing";
 
 export function StagingWebSignIn() {
   const router=useRouter();
@@ -23,7 +24,8 @@ export function StagingWebSignIn() {
       setPassword("");
       invalidateAuthenticatedSessionCache();
       await syncHustleAccount();
-      router.replace("/home");
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.replace(safeAuthReturnPath(next));
       router.refresh();
     } catch {
       // Do not reveal whether an email is on the server's test invite list.

@@ -1,8 +1,7 @@
 "use client";
 
 import type { PublicTrustSummary } from "./trust";
-import { authenticatedFetch } from "./api/authenticated-fetch";
-import { isolatedWebMode } from "./auth/isolated-web-auth";
+import { publicReadFetch } from "./api/public-browsing";
 
 export interface StorefrontUser {
   id: string;
@@ -125,9 +124,7 @@ async function parseError(response: Response) {
 
 export async function getPublicStorefront(username: string): Promise<PublicStorefront> {
   const normalized = encodeURIComponent(username.replace(/^@/, ""));
-  const response = isolatedWebMode
-    ? await authenticatedFetch(`/storefronts/${normalized}`)
-    : await fetch(`${apiBase}/storefronts/${normalized}`, { cache: "no-store" });
+  const response = await publicReadFetch(`/storefronts/${normalized}`);
   if (!response.ok) {
     if (response.status === 404) throw new Error("This Hustle storefront is not published yet.");
     throw new Error(await parseError(response));

@@ -3,6 +3,7 @@
 import type { Product, Service } from "@hustle/types";
 import type { PostMedia } from "./post";
 import { authenticatedFetch } from "./api/authenticated-fetch";
+import { hasViewerSession, publicReadFetch } from "./api/public-browsing";
 
 export type SearchTab = "top" | "people" | "posts" | "services" | "products";
 export type MarketplaceTab = "all" | "services" | "products";
@@ -144,7 +145,11 @@ export async function getSearchPage(
   addFilters(params, options.filters ?? {});
 
   const route = tab === "top" ? "/search" : `/search/${tab}`;
-  const response = await authenticatedFetch(`${route}?${params.toString()}`);
+  const signedIn = await hasViewerSession();
+  const response = signedIn
+    ? await authenticatedFetch(`${route}?${params.toString()}`)
+    : await publicReadFetch(`/guest${route}?${params.toString()}`);
+  if (!response.ok) throw new Error(`Hustle browse returned ${response.status}`);
   return response.json() as Promise<SearchPage>;
 }
 
@@ -164,7 +169,11 @@ export async function getMarketplacePage(
   addFilters(params, options.filters ?? {});
 
   const route = tab === "all" ? "/marketplace" : `/marketplace/${tab}`;
-  const response = await authenticatedFetch(`${route}?${params.toString()}`);
+  const signedIn = await hasViewerSession();
+  const response = signedIn
+    ? await authenticatedFetch(`${route}?${params.toString()}`)
+    : await publicReadFetch(`/guest${route}?${params.toString()}`);
+  if (!response.ok) throw new Error(`Hustle browse returned ${response.status}`);
   return response.json() as Promise<SearchPage>;
 }
 
