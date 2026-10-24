@@ -1,6 +1,8 @@
 "use client";
 
 import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch as sharedAuthenticatedFetch } from "./api/authenticated-fetch";
+import { isolatedWebMode } from "./auth/isolated-web-auth";
 import type { ReviewPartyRole, ReviewSubjectType, ReviewUser } from "./trust";
 
 export type CounterpartyFeedbackIssue =
@@ -110,6 +112,7 @@ async function parseError(response: Response) {
 }
 
 async function authenticatedFetch(path: string, init?: RequestInit) {
+  if (isolatedWebMode) return sharedAuthenticatedFetch(path, init);
   const supabase = getSupabaseBrowserClient();
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session?.access_token) throw new Error("You need to sign in again");

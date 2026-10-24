@@ -2,6 +2,7 @@
 
 import { authenticatedFetch, getAuthenticatedUserId } from "./api/authenticated-fetch";
 import { getSupabaseBrowserClient } from "./supabase/client";
+import { isolatedWebMode } from "./auth/isolated-web-auth";
 
 export type MessageContextType = "POST" | "SERVICE" | "PRODUCT";
 export type MessageAttachmentType = "IMAGE" | "FILE";
@@ -217,6 +218,7 @@ export async function uploadMessageAttachment(
   conversationId: string,
   file: File
 ): Promise<MessageAttachmentUpload> {
+  if (isolatedWebMode) throw new Error("Private file attachments are not enabled in isolated staging.");
   if (!conversationId.trim()) throw new Error("Conversation is required for an attachment");
   if (!file.size || file.size > maxAttachmentBytes) {
     throw new Error("Attachment must be between 1 byte and 25 MB");
@@ -246,12 +248,14 @@ export async function uploadMessageAttachment(
 }
 
 export async function deleteMessageAttachment(storageKey: string) {
+  if (isolatedWebMode) throw new Error("Private file attachments are not enabled in isolated staging.");
   const objectPath = attachmentObjectPath(storageKey);
   const { error } = await getSupabaseBrowserClient().storage.from(attachmentBucket).remove([objectPath]);
   if (error) throw new Error(error.message || "Could not remove attachment");
 }
 
 export async function createMessageAttachmentUrl(storageKey: string, expiresInSeconds = 600) {
+  if (isolatedWebMode) throw new Error("Private file attachments are not enabled in isolated staging.");
   const objectPath = attachmentObjectPath(storageKey);
   const { data, error } = await getSupabaseBrowserClient().storage
     .from(attachmentBucket)

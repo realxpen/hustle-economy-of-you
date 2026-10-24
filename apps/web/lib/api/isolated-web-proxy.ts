@@ -17,6 +17,12 @@ const apiPut = /^api\/v1\/(?:hustler-application|professional-profile|services\/
 const postAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media|publish|archive|like|save|share|comments|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
 const postDelete = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media\/[A-Za-z0-9_-]+|like|save|comments\/[A-Za-z0-9_-]+|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
 const followAction = /^api\/v1\/users\/[A-Za-z0-9_-]+\/follow$/;
+// Consultation and messaging are authenticated, participant-scoped routes only.
+const messagingRead = /^api\/v1\/messaging\/conversations(?:\/[A-Za-z0-9_-]+(?:\/(?:messages|typing))?)?$/;
+// Account-owned block and report operations; no administrator or transaction tools.
+const safetyRead = /^api\/v1\/trust-safety\/blocks\/status\/[A-Za-z0-9_-]+$/;
+const safetyBlock = /^api\/v1\/trust-safety\/blocks\/[A-Za-z0-9_-]+$/;
+const messagingWrite = /^api\/v1\/messaging\/conversations\/(?:direct|[A-Za-z0-9_-]+\/(?:messages|read|typing|messages\/[A-Za-z0-9_-]+\/context-opened))$/;
 const reviewPost = /^api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/;
 const servicePost = /^api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/;
 
@@ -33,12 +39,12 @@ export function stagingProxyAllowed(method: string, segments: string[]) {
     return method === "GET" && allowedAuthReads.has(endpoint)
       || method === "POST" && allowedAuthWrites.has(endpoint);
   }
-  return method === "GET" && (apiRead.test(route) || guestRead.test(route)) ||
+  return method === "GET" && (apiRead.test(route) || guestRead.test(route) || messagingRead.test(route) || safetyRead.test(route)) ||
     method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route) ||
-      route === "api/v1/posts" || postAction.test(route) || followAction.test(route) ||
+      route === "api/v1/posts" || postAction.test(route) || followAction.test(route) || messagingWrite.test(route) || safetyBlock.test(route) || route === "api/v1/trust-safety/reports" ||
       ["api/v1/feed/events", "api/v1/search/events", "api/v1/marketplace/events"].includes(route)) ||
     method === "PUT" && apiPut.test(route) ||
-    method === "DELETE" && (postDelete.test(route) || followAction.test(route)) ||
+    method === "DELETE" && (postDelete.test(route) || followAction.test(route) || safetyBlock.test(route)) ||
     method === "PATCH" && route === "api/v1/auth/profile";
 }
 const privateHeaders = ["authorization", "cookie"];
@@ -69,7 +75,8 @@ export async function proxyIsolatedRequest(req: NextRequest, segments: string[])
   if (req.method === "GET" && segments[0] !== "auth") {
     for (const [key, value] of req.nextUrl.searchParams) {
       if (["q", "cursor", "limit", "location", "category", "skill", "verified", "nearby",
-        "minPrice", "maxPrice", "deliveryMode", "productType", "date", "tab"].includes(key)
+        "minPrice", "maxPrice", "deliveryMode", "productType", "date", "tab",
+        "afterCreatedAt", "afterId"].includes(key)
         && value.length <= 256) url.searchParams.append(key, value);
     }
   }
