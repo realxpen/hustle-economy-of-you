@@ -19,6 +19,8 @@ assert.ok(version, "Android signing and manifest tools must be installed");
 execFileSync(path.join(toolsRoot, version, "apksigner"), ["verify", apk], { stdio: "inherit" });
 const manifest = execFileSync(path.join(toolsRoot, version, "aapt"), ["dump", "badging", apk], { encoding: "utf8" });
 assert.match(manifest, /^package: name='com\.hustle\.economyofyou\.preview\.staging'/m);
+const architectures = [...(manifest.match(/^native-code: (.+)$/m)?.[1] || '').matchAll(/'([^']+)'/g)].map(m => m[1]).sort();
+assert.deepEqual(architectures, ['arm64-v8a', 'x86_64'], 'APK must support ARM64 devices and x86_64 Waydroid');
 const bytes = fs.readFileSync(apk);
 const digest = createHash("sha256").update(bytes).digest("hex");
 // Nothing is published until both actual SDK verification steps pass.
@@ -26,7 +28,7 @@ fs.mkdirSync(output, { recursive: true });
 fs.writeFileSync(path.join(output, "Hustle-Staging.apk"), bytes);
 fs.writeFileSync(path.join(output, "Hustle-Staging.apk.sha256"), `${digest}  Hustle-Staging.apk\n`);
 fs.writeFileSync(path.join(output, "build-info.json"), JSON.stringify({
-  sourceSha, package: "com.hustle.economyofyou.preview.staging", architectures: ["arm64-v8a"],
+  sourceSha, package: "com.hustle.economyofyou.preview.staging", architectures,
   authProvider: "expo-better-auth", api: "https://hustle-isolated-staging-api.vercel.app/api/v1",
   demo: false, bookingWrites: false, enquiryMessages: true,
   signing: "internal-test-debug-key", physicalDeviceTested: false

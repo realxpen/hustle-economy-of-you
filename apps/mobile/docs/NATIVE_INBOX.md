@@ -1,0 +1,11 @@
+# Native consultation inbox
+
+Service enquiries now open inside Hustle. Existing participant-authorized APIs provide paginated conversations/history, text replies and per-participant unread state. No backend, schema, credentials or capabilities change. Context references identify a Service/Post/Product; an explicit configured HTTPS web origin opens its current public page without copying marketplace truth into messages.
+
+Private state stays in memory and is replaced on token changes. Thread/version guards reject stale history and read responses. A synchronous reply lock survives tab/thread navigation; a twenty-second timeout or malformed acknowledgement is uncertain, never automatically resent. A successful history refresh and explicit draft discard are required before composing again. A read marker targets the latest loaded message only after visibility. Foreground polling pauses while reading older messages. Android Back returns to the inbox.
+
+The connected internal APK contains ARM64 and x86_64 for Android devices and Waydroid, with actual signature, package, ABI and checksum verification before artifact upload. No production signing credentials or EAS credits are used. Existing attachments are identified; native attachment upload/download and typing indicators are deferred. No fabricated inbox examples or real-user messages are seeded.
+
+Verification: ten generated execution cases cover navigation/receipt races, delivery locks, uncertain sends, acknowledgement validation, canonical identity, pagination, access errors, account isolation, encoded transport and safe context links. Mobile TypeScript, existing enquiry/search/device readiness contracts and connected Metro export are required. Cloud/native results are separate from physical/Waydroid acceptance.
+
+Device acceptance: invited staging sign-in → discover published test service → enquiry → native thread → consenting second account replies → read/unread status → reopen/history → foreground/background and Android Back → sign-out/account change. Offline delivery must never automatically resend. A populated published test service and second invited account are prerequisites for the full live journey. No production release, real booking or payment is implied.

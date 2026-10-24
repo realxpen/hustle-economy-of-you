@@ -8,8 +8,12 @@ Date: 2026-10-22. Scope: nonproduction React Native + Expo internal APK and disp
 - Hosted isolated API health, disposable invited registration, password sign-in, account sync, bearer validation, revocation and cleanup passed in the verified PR #197 staging report. Neither a device nor the current installed APK has passed the same journey.
 - Existing PR #196's alternative Android packaging is superseded by merged #197; do not merge the older duplicate into main.
 
+## Installed-runtime correction (2026-10-23)
+
+The founder's Waydroid launch displayed "The isolated test login is not configured" before reaching the form. The original guard read `process.env.APP_VARIANT` inside installed JavaScript, but Expo only inlines `EXPO_PUBLIC_` client variables. Node tests supplied the build environment and masked the failure. Runtime validation now reads the embedded Android package/iOS bundle identity through Expo Constants and still requires the exact isolated scope, provider, endpoints and write flags. `APP_VARIANT` remains a build-only input to app.config.js. Twenty Expo/Babel production-transform tests execute the actual guard after removing every build variable, cover both native platforms and reject production/missing identities, wrong endpoints/scope/provider and enabled booking. Actual Waydroid login/session acceptance still requires the corrected rebuilt APK; the previous APK's successful compiler/signature checks did not establish runtime startup success.
+
 ## Additional mobile readiness safeguards
-- A selected Expo staging provider now requires **both** `APP_VARIANT=preview` **and** `EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE=isolated-staging`; wrong variant/scope, offline demo, wrong exact API/Auth host or enabled booking requests fail closed before client creation.
+- A selected Expo staging provider requires **both** the embedded `com.hustle.economyofyou.preview.staging` application identity **and** `EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE=isolated-staging`; wrong identity/scope, offline demo, wrong exact API/Auth host or enabled booking requests fail closed before client creation.
 - The sign-in screen requests **anonymous GET-only** `/api/v1/health`, with cookies omitted, no bearer token, and a bounded timeout. Only the exact isolated API response with a connected database/auth dependency is marked `Test server reachable`. This *does not* prove an account, login service, or invitation is valid.
 - An unavailable API shows a `Retry connection` control, without asking the founder for logs or terminal use.
 - After signup/signin, the client requires an actual verified Better Auth session/user response before displaying the authenticated application.

@@ -114,7 +114,8 @@ async function check(label, fn) { await fn(); console.log('PASS: ' + label); }
     assert.match(screen, /attempt === enquiryDelivery\.current/);
     assert.match(screen, /enquiryDelivery\.current\.invalidate\(\)/);
     assert.match(screen, /Delivery uncertain — check the conversation/);
-    assert.match(screen, /Browser sign-in is separate/);
+    assert.match(screen, /Open conversation in Hustle/);
+    assert.match(screen, /setInboxTarget\(\{ id, nonce: Date\.now\(\) \}\)/);
     const handler = screen.slice(screen.indexOf('  function confirmEnquiryMessage()'), screen.indexOf('  async function openSearchResult('));
     assert.doesNotMatch(handler, /requestBooking|initializePayment|escrow|console\./);
     const controller = fs.readFileSync(path.join(root, '../api/src/messaging/messaging.controller.ts'), 'utf8');
