@@ -216,7 +216,7 @@ export default function PublicPostPage() {
         <p>{hasProfessionalIdentity ? owner.professionalProfile.headline ?? owner.professionalProfile.professionalSummary ?? owner.bio : owner.bio ?? "Hustle user"}</p>
         {hasProfessionalIdentity && <div className={styles.skills}>{[owner.professionalProfile.primarySkill, ...owner.professionalProfile.secondarySkills].filter(Boolean).map((skill) => <span key={skill ?? "skill"}>{skill}</span>)}</div>}
         <div className={styles.followLine}><span>{interactions.followerCount} follower{interactions.followerCount === 1 ? "" : "s"}</span>{!viewer?.isCreator && <button type="button" onClick={toggleFollow} disabled={busy === "follow"}>{viewer?.followingCreator ? "Following" : "Follow"}</button>}</div>
-        {!viewer?.isCreator && <a className={styles.profileLink} href={`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=POST&contextId=${encodeURIComponent(post.id)}`}>Message about this post →</a>}
+        {!viewer?.isCreator && <a className={styles.profileLink} href={viewer ? `/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=POST&contextId=${encodeURIComponent(post.id)}` : authUrl(`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=POST&contextId=${encodeURIComponent(post.id)}`)}>Message about this post →</a>}
         {hasProfessionalIdentity && owner.username && <a className={styles.profileLink} href={`/u/${owner.username}`}>View professional storefront →</a>}
       </aside>
     </section>

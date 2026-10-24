@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { blockUser, getBlockStatus, unblockUser, type BlockStatus } from "../../lib/trust-safety";
 import { SafetyReportAction } from "./safety-report-action";
 import styles from "./transaction-safety-actions.module.css";
-import { authUrl } from "../../lib/api/public-browsing";
+import { authUrl, hasViewerSession } from "../../lib/api/public-browsing";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
 
 export function ProfileContactActions({
   targetUserId,
@@ -16,7 +17,7 @@ export function ProfileContactActions({
   messageHref: string;
 }) {
   const [status, setStatus] = useState<BlockStatus | null>(null);
-  const [signedOut, setSignedOut] = useState(false);
+  const [signedOut, setSignedOut] = useState(isolatedWebMode);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +39,16 @@ export function ProfileContactActions({
   }
 
   useEffect(() => {
+    if (isolatedWebMode) {
+      // Staging uses Better Auth, not the older Supabase-only block-status client.
+      // Its message API still enforces authentication and block rules server-side.
+      void hasViewerSession().then(signedIn => {
+        setSignedOut(!signedIn);
+        setStatus(null);
+        setError(null);
+      }).catch(() => setSignedOut(true));
+      return;
+    }
     void load();
   }, [targetUserId]);
 
