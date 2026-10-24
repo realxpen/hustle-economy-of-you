@@ -1,0 +1,62 @@
+name: Hustle Cloudflare PWA Compatibility (no deployment)
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/hustle-cloudflare-pwa-compat.yml"
+      - "scripts/cloudflare/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CI: "true"
+      HUSTLE_ISOLATED_PWA_GATE: isolated-staging
+      NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked monorepo dependencies
+        run: npm ci
+      - name: Record official vinext compatibility results
+        continue-on-error: true
+        working-directory: apps/web
+        run: |
+          npx --yes vinext check 2>&1 | tee /tmp/hustle-vinext-check.log
+      - name: Initialize Cloudflare Workers in disposable CI checkout (no deploy)
+        working-directory: apps/web
+        run: |
+          printf '\n\n\n\n\n\n' | npx --yes vinext init --platform=cloudflare --skip-check
+      - name: Confirm generated source and build scripts
+        run: |
+          test -f apps/web/vite.config.ts
+          test -f apps/web/cloudflare.config.ts
+          node -e 'const p=require("./apps/web/package.json"); if(!p.scripts["build:vinext"] && !p.scripts.build?.includes("vite")) process.exit(1)'
+          git status --short
+      - name: Build vinext for isolated iPhone PWA (no deployment)
+        run: npm run build:vinext --workspace=@hustle/web
+      - name: Upload nonsecret initializer output for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hustle-cloudflare-compat-${{ github.sha }}
+          retention-days: 5
+          if-no-files-found: warn
+          path: |
+            /tmp/hustle-vinext-check.log
+            apps/web/vite.config.ts
+            apps/web/cloudflare.config.ts
+            apps/web/wrangler.jsonc
+            apps/web/package.json
+            package-lock.json
