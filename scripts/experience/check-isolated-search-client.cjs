@@ -59,5 +59,7 @@ mod._compile(transpiled,file);
  assert.match(page,/getSearchPage\(nextTab/);
  assert.match(page,/Explore skills/);
  assert.match(page,/aria-expanded=\{filtersExpanded\}/);
+ assert.match(page,/label: "Open test sign-in", href: "\/auth"/);
+ assert.doesNotMatch(page,/setTimeout\(\(\) => window\.location\.assign\("\/auth"\)/);
  console.log("PASS: Explore + Marketplace use staging Better Auth client; exact search tabs and filters preserved.");
 })().catch(e=>{console.error(e);process.exitCode=1});
