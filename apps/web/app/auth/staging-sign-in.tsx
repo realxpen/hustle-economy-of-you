@@ -51,6 +51,7 @@ export function StagingWebSignIn() {
           {creating?"Already registered? Sign in":"Create invited test account"}
         </button>
       </form>
+      <a className={styles.switch} href="/home">Continue exploring as a guest →</a>
       <small className={styles.disclaimer}>For internal non-financial testing only. Don't reuse a real password.</small>
     </section>
   </main>;

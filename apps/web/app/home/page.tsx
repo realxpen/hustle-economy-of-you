@@ -4,7 +4,7 @@ import { ExperienceHeader } from "../../components/navigation/experience-header"
 import { ExperienceState } from "../../components/experience/experience-state";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { OfferQuickView } from "../../components/commerce/offer-quick-view";
 import { captureFeedEvent, getFeedPage, type FeedItem, type FeedPage, type FeedTab } from "../../lib/feed";
 import {
@@ -494,7 +494,6 @@ function FeedCard({
 }
 
 export default function DiscoveryHomePage() {
-  const router = useRouter();
   const [tab, setTab] = useState<FeedTab>("for-you");
   const [items, setItems] = useState<FeedItem[]>([]);
   const [meta, setMeta] = useState<Pick<FeedPage, "nextCursor" | "hasMore" | "viewerLocation" | "coldStart" | "reason" | "guest">>({
@@ -552,7 +551,7 @@ export default function DiscoveryHomePage() {
         setLoadingMore(false);
       }
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (!sessionId) return;

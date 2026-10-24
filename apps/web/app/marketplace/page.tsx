@@ -82,7 +82,7 @@ export default function MarketplacePage() {
       if (version !== requestVersion.current) return;
       const message = reason instanceof Error ? reason.message : "Marketplace failed to load";
       setError(message);
-      if (message.toLowerCase().includes("sign in")) setTimeout(() => window.location.assign("/auth"), 900);
+      // Do not force sign-in when a public browse read fails.
     } finally {
       if (version === requestVersion.current) {
         setLoading(false);
