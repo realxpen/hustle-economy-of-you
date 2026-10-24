@@ -51,6 +51,10 @@ jobs:
         run: node scripts/experience/check-you-account.cjs
       - name: Frictionless navigation and glass UI contracts
         run: node scripts/experience/check-frictionless-glass.cjs
+      - name: Verify iOS Home Screen PWA matches Figma/UX004 and remains online-only
+        run: node scripts/experience/check-ios-pwa-parity.cjs
+      - name: Verify connected iOS staging login, read-only API proxy and CSRF
+        run: node scripts/experience/check-ios-pwa-connected-staging.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
@@ -81,6 +85,10 @@ jobs:
           NODE_PATH: /tmp/hustle-smoke/node_modules
           HUSTLE_SMOKE_REPORT_PATH: /tmp/hustle-local-web-smoke.json
         run: node scripts/responsive/local-smoke.cjs
+      - name: Smoke test installed iPhone PWA interface and icon routes
+        env:
+          NODE_PATH: /tmp/hustle-smoke/node_modules
+        run: node scripts/responsive/pwa-standalone-smoke.cjs
       - name: Interactive local Service to Booking UI regression
         env:
           NODE_PATH: /tmp/hustle-smoke/node_modules

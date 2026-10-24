@@ -91,3 +91,24 @@
 .conversationUnread{background:var(--h-glass-raised,#fff);border:2px solid var(--h-ink,#111)}
 .conversationUnread .nameLine strong{color:var(--h-ink,#111)}
 .conversationUnread .preview{color:var(--h-ink,#111)}
+
+/* UX004 native Inbox: cream conversation utility screen; real messages only. */
+@media(max-width:760px) and (display-mode:standalone) {
+ .shell,.threadShell{background:#F7F6F2;color:#121714;
+   font-family:Inter,ui-sans-serif,system-ui,sans-serif;}
+ .shell{padding:calc(16px + env(safe-area-inset-top,0px)) 18px
+   calc(110px + env(safe-area-inset-bottom,0px));}
+ .shell>header{display:none}
+ .hero{padding:13px 0 15px}
+ .hero h1{font-size:29px;line-height:1.15;letter-spacing:-.04em}
+ .hero p{font-size:13px;color:#586052}
+ .conversation{background:#E9EEE4;border-color:#DBE4D6;border-radius:18px;padding:15px}
+ .conversationUnread{background:#E5F2D5;border:2px solid #667B60}
+ .avatar{background:#121714;color:#C9F26B}
+ .verified,.unread{background:#121714;color:#C9F26B}
+ .button{background:#C9F26B;color:#121714}
+ .empty,.error,.loading{background:#E9EEE4;border-color:#DBE4D6}
+ .threadHeader,.composerWrap{background:#F7F6F2;border-color:#DBE4D6}
+ .mine .bubble{background:#E1EDCD;color:#121714;border-color:#CAD8BC}
+ .threadShell{padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))}
+}

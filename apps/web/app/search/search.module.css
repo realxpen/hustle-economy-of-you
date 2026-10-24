@@ -66,3 +66,91 @@
 @media(prefers-reduced-transparency:reduce){
  .searchBar,.filters,.card{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+/* Reuse the original Figma Mobile V1 Explore and UX004 cream utility screen
+   on the iPhone Home Screen. All search queries use the EXISTING real API. */
+.pwaExploreTitle,.pwaExploreSubtitle,.pwaSkills { display: none; }
+@media(max-width:760px) and (display-mode:standalone) {
+ .shell{
+   --h-paper:#F7F6F2;
+   --h-ink:#121714;
+   --h-surface:#fff;
+   min-height:100dvh;
+   padding-bottom:calc(104px + env(safe-area-inset-bottom,0px));
+   background:#F7F6F2;
+   color:#121714;
+ }
+ .shell>header{display:none}
+ .hero {
+   padding:calc(24px + env(safe-area-inset-top,0px)) 22px 15px;
+   margin:0;
+ }
+ .hero h1:not(.pwaExploreTitle),.hero .eyebrow,.hero>p:not(.pwaExploreSubtitle){display:none}
+ .pwaExploreTitle{
+   display:block;
+   margin:0;
+   color:#121714;
+   font-size:29px;
+   font-weight:900;
+   line-height:1.18;
+   letter-spacing:-.04em;
+ }
+ .pwaExploreSubtitle{
+   display:block;
+   margin:10px 0 0;
+   font-size:14px;
+   font-weight:500;
+   color:#666D66;
+   line-height:1.4;
+ }
+ .searchForm { padding:7px 20px 10px; }
+ .searchBar {
+   display:flex;align-items:center;gap:6px;
+   background:#fff;border:1px solid #E4E8DD;
+   box-shadow:none;
+   border-radius:18px;padding:5px 5px 5px 10px;
+ }
+ .searchBar input {padding:12px 8px;font-size:16px;color:#121714}
+ .searchBar button,.primaryButton {
+   min-height:44px;
+   padding:8px 13px;
+   border-radius:14px;
+   color:#121714;
+   background:#C9F26B;
+   font-size:12px;
+ }
+ .pwaSkills {
+   display:grid;
+   grid-template-columns:repeat(5,minmax(0,1fr));
+   gap:7px;
+   margin:8px 20px 22px;
+   width:calc(100% - 40px);
+ }
+ .pwaSkills a {
+   display:flex; flex-direction:column; align-items:center; justify-content:center;
+   min-height:73px;
+   min-width:0;
+   padding:8px 2px;
+   border-radius:17px;
+   background:#fff;
+   color:#343A32;
+   text-decoration:none;
+   gap:5px;
+ }
+ .pwaSkills a:first-child{background:#DDF0B8}
+ .pwaSkills a:focus-visible{outline:3px solid #121714;outline-offset:2px}
+ .pwaSkills a span{font-size:21px;line-height:1.2;color:#172019}
+ .pwaSkills a small{font-size:10px;font-weight:800}
+ .tabs {padding:0 20px 18px;scrollbar-width:none}
+ .tabs .tabActive{background:#121714;border-color:#121714;color:#C9F26B}
+ .filters {padding:0 20px 19px}
+ .resultsWrap {padding:4px 20px 20px}
+ .card {background:#fff;border-radius:19px;border-color:#E5E8E0}
+ .media {background:#E9EEE4}
+ .grid{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:355px) and (display-mode:standalone) {
+ .pwaSkills{gap:3px;margin-inline:12px;width:calc(100% - 24px)}
+ .pwaSkills a small{font-size:9px}
+ .hero,.searchForm,.tabs,.filters,.resultsWrap{padding-inline:12px}
+}

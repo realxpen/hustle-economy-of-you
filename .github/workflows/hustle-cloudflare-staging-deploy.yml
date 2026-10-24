@@ -1,0 +1,57 @@
+name: Hustle Cloudflare iPhone PWA Staging Deploy (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      approve_staging:
+        description: 'Confirm isolated nonproduction Worker deploy; no real payments or database mutation'
+        required: true
+        type: choice
+        options:
+          - DO_NOT_DEPLOY
+          - I_AUTHORIZE_ISOLATED_STAGING_ONLY
+        default: DO_NOT_DEPLOY
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-cloudflare-isolated-staging
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    if: inputs.approve_staging == 'I_AUTHORIZE_ISOLATED_STAGING_ONLY' && (github.ref == 'refs/heads/feat/cloudflare-pwa-aws-staging-migration' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment: hustle-cloudflare-staging
+    env:
+      CI: 'true'
+      NODE_ENV: production
+      NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: 'true'
+      HUSTLE_ISOLATED_PWA_GATE: isolated-staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Validate isolated staging configuration before any Cloudflare credentials
+        run: |
+          npm ci
+          node scripts/cloudflare/check-worker-config.cjs
+          node scripts/experience/check-ios-pwa-parity.cjs
+          node scripts/experience/check-ios-pwa-connected-staging.cjs
+          npm run typecheck --workspace=@hustle/web
+      - name: Compile exact Cloudflare Workers output
+        run: npm run build:vinext --workspace=@hustle/web
+      - name: Deploy only dedicated nonproduction Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo 'Cloudflare staging credentials must be connected as GitHub Actions secrets. No deployment attempted.'
+            exit 1
+          fi
+          npm run deploy:vinext --workspace=@hustle/web

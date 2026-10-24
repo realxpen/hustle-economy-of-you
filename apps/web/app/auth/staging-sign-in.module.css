@@ -1,0 +1,21 @@
+.screen{background:#F7F6F2;min-height:100dvh;display:grid;place-items:center;color:#121714;
+padding:calc(24px + env(safe-area-inset-top,0px)) 22px calc(100px + env(safe-area-inset-bottom,0px))}
+.card{width:min(100%,440px);margin:auto}
+.brand{font-size:25px;font-weight:900;letter-spacing:-.05em;margin-bottom:20px}
+.brand span{color:#82B52D}
+.kicker{font-size:10px;letter-spacing:.14em;font-weight:800;color:#656D5E}
+.card h1{font-size:clamp(30px,8vw,42px);line-height:1.12;letter-spacing:-.05em;margin:18px 0}
+.description{color:#586052;font-size:15px;line-height:1.5}
+.form{display:grid;gap:12px;margin-top:24px}
+.form label{display:grid;gap:8px;font-size:14px;font-weight:800}
+.form input{width:100%;min-height:51px;padding:13px 15px;background:#fff;border:1px solid #ACB4A4;
+  border-radius:14px;color:#121714;font-size:16px}
+.form input::placeholder{color:#646E61}
+.form input:focus-visible,.form button:focus-visible{outline:3px solid #9AD84D;outline-offset:2px}
+.form button{min-height:51px;padding:13px 18px;background:#C9F26B;border:0;color:#121714;
+border-radius:24px;font-size:15px;font-weight:800;cursor:pointer}
+.form button:disabled{opacity:.58}
+.form button.switch{background:transparent;color:#334232;font-size:13px}
+.error{color:#8C2B21;background:#FFEDE8;border:1px solid #DCA99F;border-radius:12px;
+padding:11px;font-size:13px;line-height:1.5}
+.disclaimer{display:block;margin-top:20px;color:#586052;line-height:1.5}

@@ -3,6 +3,7 @@
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { ExperienceState } from "../../components/experience/experience-state";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   captureSearchObservation,
   getSearchPage,
@@ -164,6 +165,8 @@ export default function SearchPageScreen() {
     <ExperienceHeader section="Search" />
 
     <section className={[styles.hero, "h-experience-hero"].join(" ")}>
+      <h1 className={styles.pwaExploreTitle}>Explore</h1>
+      <p className={styles.pwaExploreSubtitle}>Discover people who can get it done.</p>
       <p className={styles.eyebrow}>INTENTIONAL DISCOVERY</p>
       <h1 className="h-experience-heading">Find who or what can genuinely help.</h1>
       <p>Search people by capability, inspect proof, and move directly into a published Service, Product or professional identity.</p>
@@ -176,6 +179,19 @@ export default function SearchPageScreen() {
       </div>
     </form>
 
+    <nav className={styles.pwaSkills} aria-label="Explore skills">
+      {([
+        ["Beauty", "✂", "beauty"],
+        ["Fashion", "◈", "fashion"],
+        ["Home", "⌂", "home services"],
+        ["Media", "◉", "media"],
+        ["Digital", "✦", "digital"]
+      ] as const).map(([label, symbol, term]) =>
+        <Link key={label} href={"/search?q=" + encodeURIComponent(term)}>
+          <span aria-hidden="true">{symbol}</span><small>{label}</small>
+        </Link>
+      )}
+    </nav>
     <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>
 
     <section className={styles.filters} aria-label="Search filters">

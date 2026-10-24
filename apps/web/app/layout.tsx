@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./adaptive-foundation.css";
 import "./glass-system.css";
@@ -6,7 +6,19 @@ import { HustleMobileNav } from "../components/navigation/hustle-mobile-nav";
 
 export const metadata: Metadata = {
   title: "Hustle — The Economy of You",
-  description: "Discover people through what they make, do, and share. Find Hustlers. Get It Done."
+  description: "Discover people through what they make, do, and share. Find Hustlers. Get It Done.",
+  applicationName: "Hustle",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Hustle", statusBarStyle: "black-translucent" },
+  icons: { icon: "/icon.svg", apple: "/apple-icon" },
+  formatDetection: { telephone: false }
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#121714"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

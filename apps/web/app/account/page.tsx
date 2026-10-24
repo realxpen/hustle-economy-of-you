@@ -9,6 +9,7 @@ import { TrustActivityCenter } from "../../components/trust/trust-activity-cente
 import { AttributionConsentSettings } from "../../components/privacy/attribution-consent";
 import { getMyAccount } from "../../lib/auth/hustle-account";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
+import { isolatedWebMode, stageSignOut } from "../../lib/auth/isolated-web-auth";
 import styles from "./page.module.css";
 
 type GlyphName = "calendar" | "bag" | "chat" | "wallet" | "play" | "spark" | "store" | "box" | "shield" | "user" | "agent";
@@ -71,7 +72,9 @@ export default function AccountPage() {
     setSigningOut(true);
     setError(null);
     try {
-      const { error: authError } = await getSupabaseBrowserClient().auth.signOut();
+      const { error: authError } = await (isolatedWebMode
+        ? stageSignOut().then(() => ({ error: null }))
+        : getSupabaseBrowserClient().auth.signOut());
       if (authError) throw authError;
       window.location.assign("/auth");
     } catch (reason) {

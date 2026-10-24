@@ -33,3 +33,26 @@
 @media(prefers-reduced-transparency:reduce){
  .form,.preview{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+/* UX004 native Create: reuse existing authenticated post editor functionality. */
+@media(max-width:760px) and (display-mode:standalone){
+ .shell{background:#F7F6F2;color:#121714;
+   padding:calc(19px + env(safe-area-inset-top,0px)) 19px
+     calc(106px + env(safe-area-inset-bottom,0px));}
+ .header{border-bottom-color:#D8E1D1}
+ .hero{padding:22px 0 20px;gap:12px}
+ .hero h1{font-size:clamp(29px,8vw,37px);line-height:1.1;letter-spacing:-.045em}
+ .hero p{color:#586052}
+ .status strong{font-size:28px}
+ .progress{background:#D9E6D0}
+ .progress span{background:#C9F26B}
+ .form,.variants{background:#fff;border:1px solid #D7DFD1;border-radius:20px}
+ .form input,.form textarea,.form select{border-color:#89917E;color:#121714;
+   background:#fff;min-height:48px}
+ .sectionTitle>span{background:#121714;color:#C9F26B}
+ .primary{background:#C9F26B;color:#121714;min-height:46px}
+ .secondary,.addVariant button,.variantActions button{background:#121714;color:#fff}
+ .preview{background:#121714;border-color:#121714;color:#F7F6F2}
+ .creatorNav{background:#E9EEE4;border:1px solid #CAD6C3}
+ .creatorNav span{background:#C9F26B;color:#121714}
+}
