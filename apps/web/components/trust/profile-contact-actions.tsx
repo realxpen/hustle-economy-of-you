@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { blockUser, getBlockStatus, unblockUser, type BlockStatus } from "../../lib/trust-safety";
 import { SafetyReportAction } from "./safety-report-action";
 import styles from "./transaction-safety-actions.module.css";
+import { authUrl } from "../../lib/api/public-browsing";
 
 export function ProfileContactActions({
   targetUserId,
@@ -56,7 +57,7 @@ export function ProfileContactActions({
   }
 
   if (signedOut || (!status && !error)) {
-    return <a className={styles.primary} href={messageHref}>Message →</a>;
+    return <a className={styles.primary} href={signedOut ? authUrl(messageHref) : messageHref}>Message →</a>;
   }
   if (status?.isSelf) return null;
 
