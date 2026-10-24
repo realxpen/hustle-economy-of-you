@@ -49,9 +49,9 @@ async function get(check) {
     signal: AbortSignal.timeout(16000)
   });
   const type = response.headers.get("content-type") || "";
-  const validType = check.type === "json" ? /application\/json/ : /text\/html/;
-  assert.match(type, validType, check.path + " content-type");
-  assert.equal(response.status, check.status, check.path + " status");
+  const validType = check.type === "json" ? /(?:application\/(?:json|manifest\+json)|\+json)/ : /text\/html/;
+  assert.equal(response.status, check.status, check.path + " status (" + type + ")");
+  assert.match(type, validType, check.path + " content-type (" + type + ")");
   if (check.contains || check.verify) {
     const raw = await response.text();
     assert.ok(raw.length < 400000, "Unexpected response size");
