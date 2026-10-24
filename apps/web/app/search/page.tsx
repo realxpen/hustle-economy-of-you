@@ -121,7 +121,7 @@ export default function SearchPageScreen() {
       if (version !== requestVersion.current) return;
       const message = reason instanceof Error ? reason.message : "Search failed";
       setError(message);
-      if (message.toLowerCase().includes("sign in")) setTimeout(() => window.location.assign("/auth"), 900);
+      // Keep a visible sign-in action; never redirect users unexpectedly while they read an error.
     } finally {
       if (version === requestVersion.current) {
         setLoading(false);
@@ -221,7 +221,12 @@ export default function SearchPageScreen() {
 
     <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
       <div className={styles.resultMeta} role="status" aria-live="polite"><strong>{resultLabel}</strong><span>{loading ? "Searching…" : `${items.length} loaded · ${tab}`}</span></div>
-      {error && <ExperienceState kind="error" title="Search isn't available right now." description={error} action={{ label: "Retry search", onClick: () => void runSearch(tab), disabled: loading || !query.trim() }} />}
+      {error && <ExperienceState kind="error"
+        title={/sign in|authentication is not configured/i.test(error) ? "Sign in to search Hustle." : "Search isn't available right now."}
+        description={error}
+        action={/sign in|authentication is not configured/i.test(error)
+          ? { label: "Open test sign-in", href: "/auth" }
+          : { label: "Retry search", onClick: () => void runSearch(tab), disabled: loading || !query.trim() }} />}
       {!error && loading && <ExperienceState kind="loading" title="Finding people, work and offers…" description="Checking currently published Hustle results." />}
       {!error && !loading && meta.zeroResults && <ExperienceState kind="empty" title="No useful match yet." description="Try a broader skill, category or location. Hustle won't silently substitute unrelated results." action={{label:"Clear filters",onClick:()=>{setFilters(emptyFilters);setError(null);if(query.trim())void runSearch(tab,null,false,emptyFilters);}}} />}
       {!error && !loading && !meta.zeroResults && items.length === 0 && <ExperienceState kind="empty" title="What do you need?" description="Search for a professional, capability, Service, Product or demonstrated work." />}

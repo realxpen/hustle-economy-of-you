@@ -45,6 +45,7 @@ jobs:
           node scripts/cloudflare/check-worker-config.cjs
           node scripts/experience/check-ios-pwa-parity.cjs
           node scripts/experience/check-ios-pwa-connected-staging.cjs
+          node scripts/experience/check-isolated-search-client.cjs
           npm run typecheck --workspace=@hustle/web
       - name: Compile exact Cloudflare Workers output
         env:
