@@ -1,0 +1,64 @@
+name: Hustle Cloudflare Generated Config Pin (one-time, no deploy)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/hustle-pin-cloudflare-generated.yml
+
+permissions:
+  contents: read
+
+jobs:
+  pin-config:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/cloudflare-pwa-aws-staging-migration'
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/cloudflare-pwa-aws-staging-migration
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install existing locked dependencies
+        run: npm ci
+      - name: Generate official Cloudflare config and workspace lockfile
+        working-directory: apps/web
+        env:
+          CI: 'true'
+        run: |
+          printf '\n\n\n\n\n\n' | npx --yes vinext init --platform=cloudflare --skip-check
+      - name: Pin isolated Cloudflare Worker name
+        run: |
+          node -e 'const fs=require("fs");const p="apps/web/cloudflare.config.ts";let s=fs.readFileSync(p,"utf8");if(!s.includes("name: \"web\""))process.exit(2);s=s.replace("name: \"web\"","name: \"hustle-ios-pwa-staging\"");fs.writeFileSync(p,s)'
+          test -f apps/web/vite.config.ts
+          test -f apps/web/cloudflare.config.ts
+          test -f package-lock.json
+      - name: Verify generated Cloudflare build without deploying
+        env:
+          HUSTLE_ISOLATED_PWA_GATE: isolated-staging
+          NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: 'true'
+        run: npm run build:vinext --workspace=@hustle/web
+      - name: Commit only official source configuration and lock
+        run: |
+          git add apps/web/package.json apps/web/vite.config.ts apps/web/cloudflare.config.ts package-lock.json
+          if git diff --cached --quiet; then
+            echo 'Generated configuration is already pinned.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'build(cloudflare): pin verified vinext workspace and staging Worker config'
+      - name: Push source-only commit on this authorized branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "$(git log -1 --pretty=%s)" != 'build(cloudflare): pin verified vinext workspace and staging Worker config' ]; then
+            echo 'No generated changes to push.'
+            exit 0
+          fi
+          git -c http.extraheader="AUTHORIZATION: bearer $GH_TOKEN" push origin HEAD:refs/heads/feat/cloudflare-pwa-aws-staging-migration
