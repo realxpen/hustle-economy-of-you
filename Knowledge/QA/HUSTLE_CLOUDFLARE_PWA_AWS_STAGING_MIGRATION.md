@@ -27,3 +27,17 @@ Workers and App Runner are usage-metered; allowances and AWS promotional credits
 - No GitHub source checks substitute for actually opening a live deployed iPhone PWA.
 
 References: https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/ ; https://vinext.dev/docs/deploying/cloudflare ; https://docs.aws.amazon.com/apprunner/latest/dg/service-source-code.html
+
+## Verified engineering evidence — 2026-10-24
+- Cloudflare official vinext compatibility scan: 96% compatible, 5/5 supported Next imports, 2/3 config options fully supported; reactStrictMode partial, no blocking issues. Source: GitHub Actions compatibility artifact 12549724211.
+- Cloudflare first clean build in disposable CI: passed run 40068257859. Official generated Cloudflare config, Vite CSS modules compatibility shim, workspace package and 594,412-byte lockfile were subsequently committed; no framework rewrite.
+- Exact-source locked Cloudflare CI run 40069222019 PASSED: npm ci, compatibility, strict preview gates, Next UI/PWA source assertions, web typecheck, Cloudflare Worker build and actual local workerd preview HTTP checks for manifest, auth, Home and Explore.
+- Exact-source Foundation CI run 40069222085 PASSED: existing Next web/admin/API builds, typechecks, responsive browser smoke and mobile integration checks.
+- Exact-source mobile cloud run 40069221953 PASSED, Expo auth run 40069221925 PASSED, isolated API acceptance 40069222014 PASSED and isolated payment sandbox 40069222030 PASSED. Native Gradle CI still running when written; not claimed passed.
+- AWS staging container candidate built and inspected with no AWS account access, no network in runtime inspection and no database credentials; run 40069221924 PASSED.
+- Delivery workflow .github/workflows/hustle-cloudflare-staging-deploy.yml is manual-only with explicit nonproduction approval value, dedicated GitHub Environment and Cloudflare credentials exclusively from Actions secrets. No code push can deploy.
+
+## Remaining external blocker
+- The Cloudflare account is not connected as a chat-accessible provider; source work is complete but no live Worker URL has been issued, so no genuine iPhone Cloudflare acceptance has occurred.
+- Prior to a live deployment, the owner should add CLOUDFLARE_API_TOKEN (minimum Edit Workers scope, account-limited) and CLOUDFLARE_ACCOUNT_ID as GitHub Actions repository or environment secrets, configure the staging Environment's optional reviewers/budget guard, then explicitly dispatch the deploy workflow on the reviewed branch. Never send token values in chat.
+- The AWS account has multiple connector links; identify the correct credit-bearing account and validate eligible credits and budgets before any App Runner deployment. The backend hostname and Better Auth issuer are pinned to the current Vercel staging API, so the AWS URL cutover is a separate guarded security change.
