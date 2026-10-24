@@ -48,8 +48,8 @@ async function go(){
     "api/v1/messaging/conversations/c1/messages",
     "api/v1/messaging/conversations/c1/typing"]) {
     assert.equal(proxy.stagingProxyAllowed("GET", ep.split("/")), true, "authenticated messaging GET: "+ep);
-    assert.equal(proxy.stagingProxyAllowed("POST", ep.split("/")), false, "no writes to GET-only path: "+ep);
   }
+  assert.equal(proxy.stagingProxyAllowed("POST", "api/v1/messaging/conversations".split("/")), false);
   for (const ep of ["api/v1/messaging/conversations/direct",
     "api/v1/messaging/conversations/c1/messages",
     "api/v1/messaging/conversations/c1/read",
@@ -62,6 +62,14 @@ async function go(){
     "api/v1/messaging/conversations/direct/impersonate"]) {
     assert.equal(proxy.stagingProxyAllowed("POST", ep.split("/")), false, "messaging mutation denied: "+ep);
   }
+  for (const ep of ["api/v1/trust-safety/blocks/status/u1"]) {
+    assert.equal(proxy.stagingProxyAllowed("GET", ep.split("/")), true);
+    assert.equal(proxy.stagingProxyAllowed("POST", ep.split("/")), false);
+  }
+  for (const ep of ["api/v1/trust-safety/blocks/u1","api/v1/trust-safety/reports"])
+    assert.equal(proxy.stagingProxyAllowed("POST", ep.split("/")), true);
+  assert.equal(proxy.stagingProxyAllowed("DELETE", "api/v1/trust-safety/blocks/u1".split("/")), true);
+  assert.equal(proxy.stagingProxyAllowed("GET", "api/v1/trust-safety/reports".split("/")), false);
   assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","posts"]),true);
   assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","posts","p1","publish"]),true);
   assert.equal(proxy.stagingProxyAllowed("DELETE",["api","v1","posts","p1","media","m1"]),true);

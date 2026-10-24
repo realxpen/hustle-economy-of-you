@@ -485,7 +485,7 @@ export default function ConversationPage() {
       <a href={returnTo}>← {transactionReturnLabel(returnTo)}</a>
       <span>{returnTo.startsWith("/bookings/new/") ? "Continue your prepared Booking request when you are ready. Your draft stays in this browser tab and has not been submitted." : "This conversation is for coordination. Only the original transaction page confirms status and payment."}</span>
     </div>}
-    {conversationId && other && !isolatedWebMode && <div style={{ padding: "14px 18px 0" }}>
+    {conversationId && other && <div style={{ padding: "14px 18px 0" }}>
       <ConversationSafetyActions
         conversationId={conversationId}
         targetUserId={other.id}

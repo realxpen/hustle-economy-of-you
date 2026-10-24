@@ -52,7 +52,9 @@ try {
   ["GET","messaging/conversations/c1/messages"],["GET","messaging/conversations/c1/typing"],
   ["POST","messaging/conversations/direct"],["POST","messaging/conversations/c1/messages"],
   ["POST","messaging/conversations/c1/read"],["POST","messaging/conversations/c1/typing"],
-  ["POST","messaging/conversations/c1/messages/m1/context-opened"]
+  ["POST","messaging/conversations/c1/messages/m1/context-opened"],
+  ["GET","trust-safety/blocks/status/u1"],["POST","trust-safety/blocks/u1"],
+  ["DELETE","trust-safety/blocks/u1"],["POST","trust-safety/reports"]
  ];
  for(const [method,route] of allowed) {
    const path="api/v1/"+route;
@@ -64,6 +66,7 @@ try {
   ["POST","posts/abc/upload"],["POST","posts/abc/proofs/def"],["DELETE","services/abc"],["GET","admin/operations/users"],
   ["POST","guest/feed/for-you"],["POST","guest/search"],["POST","guest/marketplace"],
   ["POST","messaging/conversations/c1/attachments"],["DELETE","messaging/conversations/c1"],
+  ["GET","trust-safety/reports"],["DELETE","trust-safety/reports/u1"],
   ["POST","bookings"],["POST","payments"],["POST","escrow/release"],
   ["POST","orders"],["POST","wallet/deposit"],["PATCH","services/abc"],
   ["PUT","hustler-reviews/abc/approve"],["POST","services/abc/delete"]
@@ -93,6 +96,7 @@ try {
  assert.match(get("apps/web/lib/messaging.ts"),/if \(isolatedWebMode\) throw new Error\("Private file attachments/);
  assert.match(get("apps/web/app/messages/start/page.tsx"),/openDirectConversation\(userId\)/);
  assert.match(get("apps/web/app/messages/[conversationId]/page.tsx"),/sendMessage\(conversationId/);
+ assert.match(get("apps/web/lib/trust-safety.ts"),/if \(isolatedWebMode\) return sharedAuthenticatedFetch\(path, init\)/);
  const postApi = get("apps/api/src/post/post.service.ts");
  assert(postApi.includes('this.isPublicStagingMediaUrl(mediaUrl)'),
    "Only externally hosted HTTPS media may be attached to staging posts");
