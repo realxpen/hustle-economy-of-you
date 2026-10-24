@@ -10,7 +10,8 @@ import { withTransactionReturnTo } from "../../../../lib/transaction-return";
 import { checkBookingAvailability, createBooking, listFlowTimeSlots, type FlowTimeSlotDay, type BookingAvailability } from "../../../../lib/booking";
 import { openDirectConversation } from "../../../../lib/messaging";
 import { authUrlFor } from "../../../../lib/auth/safe-auth-next";
-import { getSupabaseBrowserClient } from "../../../../lib/supabase/client";
+import { hasViewerSession } from "../../../../lib/api/public-browsing";
+import { isolatedWebMode } from "../../../../lib/auth/isolated-web-auth";
 import {
   clearBookingDraft, readBookingDraft, saveBookingDraft,
   type BookingDraftFields
@@ -178,9 +179,7 @@ export default function NewBookingPage() {
     try {
       // Preserve the prepared request before an authentication handoff.
       saveBookingDraft(tabStorage(), data.service.id, draftFields());
-      const { data: { session }, error: authError } = await getSupabaseBrowserClient().auth.getSession();
-      if (authError) throw authError;
-      if (!session?.access_token) {
+      if (!await hasViewerSession()) {
         window.location.assign(authUrlFor(window.location.pathname + window.location.search));
         return;
       }
@@ -251,14 +250,14 @@ export default function NewBookingPage() {
           <h1>{service.title}</h1>
           <p className={styles.price}>{formatServicePrice(service)}</p>
           <p>By {owner.displayName ?? `@${owner.username}`} · {service.deliveryMode}</p>
-          <p>This request preserves the Service, price basis and schedule as transaction history. You will review payment only if the Hustler accepts a paid Booking; submitting this request does not charge you.</p>
+          <p>{isolatedWebMode ? "Isolated staging scheduling only: no payment, deposit or work is initiated by this request. Hustler approval is still required." : "This request preserves the Service, price basis and schedule as transaction history. You will review payment only if the Hustler accepts a paid Booking; submitting this request does not charge you."}</p>
         </article>
         <aside className={styles.offerCard}>
           <p className={styles.eyebrow}>HOW IT WORKS</p>
           <p>1. Pick a time or propose a deadline. FlowTime considers work duration, operating hours and capacity.</p>
           <p>2. Describe what you need.</p>
           <p>3. The Hustler accepts, adjusts the confirmed time, or declines.</p>
-          <p>4. Any paid Booking stays payment pending until the payment provider confirms funding.</p>
+          <p>{isolatedWebMode ? "4. Booking requests and scheduling decisions are test-only; all payment and work completion actions remain disabled." : "4. Any paid Booking stays payment pending until the payment provider confirms funding."}</p>
         </aside>
       </section>
 
@@ -342,7 +341,7 @@ export default function NewBookingPage() {
         </div>
 
         {error && <div className={styles.error} role="alert" id="booking-form-error">{error}</div>}
-        <button className={styles.primary} type="submit" aria-busy={submitting} disabled={submitting || !requirements.trim()}>{submitting ? "Checking schedule…" : "Submit booking request →"}</button>
+        <button className={styles.primary} type="submit" aria-busy={submitting} disabled={submitting || !requirements.trim()}>{submitting ? "Checking schedule…" : isolatedWebMode ? "Send test scheduling request →" : "Submit booking request →"}</button>
       </form>
     </div>
   </main>;

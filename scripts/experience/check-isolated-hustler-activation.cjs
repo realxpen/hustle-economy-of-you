@@ -48,6 +48,11 @@ try {
   ["POST","posts/abc/comments"],["DELETE","posts/abc/comments/def"],
   ["POST","users/abc/follow"],["DELETE","users/abc/follow"],
   ["POST","feed/events"],["POST","search/events"],["POST","marketplace/events"],
+  ["GET","bookings/client"],["GET","bookings/hustler"],["GET","bookings/booking1"],
+  ["GET","bookings/availability"],["GET","bookings/slots"],["GET","bookings/duration-insights"],
+  ["GET","guest/bookings/availability"],["GET","guest/bookings/slots"],
+  ["POST","bookings"],["POST","bookings/booking1/accept"],
+  ["POST","bookings/booking1/decline"],["POST","bookings/booking1/cancel"],
   ["GET","messaging/conversations"],["GET","messaging/conversations/c1"],
   ["GET","messaging/conversations/c1/messages"],["GET","messaging/conversations/c1/typing"],
   ["POST","messaging/conversations/direct"],["POST","messaging/conversations/c1/messages"],
@@ -67,7 +72,10 @@ try {
   ["POST","guest/feed/for-you"],["POST","guest/search"],["POST","guest/marketplace"],
   ["POST","messaging/conversations/c1/attachments"],["DELETE","messaging/conversations/c1"],
   ["GET","trust-safety/reports"],["DELETE","trust-safety/reports/u1"],
-  ["POST","bookings"],["POST","payments"],["POST","escrow/release"],
+  ["POST","bookings/booking1/complete"],["POST","bookings/booking1/start"],
+  ["POST","bookings/booking1/extend"],["POST","bookings/booking1/fund"],
+  ["POST","guest/bookings/availability"],["POST","guest/bookings/slots"],
+  ["DELETE","bookings/booking1"],["POST","payments"],["POST","escrow/release"],
   ["POST","orders"],["POST","wallet/deposit"],["PATCH","services/abc"],
   ["PUT","hustler-reviews/abc/approve"],["POST","services/abc/delete"]
  ];
@@ -97,6 +105,14 @@ try {
  assert.match(get("apps/web/app/messages/start/page.tsx"),/openDirectConversation\(userId\)/);
  assert.match(get("apps/web/app/messages/[conversationId]/page.tsx"),/sendMessage\(conversationId/);
  assert.match(get("apps/web/lib/trust-safety.ts"),/if \(isolatedWebMode\) return sharedAuthenticatedFetch\(path, init\)/);
+ const bookingClient=get("apps/web/app/bookings/new/[serviceId]/page.tsx");
+ assert.match(bookingClient,/hasViewerSession\(\)/,"staging must use Better Auth session rather than Supabase");
+ assert.doesNotMatch(bookingClient,/getSupabaseBrowserClient/);
+ assert.match(get("apps/api/src/booking/booking.service.ts"),/HUSTLE_RUNTIME_SCOPE === "isolated-staging"/);
+ assert.match(get("apps/api/src/booking/booking.service.ts"),/MessageContextType\.SERVICE/);
+ assert.match(get("apps/web/app/bookings/[bookingId]/page.tsx"),/proposeAlternateTime/);
+ assert.match(get("apps/web/app/bookings/[bookingId]/page.tsx"),/!isolatedWebMode && booking\.viewerRole/);
+ assert.match(get("apps/web/app/services/[serviceId]/page.tsx"),/Request a time \(test\)/);
  const postApi = get("apps/api/src/post/post.service.ts");
  assert(postApi.includes('this.isPublicStagingMediaUrl(mediaUrl)'),
    "Only externally hosted HTTPS media may be attached to staging posts");

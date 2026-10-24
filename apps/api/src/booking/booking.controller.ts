@@ -129,3 +129,17 @@ export class BookingController {
     return this.bookingService.complete(identity, bookingId);
   }
 }
+
+/** Public capacity for published Services only. Private Booking details stay guarded. */
+@Controller("guest/bookings")
+export class GuestBookingAvailabilityController {
+  constructor(private readonly schedule: BookingScheduleService) {}
+  @Get("slots")
+  slots(@Query("serviceId") serviceId: string, @Query("date") date: string) {
+    return this.schedule.listSlots(null, serviceId, date);
+  }
+  @Get("availability")
+  availability(@Query() query: { serviceId?: unknown; startAt?: unknown; endAt?: unknown }) {
+    return this.schedule.checkAvailability(null, query);
+  }
+}

@@ -25,6 +25,8 @@ import {
   startBooking
 } from "../../../lib/booking";
 import styles from "../bookings.module.css";
+import { isolatedWebMode } from "../../../lib/auth/isolated-web-auth";
+import { sendMessage } from "../../../lib/messaging";
 
 function formatDate(value: string | null) {
   if (!value) return "Not set";
@@ -63,6 +65,7 @@ export default function BookingDetailPage() {
   const [confirmedEndAt, setConfirmedEndAt] = useState("");
   const [decision, setDecision] = useState<BookingDecision | null>(null);
   const [decisionReason, setDecisionReason] = useState("");
+  const [proposalSent, setProposalSent] = useState(false);
 
   const applyBooking = useCallback((next: BookingRecord) => {
     setBooking(next);
@@ -89,6 +92,7 @@ export default function BookingDetailPage() {
     setBooking(null);
     setDecision(null);
     setDecisionReason("");
+    setProposalSent(false);
     setExtensionOpen(false);
     void load();
     return () => { requestVersion.current += 1; };
@@ -144,7 +148,38 @@ export default function BookingDetailPage() {
     if (new Date(start).getTime() <= Date.now()) return setError("Confirmed start must be in the future.");
     if (confirmedEndAt && !end) return setError("Choose a valid confirmed end date and time.");
     if (end && new Date(end).getTime() <= new Date(start).getTime()) return setError("Confirmed end must be after confirmed start.");
+    if (isolatedWebMode && (start !== booking.requestedStartAt || (end ?? null) !== booking.requestedEndAt)) {
+      return setError("Send a new time proposal in Messages first. The client must submit an updated request.");
+    }
     await act(() => acceptBooking(booking.id, { confirmedStartAt: start, ...(end ? { confirmedEndAt: end } : {}) }));
+  }
+
+  async function proposeAlternateTime() {
+    const booking = storedBooking?.id === params?.bookingId ? storedBooking : null;
+    if (!isolatedWebMode || !booking || booking.viewerRole !== "HUSTLER" || booking.status !== "REQUESTED" || busy) return;
+    if (!booking.conversationId) return setError("Start a consultation in Messages before suggesting another time.");
+    const start = toIso(confirmedStartAt);
+    const end = toIso(confirmedEndAt);
+    if (!start || new Date(start).getTime() <= Date.now())
+      return setError("Select a new future start time.");
+    if (confirmedEndAt && !end) return setError("Choose a valid end time.");
+    if (end && new Date(end).getTime() <= new Date(start).getTime())
+      return setError("The proposed end must follow the proposed start.");
+    if (start === booking.requestedStartAt && (end ?? null) === booking.requestedEndAt)
+      return setError("Choose a different time to propose.");
+    setBusy(true); setError(null); setProposalSent(false);
+    try {
+      await sendMessage(booking.conversationId, {
+        text: "Alternative scheduling proposal for " + booking.serviceTitleSnapshot +
+          " (request " + booking.id + "): " + formatDate(start) +
+          (end ? " to " + formatDate(end) : "") +
+          ". Please confirm in this consultation. Your original request is still pending. If we agree, cancel it and submit a new request for the new time.",
+        contextType: "SERVICE", contextId: booking.serviceId
+      });
+      setProposalSent(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not send alternate time proposal.");
+    } finally { setBusy(false); }
   }
 
   const booking = storedBooking?.id === params?.bookingId ? storedBooking : null;
@@ -157,11 +192,11 @@ export default function BookingDetailPage() {
   const canAccept = booking.viewerRole === "HUSTLER" && booking.status === "REQUESTED";
   // Match the backend gate: unpaid free bookings may start after acceptance;
   // paid bookings require server-confirmed funding, never merely an ACCEPTED label.
-  const canStart = booking.viewerRole === "HUSTLER" && (
+  const canStart = !isolatedWebMode && booking.viewerRole === "HUSTLER" && (
     (booking.status === "ACCEPTED" && !booking.paymentBoundary.required) ||
     (booking.status === "FUNDED" && booking.paymentBoundary.funded)
   );
-  const canComplete = booking.viewerRole === "HUSTLER" && booking.status === "IN_PROGRESS";
+  const canComplete = !isolatedWebMode && booking.viewerRole === "HUSTLER" && booking.status === "IN_PROGRESS";
   const messageUrl = withTransactionReturnTo(
     booking.conversationId ? `/messages/${encodeURIComponent(booking.conversationId)}`
       : `/messages/start?userId=${encodeURIComponent(other.id)}&contextType=SERVICE&contextId=${encodeURIComponent(booking.serviceId)}`,
@@ -170,9 +205,9 @@ export default function BookingDetailPage() {
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Booking detail" trail={[{ href: "/bookings", label: "Bookings" }]}
-      secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, { href: "/wallet", label: "Wallet" }]} />
+      secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, ...(!isolatedWebMode ? [{ href: "/wallet", label: "Wallet" }] : [])]} />
 
-    <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />
+    {isolatedWebMode ? <section className={styles.summaryCard} role="status"><strong>Isolated booking and availability test</strong><p>Scheduling requests and decisions only. No payment, deposit, escrow or actual job is authorized. An accepted paid request shows payment pending, but payment is unavailable here.</p></section> : <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />}
     <section className={styles.handoff} aria-label="Booking next steps">
       <div><strong>Next step</strong><p>{booking.nextAction ?? "Check your booking status or discuss the details in Messages."}</p></div>
       <div className={styles.handoffLinks}>
@@ -197,7 +232,7 @@ export default function BookingDetailPage() {
           {booking.actualStartedAt && <p className={styles.copy}>Actual work started: {formatDate(booking.actualStartedAt)}</p>}
           {booking.actualFinishedAt && <p className={styles.copy}>Actual work completed: {formatDate(booking.actualFinishedAt)}</p>}
           {booking.extendedMinutes > 0 && <p className={styles.flowTimeAvailable} role="status">Schedule extended by {booking.extendedMinutes} minutes in total. The agreed price is unchanged.</p>}
-          {booking.viewerRole === "HUSTLER" && booking.status === "IN_PROGRESS" && booking.confirmedEndAt && (
+          {!isolatedWebMode && booking.viewerRole === "HUSTLER" && booking.status === "IN_PROGRESS" && booking.confirmedEndAt && (
             <div className={styles.flowTimeExtend}>
               <strong>Running late?</strong>
               <p>Extend the expected finish only if the shared team or equipment still has room. Other confirmed customers are protected; the Client is notified and the price stays unchanged.</p>
@@ -235,25 +270,25 @@ export default function BookingDetailPage() {
 
         {booking.paymentBoundary.required && <div className={booking.paymentBoundary.funded ? styles.success : styles.payment}><strong>{booking.paymentBoundary.funded ? "Booking funding recorded" : "Payment boundary"}</strong><p>{booking.paymentBoundary.funded ? "This Booking has server-recorded funding evidence. Check Financial State below to distinguish sandbox simulation from external payment settlement." : booking.paymentBoundary.message ?? "Funding is confirmed only after authoritative payment evidence is received."}</p></div>}
 
-        {booking.paymentBoundary.required && <section className={styles.summaryCard}>
+        {!isolatedWebMode && booking.paymentBoundary.required && <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>PAYMENT · ESCROW</p>
           <TransactionFinanceActions key={`BOOKING:${booking.id}`} subjectType="BOOKING" subjectId={booking.id} canInitialize={booking.viewerRole === "CLIENT" && booking.status === "PAYMENT_PENDING"} canRefund={booking.viewerRole === "CLIENT" && booking.status === "FUNDED"} canRelease={booking.viewerRole === "CLIENT" && booking.status === "COMPLETED"} releaseKind="BOOKING_ESCROW" onFinancialChange={load} />
         </section>}
 
-        <ReviewEligibilityCard subjectType="BOOKING" subjectId={booking.id} />
-        <CounterpartyFeedbackCard subjectType="BOOKING" subjectId={booking.id} />
-        <TransactionSafetyActions
+        {!isolatedWebMode && <ReviewEligibilityCard subjectType="BOOKING" subjectId={booking.id} />}
+        {!isolatedWebMode && <CounterpartyFeedbackCard subjectType="BOOKING" subjectId={booking.id} />}
+        {!isolatedWebMode && <TransactionSafetyActions
           targetUserId={other.id}
           targetLabel={otherLabel}
           subjectType="BOOKING"
           subjectId={booking.id}
           messageHref={messageUrl}
-        />
+        />}
 
         <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>ACTIONS</p>
           <div className={styles.actions}>
-            {canAccept && <><div className={styles.field}><label htmlFor="confirmed-start">CONFIRM START</label><input id="confirmed-start" type="datetime-local" value={confirmedStartAt} onChange={(event) => setConfirmedStartAt(event.target.value)} /></div><div className={styles.field}><label htmlFor="confirmed-end">CONFIRM END · OPTIONAL</label><input id="confirmed-end" type="datetime-local" value={confirmedEndAt} onChange={(event) => setConfirmedEndAt(event.target.value)} /></div><p className={styles.actionNote}>Accepting a paid Booking moves it to payment pending; work cannot start without authoritative funding. Free Bookings can start after acceptance.</p><button type="button" className={styles.primary} disabled={busy} onClick={() => void acceptWithSchedule()}>Accept with confirmed schedule</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => openDecision("DECLINE")}>Decline request</button></>}
+            {canAccept && <><div className={styles.field}><label htmlFor="confirmed-start">CONFIRM START</label><input id="confirmed-start" type="datetime-local" value={confirmedStartAt} onChange={(event) => setConfirmedStartAt(event.target.value)} /></div><div className={styles.field}><label htmlFor="confirmed-end">CONFIRM END · OPTIONAL</label><input id="confirmed-end" type="datetime-local" value={confirmedEndAt} onChange={(event) => setConfirmedEndAt(event.target.value)} /></div><p className={styles.actionNote}>{isolatedWebMode ? "Accept only the Client's original time. Select a different time and use Suggest alternative to discuss it first. Accepted paid requests remain payment pending with no payment capability." : "Accepting a paid Booking moves it to payment pending; work cannot start without authoritative funding. Free Bookings can start after acceptance."}</p><button type="button" className={styles.primary} disabled={busy} onClick={() => void acceptWithSchedule()}>{isolatedWebMode ? "Accept requested time (test)" : "Accept with confirmed schedule"}</button>{isolatedWebMode && <button type="button" className={styles.secondary} disabled={busy} onClick={() => void proposeAlternateTime()}>Suggest alternate time in Messages</button>}{proposalSent && <p role="status">Proposal sent in consultation. The original request is unchanged. <Link href={messageUrl}>Open Messages</Link></p>}<button type="button" className={styles.secondary} disabled={busy} onClick={() => openDecision("DECLINE")}>Decline request</button></>}
             {canStart && <button className={styles.primary} disabled={busy} onClick={() => void act(() => startBooking(booking.id))}>Start work</button>}
             {canComplete && <button className={styles.primary} disabled={busy} onClick={() => void act(() => completeBooking(booking.id))}>Mark work complete</button>}
             {canCancel && <button type="button" className={styles.danger} disabled={busy} onClick={() => openDecision("CANCEL")}>Cancel booking</button>}

@@ -12,6 +12,7 @@ import {
   listHustlerBookings
 } from "../../lib/booking";
 import styles from "./bookings.module.css";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
 
 function formatDate(value: string | null) {
   if (!value) return "Not set";
@@ -150,6 +151,6 @@ export default function BookingsPage() {
       <BookingSection title="Requests for your services" eyebrow="AS HUSTLER" page={hustlerPage} error={hustlerError} onLoadMore={loadMoreHustler} loadingMore={loadingMoreHustler} onRetry={() => void loadInitial()} noCapability={Boolean(hustlerError?.includes("active Hustler capability"))} />
     </div>
 
-    <footer className={styles.footer}><span>Booking status is server-authoritative.</span><strong>Funding and settlement reflect the payment system’s confirmed state.</strong></footer>
+    <footer className={styles.footer}><span>Booking status is server-authoritative.</span><strong>{isolatedWebMode ? "Staging is scheduling-only: no payments, work execution or settlement." : "Funding and settlement reflect the payment system’s confirmed state."}</strong></footer>
   </main>;
 }

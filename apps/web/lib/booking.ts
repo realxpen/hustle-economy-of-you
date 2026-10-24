@@ -1,6 +1,7 @@
 "use client";
 
 import { authenticatedFetch } from "./api/authenticated-fetch";
+import { hasViewerSession, publicReadFetch } from "./api/public-browsing";
 
 export type BookingStatus =
   | "REQUESTED"
@@ -120,7 +121,10 @@ export async function checkBookingAvailability(input: {
 }) {
   const params = new URLSearchParams({ serviceId: input.serviceId, startAt: input.startAt });
   if (input.endAt) params.set("endAt", input.endAt);
-  const response = await authenticatedFetch(`/bookings/availability?${params.toString()}`);
+  const response = await (await hasViewerSession()
+    ? authenticatedFetch(`/bookings/availability?${params.toString()}`)
+    : publicReadFetch(`/guest/bookings/availability?${params.toString()}`));
+  if (!response.ok) throw new Error(`Booking availability returned ${response.status}`);
   return response.json() as Promise<BookingAvailability>;
 }
 
@@ -198,7 +202,10 @@ export interface FlowTimeSlotDay {
 
 export async function listFlowTimeSlots(serviceId: string, date: string) {
   const params = new URLSearchParams({ serviceId, date });
-  const response = await authenticatedFetch(`/bookings/slots?${params.toString()}`);
+  const response = await (await hasViewerSession()
+    ? authenticatedFetch(`/bookings/slots?${params.toString()}`)
+    : publicReadFetch(`/guest/bookings/slots?${params.toString()}`));
+  if (!response.ok) throw new Error(`Booking slots returned ${response.status}`);
   return response.json() as Promise<FlowTimeSlotDay>;
 }
 

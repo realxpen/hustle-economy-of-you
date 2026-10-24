@@ -72,7 +72,8 @@ function response(){
   currentScope="isolated-staging";
   console.log("PASS: production scope cannot expose staging /api/auth");
 
-  for (const path of ["bookings","payments","media/upload","orders","admin/operations/cases","new-feature"]) {
+  for (const path of ["payments","media/upload","orders","admin/operations/cases","new-feature",
+    "bookings/b1/start","bookings/b1/complete","bookings/b1/extend","bookings/b1/fund"]) {
     const denied=response();
     await h(request({__hustle_path:path},"POST"),denied);
     assert.equal(denied.code,403,path);
@@ -86,7 +87,7 @@ function response(){
   const {stagingRequestGate}=require(resolve(root,"apps/api/src/staging-request-policy.ts"));
   let passed=false;
   const deniedStandalone=response();
-  stagingRequestGate({method:"POST",url:"/api/v1/bookings?ignored=true"},deniedStandalone,()=>{passed=true;});
+  stagingRequestGate({method:"POST",url:"/api/v1/payments?ignored=true"},deniedStandalone,()=>{passed=true;});
   assert.equal(deniedStandalone.code,403);
   assert.equal(passed,false);
   stagingRequestGate({method:"POST",url:"/api/v1/auth/sync"},response(),()=>{passed=true;});
@@ -101,6 +102,15 @@ function response(){
   assert.equal(nestCreates,1);
   assert.ok(guardCalls>=3);
   assert.equal(authStarts,1,"App endpoints do not create new login handler");
+  const booking=response();
+  await h(request({__hustle_path:"bookings"},"POST"),booking);
+  assert.equal(booking.code,200,"non-financial staging booking request may reach guarded Nest");
+  assert.equal(booking.payload.url,"/api/v1/bookings");
+  const publicSlots=response();
+  await h(request({__hustle_path:"guest/bookings/slots",serviceId:"fixture",date:"2026-11-01"}),publicSlots);
+  assert.equal(publicSlots.code,200,"guest availability is public read-only");
+  assert.equal(publicSlots.payload.url,"/api/v1/guest/bookings/slots?serviceId=fixture&date=2026-11-01");
+  console.log("PASS: scheduling requests reach guarded Nest; finance and execution endpoints stay denied");
   console.log("PASS: real Vercel handler rewrites connected API routes and checks runtime before Nest");
   console.log("BOUNDARY: no live network, DB, production deploy, or secret used.");
 })().catch(e=>{console.error("FAIL: "+e.message);process.exitCode=1;}).finally(()=>{

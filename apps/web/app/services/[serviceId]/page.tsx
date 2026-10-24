@@ -62,7 +62,7 @@ export default function PublicServicePage() {
         <h1 className="h-experience-heading">{service.title}</h1>
         <strong>{formatServicePrice(service)}</strong>
         <div className={styles.offerActions}>
-          {!isolatedWebMode && <a className={styles.bookButton} href={preparedBookingHref} onClick={(event) => requireAuthForAction(event, preparedBookingHref)}>Book this service →</a>}
+          <a className={styles.bookButton} href={preparedBookingHref} onClick={isolatedWebMode ? undefined : (event) => requireAuthForAction(event, preparedBookingHref)}>{isolatedWebMode ? "Request a time (test) →" : "Book this service →"}</a>
           <a className={styles.messageButton} href={consultHref} onClick={(event) => requireAuthForAction(event, consultHref)}>Message first</a>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default function PublicServicePage() {
         <div><small>MODE</small><strong>{service.deliveryMode}</strong></div>
         <div><small>LOCATION</small><strong>{service.location ?? "Remote"}</strong></div>
         <div><small>AVAILABILITY</small><strong>{service.availabilityNote}</strong></div>
-        <p>{isolatedWebMode ? "Start a consultation in Messages. Booking and payment are not enabled in isolated staging." : "Bookings preserve the Service terms and schedule. Paid work is funded only after authoritative payment confirmation."}</p>
+        <p>{isolatedWebMode ? "Discuss the service in Messages, then propose an available time. Staging booking requests are test-only; payment, wallet and escrow stay disabled." : "Bookings preserve the Service terms and schedule. Paid work is funded only after authoritative payment confirmation."}</p>
       </aside>
     </section>
 

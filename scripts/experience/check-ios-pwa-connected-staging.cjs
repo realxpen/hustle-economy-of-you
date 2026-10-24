@@ -70,13 +70,31 @@ async function go(){
     assert.equal(proxy.stagingProxyAllowed("POST", ep.split("/")), true);
   assert.equal(proxy.stagingProxyAllowed("DELETE", "api/v1/trust-safety/blocks/u1".split("/")), true);
   assert.equal(proxy.stagingProxyAllowed("GET", "api/v1/trust-safety/reports".split("/")), false);
+  // Scheduling preview allows participant-owned requests, not execution or money.
+  for(const route of ["bookings/client","bookings/hustler","bookings/availability",
+    "bookings/slots","bookings/duration-insights","bookings/booking1",
+    "guest/bookings/availability","guest/bookings/slots"]) {
+    assert.equal(proxy.stagingProxyAllowed("GET",("api/v1/"+route).split("/")),true,"staging read "+route);
+  }
+  for(const route of ["bookings","bookings/booking1/accept","bookings/booking1/decline",
+    "bookings/booking1/cancel"]) {
+    assert.equal(proxy.stagingProxyAllowed("POST",("api/v1/"+route).split("/")),true,"staging scheduling "+route);
+  }
+  for(const route of ["bookings/booking1/start","bookings/booking1/complete",
+    "bookings/booking1/extend","bookings/booking1/fund","bookings/booking1/checkout",
+    "guest/bookings/slots","guest/bookings/availability"]) {
+    assert.equal(proxy.stagingProxyAllowed("POST",("api/v1/"+route).split("/")),false,"no payments/work/guest writes "+route);
+  }
+  assert.equal(proxy.stagingProxyAllowed("DELETE","api/v1/bookings/booking1".split("/")),false);
+  assert.equal(proxy.stagingProxyAllowed("GET","api/v1/bookings".split("/")),false);
   assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","posts"]),true);
   assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","posts","p1","publish"]),true);
   assert.equal(proxy.stagingProxyAllowed("DELETE",["api","v1","posts","p1","media","m1"]),true);
   assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","posts","p1","upload"]),false);
   assert.equal(proxy.stagingProxyAllowed("GET",["api","v1","posts"]),true);
   for (const route of ["guest/feed/for-you", "guest/feed/nearby", "guest/search",
-    "guest/search/people", "guest/marketplace", "guest/marketplace/services"]) {
+    "guest/search/people", "guest/marketplace", "guest/marketplace/services",
+    "guest/bookings/availability", "guest/bookings/slots"]) {
     const segments=("api/v1/"+route).split("/");
     assert.equal(proxy.stagingProxyAllowed("GET",segments),true,"public read "+route);
     for(const method of ["POST","PUT","PATCH","DELETE"])
