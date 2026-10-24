@@ -11,6 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { PrismaService } from "../database/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { hasIsolatedStagingPortfolioEvidence } from "./staging-portfolio-proof";
 
 export interface HustlerReviewDecisionInput {
   notes?: unknown;
@@ -331,7 +332,7 @@ export class HustlerReviewService {
       where: { applicationId: application.id }
     });
 
-    if (proofCount === 0) {
+    if (proofCount === 0 && !hasIsolatedStagingPortfolioEvidence(application.businessInfo)) {
       throw new BadRequestException("At least one capability proof is required for approval");
     }
 

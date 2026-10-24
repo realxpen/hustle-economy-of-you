@@ -7,8 +7,9 @@ import type {
   SaveHustlerApplicationInput
 } from "@hustle/types";
 import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch } from "./api/authenticated-fetch";
+import { isolatedWebMode } from "./auth/isolated-web-auth";
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 const proofBucket = "hustler-proofs";
 const maxProofBytes = 10 * 1024 * 1024;
 const allowedMimeTypes = new Set([
@@ -27,42 +28,6 @@ async function getSession() {
   }
 
   return { supabase, session };
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const { session } = await getSession();
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    let message: string | undefined;
-
-    if (text.trim()) {
-      try {
-        const body = JSON.parse(text) as {
-          message?: string;
-          error?: { message?: string } | string;
-        };
-        message = typeof body.error === "object"
-          ? body.error?.message
-          : body.message ?? (typeof body.error === "string" ? body.error : undefined);
-      } catch {
-        message = undefined;
-      }
-    }
-
-    throw new Error(message ?? `Hustle API returned ${response.status}`);
-  }
-
-  return response;
 }
 
 async function parseJson<T>(response: Response, emptyValue?: T): Promise<T> {
@@ -99,6 +64,7 @@ export async function uploadMyHustlerProof(
   file: File,
   type: HustlerProofType
 ): Promise<HustlerApplication> {
+  if (isolatedWebMode) throw new Error("Private file proof uploads are disabled in isolated staging.");
   if (!allowedMimeTypes.has(file.type)) {
     throw new Error("Proof must be a PDF, JPEG, PNG or WebP file");
   }
@@ -142,6 +108,7 @@ export async function uploadMyHustlerProof(
 export async function removeMyHustlerProof(
   proof: HustlerApplicationProof
 ): Promise<HustlerApplication> {
+  if (isolatedWebMode) throw new Error("Private proof removal is disabled in isolated staging.");
   const response = await authenticatedFetch(
     `/hustler-application/proofs/${encodeURIComponent(proof.id)}`,
     { method: "DELETE" }

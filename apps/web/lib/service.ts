@@ -5,7 +5,8 @@ import type {
   SaveServiceInput,
   Service
 } from "@hustle/types";
-import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch } from "./api/authenticated-fetch";
+import { isolatedWebMode } from "./auth/isolated-web-auth";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
@@ -15,25 +16,6 @@ async function parseError(response: Response) {
     message?: string;
   } | null;
   return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) throw new Error("You need to sign in again");
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
 }
 
 export async function getMyServices(): Promise<Service[]> {
@@ -84,9 +66,9 @@ export async function deleteService(serviceId: string): Promise<{ deleted: true;
 }
 
 export async function getPublicService(serviceId: string): Promise<PublicService> {
-  const response = await fetch(`${apiBase}/services/${encodeURIComponent(serviceId)}`, {
-    cache: "no-store"
-  });
+  const response = isolatedWebMode
+    ? await authenticatedFetch(`/services/${encodeURIComponent(serviceId)}`)
+    : await fetch(`${apiBase}/services/${encodeURIComponent(serviceId)}`, { cache: "no-store" });
   if (!response.ok) {
     if (response.status === 404) throw new Error("This service is not currently public.");
     throw new Error(await parseError(response));

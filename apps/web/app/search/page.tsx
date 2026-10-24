@@ -188,7 +188,7 @@ export default function SearchPageScreen() {
         ["Media", "◉", "media"],
         ["Digital", "✦", "digital"]
       ] as const).map(([label, symbol, term]) =>
-        <button key={label} type="button" disabled={loading} onClick={() => {
+        <button key={label} type="button" className={query.trim().toLowerCase() === term ? styles.selectedSkill : ""} aria-pressed={query.trim().toLowerCase() === term} disabled={loading} onClick={() => {
           setQuery(term); setTab("top"); setFilters(emptyFilters); setError(null);
           setItems([]); setMeta({ nextCursor: null, hasMore: false, zeroResults: false });
           void runSearch("top", null, false, emptyFilters, term);
@@ -228,7 +228,7 @@ export default function SearchPageScreen() {
           ? { label: "Open test sign-in", href: "/auth" }
           : { label: "Retry search", onClick: () => void runSearch(tab), disabled: loading || !query.trim() }} />}
       {!error && loading && <ExperienceState kind="loading" title="Finding people, work and offers…" description="Checking currently published Hustle results." />}
-      {!error && !loading && meta.zeroResults && <ExperienceState kind="empty" title="No useful match yet." description="Try a broader skill, category or location. Hustle won't silently substitute unrelated results." action={{label:"Clear filters",onClick:()=>{setFilters(emptyFilters);setError(null);if(query.trim())void runSearch(tab,null,false,emptyFilters);}}} />}
+      {!error && !loading && meta.zeroResults && <ExperienceState kind="empty" title="No useful match yet." description="Try a broader skill, category or location. Hustle won't silently substitute unrelated results." action={activeFilterCount ? {label:"Clear filters",onClick:()=>{setFilters(emptyFilters);setError(null);if(query.trim())void runSearch(tab,null,false,emptyFilters);}} : undefined} />}
       {!error && !loading && !meta.zeroResults && items.length === 0 && <ExperienceState kind="empty" title="What do you need?" description="Search for a professional, capability, Service, Product or demonstrated work." />}
       {!loading && items.length > 0 && <div className={styles.grid}>{items.map((item, index) => <ResultCard key={`${item.kind}-${item.id}`} item={item} onOpen={() => openResult(item, index)} />)}</div>}
       {!loading && !error && meta.hasMore && <div className={styles.loadMore}><button className={styles.primaryButton} type="button" disabled={loadingMore} onClick={() => void runSearch(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more"}</button></div>}

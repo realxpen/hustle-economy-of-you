@@ -16,6 +16,7 @@ import {
   uploadMyHustlerProof
 } from "../../lib/hustler-application";
 import styles from "./page.module.css";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
 
 type FormState = {
   primarySkill: string;
@@ -127,8 +128,10 @@ export default function HustlerApplicationPage() {
     form.yearsExperience.trim()
   ].filter(Boolean).length, [form]);
 
-  const progress = Math.round(((completedCoreFields + (proofCount > 0 ? 1 : 0)) / 5) * 100);
-  const canSubmit = editable && completedCoreFields === 4 && proofCount > 0;
+  const portfolioReady = /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(?:[/?#]|$)/i.test(form.businessInfo.trim()) && !/localhost|\.local(?:[/:]|$)/i.test(form.businessInfo);
+  const hasProof = proofCount > 0 || (isolatedWebMode && portfolioReady);
+  const progress = Math.round(((completedCoreFields + (hasProof ? 1 : 0)) / 5) * 100);
+  const canSubmit = editable && completedCoreFields === 4 && hasProof;
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -267,7 +270,9 @@ export default function HustlerApplicationPage() {
 
         <div className={styles.twoCol}>
           <label><span>Business name</span><input value={form.businessName} onChange={(event) => setField("businessName", event.target.value)} placeholder="Optional" disabled={!editable} /></label>
-          <label className={styles.spanTwo}><span>Business information</span><textarea value={form.businessInfo} onChange={(event) => setField("businessInfo", event.target.value)} placeholder="Describe the business, team or way you work." rows={4} disabled={!editable} maxLength={800} /></label>
+          <label className={styles.spanTwo}><span>{isolatedWebMode ? "Public HTTPS portfolio link (staging proof) *" : "Business information"}</span>{isolatedWebMode
+            ? <input type="url" value={form.businessInfo} onChange={(event) => setField("businessInfo", event.target.value)} placeholder="https://your-portfolio.example/work" disabled={!editable} maxLength={800} />
+            : <textarea value={form.businessInfo} onChange={(event) => setField("businessInfo", event.target.value)} placeholder="Describe the business, team or way you work." rows={4} disabled={!editable} maxLength={800} />}</label>
         </div>
 
         {error && <p className={styles.error}>{error}</p>}
@@ -281,11 +286,11 @@ export default function HustlerApplicationPage() {
 
       <aside className={styles.side}>
         <article className={styles.proofCard}>
-          <div className={styles.sectionTitle}><span>03</span><div><strong>Capability proof</strong><p>At least one private proof item is required before review.</p></div></div>
+          <div className={styles.sectionTitle}><span>03</span><div><strong>Capability proof</strong><p>{isolatedWebMode ? "For this restricted test, save a public HTTPS portfolio link above. A separate reviewer must inspect it. This does not verify your identity." : "At least one private proof item is required before review."}</p></div></div>
 
-          {proofCount > 0 ? <div className={styles.proofList}>{application?.proofs.map((proof) => <div key={proof.id}><div><strong>{proof.fileName}</strong><span>{proof.type.replaceAll("_", " ")}</span></div>{editable && <button type="button" onClick={() => removeProof(proof)} disabled={uploading}>Remove</button>}</div>)}</div> : <div className={styles.emptyProof}><span>0</span><p>No proof attached yet.</p></div>}
+          {isolatedWebMode ? <div className={styles.emptyProof}><span>{portfolioReady ? "✓" : "0"}</span><p>{portfolioReady ? "Portfolio link ready for human review." : "Add a public portfolio link in Business context, then save the draft."}</p></div> : proofCount > 0 ? <div className={styles.proofList}>{application?.proofs.map((proof) => <div key={proof.id}><div><strong>{proof.fileName}</strong><span>{proof.type.replaceAll("_", " ")}</span></div>{editable && <button type="button" onClick={() => removeProof(proof)} disabled={uploading}>Remove</button>}</div>)}</div> : <div className={styles.emptyProof}><span>0</span><p>No proof attached yet.</p></div>}
 
-          {editable && <div className={styles.uploadPanel}>
+          {editable && !isolatedWebMode && <div className={styles.uploadPanel}>
             <label><span>Proof type</span><select value={proofType} onChange={(event) => setProofType(event.target.value as HustlerProofType)} disabled={uploading}>{proofTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
             <label className={`${styles.uploadButton} ${!application ? styles.uploadDisabled : ""}`}>
               <span>{uploading ? "Uploading…" : application ? "Attach proof" : "Save draft first"}</span>

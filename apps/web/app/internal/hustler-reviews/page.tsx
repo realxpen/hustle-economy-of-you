@@ -12,6 +12,7 @@ import {
   type HustlerReviewRecord
 } from "../../../lib/hustler-review";
 import styles from "./page.module.css";
+import { isolatedWebMode } from "../../../lib/auth/isolated-web-auth";
 
 export default function HustlerReviewsPage() {
   const [queue, setQueue] = useState<HustlerReviewRecord[]>([]);
@@ -173,6 +174,10 @@ export default function HustlerReviewsPage() {
 
           {(selected.businessName || selected.businessInfo) && <article className={styles.story}><small>BUSINESS CONTEXT</small><h3>{selected.businessName ?? "Independent"}</h3><p>{selected.businessInfo}</p></article>}
 
+          {isolatedWebMode && <article className={styles.story}><small>ISOLATED STAGING PORTFOLIO</small>
+            <p>External portfolio evidence requires manual review. This is not proof of identity; do not mark verification without independent checks.</p>
+            {selected.businessInfo?.startsWith("https://") && <a href={selected.businessInfo} rel="noopener noreferrer" target="_blank">Inspect submitted portfolio ↗</a>}
+          </article>}
           <article className={styles.story}>
             <small>CAPABILITY PROOF</small>
             <div className={styles.proofs}>{selected.proofs.map((proof) => <div key={proof.id}><div><strong>{proof.fileName}</strong><span>{proof.type.replaceAll("_", " ")} · {proof.mimeType}</span></div><button onClick={() => previewProof(proof.id)} disabled={busy || selected.status !== "UNDER_REVIEW"}>Open securely ↗</button></div>)}</div>

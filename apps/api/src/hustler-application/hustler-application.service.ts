@@ -7,6 +7,7 @@ import { HustlerProofType, Prisma } from "@prisma/client";
 
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { PrismaService } from "../database/prisma.service";
+import { hasIsolatedStagingPortfolioEvidence } from "./staging-portfolio-proof";
 
 export interface SaveHustlerApplicationInput {
   primarySkill?: unknown;
@@ -207,7 +208,7 @@ export class HustlerApplicationService {
     if (!application.category) missing.push("category");
     if (!application.experienceSummary) missing.push("experienceSummary");
     if (application.yearsExperience === null) missing.push("yearsExperience");
-    if (application.proofs.length === 0) missing.push("proof");
+    if (application.proofs.length === 0 && !hasIsolatedStagingPortfolioEvidence(application.businessInfo)) missing.push("proof");
 
     if (missing.length > 0) {
       throw new BadRequestException(

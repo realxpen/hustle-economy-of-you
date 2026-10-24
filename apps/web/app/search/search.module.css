@@ -137,7 +137,7 @@
    text-decoration:none;
    gap:5px;
  }
- .pwaSkills button:first-child{background:#DDF0B8}
+ .pwaSkills button.selectedSkill{background:#DDF0B8}
  .pwaSkills button:focus-visible{outline:3px solid #121714;outline-offset:2px}
  .pwaSkills button span{font-size:21px;line-height:1.2;color:#172019}
  .pwaSkills button small{font-size:10px;font-weight:800}

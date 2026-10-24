@@ -1,0 +1,72 @@
+#!/usr/bin/env node
+"use strict";
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const path=require("node:path");
+const Module=require("node:module");
+const ts=require("typescript");
+const root=path.resolve(__dirname,"../..");
+const get=p=>fs.readFileSync(path.join(root,p),"utf8");
+function load(p){
+  const file=path.join(root,p); const mod=new Module(file,module);
+  mod.filename=file;mod.paths=Module._nodeModulePaths(path.dirname(file));
+  mod._compile(ts.transpileModule(get(p),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,file);
+  return mod.exports;
+}
+const api=load("apps/api/src/staging-request-policy.ts");
+const proxy=load("apps/web/lib/api/isolated-web-proxy.ts");
+const evidence=load("apps/api/src/hustler-application/staging-portfolio-proof.ts");
+const original=process.env.HUSTLE_RUNTIME_SCOPE;
+try {
+ process.env.HUSTLE_RUNTIME_SCOPE="production";
+ assert.equal(evidence.hasIsolatedStagingPortfolioEvidence("https://portfolio.example/work"),false);
+ process.env.HUSTLE_RUNTIME_SCOPE="isolated-staging";
+ for(const url of ["https://portfolio.example/work","https://www.example.org/portfolio"]){
+   assert.equal(evidence.hasIsolatedStagingPortfolioEvidence(url),true,url);
+ }
+ for(const url of ["http://portfolio.example","https://localhost","https://127.0.0.1","https://user:pass@example.org",
+  "https://a.internal","https://a.local","file:///tmp/a","https://example.com:8443","https://example.com/#f","some notes"]){
+   assert.equal(evidence.hasIsolatedStagingPortfolioEvidence(url),false,url);
+ }
+ const allowed=[
+  ["GET","hustler-application"],["PUT","hustler-application"],["POST","hustler-application/submit"],
+  ["GET","hustler-reviews"],["GET","hustler-reviews/abc"],["POST","hustler-reviews/abc/start"],
+  ["POST","hustler-reviews/abc/verification"],["POST","hustler-reviews/abc/approve"],
+  ["POST","hustler-reviews/abc/reject"],["GET","professional-profile"],["PUT","professional-profile"],
+  ["POST","professional-profile/publish"],["POST","professional-profile/unpublish"],
+  ["GET","profiles/username"],["GET","services/mine"],["GET","services/mine/abc"],
+  ["POST","services"],["PUT","services/abc"],["POST","services/abc/publish"],
+  ["POST","services/abc/pause"],["PATCH","auth/profile"]
+ ];
+ for(const [method,route] of allowed) {
+   const path="api/v1/"+route;
+   assert.equal(proxy.stagingProxyAllowed(method,path.split("/")),true,method+" "+route);
+   assert.equal(api.stagingRequestAllowed(method,"/"+path),true,method+" "+route);
+ }
+ const denied=[
+  ["POST","hustler-application/proofs"],["POST","hustler-reviews/abc/proofs/def/read-url"],
+  ["POST","posts"],["POST","posts/id/publish"],["DELETE","services/abc"],["GET","admin/operations/users"],
+  ["POST","bookings"],["POST","payments"],["POST","escrow/release"],
+  ["POST","orders"],["POST","wallet/deposit"],["PATCH","services/abc"],
+  ["PUT","hustler-reviews/abc/approve"],["POST","services/abc/delete"]
+ ];
+ for(const [method,route] of denied) {
+  const path="api/v1/"+route;
+  assert.equal(proxy.stagingProxyAllowed(method,path.split("/")),false,method+" "+route);
+  assert.equal(api.stagingRequestAllowed(method,"/"+path),false,method+" "+route);
+ }
+ for(const p of ["hustler-application","hustler-review","professional-profile","service"]){
+  assert.match(get("apps/web/lib/"+p+".ts"),/import \{ authenticatedFetch \} from "\.\/api\/authenticated-fetch";/);
+ }
+ assert.match(get("apps/api/src/hustler-application/hustler-review.controller.ts"),/@UseGuards\(AuthGuard, AdminGuard\)/);
+ assert.match(get("apps/api/src/hustler-application/hustler-review.service.ts"),/assertNotSelfReview\(application.userId, reviewer.id\)/);
+ assert.match(get("apps/api/src/hustler-application/hustler-review.service.ts"),/identityVerificationStatus !== VerificationStatus.VERIFIED/);
+ assert.match(get("apps/api/src/professional-profile/professional-profile.controller.ts"),/@RequireCapability\(Capability.HUSTLER\)/);
+ assert.match(get("apps/api/src/service/service.controller.ts"),/@RequireCapability\(Capability.HUSTLER\)/);
+ assert.match(get("apps/api/src/hustler-application/hustler-application.service.ts"),/hasIsolatedStagingPortfolioEvidence\(application.businessInfo\)/);
+ assert.match(get("apps/api/src/hustler-application/hustler-review.service.ts"),/hasIsolatedStagingPortfolioEvidence\(application.businessInfo\)/);
+ const s=get("apps/web/app/search/page.tsx");
+ assert.match(s,/className=\{query.trim\(\).toLowerCase\(\) === term \? styles.selectedSkill/);
+ assert.match(s,/action=\{activeFilterCount \?/);
+ console.log("PASS: isolated staging onboarding, approval and service publishing routes, production proof isolation, role boundaries and search UX.");
+}finally{if(original===undefined)delete process.env.HUSTLE_RUNTIME_SCOPE;else process.env.HUSTLE_RUNTIME_SCOPE=original;}
