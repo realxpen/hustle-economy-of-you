@@ -22,7 +22,7 @@ export default defineConfig({
   css: {
     modules: {
       generateScopedName(name: string, filename: string) {
-        const relativePath = path.relative(import.meta.dirname, filename.replace(/\?.*$/, "")).replaceAll("\\", "/");
+        const relativePath = path.relative(process.cwd(), filename.replace(/\?.*$/, "")).replaceAll("\\", "/");
         return `_${name}_${createHash("sha256").update(relativePath).digest("hex").slice(0, 7)}`;
       },
     },
