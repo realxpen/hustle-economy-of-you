@@ -438,7 +438,7 @@ export class PostService {
       const host = url.hostname.toLowerCase();
       if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
       if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".localhost")) return false;
-      if (host.includes(":") || /^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(host)) return false;
+      if (host.includes(":") || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return false;
       return host.includes(".");
     } catch { return false; }
   }
