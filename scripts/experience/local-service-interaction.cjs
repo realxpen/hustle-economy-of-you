@@ -71,7 +71,17 @@ function inputLocalDate(value) {
     steps.push("Service Message-first CTA retains its offer and an optional return-to-Booking action");
 
     await page.getByRole("link", { name: /Book this service/ }).click();
-    await page.waitForURL("**/bookings/new/qa-service", { timeout: 15000 });
+    await page.waitForURL("**/auth?next=*", { timeout: 15000 });
+    const guestRedirect = new URL(page.url());
+    assert.equal(guestRedirect.pathname, "/auth");
+    assert.equal(guestRedirect.searchParams.get("next"), "/bookings/new/" + service.id,
+      "Guest booking CTA must preserve the intended Booking destination after sign-in");
+    assert.equal(bookingApiWrites, 0, "Guest booking attempt must not create a booking");
+    steps.push("Guest booking CTA requires sign-in and retains safe return-to-Booking destination");
+
+    // This independent browser fixture inspects the prepared booking form directly;
+    // it is not proof of an authenticated booking journey.
+    await page.goto(base + "/bookings/new/" + service.id, { waitUntil: "domcontentloaded" });
     await page.getByRole("heading", { name: service.title }).waitFor({ timeout: 15000 });
     const bookingConsultHref = await page.getByRole("link", { name: /Consult QA Hustler/ }).getAttribute("href");
     const bookingConsult = new URL(bookingConsultHref, base);
@@ -129,7 +139,7 @@ function inputLocalDate(value) {
     await retryPage.close();
 
     console.log(JSON.stringify({
-      result: "PASS", scope: "local Chromium public Service -> Booking UI, synthetic GET fixture only",
+      result: "PASS", scope: "local Chromium guest Service -> authentication gate and direct Booking form inspection, synthetic GET fixture only",
       limitations: "No signed-in flows, payment or live-provider activation verified",
       steps
     }, null, 2));
