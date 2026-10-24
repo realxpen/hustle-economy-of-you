@@ -34,7 +34,7 @@ try {
   ["POST","hustler-reviews/abc/verification"],["POST","hustler-reviews/abc/approve"],
   ["POST","hustler-reviews/abc/reject"],["GET","professional-profile"],["PUT","professional-profile"],
   ["POST","professional-profile/publish"],["POST","professional-profile/unpublish"],
-  ["GET","profiles/username"],["GET","services/mine"],["GET","services/mine/abc"],
+  ["GET","profiles/username"],["GET","storefronts/username"],["GET","services/mine"],["GET","services/mine/abc"],
   ["POST","services"],["PUT","services/abc"],["POST","services/abc/publish"],
   ["POST","services/abc/pause"],["PATCH","auth/profile"]
  ];
@@ -55,7 +55,7 @@ try {
   assert.equal(proxy.stagingProxyAllowed(method,path.split("/")),false,method+" "+route);
   assert.equal(api.stagingRequestAllowed(method,"/"+path),false,method+" "+route);
  }
- for(const p of ["hustler-application","hustler-review","professional-profile","service"]){
+ for(const p of ["hustler-application","hustler-review","professional-profile","service","storefront"]){
   assert.match(get("apps/web/lib/"+p+".ts"),/import \{ authenticatedFetch \} from "\.\/api\/authenticated-fetch";/);
  }
  assert.match(get("apps/api/src/hustler-application/hustler-review.controller.ts"),/@UseGuards\(AuthGuard, AdminGuard\)/);

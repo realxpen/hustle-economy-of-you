@@ -9,7 +9,7 @@ const STAGING_API_ORIGIN = "https://hustle-isolated-staging-api.vercel.app";
 const prefix = "/api/isolated/";
 const allowedAuthReads = new Set(["get-session", "ok"]);
 const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]);
-const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:posts(?:\/[A-Za-z0-9_-]+(?:\/interactions)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/[A-Za-z0-9_-]+)?))$/;
+const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/[A-Za-z0-9_-]+(?:\/interactions)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/[A-Za-z0-9_-]+)?))$/;
 const apiWrite = new Set(["api/v1/auth/sync", "api/v1/hustler-application/submit",
   "api/v1/professional-profile/publish", "api/v1/professional-profile/unpublish", "api/v1/services"]);
 const apiPut = /^api\/v1\/(?:hustler-application|professional-profile|services\/[A-Za-z0-9_-]+)$/;

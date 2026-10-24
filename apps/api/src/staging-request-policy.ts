@@ -5,7 +5,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const authWrite = /^\/api\/auth\/(sign-up\/email|sign-in\/email|sign-out)$/;
   const ordinaryRead = /^\/api\/v1(?:\/(?:health|foundation|auth\/me))?$/;
   const discoveryRead = /^\/api\/v1\/(?:feed|search|marketplace|services|posts|products|messaging|notifications)(?:\/[A-Za-z0-9_-]+)*$/;
-  const ownerRead = /^\/api\/v1\/(?:hustler-application|professional-profile|services\/mine(?:\/[A-Za-z0-9_-]+)?|hustler-reviews(?:\/[A-Za-z0-9_-]+)?|profiles\/[A-Za-z0-9_-]+)$/;
+  const ownerRead = /^\/api\/v1\/(?:hustler-application|professional-profile|services\/mine(?:\/[A-Za-z0-9_-]+)?|hustler-reviews(?:\/[A-Za-z0-9_-]+)?|profiles\/[A-Za-z0-9_-]+|storefronts\/[A-Za-z0-9_-]+)$/;
   if (method === "GET" || method === "HEAD")
     return authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || ownerRead.test(path);
   if (method === "PATCH") return path === "/api/v1/auth/profile";
