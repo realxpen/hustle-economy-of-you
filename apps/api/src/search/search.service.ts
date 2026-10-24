@@ -148,11 +148,11 @@ type ProfessionalContext = Prisma.ProfessionalProfileGetPayload<{ select: typeof
 export class SearchService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async search(identity: AuthIdentity, tabInput: string | undefined, raw: DiscoveryQueryInput) {
-    const viewer = await this.requireViewer(identity);
+  async search(identity: AuthIdentity | null, tabInput: string | undefined, raw: DiscoveryQueryInput) {
+    const viewer = identity ? await this.requireViewer(identity) : null;
     const tab = this.parseSearchTab(tabInput);
     const query = this.requiredQuery(raw.q);
-    const filters = this.parseFilters(raw, viewer.location);
+    const filters = this.parseFilters(raw, viewer?.location ?? null);
     const limit = this.parseLimit(raw.limit);
     const cursor = this.decodeCursor(raw.cursor);
 
@@ -171,11 +171,11 @@ export class SearchService {
     };
   }
 
-  async marketplace(identity: AuthIdentity, tabInput: string | undefined, raw: DiscoveryQueryInput) {
-    const viewer = await this.requireViewer(identity);
+  async marketplace(identity: AuthIdentity | null, tabInput: string | undefined, raw: DiscoveryQueryInput) {
+    const viewer = identity ? await this.requireViewer(identity) : null;
     const tab = this.parseMarketplaceTab(tabInput);
     const query = this.optionalQuery(raw.q);
-    const filters = this.parseFilters(raw, viewer.location);
+    const filters = this.parseFilters(raw, viewer?.location ?? null);
     const limit = this.parseLimit(raw.limit);
     const cursor = this.decodeCursor(raw.cursor);
 

@@ -49,3 +49,14 @@ export class FeedController {
     return this.feed.capture(identity, body);
   }
 }
+
+/** Guest reads only PUBLISHED content; writes remain behind AuthGuard. */
+@Controller("guest/feed")
+export class GuestFeedController {
+  constructor(private readonly feed: FeedService) {}
+  @Get(":tab")
+  list(@Param("tab") tab: string, @Query("cursor") cursor?: string,
+    @Query("limit") limit?: string, @Query("location") location?: string) {
+    return this.feed.list(null, tab, cursor, limit, location);
+  }
+}
