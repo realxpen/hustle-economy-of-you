@@ -52,5 +52,6 @@ assert.match(form, /saveBookingDraft\(tabStorage\(\), data\.service\.id, draftFi
 assert.match(form, /clearBookingDraft\(tabStorage\(\), data\.service\.id\)/, "Clear only after successful create");
 assert.match(form, /authUrlFor\(window\.location\.pathname \+ window\.location\.search\)/, "Preserve return route");
 assert.match(form, /type="button" onClick=\{discardDraft\}/, "User can clear tab-scoped draft");
-assert.match(form, /getSupabaseBrowserClient\(\)\.auth\.getSession\(\)/, "Do not attempt booking write if signed out");
+assert.match(form, /if \(!await hasViewerSession\(\)\)/, "Do not attempt booking write if signed out");
+assert.doesNotMatch(form, /getSupabaseBrowserClient/, "Isolated PWA booking form must use compatible Better Auth session");
 console.log("PASS: tab-only booking drafts, expiry, isolation, clear and auth handoff contracts");
