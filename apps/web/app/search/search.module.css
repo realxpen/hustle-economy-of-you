@@ -126,7 +126,7 @@
    margin:8px 20px 22px;
    width:calc(100% - 40px);
  }
- .pwaSkills a {
+ .pwaSkills button {
    display:flex; flex-direction:column; align-items:center; justify-content:center;
    min-height:73px;
    min-width:0;
@@ -137,10 +137,10 @@
    text-decoration:none;
    gap:5px;
  }
- .pwaSkills a:first-child{background:#DDF0B8}
- .pwaSkills a:focus-visible{outline:3px solid #121714;outline-offset:2px}
- .pwaSkills a span{font-size:21px;line-height:1.2;color:#172019}
- .pwaSkills a small{font-size:10px;font-weight:800}
+ .pwaSkills button:first-child{background:#DDF0B8}
+ .pwaSkills button:focus-visible{outline:3px solid #121714;outline-offset:2px}
+ .pwaSkills button span{font-size:21px;line-height:1.2;color:#172019}
+ .pwaSkills button small{font-size:10px;font-weight:800}
  .tabs {padding:0 20px 18px;scrollbar-width:none}
  .tabs .tabActive{background:#121714;border-color:#121714;color:#C9F26B}
  .filters {padding:0 20px 19px}
@@ -153,4 +153,117 @@
  .pwaSkills{gap:3px;margin-inline:12px;width:calc(100% - 24px)}
  .pwaSkills a small{font-size:9px}
  .hero,.searchForm,.tabs,.filters,.resultsWrap{padding-inline:12px}
+}
+
+/* Installed iPhone UX004 Explore: compact one-line search and optional filters.
+   Keep full desktop/browser filters untouched. No overlay above the native dock. */
+.searchButtonShort, .filterToggle { display:none; }
+@media(max-width:760px) and (display-mode:standalone) {
+  .hero { padding-bottom: 14px; }
+  .searchForm { padding: 4px 20px 9px; }
+  .searchBar {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    min-height: 52px;
+    gap: 5px;
+    padding: 4px;
+    border-radius: 16px;
+  }
+  .searchBar input {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    max-width: none;
+    min-height: 44px;
+    padding: 10px 11px;
+    border: 0;
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .searchBar button {
+    flex: 0 0 auto;
+    min-width: 78px;
+    max-width: 99px;
+    height: 44px;
+    min-height: 44px;
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+  }
+  .searchButtonLabel { display: none; }
+  .searchButtonShort { display: inline; }
+  .searchBar button:disabled { opacity: .58; }
+  .pwaSkills button {
+    font-family: inherit;
+    border: 0;
+    cursor: pointer;
+  }
+  .pwaSkills button:disabled { opacity: .55; cursor: wait; }
+  .tabs {
+    padding-bottom: 12px;
+    gap: 8px;
+    scroll-padding-inline: 20px;
+  }
+  .tabs .tab { padding: 9px 14px; font-size: 14px; min-height: 44px; }
+  .filterToggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+    width: calc(100% - 40px);
+    margin: 0 20px 12px;
+    padding: 11px 16px;
+    min-height: 46px;
+    border: 1px solid #D8E0D4;
+    border-radius: 14px;
+    color: #202A23;
+    background: #FFF;
+    font-size: 14px;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+  }
+  .filterToggle span:last-child { font-size: 19px; font-weight: 600; }
+  .filterToggle:focus-visible, .searchBar button:focus-visible {
+    outline: 3px solid #76982F;
+    outline-offset: 2px;
+  }
+  .filters { display: none; }
+  .filters.filtersOpen {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 10px;
+    align-items: stretch;
+    padding: 0 20px 18px;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .filters.filtersOpen > :is(input,select,button) {
+    min-width: 0;
+    min-height: 46px;
+    font-size: 14px;
+  }
+  .filters.filtersOpen > :is(input,select):nth-child(-n+3) {
+    grid-column: 1/-1;
+  }
+  .filters.filtersOpen > .checkField { grid-column: 1/-1; }
+  .resultsWrap {
+    padding: 3px 20px calc(104px + env(safe-area-inset-bottom,0px));
+  }
+  .resultMeta {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    font-size: 13px;
+  }
+}
+@media(max-width:355px) and (display-mode:standalone) {
+  .filterToggle { margin-inline:12px; width:calc(100% - 24px); }
+  .filters.filtersOpen { padding-inline:12px; }
+  .searchBar button { min-width: 74px; }
 }
