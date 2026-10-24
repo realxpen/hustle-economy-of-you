@@ -1,0 +1,30 @@
+name: Hustle AWS Staging Container Validation (no deployment)
+
+on:
+  pull_request:
+    paths:
+      - apps/api/**
+      - packages/**
+      - infra/aws/staging/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/hustle-aws-staging-container.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build staging API Docker candidate locally (no AWS access)
+        run: docker build --file infra/aws/staging/Dockerfile --tag hustle-aws-child-staging:ci .
+      - name: Verify image has Nest entrypoint and generated clients offline
+        run: |
+          docker run --rm --network none --entrypoint node hustle-aws-child-staging:ci -e 'const fs=require("fs");const p="/srv/hustle/apps/api/dist/main.js";if(!fs.existsSync(p))throw Error("missing Nest server");if(!fs.existsSync("/srv/hustle/apps/api/node_modules" ) && !fs.existsSync("/srv/hustle/node_modules"))throw Error("missing Node runtime modules");console.log("PASS: Nest staging image has compiled main and production modules")'
+      - name: Validate fail-closed staging runtime pins from source
+        run: |
+          node -e 'const fs=require("fs");const s=fs.readFileSync("apps/api/src/auth/staging-auth-selection.ts","utf8");for(const k of ["NEON_EXPO_CHILD","BETTER_AUTH_URL !== EXPO_STAGING_AUTH_URL","HUSTLE_FINANCIAL_PROVIDERS_ENABLED","EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS"]) if(!s.includes(k))throw Error("missing pin: "+k);console.log("PASS: child-only DB, issuer and disabled commerce boundaries")'
