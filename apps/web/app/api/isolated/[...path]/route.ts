@@ -24,3 +24,9 @@ export async function PATCH(req: NextRequest, context: Context) {
   const { path } = await context.params;
   return proxyIsolatedRequest(req, path);
 }
+
+// Only the explicit post-media/reference and social undo paths pass the proxy policy.
+export async function DELETE(req: NextRequest, context: Context) {
+  const { path } = await context.params;
+  return proxyIsolatedRequest(req, path);
+}
