@@ -603,24 +603,25 @@ export default function DiscoveryHomePage() {
           </div>
         </div>
 
-        {meta.coldStart && tab === "for-you" && <p className={styles.coldStart}>Showing recently published work and relevant creators while your discoveries develop.</p>}
-
-        {loading && <ExperienceState kind="loading" title="Finding your next discovery…" description="Loading real creators and their work." />}
-        {error && <ExperienceState kind="error"
-          title={/sign in|authentication is not configured/i.test(error)
-            ? "Sign in to discover Hustlers." : "Discovery unavailable."}
-          description={error}
-          action={/sign in|authentication is not configured/i.test(error)
-            ? { label: "Open test sign-in", href: "/auth" }
-            : { label: "Try again", onClick: () => void load(tab) }} />}
-        {!loading && !error && items.length === 0 && <ExperienceState kind="empty"
-          title={tab === "connections" ? "Your connections feed is ready." : "No published work here yet."}
-          description={meta.reason ?? (tab === "connections"
-            ? "Follow creators from For You and their posts will appear here."
-            : "Switch discovery views or explore the marketplace while new work arrives.")}
-          action={tab === "connections"
-            ? { label: "Explore For You", onClick: () => setTab("for-you") }
-            : { label: "Explore Marketplace", href: "/marketplace" }} />}
+        {(loading || error || items.length === 0) && <div className={styles.stateStage}>
+          {loading && <ExperienceState compact kind="loading" title="Finding your next discovery…"
+            description="Loading real creators and their work." />}
+          {error && <ExperienceState compact kind="error"
+            title={/sign in|authentication is not configured/i.test(error)
+              ? "Sign in to discover Hustlers." : "Discovery unavailable."}
+            description={error}
+            action={/sign in|authentication is not configured/i.test(error)
+              ? { label: "Open test sign-in", href: "/auth" }
+              : { label: "Try again", onClick: () => void load(tab) }} />}
+          {!loading && !error && items.length === 0 && <ExperienceState compact kind="empty"
+            title={tab === "connections" ? "Your connections feed is ready." : "No published work here yet."}
+            description={meta.reason ?? (tab === "connections"
+              ? "Follow creators from For You and their posts will appear here."
+              : "Nothing has been published to this feed yet. Explore skills or check another tab.")}
+            action={tab === "connections"
+              ? { label: "Explore For You", onClick: () => setTab("for-you") }
+              : { label: "Explore skills", href: "/search" }} />}
+        </div>}
 
         {!loading && !error && items.length > 0 && <section ref={feedRef} className={styles.feed}
           aria-label="Immersive discovery posts. Swipe vertically or focus and use the arrow keys for the next post."
