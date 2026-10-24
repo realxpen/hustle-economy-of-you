@@ -71,6 +71,24 @@ assert.match(explore,/pwaSkills/);
 assert.match(exploreCss,/\(display-mode:standalone\)/);
 assert.match(exploreCss,/background:#F7F6F2/);
 assert.match(exploreCss,/background:#DDF0B8/);
+
+assert.match(explore,/className=\{styles\.filterToggle\}/, "Native Explore filters need an optional toggle");
+assert.match(explore,/aria-expanded=\{filtersExpanded\}/, "Filter controls need accessible expanded state");
+assert.match(explore,/aria-controls="hustle-explore-filters"/, "Toggle must own its filter controls");
+assert.match(explore,/id="hustle-explore-filters"/, "Search filter panel ID must match toggle");
+assert.match(explore,/runSearch\("top", null, false, emptyFilters, term\)/,
+  "Skill shortcuts must issue an actual real backend search, not only mutate the URL");
+assert.match(explore,/const normalized = term\.trim\(\)/,
+  "Search request must use the explicitly chosen shortcut, not stale input state");
+assert.match(exploreCss,/\.searchBar\s*\{[\s\S]*?flex-direction:\s*row/,
+  "Installed iPhone search must be one row");
+assert.match(exploreCss,/\.filters\s*\{\s*display:\s*none;\s*\}/,
+  "Filters should initially collapse on standalone mobile");
+assert.match(exploreCss,/\.filters\.filtersOpen\s*\{\s*display:\s*grid;/,
+  "Expanded filters must be usable");
+assert.match(exploreCss,/\.resultsWrap\s*\{[\s\S]*?safe-area-inset-bottom/,
+  "Search results must clear the iPhone dock/home indicator");
+
 const creatorCss = read("apps/web/app/products/product-editor.module.css");
 const inboxCss = read("apps/web/app/messages/messages.module.css");
 const youCss = read("apps/web/app/account/page.module.css");
