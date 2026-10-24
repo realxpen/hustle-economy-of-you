@@ -2,7 +2,7 @@
 
 import type { Product, Service } from "@hustle/types";
 import type { PostMedia } from "./post";
-import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch } from "./api/authenticated-fetch";
 
 export type SearchTab = "top" | "people" | "posts" | "services" | "products";
 export type MarketplaceTab = "all" | "services" | "products";
@@ -115,34 +115,6 @@ export type SearchObservationEventName =
 export type MarketplaceObservationEventName =
   | "marketplace.viewed"
   | "marketplace.result_clicked";
-
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
-
-async function parseError(response: Response) {
-  const body = await response.json().catch(() => null) as {
-    error?: { message?: string };
-    message?: string;
-  } | null;
-  return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) throw new Error("You need to sign in again");
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
-}
 
 function addFilters(params: URLSearchParams, filters: SearchFilters) {
   if (filters.category?.trim()) params.set("category", filters.category.trim());
