@@ -40,4 +40,11 @@ assert.match(release, /CLOUDFLARE_API_TOKEN/);
 assert.match(release, /CLOUDFLARE_ACCOUNT_ID/);
 assert.match(release, /github\.ref/);
 assert.match(release, /build:vinext/);
+// A manual release previously failed because job-level NODE_ENV=production made
+// npm ci omit build-time devDependencies (TS2307: vite-css-modules).
+assert.match(release, /npm ci --include=dev/, "Cloudflare staging needs pinned development build tools");
+assert(release.includes("npm ls vite-css-modules vite typescript --workspace=@hustle/web --depth=0"));
+const jobHeader = release.slice(release.indexOf("  build-and-deploy:"), release.indexOf("    steps:"));
+assert(!/NODE_ENV: *production/.test(jobHeader), "Do not set production NODE_ENV before installing build tools");
+
 console.log("PASS: Cloudflare Worker is isolated, pinned, nonfinancial and deploys only by explicit manual dispatch.");
