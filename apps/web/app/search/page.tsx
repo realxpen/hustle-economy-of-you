@@ -3,7 +3,6 @@
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { ExperienceState } from "../../components/experience/experience-state";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import {
   captureSearchObservation,
   getSearchPage,
