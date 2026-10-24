@@ -1163,3 +1163,55 @@
     min-height:44px;
   }
 }
+
+/* Loading, failure and genuine empty discovery share ONE bounded grid stage.
+   Never use the immersive post canvas when there are no real published posts. */
+.stateStage {
+  grid-row: 2;
+  align-self: start;
+  justify-self: center;
+  box-sizing: border-box;
+  width: min(100%, 490px);
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  padding: 22px 0;
+  overflow-y: auto;
+}
+.stateStage > :global([role="status"]),
+.stateStage > :global([role="alert"]) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+}
+@media (max-width:760px) and (display-mode:standalone) {
+  .stateStage {
+    width: 100%;
+    max-width: 490px;
+    padding: 21px 19px calc(86px + env(safe-area-inset-bottom, 0px));
+  }
+  .stateStage > :global([role="status"]),
+  .stateStage > :global([role="alert"]) {
+    min-height: 0;
+    padding: 21px;
+    border-radius: 22px;
+    border: 1px solid #455649;
+    color: #F7F6F2;
+    background: #1C2520;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .stateStage :global([role="status"]) p,
+  .stateStage :global([role="alert"]) p {
+    color: #C4CEC4;
+  }
+  .stateStage :global([role="status"]) a,
+  .stateStage :global([role="alert"]) a,
+  .stateStage :global([role="alert"]) button {
+    background: #C9F26B;
+    border-color: #C9F26B;
+    color: #121714;
+    min-height: 44px;
+  }
+}

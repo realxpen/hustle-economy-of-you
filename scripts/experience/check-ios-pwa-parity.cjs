@@ -52,6 +52,17 @@ assert.match(home,/className=\{styles\.appWordmark\}/);
 assert.match(home,/getFeedPage/);
 assert.match(homeCss,/\(display-mode:standalone\)/);
 assert.match(homeCss,/\.postCanvas,\s*\.mediaRail/);
+
+assert.match(home,/className=\{styles\.stateStage\}/, "Loading, empty and error must share one bounded feed stage");
+assert.match(home,/<ExperienceState compact kind="empty"/, "No oversized full-height empty card");
+assert.match(home,/href: "\/search"/, "Empty state must link to real Explore search");
+assert.doesNotMatch(home,/Showing recently published work and relevant creators while your discoveries develop\./,
+  "Do not promise recently published content in an empty staging feed");
+assert.match(homeCss,/\.stateStage\s*\{/, "State panel must have its own grid sizing");
+assert.match(homeCss,/\.stateStage > :global\(\[role="status"\]\)/);
+assert.match(homeCss,/padding:\s*21px 19px calc\(86px \+ env\(safe-area-inset-bottom/,
+  "PWA card must be kept above the iPhone Home indicator and dock");
+
 const explore=read("apps/web/app/search/page.tsx");
 const exploreCss=read("apps/web/app/search/search.module.css");
 assert.match(explore,/pwaExploreTitle/);
