@@ -7,7 +7,7 @@ export function isExpoStagingSelected() {
 }
 
 export function validateExpoStagingConfiguration() {
-  if (process.env.APP_VARIANT !== "preview" ||
+  if (process.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT !== "preview" ||
       process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE !== "isolated-staging" ||
       process.env.EXPO_PUBLIC_HUSTLE_DEMO === "true") {
     throw new Error("The test login requires the isolated preview app.");
