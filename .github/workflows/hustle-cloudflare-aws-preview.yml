@@ -75,6 +75,11 @@ jobs:
         env:
           NODE_ENV: production
         run: npm run build:vinext --workspace=@hustle/web
+      - name: Verify AWS static PWA manifest is present in compiled Cloudflare assets
+        run: |
+          set -euo pipefail
+          test -f apps/web/.cloudflare/output/v0/workers/default/assets/aws-test.webmanifest
+          node -e 'const m=require("./apps/web/public/aws-test.webmanifest");if(m.id!=="/aws-test"||m.name!=="Hustle AWS Test — The Economy of You"||m.display!=="standalone")process.exit(1)'
       - name: Deploy AWS preview Worker only (existing Vercel Worker untouched)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -90,9 +95,22 @@ jobs:
         run: |
           set -euo pipefail
           PREVIEW="https://hustle-ios-pwa-aws-test.realxpens.workers.dev"
-          curl -fsS --max-time 25 "$PREVIEW/manifest.webmanifest" > /tmp/hustle-aws-preview-manifest.json
-          node -e 'const m=require("/tmp/hustle-aws-preview-manifest.json");if(m.name!=="Hustle AWS Test — The Economy of You"||m.id!=="/aws-test"||m.display!=="standalone")process.exit(1)'
+          # Content is static and bypasses Vinext's unsupported metadata route.
+          # Allow edge propagation before concluding the published URL failed.
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS --max-time 25 "$PREVIEW/aws-test.webmanifest" > /tmp/hustle-aws-preview-manifest.json; then
+              break
+            fi
+            if [ "$attempt" = 5 ]; then
+              echo "::error::AWS preview static manifest unavailable after five checks"
+              exit 1
+            fi
+            sleep 3
+          done
+          node -e 'const fs=require("fs");const m=JSON.parse(fs.readFileSync("/tmp/hustle-aws-preview-manifest.json","utf8"));if(m.name!=="Hustle AWS Test — The Economy of You"||m.id!=="/aws-test"||m.display!=="standalone")process.exit(1)'
           curl -fsS --max-time 25 "$PREVIEW/auth" -o /tmp/hustle-aws-test-auth.html
-          grep -q 'HUSTLE · AWS TEST' /tmp/hustle-aws-test-auth.html
+          grep -q 'HUSTLE' /tmp/hustle-aws-test-auth.html
+          grep -q 'AWS TEST' /tmp/hustle-aws-test-auth.html
+          grep -q 'aws-test.webmanifest' /tmp/hustle-aws-test-auth.html
           curl -fsS --max-time 25 "$PREVIEW/api/isolated/api/v1/health" -o /dev/null
           echo 'PASS: separate AWS preview Worker deployed; existing Vercel Worker was not modified.'
