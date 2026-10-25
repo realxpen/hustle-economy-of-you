@@ -8,6 +8,8 @@ on:
       - package-lock.json
       - .github/workflows/hustle-cloudflare-pwa-compat.yml
       - .github/workflows/hustle-cloudflare-staging-deploy.yml
+      - .github/workflows/hustle-cloudflare-aws-preview.yml
+      - scripts/experience/check-cloudflare-aws-preview.cjs
       - scripts/cloudflare/**
   workflow_dispatch:
 
@@ -36,6 +38,7 @@ jobs:
       - name: Verify Cloudflare Worker preview identity and strict auth boundaries
         run: |
           node scripts/cloudflare/check-worker-config.cjs
+          node scripts/experience/check-cloudflare-aws-preview.cjs
           node scripts/experience/check-ios-pwa-parity.cjs
           node scripts/experience/check-ios-pwa-connected-staging.cjs
           node scripts/experience/check-isolated-search-client.cjs

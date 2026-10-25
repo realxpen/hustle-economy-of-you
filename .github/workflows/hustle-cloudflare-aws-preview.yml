@@ -1,0 +1,98 @@
+name: Hustle Cloudflare AWS Lambda iPhone Preview (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      approve_aws_preview:
+        description: 'Publish ONLY the parallel AWS-connected test Worker, never the working Vercel staging Worker'
+        required: true
+        type: choice
+        options:
+          - DO_NOT_DEPLOY
+          - I_AUTHORIZE_PARALLEL_AWS_IPHONE_TEST_ONLY
+        default: DO_NOT_DEPLOY
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-cloudflare-aws-iphone-preview
+  cancel-in-progress: false
+
+jobs:
+  deploy-aws-iphone-preview:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.repository == 'realxpen/hustle-economy-of-you' &&
+      inputs.approve_aws_preview == 'I_AUTHORIZE_PARALLEL_AWS_IPHONE_TEST_ONLY'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment: hustle-cloudflare-staging
+    env:
+      CI: 'true'
+      HUSTLE_AWS_PREVIEW_BUILD: 'true'
+      HUSTLE_API_BACKEND_TARGET: aws-lambda-isolated-staging
+      NEXT_PUBLIC_HUSTLE_AWS_PREVIEW: 'true'
+      HUSTLE_ISOLATED_PWA_GATE: isolated-staging
+      NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: 'true'
+      AWS_LAMBDA_HEALTH: https://hh2zi77ntrsjj3rgapko7rsjv40ztgpu.lambda-url.eu-west-2.on.aws/api/v1/health
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Fail closed on target, branch, and manual-only approval
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "realxpen/hustle-economy-of-you"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$HUSTLE_AWS_PREVIEW_BUILD" = "true"
+          test "$HUSTLE_API_BACKEND_TARGET" = "aws-lambda-isolated-staging"
+          test "$NEXT_PUBLIC_HUSTLE_AWS_PREVIEW" = "true"
+      - name: Confirm isolated AWS Lambda health before publishing test UI
+        run: |
+          set -euo pipefail
+          HEALTH_STATUS="$(curl -sS --location --output /dev/null --max-time 25 --write-out '%{http_code}' "$AWS_LAMBDA_HEALTH")"
+          test "$HEALTH_STATUS" = "200"
+          DENIED_STATUS="$(curl -sS --output /dev/null --max-time 25 --write-out '%{http_code}' \
+            'https://hh2zi77ntrsjj3rgapko7rsjv40ztgpu.lambda-url.eu-west-2.on.aws/api/v1/notifications')"
+          test "$DENIED_STATUS" = "401"
+          echo "PASS: Lambda staging health and unauthorized notification denial."
+      - name: Install and verify isolated AWS preview configuration
+        run: |
+          npm ci --include=dev
+          npm ls vite-css-modules vite typescript --workspace=@hustle/web --depth=0
+          node scripts/cloudflare/check-worker-config.cjs
+          node scripts/experience/check-cloudflare-aws-preview.cjs
+          node scripts/experience/check-ios-pwa-parity.cjs
+          node scripts/experience/check-ios-pwa-connected-staging.cjs
+          node scripts/experience/check-ux007-activity-notifications.cjs
+          npm run typecheck --workspace=@hustle/web
+      - name: Compile AWS-only separate iPhone Worker
+        env:
+          NODE_ENV: production
+        run: npm run build:vinext --workspace=@hustle/web
+      - name: Deploy AWS preview Worker only (existing Vercel Worker untouched)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test "$HUSTLE_AWS_PREVIEW_BUILD" = "true"
+          test "$HUSTLE_API_BACKEND_TARGET" = "aws-lambda-isolated-staging"
+          npm run deploy:vinext --workspace=@hustle/web
+      - name: Verify deployed preview gateway, never alter existing app
+        run: |
+          set -euo pipefail
+          PREVIEW="https://hustle-ios-pwa-aws-test.realxpens.workers.dev"
+          curl -fsS --max-time 25 "$PREVIEW/manifest.webmanifest" > /tmp/hustle-aws-preview-manifest.json
+          node -e 'const m=require("/tmp/hustle-aws-preview-manifest.json");if(m.name!=="Hustle AWS Test — The Economy of You"||m.id!=="/aws-test"||m.display!=="standalone")process.exit(1)'
+          curl -fsS --max-time 25 "$PREVIEW/auth" -o /tmp/hustle-aws-test-auth.html
+          grep -q 'HUSTLE · AWS TEST' /tmp/hustle-aws-test-auth.html
+          curl -fsS --max-time 25 "$PREVIEW/api/isolated/api/v1/health" -o /dev/null
+          echo 'PASS: separate AWS preview Worker deployed; existing Vercel Worker was not modified.'

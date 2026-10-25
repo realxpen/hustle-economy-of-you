@@ -6,10 +6,11 @@ import type { MetadataRoute } from "next";
  * or override native app authentication.
  */
 export default function manifest(): MetadataRoute.Manifest {
+  const awsPreview = process.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW === "true";
   return {
-    id: "/home",
-    name: "Hustle — The Economy of You",
-    short_name: "Hustle",
+    id: awsPreview ? "/aws-test" : "/home",
+    name: awsPreview ? "Hustle AWS Test — The Economy of You" : "Hustle — The Economy of You",
+    short_name: awsPreview ? "Hustle AWS" : "Hustle",
     description: "Find Hustlers. Get It Done. Discover people through their work.",
     start_url: "/home",
     scope: "/",

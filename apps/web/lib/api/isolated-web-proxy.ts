@@ -6,6 +6,14 @@ import { NextRequest, NextResponse } from "next/server";
  * iOS web app, not an arbitrary URL proxy or a production auth fallback.
  */
 const STAGING_API_ORIGIN = "https://hustle-isolated-staging-api.vercel.app";
+const AWS_STAGING_API_ORIGIN = "https://hh2zi77ntrsjj3rgapko7rsjv40ztgpu.lambda-url.eu-west-2.on.aws";
+/** Only these two literal, vetted isolated runtimes may be used. */
+export function selectedIsolatedBackendOrigin(): string | null {
+  const choice = process.env.HUSTLE_API_BACKEND_TARGET;
+  if (choice === "aws-lambda-isolated-staging") return AWS_STAGING_API_ORIGIN;
+  if (!choice || choice === "vercel-isolated-staging") return STAGING_API_ORIGIN;
+  return null; // Invalid/missing preview target fails closed, never arbitrary forwarding.
+}
 const prefix = "/api/isolated/";
 const allowedAuthReads = new Set(["get-session", "ok"]);
 const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]);
@@ -80,8 +88,10 @@ export async function proxyIsolatedRequest(req: NextRequest, segments: string[])
       return NextResponse.json({message:"Invalid staging request origin"}, {status:403});
     }
   }
+  const origin = selectedIsolatedBackendOrigin();
+  if (!origin) return NextResponse.json({message:"Unrecognized isolated staging backend"}, {status:503});
   const route = segments[0] === "auth" ? "/api/" + segments.join("/") : "/" + segments.join("/");
-  const url = new URL(route, STAGING_API_ORIGIN);
+  const url = new URL(route, origin);
   // Keep search/feed pagination parameters only, not arbitrary authorization URLs.
   if (req.method === "GET" && segments[0] !== "auth") {
     for (const [key, value] of req.nextUrl.searchParams) {
@@ -96,7 +106,7 @@ export async function proxyIsolatedRequest(req: NextRequest, segments: string[])
     const size = Number(req.headers.get("content-length") || 0);
     if (size > 10_000) return NextResponse.json({message:"Payload too large"}, {status:413});
     headers.set("content-type", "application/json");
-    headers.set("origin", STAGING_API_ORIGIN);
+    headers.set("origin", origin);
   }
   for (const key of privateHeaders) {
     const value = req.headers.get(key);
