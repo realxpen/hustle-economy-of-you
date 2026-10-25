@@ -7,7 +7,7 @@
 - AWS account **707859598737**, region **eu-west-2** (London).
 - Already present: GitHub Actions OIDC provider `token.actions.githubusercontent.com`.
 - Created for Hustle: ECR `707859598737.dkr.ecr.eu-west-2.amazonaws.com/hustle-isolated-staging-api`. Tag immutability, scan-on-push and retain-last-10 lifecycle applied. Lambda-service image pull policy is restricted to the exact staging function.
-- Created for Hustle: `arn:aws:iam::707859598737:role/hustle-github-isolated-staging-deployer`, with OIDC trust restricted to `repo:realxpen/hustle-economy-of-you:environment:hustle-aws-lambda-staging`, and an inline policy scoped to the isolated ECR repository, CloudFormation stack, execution role, Lambda function, log group and staging secret prefix.
+- Created for Hustle: `arn:aws:iam::707859598737:role/hustle-github-isolated-staging-deployer`, with OIDC trust restricted to the GitHub-issued repository-ID subject `repo:realxpen@69223421/hustle-economy-of-you@1358682534:environment:hustle-aws-lambda-staging` (audience `sts.amazonaws.com`), and an inline policy scoped to the isolated ECR repository, CloudFormation stack, execution role, Lambda function, log group and staging secret prefix.
 - No Lambda function, Function URL, Secrets Manager secret or public AWS routing was created. No ECR image pushed or traffic switched.
 
 ## Deployment shape
@@ -21,7 +21,7 @@ Existing *disposable* Neon child `br-dark-sunset-zay33p1s`
 ```
 
 - Build: `infra/aws/lambda/Dockerfile`, repository-root build context, adapter v1.1.0, Node 22, compiled NestJS/Prisma, port 8080.
-- Provisioning: `infra/aws/lambda/staging-template.yaml`: digest-pinned ECR image, 1 GB RAM, 28s timeout, 2 reserved concurrent invocations, 7-day logs, isolated Lambda execution role. This is **not** a guaranteed hard dollar cost cap.
+- Provisioning: `infra/aws/lambda/staging-template.yaml`: digest-pinned ECR image, 1 GB RAM, 28s timeout, no function-level reservation because the connected AWS account is limited to 10 total concurrent invocations, 7-day logs, isolated Lambda execution role. This is **not** a guaranteed hard dollar cost cap.
 - Credentials supplied **only** as Secrets Manager JSON references at CloudFormation deployment. No password, Neon URL, webhook signing secret or AWS access key in GitHub source, build args, workflow logs or Docker image.
 - Better Auth session issuer is pinned either to the existing Vercel staging origin or to a Function URL in this one AWS account/region. During the first Lambda deployment, CloudFormation uses the old issuer only until the Function URL exists; the workflow immediately updates `BETTER_AUTH_URL` to the AWS URL via a second CloudFormation pass before testing sessions. The previously issued Better Auth secret and child auth tables must remain identical.
 - Public Function URL has `AuthType: NONE` **only** to permit the already-authorized PWA server-side gateway; it is not a private network endpoint. Existing AuthGuard, exact staging route gates, invited test-account restrictions and sandbox simulation rules stay mandatory. Do not connect a production application to this URL.
@@ -54,8 +54,16 @@ Do not put this secret's values in GitHub, ChatGPT, code or build logs. Secrets 
 
 ### Costs and safeguards
 
-AWS Lambda can bill for invocation and duration, while ECR storage, log ingestion/storage and Secrets Manager incur their own charges. Reserved concurrency of two, 28s invocation timeout, and seven-day logs reduce exposure but **do not guarantee a zero-cost bill**. Set an AWS Budget alert before unrestricted testing. No NAT gateway, EC2, RDS or paid API Gateway provisioned by the migration template.
+AWS Lambda can bill for invocation and duration, while ECR storage, log ingestion/storage and Secrets Manager incur their own charges. The AWS account's quota is currently **10 concurrent Lambda invocations total**; AWS requires at least 10 unreserved. Attempting `ReservedConcurrentExecutions: 2` caused the initial `ROLLBACK_COMPLETE` stack on October 25. This staging template therefore **does not reserve concurrency**, and the workflow fails closed if the account limit changes unexpectedly. The account-wide cap, 28-second timeout, and seven-day logs limit exposure but **do not guarantee a zero-cost bill**. Set an AWS Budget alert before unrestricted testing. No NAT gateway, EC2, RDS or paid API Gateway provisioned by the migration template.
 
 ### Why staging remains on Vercel for now
 
 The iPhone PWA's same-origin proxy and the Better Auth issuer are intentionally pinned to the known Vercel origin. Replacing either before AWS is deployed and tested could log everyone out and break the live booking/review flow. This PR prepares a guarded parallel API first rather than risking current MVP acceptance.
+
+## Deployment incident — October 25, 2026
+
+- The first workflow attempt failed because GitHub now supplied its repository-ID OIDC subject. The IAM trust was corrected to the exact GitHub-issued subject (not a repository wildcard), and attempt 2 authenticated successfully.
+- Attempt 2: the digest-pinned ECR image upload succeeded; Lambda stack failed because its 2-execution reservation violated the account's 10-unreserved minimum.
+- Root cause confirmed from AWS Lambda `GetAccountSettings` and CloudFormation `DescribeStackEvents`, not inferred from application code.
+- The initial failed stack reached `ROLLBACK_COMPLETE`; all resources were rolled back and the **empty failed stack was deleted** after verifying its identity and that no live resources remained. The immutable ECR image was retained.
+- This PR removes the invalid reservation, checks the quota in CI and workflow, and leaves all real providers disabled. Manual GitHub deployment approval remains mandatory. No Cloudflare cutover is authorized by this fix.

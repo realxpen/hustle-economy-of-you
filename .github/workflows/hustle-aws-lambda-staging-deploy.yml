@@ -53,6 +53,14 @@ jobs:
           set -euo pipefail
           test "$(aws sts get-caller-identity --query Account --output text)" = "$AWS_ACCOUNT_ID"
           aws ecr describe-repositories --region "$AWS_REGION" --repository-names "$ECR_REPOSITORY" --output json > /dev/null
+          # The account currently permits only ten concurrent Lambda
+          # executions. AWS must keep ten unreserved, so CloudFormation
+          # cannot set ReservedConcurrentExecutions=2 on this account.
+          ACCOUNT_QUOTA="$(aws lambda get-account-settings --region "$AWS_REGION" --query 'AccountLimit.ConcurrentExecutions' --output text)"
+          test "$ACCOUNT_QUOTA" = "10" || {
+            echo "::error::Lambda account concurrency is not the expected 10; re-review the staging cost and concurrency contract." >&2
+            exit 1
+          }
           STAGING_SECRET_ARN="$(aws secretsmanager describe-secret --region "$AWS_REGION" --secret-id hustle-isolated-staging-credentials --query ARN --output text)"
           [[ "$STAGING_SECRET_ARN" =~ ^arn:aws:secretsmanager:eu-west-2:707859598737:secret:hustle-isolated-staging-[A-Za-z0-9_-]+$ ]]
           printf 'STAGING_SECRET_ARN=%s\n' "$STAGING_SECRET_ARN" >> "$GITHUB_ENV"
