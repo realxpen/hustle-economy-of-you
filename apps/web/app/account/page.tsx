@@ -8,6 +8,7 @@ import { ExperienceState } from "../../components/experience/experience-state";
 import { TrustActivityCenter } from "../../components/trust/trust-activity-center";
 import { AttributionConsentSettings } from "../../components/privacy/attribution-consent";
 import { getMyAccount } from "../../lib/auth/hustle-account";
+import { getUnreadNotificationCount } from "../../lib/notifications";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 import { isolatedWebMode, stageSignOut } from "../../lib/auth/isolated-web-auth";
 import styles from "./page.module.css";
@@ -55,6 +56,7 @@ export default function AccountPage() {
   const [signingOut, setSigningOut] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [trustOpen, setTrustOpen] = useState(false);
+  const [unreadActivity, setUnreadActivity] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -66,6 +68,18 @@ export default function AccountPage() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [refreshVersion]);
+
+  // The five-destination iPhone dock puts the Activity badge on "You".
+  // Keep its destination explicit on this page, using the same authoritative
+  // unread-group count as the dock. A slow 3G lookup must not block the link.
+  useEffect(() => {
+    if (!account) return;
+    let active = true;
+    getUnreadNotificationCount()
+      .then(({ count }) => { if (active) setUnreadActivity(count); })
+      .catch(() => { if (active) setUnreadActivity(null); });
+    return () => { active = false; };
+  }, [account]);
 
   async function signOut() {
     if (signingOut) return;
@@ -105,6 +119,21 @@ export default function AccountPage() {
   return <main className={[styles.page, "h-adaptive"].join(" ")}>
     <ExperienceHeader section="You" actions={<button className={styles.signOut} type="button"
       disabled={signingOut} onClick={() => void signOut()}>{signingOut ? "Signing out…" : "Sign out ↗"}</button>} />
+
+    <Link href="/notifications" className={styles.activityShortcut}
+      aria-label={unreadActivity !== null && unreadActivity > 0
+        ? `Open Activity and alerts, ${unreadActivity} unread notification groups`
+        : "Open Activity and alerts"}>
+      <span className={styles.activityShortcutIcon} aria-hidden="true">◎</span>
+      <span className={styles.activityShortcutCopy}>
+        <strong>Activity & alerts</strong>
+        <small>{unreadActivity === null ? "See what needs your attention" :
+          unreadActivity > 0 ? "New messages, bookings and updates" : "You're all caught up"}</small>
+      </span>
+      {unreadActivity !== null && unreadActivity > 0 &&
+        <span className={styles.activityShortcutCount} aria-hidden="true">{unreadActivity > 99 ? "99+" : unreadActivity} unread</span>}
+      <span className={styles.activityShortcutArrow} aria-hidden="true">↗</span>
+    </Link>
 
     <div className={styles.intro}>
       <div><span className={styles.eyebrow}>YOUR SPACE</span><p>Everything you create, earn and manage. One Hustle identity.</p></div>

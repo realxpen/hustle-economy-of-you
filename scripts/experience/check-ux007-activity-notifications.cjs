@@ -49,6 +49,25 @@ const dock=get("apps/web/components/navigation/hustle-mobile-nav.tsx");
 assert.match(dock,/unreadOnYou/);
 assert.match(dock,/appBadge/);
 assert.match(dock,/mobileAppItems/);
+// The iPhone dock deliberately has five actions; Activity's orange unread
+// badge is on "You". Users must find the matching destination immediately
+// on the account screen, without scrolling through profile/settings sections.
+const you=get("apps/web/app/account/page.tsx");
+const youStyles=get("apps/web/app/account/page.module.css");
+assert.match(you,/getUnreadNotificationCount\(\)/);
+assert.match(you,/unreadActivity !== null && unreadActivity > 0/);
+assert.match(you,/href="\/notifications" className=\{styles\.activityShortcut\}/);
+assert.match(you,/unread notification groups/);
+assert.match(you,/Activity & alerts/);
+assert.match(you,/See what needs your attention/);
+assert.match(you,/You're all caught up/);
+assert.match(youStyles,/\.activityShortcutCount/);
+assert.match(youStyles,/\.activityShortcutCopy/);
+assert.ok(you.indexOf("className={styles.activityShortcut}") < you.indexOf("className={styles.profileHero}"),
+  "Activity shortcut must appear above the profile hero on iPhone");
+assert.match(dock,/item.href === "\/account" && unread && unread > 0/,
+  "Orange You badge must still represent authenticated unread Activity groups");
+
 const screen=get("apps/web/app/notifications/page.tsx");
 assert.match(screen,/router.push\(allowedHref\(item.href\)\)/);
 assert.doesNotMatch(screen,/router.replace\("\/auth"\)/);
