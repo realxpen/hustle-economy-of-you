@@ -79,7 +79,7 @@ jobs:
         run: |
           set -euo pipefail
           test -f apps/web/.cloudflare/output/v0/workers/default/assets/aws-test.webmanifest
-          node -e 'const m=require("./apps/web/public/aws-test.webmanifest");if(m.id!=="/aws-test"||m.name!=="Hustle AWS Test — The Economy of You"||m.display!=="standalone")process.exit(1)'
+          node -e 'const fs=require("fs");const m=JSON.parse(fs.readFileSync("apps/web/.cloudflare/output/v0/workers/default/assets/aws-test.webmanifest","utf8"));if(m.id!=="/aws-test"||m.name!=="Hustle AWS Test — The Economy of You"||m.display!=="standalone")process.exit(1)'
       - name: Deploy AWS preview Worker only (existing Vercel Worker untouched)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
