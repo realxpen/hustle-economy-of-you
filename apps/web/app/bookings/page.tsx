@@ -25,6 +25,8 @@ function formatDate(value: string | null) {
 function BookingCard({ booking }: { booking: BookingRecord }) {
   const counterpart = booking.viewerRole === "CLIENT" ? booking.hustler : booking.client;
   const needsResponse = booking.viewerRole === "HUSTLER" && booking.status === "REQUESTED";
+  const needsTimeResponse = booking.viewerRole === "CLIENT" &&
+    booking.status === "REQUESTED" && booking.timeProposalStatus === "PENDING";
   const canReview = booking.viewerRole === "CLIENT" && booking.status === "COMPLETED";
   return <a className={[styles.card, "h-experience-surface"].join(" ")} href={`/bookings/${booking.id}`}>
     <div className={styles.cardTop}>
@@ -40,6 +42,7 @@ function BookingCard({ booking }: { booking: BookingRecord }) {
       <span>{counterpart.displayName ?? counterpart.username ?? "Hustle user"}</span>
     </div>
     <p className={styles.next}>{booking.nextAction}</p>
+    {needsTimeResponse && <span className={styles.priorityAction}>New time proposed — Accept or decline →</span>}
     {needsResponse && <span className={styles.priorityAction}>Review & respond →</span>}
     {canReview && <span className={styles.priorityAction}>Open booking to leave a verified review →</span>}
   </a>;
