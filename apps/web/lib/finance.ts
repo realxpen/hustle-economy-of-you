@@ -271,3 +271,35 @@ export function formatWalletMoney(minor: number, currency = "NGN") {
     maximumFractionDigits: minor % 100 === 0 ? 0 : 2
   }).format(minor / 100);
 }
+
+// All commands below require the server's isolated disposable-database gate,
+// an authenticated participant and explicit on-screen test-funds consent.
+// Ordinary financial endpoints remain disabled in the staging PWA.
+async function isolatedSimulation(path: string, confirmation: string, input: Record<string, unknown> = {}, key?: string) {
+  if (!isolatedWebMode) throw new Error("Hustle financial simulation is available only in isolated staging.");
+  const response = await authenticatedFetch(path, {
+    method: "POST",
+    headers: key ? { "idempotency-key": key } : undefined,
+    body: JSON.stringify({ ...input, confirmation })
+  });
+  return response.json();
+}
+
+export async function simulateSandboxBookingFunding(bookingId: string) {
+  return isolatedSimulation(`/sandbox/bookings/${encodeURIComponent(bookingId)}/fund`, "SIMULATE_TEST_FUNDS") as Promise<{
+    simulated: true; realFundsMoved: false; status: "FUNDED"; bookingId: string;
+  }>;
+}
+export async function simulateSandboxBookingStart(bookingId: string) {
+  return isolatedSimulation(`/sandbox/bookings/${encodeURIComponent(bookingId)}/start`, "SIMULATE_TEST_WORK");
+}
+export async function simulateSandboxBookingComplete(bookingId: string) {
+  return isolatedSimulation(`/sandbox/bookings/${encodeURIComponent(bookingId)}/complete`, "SIMULATE_TEST_WORK");
+}
+export async function simulateSandboxBookingRelease(bookingId: string) {
+  return isolatedSimulation(`/sandbox/bookings/${encodeURIComponent(bookingId)}/release`, "SIMULATE_TEST_RELEASE");
+}
+export async function simulateSandboxWithdrawal(amountMinor: number, idempotencyKey: string) {
+  return isolatedSimulation("/sandbox/wallet/withdrawals", "SIMULATE_TEST_WITHDRAWAL",
+    { amountMinor, currency: "NGN" }, idempotencyKey) as Promise<PayoutRecord>;
+}

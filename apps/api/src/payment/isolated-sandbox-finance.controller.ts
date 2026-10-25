@@ -108,7 +108,7 @@ export class IsolatedSandboxFinanceController {
            @Headers("idempotency-key") idempotencyKey?: string) {
     assertIsolatedSandboxFinance();
     if (!input || input.confirmation !== "SIMULATE_TEST_WITHDRAWAL" ||
-        input.currency !== "NGN" || !Number.isSafeInteger(input.amountMinor) ||
+        input.currency !== "NGN" || (typeof input.amountMinor !== "number" || !Number.isSafeInteger(input.amountMinor)) ||
         Number(input.amountMinor) <= 0 || Number(input.amountMinor) > 50_000_000 ||
         Object.keys(input).some(k => !["confirmation","amountMinor","currency"].includes(k))) {
       throw new BadRequestException("Sandbox withdrawals require a bounded NGN amount and explicit confirmation");
