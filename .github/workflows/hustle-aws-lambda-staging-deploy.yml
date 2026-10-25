@@ -1,0 +1,111 @@
+name: Hustle AWS Lambda Isolated Staging API (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      approve_isolated_aws:
+        description: 'Confirm eu-west-2 account 707859598737, disposable Neon child and NO real payments'
+        required: true
+        type: choice
+        options:
+          - DO_NOT_DEPLOY
+          - I_AUTHORIZE_AWS_ISOLATED_STAGING_ONLY
+        default: DO_NOT_DEPLOY
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: hustle-aws-isolated-api-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy-aws-isolated-api:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      inputs.approve_isolated_aws == 'I_AUTHORIZE_AWS_ISOLATED_STAGING_ONLY'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: hustle-aws-lambda-staging
+    env:
+      AWS_REGION: eu-west-2
+      AWS_ACCOUNT_ID: '707859598737'
+      ECR_REPOSITORY: hustle-isolated-staging-api
+      STACK_NAME: hustle-isolated-lambda-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Refuse any other GitHub repository or branch
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "realxpen/hustle-economy-of-you"
+          test "$GITHUB_REF" = "refs/heads/main"
+      - name: Configure OIDC AWS credentials (no AWS key in GitHub)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::707859598737:role/hustle-github-isolated-staging-deployer
+          aws-region: eu-west-2
+          role-session-name: hustle-isolated-staging
+      - name: Confirm AWS identity and ECR repo are the approved isolated target
+        run: |
+          set -euo pipefail
+          test "$(aws sts get-caller-identity --query Account --output text)" = "$AWS_ACCOUNT_ID"
+          aws ecr describe-repositories --region "$AWS_REGION" --repository-names "$ECR_REPOSITORY" --output json > /dev/null
+          STAGING_SECRET_ARN="$(aws secretsmanager describe-secret --region "$AWS_REGION" --secret-id hustle-isolated-staging-credentials --query ARN --output text)"
+          [[ "$STAGING_SECRET_ARN" =~ ^arn:aws:secretsmanager:eu-west-2:707859598737:secret:hustle-isolated-staging-[A-Za-z0-9_-]+$ ]]
+          printf 'STAGING_SECRET_ARN=%s\n' "$STAGING_SECRET_ARN" >> "$GITHUB_ENV"
+          npm ci
+          node scripts/experience/check-aws-lambda-staging.cjs
+      - name: Build and publish reviewed container image
+        run: |
+          set -euo pipefail
+          IMAGE_TAG="${GITHUB_SHA}"
+          ECR_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}"
+          aws ecr get-login-password --region "$AWS_REGION" |
+            docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          # Public ECR sometimes throttles anonymous GitHub runner IPs. Use
+          # short-lived AWS OIDC registry auth for the official adapter image.
+          aws ecr-public get-login-password --region us-east-1 |
+            docker login --username AWS --password-stdin public.ecr.aws
+          if aws ecr describe-images --region "$AWS_REGION" --repository-name "$ECR_REPOSITORY" --image-ids "imageTag=$IMAGE_TAG" > /dev/null 2>&1; then
+            echo 'Reviewed commit already has an immutable image; reuse its exact digest.'
+          else
+            docker build --platform linux/amd64 -f infra/aws/lambda/Dockerfile -t "${ECR_URI}:${IMAGE_TAG}" .
+            docker push "${ECR_URI}:${IMAGE_TAG}"
+          fi
+          DIGEST="$(aws ecr describe-images --repository-name "$ECR_REPOSITORY" --region "$AWS_REGION" --image-ids "imageTag=$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+          [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          printf 'IMAGE_URI=%s@%s\n' "$ECR_URI" "$DIGEST" >> "$GITHUB_ENV"
+      - name: Deploy Lambda via locked CloudFormation stack, NOT production
+        run: |
+          set -euo pipefail
+          aws cloudformation deploy --region "$AWS_REGION" \
+            --stack-name "$STACK_NAME" \
+            --template-file infra/aws/lambda/staging-template.yaml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides "ImageUri=$IMAGE_URI" "StagingSecretArn=$STAGING_SECRET_ARN"
+          API_URL="$(aws cloudformation describe-stacks --region "$AWS_REGION" --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='StagingApiOrigin'].OutputValue" --output text)"
+          export API_URL
+          node -e 'const u=new URL(process.env.API_URL);if(!/^https:\/\/[a-z0-9]{10,64}\.lambda-url\.eu-west-2\.on\.aws\/$/.test(u.href))process.exit(1)'
+          # Second pass binds Better Auth to THIS function URL. Do not leave
+          # it on Vercel's legacy origin or switch Cloudflare without sign-in QA.
+          aws cloudformation deploy --region "$AWS_REGION" \
+            --stack-name "$STACK_NAME" \
+            --template-file infra/aws/lambda/staging-template.yaml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides "ImageUri=$IMAGE_URI" "StagingSecretArn=$STAGING_SECRET_ARN" "AuthBaseUrl=${API_URL}api/auth"
+          printf 'API_URL=%s\n' "$API_URL" >> "$GITHUB_ENV"
+      - name: Read-only health check and deny-gate smoke (no login/payment writes)
+        run: |
+          set -euo pipefail
+          test -n "${API_URL:-}"
+          # Do not require an exact health body or echo any runtime errors.
+          HEALTH_STATUS="$(curl --location --silent --show-error --output /dev/null --max-time 25 --write-out '%{http_code}' "${API_URL}api/v1/health")"
+          test "$HEALTH_STATUS" = '200'
+          BLOCKED_STATUS="$(curl --silent --output /dev/null --max-time 25 --write-out '%{http_code}' --request POST --header 'content-type: application/json' --data '{}' "${API_URL}api/v1/payments/initialize")"
+          test "$BLOCKED_STATUS" = '403'
+          echo 'PASS isolated Lambda health and disabled payment route. Cloudflare stays on Vercel until iPhone auth+escrow+Activity acceptance.'

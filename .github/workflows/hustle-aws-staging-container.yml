@@ -6,6 +6,8 @@ on:
       - apps/api/**
       - packages/**
       - infra/aws/staging/**
+      - infra/aws/lambda/**
+      - scripts/experience/check-aws-lambda-staging.cjs
       - package.json
       - package-lock.json
       - .github/workflows/hustle-aws-staging-container.yml
@@ -25,6 +27,33 @@ jobs:
       - name: Verify image has Nest entrypoint and generated clients offline
         run: |
           docker run --rm --network none --entrypoint node hustle-aws-child-staging:ci -e 'const fs=require("fs");const p="/srv/hustle/apps/api/dist/main.js";if(!fs.existsSync(p))throw Error("missing Nest server");if(!fs.existsSync("/srv/hustle/apps/api/node_modules" ) && !fs.existsSync("/srv/hustle/node_modules"))throw Error("missing Node runtime modules");console.log("PASS: Nest staging image has compiled main and production modules")'
+      - name: Package actual Lambda Web Adapter image without AWS access
+        run: |
+          # AWS Public ECR can throttle shared GitHub runner IPs. Validate the
+          # full Nest+Prisma image and adapter copy path with an OFFLINE fixture.
+          # The live AWS workflow uses the pinned official adapter image.
+          mkdir -p /tmp/hustle-adapter-fixture
+          printf '#!/bin/sh\nexit 1\n' > /tmp/hustle-adapter-fixture/lambda-adapter
+          chmod 755 /tmp/hustle-adapter-fixture/lambda-adapter
+          printf 'FROM scratch\nCOPY lambda-adapter /lambda-adapter\n' > /tmp/hustle-adapter-fixture/Dockerfile
+          docker build --tag hustle-lambda-adapter-fixture:ci /tmp/hustle-adapter-fixture
+          docker build --file infra/aws/lambda/Dockerfile \
+            --build-arg LAMBDA_ADAPTER_IMAGE=hustle-lambda-adapter-fixture:ci \
+            --tag hustle-isolated-lambda-staging:ci .
+          docker run --rm --network none --entrypoint node hustle-isolated-lambda-staging:ci -e '
+            for (const name of ["@prisma/client","@hustle/staging-auth-client"]) {
+              require.resolve(name,{paths:["/srv/hustle/apps/api"]});
+            }
+            console.log("PASS: both Prisma clients resolve from compiled Nest runtime");
+          '
+          docker run --rm --network none --entrypoint sh hustle-isolated-lambda-staging:ci -c '
+            set -eu
+            test -x /opt/extensions/lambda-adapter
+            test -f /srv/hustle/apps/api/dist/main.js
+            test -d /srv/hustle/node_modules
+            test "$AWS_LWA_PORT" = "8080"
+            echo "PASS: Lambda extension copy slot (offline fixture), compiled Nest, Prisma modules and pinned port. Real adapter smoke is gated on deployed AWS health."
+          '
       - name: Validate fail-closed staging runtime pins from source
         run: |
           node -e 'const fs=require("fs");const s=fs.readFileSync("apps/api/src/auth/staging-auth-selection.ts","utf8");for(const k of ["NEON_EXPO_CHILD","BETTER_AUTH_URL !== EXPO_STAGING_AUTH_URL","HUSTLE_FINANCIAL_PROVIDERS_ENABLED","EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS"]) if(!s.includes(k))throw Error("missing pin: "+k);console.log("PASS: child-only DB, issuer and disabled commerce boundaries")'

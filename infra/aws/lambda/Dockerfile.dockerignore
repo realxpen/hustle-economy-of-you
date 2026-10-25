@@ -1,0 +1,22 @@
+# Build from repository root with: -f infra/aws/lambda/Dockerfile .
+.git
+.github
+.next
+.vercel
+.expo
+**/.env
+**/.env.*
+**/node_modules
+**/dist
+**/.turbo
+**/.cache
+*.pem
+*.key
+*.p12
+*.pfx
+*.apk
+*.zip
+*.log
+Knowledge
+Raw
+Application
