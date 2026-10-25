@@ -79,6 +79,42 @@ async function main(){
       if(v===undefined)delete process.env[k];else process.env[k]=v;
   }
 
+  // Execute the Worker config under both build flags: a mere source string
+  // match is insufficient protection against overwriting the current Worker.
+  const configFile=path.join(root,"apps/web/cloudflare.config.ts");
+  const configSource=get("apps/web/cloudflare.config.ts");
+  const runConfig=(awsFlag)=>{
+    const original=process.env.HUSTLE_AWS_PREVIEW_BUILD;
+    if(awsFlag)process.env.HUSTLE_AWS_PREVIEW_BUILD="true";
+    else delete process.env.HUSTLE_AWS_PREVIEW_BUILD;
+    try{
+      const cm=new Module(configFile,module);
+      cm.filename=configFile;
+      cm.paths=Module._nodeModulePaths(path.dirname(configFile));
+      cm.require=(name)=>{
+        if(name!=="cf/config")throw Error("Unexpected config dependency: "+name);
+        return {
+          bindings:{assets:()=>({type:"assets"}),images:()=>({type:"images"}),text:v=>v},
+          defineConfig:v=>v,defineWorker:v=>v
+        };
+      };
+      cm._compile(ts.transpileModule(configSource,{compilerOptions:{
+        module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022
+      }}).outputText,configFile);
+      return cm.exports.default.worker;
+    }finally{
+      if(original===undefined)delete process.env.HUSTLE_AWS_PREVIEW_BUILD;
+      else process.env.HUSTLE_AWS_PREVIEW_BUILD=original;
+    }
+  };
+  const normalWorker=runConfig(false),awsWorker=runConfig(true);
+  assert.equal(normalWorker.name,"hustle-ios-pwa-staging");
+  assert.equal(normalWorker.env.HUSTLE_API_BACKEND_TARGET,"vercel-isolated-staging");
+  assert.equal(normalWorker.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW,"false");
+  assert.equal(awsWorker.name,"hustle-ios-pwa-aws-test");
+  assert.equal(awsWorker.env.HUSTLE_API_BACKEND_TARGET,"aws-lambda-isolated-staging");
+  assert.equal(awsWorker.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW,"true");
+  assert.notEqual(awsWorker.name,normalWorker.name);
   const config=get("apps/web/cloudflare.config.ts");
   const layout=get("apps/web/app/layout.tsx");
   const manifest=get("apps/web/app/manifest.ts");
