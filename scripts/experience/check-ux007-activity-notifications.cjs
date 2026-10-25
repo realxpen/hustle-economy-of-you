@@ -38,7 +38,7 @@ for(const [method,route,expected] of matrix){
 const controller=get("apps/api/src/notifications/notifications.controller.ts");
 assert.match(controller,/@UseGuards\(AuthGuard\)/);
 const service=get("apps/api/src/notifications/notifications.service.ts");
-assert.match(service,/recipientUserId: recipientUserId/);
+assert.match(service,/WHERE n\."recipientUserId" = \$\{recipientUserId\}/);
 assert.match(service,/recipientUserId,\s*readAt: null/);
 assert.match(service,/recipientUserId: review.revieweeUserId/);
 assert.match(service,/eventKey: .review:verified:/);
@@ -54,7 +54,7 @@ assert.match(screen,/router.push\(allowedHref\(item.href\)\)/);
 assert.doesNotMatch(screen,/router.replace\("\/auth"\)/);
 assert.match(screen,/readAllNotifications\(\)/);
 assert.match(screen,/getUnreadNotificationCount\(\)/);
-assert.match(screen,/\/\^\s*\\\/\(\?:bookings/);
+assert.match(screen,/bookings\|messages\|posts\|orders/);
 assert.match(get("apps/web/app/bookings/[bookingId]/page.tsx"),/View your public reviews/);
 
 async function verifyBridge(){
