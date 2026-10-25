@@ -144,7 +144,7 @@ async function main(){
   assert.match(config,/awsPreviewBuild \? "aws-lambda-isolated-staging" : "vercel-isolated-staging"/);
   assert.match(config,/NEXT_PUBLIC_HUSTLE_AWS_PREVIEW: bindings\.text\(awsPreviewBuild \? "true" : "false"\)/);
   assert.match(layout,/HUSTLE · AWS TEST/);
-  assert.match(layout,/awsPreview.*?\/aws-test\.webmanifest/);
+  assert.match(layout,/NEXT_PUBLIC_HUSTLE_AWS_PREVIEW.*?\/aws-test\.webmanifest/);
   assert.match(layout,/: "\/manifest\.webmanifest"/);
 
   assert.match(layout,/NEXT_PUBLIC_HUSTLE_AWS_PREVIEW === "true"/);
