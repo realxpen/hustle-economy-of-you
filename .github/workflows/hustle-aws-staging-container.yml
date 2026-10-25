@@ -40,6 +40,12 @@ jobs:
           docker build --file infra/aws/lambda/Dockerfile \
             --build-arg LAMBDA_ADAPTER_IMAGE=hustle-lambda-adapter-fixture:ci \
             --tag hustle-isolated-lambda-staging:ci .
+          docker run --rm --network none --entrypoint node hustle-isolated-lambda-staging:ci -e '
+            for (const name of ["@prisma/client","@hustle/staging-auth-client"]) {
+              require.resolve(name,{paths:["/srv/hustle/apps/api"]});
+            }
+            console.log("PASS: both Prisma clients resolve from compiled Nest runtime");
+          '
           docker run --rm --network none --entrypoint sh hustle-isolated-lambda-staging:ci -c '
             set -eu
             test -x /opt/extensions/lambda-adapter
