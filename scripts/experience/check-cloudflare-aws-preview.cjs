@@ -115,6 +115,23 @@ async function main(){
   assert.equal(awsWorker.env.HUSTLE_API_BACKEND_TARGET,"aws-lambda-isolated-staging");
   assert.equal(awsWorker.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW,"true");
   assert.notEqual(awsWorker.name,normalWorker.name);
+  // The AWS install manifest is a real Cloudflare static asset. Vinext's
+  // /manifest.webmanifest route returned 404 after the first successful upload.
+  const manifestPath="apps/web/public/aws-test.webmanifest";
+  const staticManifest=JSON.parse(get(manifestPath));
+  assert.equal(staticManifest.name,"Hustle AWS Test — The Economy of You");
+  assert.equal(staticManifest.short_name,"Hustle AWS");
+  assert.equal(staticManifest.id,"/aws-test");
+  assert.equal(staticManifest.start_url,"/home");
+  assert.equal(staticManifest.display,"standalone");
+  assert.deepEqual(staticManifest.shortcuts.map(x=>x.url),["/search","/posts/new","/messages"]);
+  assert.deepEqual(normalWorker.assets.runWorkerFirst,[
+    "/*","!/_next/static/*","!/*/_next/static/*"
+  ],"The existing Vercel staging Worker must keep its original asset routing");
+  assert.deepEqual(awsWorker.assets.runWorkerFirst,[
+    "/*","!/_next/static/*","!/*/_next/static/*","!/aws-test.webmanifest"
+  ],"The AWS preview must bypass SSR only for its static manifest");
+
   const config=get("apps/web/cloudflare.config.ts");
   const layout=get("apps/web/app/layout.tsx");
   const manifest=get("apps/web/app/manifest.ts");
@@ -127,6 +144,10 @@ async function main(){
   assert.match(config,/awsPreviewBuild \? "aws-lambda-isolated-staging" : "vercel-isolated-staging"/);
   assert.match(config,/NEXT_PUBLIC_HUSTLE_AWS_PREVIEW: bindings\.text\(awsPreviewBuild \? "true" : "false"\)/);
   assert.match(layout,/HUSTLE · AWS TEST/);
+  assert.match(layout,/<head>\{awsPreview && <link rel="manifest" href="\/aws-test\.webmanifest" \/>\}<\/head>/);
+  assert.match(layout,/NEXT_PUBLIC_HUSTLE_AWS_PREVIEW.*?\/aws-test\.webmanifest/);
+  assert.match(layout,/: "\/manifest\.webmanifest"/);
+
   assert.match(layout,/NEXT_PUBLIC_HUSTLE_AWS_PREVIEW === "true"/);
   assert.match(manifest,/awsPreview \? "\/aws-test" : "\/home"/);
   assert.match(manifest,/awsPreview \? "Hustle AWS" : "Hustle"/);

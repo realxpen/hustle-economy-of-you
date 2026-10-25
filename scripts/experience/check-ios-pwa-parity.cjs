@@ -49,7 +49,10 @@ assert(manifest.icons.some(x=>x.src==="/icon.svg"&&x.type==="image/svg+xml"));
 assert(manifest.icons.some(x=>x.src==="/apple-icon"&&x.type==="image/png"));
 assert.deepEqual(manifest.shortcuts.map(x=>x.url),["/search","/posts/new","/messages"]);
 const layout = read("apps/web/app/layout.tsx");
-assert.match(layout,/manifest: "\/manifest\.webmanifest"/);
+// Regular staging still links its existing manifest; the AWS parallel
+// preview links the static manifest that Cloudflare Assets serves directly.
+assert.match(layout,/manifest: process\.env\.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW === "true"/);
+assert.match(layout,/\? "\/aws-test\.webmanifest" : "\/manifest\.webmanifest"/);
 assert.match(layout,/appleWebApp: \{ capable: true/);
 assert.match(layout,/viewportFit: "cover"/);
 assert.match(layout,/statusBarStyle: "black-translucent"/);

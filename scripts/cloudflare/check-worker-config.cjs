@@ -18,7 +18,9 @@ assert.match(config, /awsPreviewBuild \? "aws-lambda-isolated-staging" : "vercel
 assert.match(config, /compatibilityFlags: \["nodejs_compat"\]/);
 assert.match(config, /HUSTLE_ISOLATED_PWA_GATE: bindings\.text\("isolated-staging"\)/);
 assert.match(config, /NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: bindings\.text\("true"\)/);
-assert.match(config, /runWorkerFirst: \["\/\*", "!\/_next\/static\/\*", "!\/\*\/_next\/static\/\*"\]/);
+assert.match(config, /runWorkerFirst: awsPreviewBuild/);
+assert.match(config, /"\!\/aws-test\.webmanifest"/);
+assert.match(config, /: \["\/\*", "!\/_next\/static\/\*", "!\/\*\/_next\/static\/\*"\]/);
 assert.doesNotMatch(config, /DATABASE_URL|BETTER_AUTH_SECRET|PAYSTACK|MONNIFY|SUPABASE_SERVICE_ROLE|AWS_SECRET/i);
 assert.match(vite, /vinext\(/);
 assert.match(vite, /cloudflare\(/);
