@@ -138,6 +138,51 @@ export async function signedMoniflowSandboxRequest(
   return { status: response.status, payload };
 }
 
+/**
+ * Pre-dispatch safety handshake against pinned MONIFlow's partner capabilities.
+ * This is intentionally the OPPOSITE of a live-provider activation check:
+ * simulation commands are refused unless MONIFlow proves its execution rails
+ * are all disabled. It never creates collection, refund or payout authority.
+ */
+export function assertMoniflowReceiptOnlyCapabilities(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("MONIFLOW_PROVIDER_CAPABILITIES_UNTRUSTED");
+  }
+  const data = input as Record<string, unknown>;
+  const commandTypes = data.acceptedCommandTypes;
+  const expected = ["COLLECTION", "PAYOUT", "REFUND"];
+  if (data.version !== "1" || data.partner !== "HUSTLE" ||
+      data.environment !== "sandbox" || data.simulated !== true ||
+      data.operationStorage !== "DURABLE" ||
+      !Array.isArray(commandTypes) || commandTypes.length !== expected.length ||
+      !expected.every(kind => commandTypes.includes(kind)) ||
+      data.providerExecutionEnabled !== false ||
+      data.merchantCollectionsEnabled !== false ||
+      data.payoutsEnabled !== false ||
+      data.refundsEnabled !== false ||
+      data.custodyEnabled !== false) {
+    throw new Error("MONIFLOW_PROVIDER_CAPABILITIES_UNTRUSTED");
+  }
+  return {
+    partner: "HUSTLE" as const,
+    simulationOnly: true as const,
+    providerExecutionAuthorized: false as const,
+    financialStateMutationAuthorized: false as const,
+    providerEvidenceStatus: "NOT_VERIFIED" as const
+  };
+}
+
+export async function verifyMoniflowSandboxReceiptOnlyCapabilities(
+  config: { baseUrl: string; secret: string }
+) {
+  const base = requireLocalMoniflowSandbox(config.baseUrl, config.secret);
+  const {status, payload} = await signedMoniflowSandboxRequest(
+    base, config.secret, "GET", "/internal/v1/provider-capabilities"
+  );
+  if (status !== 200) throw new Error("MONIFLOW_PROVIDER_CAPABILITIES_UNAVAILABLE");
+  return assertMoniflowReceiptOnlyCapabilities(payload);
+}
+
 function assertReceipt(payload: unknown, operationId: string, duplicate: boolean, kind: MoniflowSandboxCommandKind):
   asserts payload is MoniflowSandboxCollectionReceipt {
   if (!payload || typeof payload !== "object") throw new Error("UNTRUSTED_MONIFLOW_RECEIPT");
@@ -164,6 +209,7 @@ export async function sendSandboxCollectionToMoniflow(
 ): Promise<MoniflowSandboxCollectionReceipt> {
   const base = requireLocalMoniflowSandbox(config.baseUrl, config.secret);
   const command = toMoniflowSandboxCollection(attempt);
+  await verifyMoniflowSandboxReceiptOnlyCapabilities(config);
   const { status, payload } = await signedMoniflowSandboxRequest(
     base, config.secret, "POST", "/internal/v1/collections", command
   );
@@ -282,6 +328,7 @@ export async function sendPersistedSandboxFinancialCommandToMoniflow(
 ): Promise<MoniflowSandboxCollectionReceipt> {
   const base = requireLocalMoniflowSandbox(config.baseUrl, config.secret);
   const command = await preparePersistedSandboxFinancialCommand(prisma, kind, operationId);
+  await verifyMoniflowSandboxReceiptOnlyCapabilities(config);
 
   const route = kind === "PAYOUT" ? "/internal/v1/payouts" : "/internal/v1/refunds";
   const { status, payload } = await signedMoniflowSandboxRequest(

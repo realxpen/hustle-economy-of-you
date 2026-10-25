@@ -45,6 +45,8 @@ const { sendSandboxCollectionToMoniflow, sendPersistedSandboxFinancialCommandToM
 const { FinancialOperationsService } = require("../../apps/api/dist/payment/financial-operations.service.js");
 const { describeFinancialDispatch } = require("../../apps/api/dist/payment/financial-dispatch-reconciliation.js");
 const { classifyProviderEvidenceReadiness } = require("../../apps/api/dist/payment/provider-evidence-readiness.js");
+const { assertMoniflowReceiptOnlyCapabilities, verifyMoniflowSandboxReceiptOnlyCapabilities } = require("../../apps/api/dist/payment/moniflow-sandbox-partner.client.js");
+const { verifyBmoniSandboxEvidenceFixture } = require("../../apps/api/dist/payment/bmoni-sandbox-evidence.js");
 const { WalletService } = require("../../apps/api/dist/payment/wallet.service.js");
 const { SandboxFinancialOperationGateway } = require("../../apps/api/dist/payment/sandbox-financial-operation.gateway.js");
 const { NotificationsService } = require("../../apps/api/dist/notifications/notifications.service.js");
@@ -109,6 +111,69 @@ async function main() {
     const by = identity(buyerSubject);
     const se = identity(sellerSubject);
 
+    // MONIFlow can only receive durable commands if provider execution remains
+    // disabled. Missing or permissive capabilities must fail closed.
+    const receiptOnlyCapabilities={
+      version:"1",partner:"HUSTLE",environment:"sandbox",simulated:true,
+      acceptedCommandTypes:["COLLECTION","PAYOUT","REFUND"],
+      operationStorage:"DURABLE",
+      providerExecutionEnabled:false,merchantCollectionsEnabled:false,
+      refundsEnabled:false,payoutsEnabled:false,custodyEnabled:false
+    };
+    const baselineCapabilities=assertMoniflowReceiptOnlyCapabilities(receiptOnlyCapabilities);
+    assert.equal(baselineCapabilities.providerExecutionAuthorized,false);
+    assert.equal(baselineCapabilities.financialStateMutationAuthorized,false);
+    for(const key of ["providerExecutionEnabled","merchantCollectionsEnabled",
+      "refundsEnabled","payoutsEnabled","custodyEnabled"]){
+      assert.throws(()=>assertMoniflowReceiptOnlyCapabilities({
+        ...receiptOnlyCapabilities,[key]:true
+      }),/MONIFLOW_PROVIDER_CAPABILITIES_UNTRUSTED/);
+      assert.throws(()=>assertMoniflowReceiptOnlyCapabilities({
+        ...receiptOnlyCapabilities,[key]:undefined
+      }),/MONIFLOW_PROVIDER_CAPABILITIES_UNTRUSTED/);
+    }
+    for(const invalid of [null,{},[],{...receiptOnlyCapabilities,partner:"OTHER"},
+      {...receiptOnlyCapabilities,environment:"production"},
+      {...receiptOnlyCapabilities,simulated:false},
+      {...receiptOnlyCapabilities,acceptedCommandTypes:["COLLECTION"]}]){
+      assert.throws(()=>assertMoniflowReceiptOnlyCapabilities(invalid),
+        /MONIFLOW_PROVIDER_CAPABILITIES_UNTRUSTED/);
+    }
+    // BMONI uses independent partner-scoped employee.* webhooks. A correctly
+    // signed sandbox fixture is observation only; never credit booking escrow.
+    const fakeBankKey="d".repeat(64);
+    const bmoniBody=Buffer.from(JSON.stringify({
+      id:"sandbox-event-"+randomUUID(),
+      eventType:"employee.deposit.completed",
+      payload:{userId:"fixture-only",amount:"1000.00"},
+      timestamp:new Date().toISOString()
+    }));
+    const bmoniSignature=createHmac("sha256",fakeBankKey).update(bmoniBody).digest("hex");
+    const fixtureEventId=JSON.parse(bmoniBody.toString()).id;
+    const acceptedFixture=verifyBmoniSandboxEvidenceFixture(
+      bmoniBody,bmoniSignature,fixtureEventId,fakeBankKey
+    );
+    assert.equal(acceptedFixture.evidenceStatus,"TEST_OBSERVATION_ONLY");
+    assert.equal(acceptedFixture.providerSettlementConfirmed,false);
+    assert.equal(acceptedFixture.boundToHustleOperation,false);
+    assert.equal(acceptedFixture.escrowReleaseAuthorized,false);
+    assert.equal(acceptedFixture.paymentAuthorized,false);
+    for(const tampered of [
+      [bmoniBody,"f".repeat(64),fixtureEventId,fakeBankKey],
+      [Buffer.from(bmoniBody.toString()+" "),bmoniSignature,fixtureEventId,fakeBankKey],
+      [bmoniBody,bmoniSignature,"different-event-id",fakeBankKey],
+      [bmoniBody,bmoniSignature,fixtureEventId,"a".repeat(64)]
+    ]){
+      assert.throws(()=>verifyBmoniSandboxEvidenceFixture(...tampered));
+    }
+    const legacyBody=Buffer.from(JSON.stringify({
+      id:"legacy-event",eventType:"wallet.deposit.completed",payload:{},timestamp:new Date().toISOString()
+    }));
+    assert.throws(()=>verifyBmoniSandboxEvidenceFixture(
+      legacyBody,createHmac("sha256",fakeBankKey).update(legacyBody).digest("hex"),
+      "legacy-event",fakeBankKey
+    ),/BMONI_EVIDENCE_ENVELOPE_REJECTED/);
+    console.log("PASS: MONIFlow receipt-only capability gate and independent BMONI-format sandbox evidence observations cannot authorize funding or escrow.");
     const absentEvidence=classifyProviderEvidenceReadiness("PAYOUT",5000,"NGN",null);
     assert.equal(absentEvidence.providerEvidenceStatus,"NOT_VERIFIED");
     assert.equal(absentEvidence.providerSettlementConfirmed,false);
@@ -281,6 +346,9 @@ async function main() {
       const caps=await signedMoniflowSandboxRequest(base,config.secret,
         "GET","/internal/v1/provider-capabilities");
       assert.equal(caps.status,200);
+      const checked=await verifyMoniflowSandboxReceiptOnlyCapabilities(config);
+      assert.equal(checked.providerExecutionAuthorized,false);
+      assert.equal(checked.providerEvidenceStatus,"NOT_VERIFIED");
       assert.equal(caps.payload.providerExecutionEnabled,false);
       assert.equal(caps.payload.merchantCollectionsEnabled,false);
       assert.equal(caps.payload.payoutsEnabled,false);
