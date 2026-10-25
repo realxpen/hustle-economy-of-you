@@ -51,7 +51,11 @@ Resources:
       Architectures: [x86_64]
       MemorySize: 1024
       Timeout: 28
-      ReservedConcurrentExecutions: 2
+      # Account is quota-limited to 10 concurrent executions. AWS requires
+      # at least 10 left unreserved; setting ANY per-function reservation
+      # fails stack creation. Keep this function unreserved until quota rises.
+      # Isolated AuthGuard, staging API allowlist, 28s timeout, and manual
+      # deployment remain intact. This is NOT a hard spending cap.
       Environment:
         Variables:
           NODE_ENV: production
