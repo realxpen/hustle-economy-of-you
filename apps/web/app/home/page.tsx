@@ -19,7 +19,7 @@ import {
 import { formatProductPrice } from "../../lib/product";
 import { formatServicePrice } from "../../lib/service";
 import styles from "./page.module.css";
-import { redirectGuestToAuth } from "../../lib/api/public-browsing";
+import { redirectGuestToAuth, authUrl } from "../../lib/api/public-browsing";
 
 const tabs: Array<{ id: FeedTab; label: string; note: string }> = [
   { id: "for-you", label: "For You", note: "Relevant people and content, even with zero connections." },
@@ -474,9 +474,10 @@ function FeedCard({
         <span className={styles.actionDisc}><FeedGlyph name="like" filled={item.viewer.liked} /></span>
         <span className={styles.actionNumber}>{item.engagement.likes}</span>
       </button>
-      <Link href={"/posts/" + item.post.id} aria-label={"View " + item.engagement.comments + " comments"}>
-        <span className={styles.actionDisc}><FeedGlyph name="comment" /></span>
-        <span className={styles.actionNumber}>{item.engagement.comments}</span>
+      <Link href={"/posts/" + item.post.id} className={item.viewer.commented ? styles.commentedAction : undefined}
+        aria-label={item.viewer.commented ? "You commented · View " + item.engagement.comments + " comments" : "View " + item.engagement.comments + " comments"}>
+        <span className={styles.actionDisc}><FeedGlyph name="comment" filled={item.viewer.commented} /></span>
+        <span className={styles.actionNumber}>{item.viewer.commented ? "✓ " : ""}{item.engagement.comments}</span>
       </Link>
       <button className={item.viewer.saved ? styles.activeAction : undefined} type="button"
         aria-label={item.viewer.saved ? "Remove saved post" : "Save post"} aria-pressed={item.viewer.saved}
@@ -561,6 +562,25 @@ export default function DiscoveryHomePage() {
     void load(tab);
   }, [load, sessionId, tab]);
 
+  // A comment added in the post screen updates the coloured feed indicator
+  // even when Safari returns to an existing in-memory home page.
+  useEffect(() => {
+    if (!sessionId) return;
+    const refresh = () => {
+      if (document.visibilityState === "visible" && !loading && !loadingMore)
+        void load(tab);
+    };
+    const onReturn = (event: PageTransitionEvent) => {
+      if (event.persisted) refresh();
+    };
+    window.addEventListener("pageshow", onReturn);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener("pageshow", onReturn);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [load, loading, loadingMore, sessionId, tab]);
+
   useEffect(() => {
     const trigger = paginationTrigger.current;
     const feed = feedRef.current;
@@ -605,6 +625,7 @@ export default function DiscoveryHomePage() {
             <Link className={styles.tabLink} href="/live">Live</Link>
           </nav>
           <div className={styles.quickLinks}>
+            <Link href="/wallet" aria-label="Open Hustle Sandbox Wallet" title="Wallet" onClick={event => { if (meta.guest) { event.preventDefault(); window.location.assign(authUrl("/wallet")); } }}>₦</Link>
             <Link href="/stories" aria-label="View Hustle Stories" title="Stories">◉</Link>
             <Link href="/posts/new" aria-label="Create a post" title="Create a post">+</Link>
           </div>

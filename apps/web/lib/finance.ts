@@ -1,6 +1,8 @@
 "use client";
 
 import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch as commonAuthenticatedFetch } from "./api/authenticated-fetch";
+import { isolatedWebMode } from "./auth/isolated-web-auth";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
@@ -130,6 +132,7 @@ async function parseError(response: Response) {
 }
 
 async function authenticatedFetch(path: string, init?: RequestInit) {
+  if (isolatedWebMode) return commonAuthenticatedFetch(path, init);
   const supabase = getSupabaseBrowserClient();
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session?.access_token) throw new Error("You need to sign in again");

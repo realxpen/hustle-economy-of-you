@@ -172,7 +172,7 @@ export class FeedService {
     const page = hasMore ? window.slice(0, limit) : window;
     const postIds = page.map((item) => item.candidate.id);
 
-    const [viewerLikes, viewerSaves] = viewer && postIds.length > 0
+    const [viewerLikes, viewerSaves, viewerComments] = viewer && postIds.length > 0
       ? await Promise.all([
           this.prisma.postLike.findMany({
             where: { userId: viewer.id, postId: { in: postIds } },
@@ -181,16 +181,23 @@ export class FeedService {
           this.prisma.postSave.findMany({
             where: { userId: viewer.id, postId: { in: postIds } },
             select: { postId: true }
+          }),
+          this.prisma.postComment.findMany({
+            where: { userId: viewer.id, postId: { in: postIds } },
+            select: { postId: true },
+            distinct: ["postId"]
           })
         ])
-      : [[], []];
+      : [[], [], []];
 
     const likedIds = new Set(viewerLikes.map((item) => item.postId));
     const savedIds = new Set(viewerSaves.map((item) => item.postId));
+    const commentedIds = new Set(viewerComments.map((item) => item.postId));
     const items = page.map((item) => this.toFeedItem(
       item,
       likedIds.has(item.candidate.id),
       savedIds.has(item.candidate.id),
+      commentedIds.has(item.candidate.id),
       followingIds.has(item.candidate.professionalProfile.user.id)
     ));
     const last = page.at(-1);
@@ -372,7 +379,7 @@ export class FeedService {
     return { candidate, score, reasons };
   }
 
-  private toFeedItem(ranked: RankedCandidate, liked: boolean, saved: boolean, following: boolean) {
+  private toFeedItem(ranked: RankedCandidate, liked: boolean, saved: boolean, commented: boolean, following: boolean) {
     const candidate = ranked.candidate;
     const profile = candidate.professionalProfile;
     const creator = profile.user;
@@ -413,7 +420,7 @@ export class FeedService {
         saves: candidate._count.saves,
         comments: candidate._count.comments
       },
-      viewer: { liked, saved, following },
+      viewer: { liked, saved, commented, following },
       services: candidate.serviceAttachments.map((item) => item.service),
       products: candidate.productAttachments.map((item) => item.product),
       ranking: { score: ranked.score, reasons: ranked.reasons }

@@ -43,7 +43,7 @@ export class PostInteractionService {
 
   async getViewerState(identity: AuthIdentity, postId: string) {
     const [user, post] = await Promise.all([this.requireUser(identity), this.requirePublicPost(postId)]);
-    const [like, save, follow] = await Promise.all([
+    const [like, save, follow, comment] = await Promise.all([
       this.prisma.postLike.findUnique({
         where: { postId_userId: { postId, userId: user.id } },
         select: { postId: true }
@@ -55,11 +55,16 @@ export class PostInteractionService {
       this.prisma.userFollow.findUnique({
         where: { followerId_followingId: { followerId: user.id, followingId: post.ownerUserId } },
         select: { followerId: true }
+      }),
+      this.prisma.postComment.findFirst({
+        where: { postId, userId: user.id },
+        select: { id: true }
       })
     ]);
     return {
       liked: Boolean(like),
       saved: Boolean(save),
+      commented: Boolean(comment),
       followingCreator: Boolean(follow),
       isCreator: user.id === post.ownerUserId,
       viewerUserId: user.id
