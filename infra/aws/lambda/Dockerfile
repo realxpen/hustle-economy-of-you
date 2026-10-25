@@ -1,6 +1,10 @@
 # Hustle disposable API staging — NestJS on Lambda via AWS Lambda Web Adapter.
 # The adapter forwards Function URL HTTP events to the existing NestJS server.
 # This image NEVER contains database URLs, tokens, .env files or credentials.
+# Docker supports ARG substitution in FROM, but not in COPY --from.
+# PR CI supplies an offline extension-file fixture; release uses AWS's image.
+ARG LAMBDA_ADAPTER_IMAGE=public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0
+FROM ${LAMBDA_ADAPTER_IMAGE} AS lambda_adapter
 FROM node:22-bookworm-slim AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /srv/hustle
@@ -11,10 +15,7 @@ RUN npm prune --omit=dev --ignore-scripts
 
 FROM node:22-bookworm-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl && rm -rf /var/lib/apt/lists/*
-# CI may swap ONLY this build-time image source for an offline extension-file
-# fixture. The manually approved deployment always uses the official default.
-ARG LAMBDA_ADAPTER_IMAGE=public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0
-COPY --from=${LAMBDA_ADAPTER_IMAGE} /lambda-adapter /opt/extensions/lambda-adapter
+COPY --from=lambda_adapter /lambda-adapter /opt/extensions/lambda-adapter
 WORKDIR /srv/hustle
 COPY --from=builder --chown=node:node /srv/hustle /srv/hustle
 USER node
