@@ -1222,7 +1222,7 @@
  .card{width:100%;min-width:0;overflow:hidden}
  .postCanvas{inset:0!important;width:100%;border-radius:0;box-shadow:none}
  .mediaRail,.media,.mediaSlide{width:100%;max-width:100%}
- .mediaImage{width:100%;height:100%;object-fit:contain}
+ .mediaImage{width:100%;height:100%;object-fit:cover;object-position:center}
  .cardBody{right:0;left:0;width:100%;box-sizing:border-box;max-width:100%;
    padding-inline:clamp(14px,4vw,22px);padding-bottom:calc(95px + env(safe-area-inset-bottom,0px));
    gap:6px}

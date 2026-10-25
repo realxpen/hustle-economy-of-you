@@ -14,6 +14,7 @@ import {
   savePublicPost,
   unfollowUser,
   unlikePost,
+  getMyPostInteractionState,
   unsavePublicPost
 } from "../../lib/post";
 import { formatProductPrice } from "../../lib/product";
@@ -562,24 +563,32 @@ export default function DiscoveryHomePage() {
     void load(tab);
   }, [load, sessionId, tab]);
 
-  // A comment added in the post screen updates the coloured feed indicator
-  // even when Safari returns to an existing in-memory home page.
+  // Refresh comment ownership on return without resetting scroll position,
+  // losing the active media, or reordering the user's feed.
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || meta.guest || items.length === 0) return;
     const refresh = () => {
-      if (document.visibilityState === "visible" && !loading && !loadingMore)
-        void load(tab);
+      if (document.visibilityState !== "visible") return;
+      void Promise.all(items.map(async item => {
+        try {
+          const state = await getMyPostInteractionState(item.post.id);
+          return { id: item.post.id, commented: Boolean(state?.commented) };
+        } catch { return null; }
+      })).then(states => {
+        const byId = new Map(states.filter((s): s is {id:string;commented:boolean}=>Boolean(s))
+          .map(s => [s.id,s.commented]));
+        setItems(current => current.map(item => byId.has(item.post.id)
+          ? { ...item, viewer: { ...item.viewer, commented: byId.get(item.post.id)! } } : item));
+      });
     };
-    const onReturn = (event: PageTransitionEvent) => {
-      if (event.persisted) refresh();
-    };
+    const onReturn = (event: PageTransitionEvent) => { if (event.persisted) refresh(); };
     window.addEventListener("pageshow", onReturn);
     window.addEventListener("focus", refresh);
     return () => {
       window.removeEventListener("pageshow", onReturn);
       window.removeEventListener("focus", refresh);
     };
-  }, [load, loading, loadingMore, sessionId, tab]);
+  }, [items, meta.guest, sessionId]);
 
   useEffect(() => {
     const trigger = paginationTrigger.current;
