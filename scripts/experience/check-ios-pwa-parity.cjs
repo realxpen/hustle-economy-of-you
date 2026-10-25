@@ -76,6 +76,20 @@ assert.match(home,/className=\{styles\.appWordmark\}/);
 assert.match(home,/getFeedPage/);
 assert.match(homeCss,/\(display-mode:standalone\)/);
 assert.match(homeCss,/\.postCanvas,\s*\.mediaRail/);
+// UX009: in AWS preview the label banner sits before the immersive viewer;
+// a full 100dvh shell would push the linked-offer button under the fixed dock.
+// Check both actual layout contracts, not only that a padding value appears.
+const globalCss = read("apps/web/app/globals.css");
+assert.match(globalCss,/body:has\(main\.h-discover-immersive\)\s*\{\s*display:flex;/,
+  "Home document must use flex layout to account for optional AWS banner");
+assert.match(globalCss,/body:has\(main\.h-discover-immersive\) #hustle-page-content\s*\{\s*flex:1 1 auto;\s*height:auto;/,
+  "Immersive home must size to viewport after the preview banner");
+assert.match(homeCss,/\.shell\{\s*height:100%;\s*min-height:0;\s*padding-bottom:calc\(84px \+ env\(safe-area-inset-bottom,0px\)\)!important;/,
+  "Immersive card must end above fixed 58px dock and safe area");
+assert.match(homeCss,/\.cardBodyOffersOpen \.opportunityBlock\{[\s\S]*?overflow-y:auto;[\s\S]*?overscroll-behavior:contain;/,
+  "Expanded attached services must be independently scrollable and tappable");
+assert.match(homeCss,/\.opportunityQuickView\{min-height:44px\}/,
+  "Linked offer quick view retains an accessible tap target");
 
 assert.match(home,/className=\{styles\.stateStage\}/, "Loading, empty and error must share one bounded feed stage");
 assert.match(home,/<ExperienceState compact kind="empty"/, "No oversized full-height empty card");
