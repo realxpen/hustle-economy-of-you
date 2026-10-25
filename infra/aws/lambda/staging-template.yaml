@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Hustle disposable-only NestJS staging API on AWS Lambda (eu-west-2). Never production.
+Parameters:
+  ImageUri:
+    Type: String
+    Description: Immutable digest-pinned ECR image URI in account 707859598737.
+    AllowedPattern: '^707859598737[.]dkr[.]ecr[.]eu-west-2[.]amazonaws[.]com/hustle-isolated-staging-api@sha256:[0-9a-f]{64}$'
+  StagingSecretArn:
+    Type: String
+    Description: Existing regional secret with exact existing isolated Neon and Better Auth values; no values in stack parameters.
+    AllowedPattern: '^arn:aws:secretsmanager:eu-west-2:707859598737:secret:hustle-isolated-staging-[A-Za-z0-9_-]+$'
+  AuthBaseUrl:
+    Type: String
+    Default: https://hustle-isolated-staging-api.vercel.app/api/auth
+    Description: Keep Vercel issuer only during pre-cutover; update to THIS function's exact URL + /api/auth before testing sessions.
+    AllowedPattern: '^https://(hustle-isolated-staging-api[.]vercel[.]app|[a-z0-9]{10,64}[.]lambda-url[.]eu-west-2[.]on[.]aws)/api/auth$'
+Resources:
+  StagingExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: hustle-isolated-lambda-staging-execution
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: isolated-staging-lambda-logs-only
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub 'arn:aws:logs:eu-west-2:707859598737:log-group:/aws/lambda/hustle-isolated-staging-api:*'
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/hustle-isolated-staging-api
+      RetentionInDays: 7
+  ApiFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: ApiLogGroup
+    Properties:
+      FunctionName: hustle-isolated-staging-api
+      PackageType: Image
+      Code:
+        ImageUri: !Ref ImageUri
+      Role: !GetAtt StagingExecutionRole.Arn
+      Architectures: [x86_64]
+      MemorySize: 1024
+      Timeout: 28
+      ReservedConcurrentExecutions: 2
+      Environment:
+        Variables:
+          NODE_ENV: production
+          PORT: '8080'
+          AWS_LWA_PORT: '8080'
+          AWS_LWA_READINESS_CHECK_PATH: /api/v1/health
+          WEB_ORIGIN: https://hustle-ios-pwa-staging.realxpens.workers.dev
+          HUSTLE_RUNTIME_SCOPE: isolated-staging
+          HUSTLE_AUTH_PROVIDER: expo-better-auth
+          HUSTLE_AWS_ACCOUNT_ID: '707859598737'
+          HUSTLE_STAGING_PROJECT_ID: summer-sound-54525078
+          HUSTLE_STAGING_BRANCH_ID: br-dark-sunset-zay33p1s
+          HUSTLE_SANDBOX_FINANCIAL_TESTS_ENABLED: 'true'
+          HUSTLE_FINANCIAL_PROVIDERS_ENABLED: 'false'
+          EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: 'false'
+          BETTER_AUTH_URL: !Ref AuthBaseUrl
+          DATABASE_URL: !Sub '{{resolve:secretsmanager:${StagingSecretArn}:SecretString:DATABASE_URL}}'
+          STAGING_AUTH_DATABASE_URL: !Sub '{{resolve:secretsmanager:${StagingSecretArn}:SecretString:STAGING_AUTH_DATABASE_URL}}'
+          BETTER_AUTH_SECRET: !Sub '{{resolve:secretsmanager:${StagingSecretArn}:SecretString:BETTER_AUTH_SECRET}}'
+          HUSTLE_SANDBOX_WEBHOOK_SECRET: !Sub '{{resolve:secretsmanager:${StagingSecretArn}:SecretString:HUSTLE_SANDBOX_WEBHOOK_SECRET}}'
+          HUSTLE_STAGING_TEST_EMAILS: !Sub '{{resolve:secretsmanager:${StagingSecretArn}:SecretString:HUSTLE_STAGING_TEST_EMAILS}}'
+  ApiUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt ApiFunction.Arn
+      AuthType: NONE
+      Cors:
+        AllowOrigins:
+          - https://hustle-ios-pwa-staging.realxpens.workers.dev
+        AllowMethods: [GET, POST, PUT, PATCH, DELETE]
+        AllowHeaders: [authorization, content-type, idempotency-key]
+        AllowCredentials: false
+  ApiUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ApiFunction
+      Principal: '*'
+      Action: lambda:InvokeFunctionUrl
+      FunctionUrlAuthType: NONE
+  ApiInvokeViaUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ApiFunction
+      Principal: '*'
+      Action: lambda:InvokeFunction
+      InvokedViaFunctionUrl: true
+Outputs:
+  StagingFunctionName:
+    Value: !Ref ApiFunction
+  StagingApiOrigin:
+    Description: Health-test first. Update AuthBaseUrl to this URL + api/auth before testing login or switching Cloudflare.
+    Value: !GetAtt ApiUrl.FunctionUrl
