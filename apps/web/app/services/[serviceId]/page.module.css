@@ -30,3 +30,9 @@
 @media(prefers-reduced-transparency:reduce){
  .offer,.ownerCard,.details{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+/* UX006 — authenticated outcome proof remains readable in narrow service cards. */
+.reputation{margin-top:16px;padding:14px 0;border-top:1px solid var(--h-glass-outline,rgba(150,150,150,.4));display:grid;gap:6px;min-width:0}
+.reputation strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.reputation small{font-size:11px;line-height:1.4;letter-spacing:normal;color:var(--h-text-muted,#999)}
+.reputation p{font-size:13px;line-height:1.5;white-space:normal;overflow-wrap:anywhere;margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
