@@ -37,19 +37,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Fail closed unless restricted GitHub staging environment is configured
-        env:
-          DEPLOY_ROLE_ARN: ${{ vars.HUSTLE_AWS_STAGING_DEPLOY_ROLE_ARN }}
-          STAGING_SECRET_ARN: ${{ vars.HUSTLE_AWS_STAGING_SECRET_ARN }}
+      - name: Refuse any other GitHub repository or branch
         run: |
           set -euo pipefail
-          test "$DEPLOY_ROLE_ARN" = "arn:aws:iam::707859598737:role/hustle-github-isolated-staging-deployer"
-          [[ "$STAGING_SECRET_ARN" =~ ^arn:aws:secretsmanager:eu-west-2:707859598737:secret:hustle-isolated-staging-[A-Za-z0-9_-]+$ ]]
-          echo 'Verified exact isolated AWS staging scope; values remain in protected environment.'
+          test "$GITHUB_REPOSITORY" = "realxpen/hustle-economy-of-you"
+          test "$GITHUB_REF" = "refs/heads/main"
       - name: Configure OIDC AWS credentials (no AWS key in GitHub)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.HUSTLE_AWS_STAGING_DEPLOY_ROLE_ARN }}
+          role-to-assume: arn:aws:iam::707859598737:role/hustle-github-isolated-staging-deployer
           aws-region: eu-west-2
           role-session-name: hustle-isolated-staging
       - name: Confirm AWS identity and ECR repo are the approved isolated target
@@ -57,6 +53,9 @@ jobs:
           set -euo pipefail
           test "$(aws sts get-caller-identity --query Account --output text)" = "$AWS_ACCOUNT_ID"
           aws ecr describe-repositories --region "$AWS_REGION" --repository-names "$ECR_REPOSITORY" --output json > /dev/null
+          STAGING_SECRET_ARN="$(aws secretsmanager describe-secret --region "$AWS_REGION" --secret-id hustle-isolated-staging-credentials --query ARN --output text)"
+          [[ "$STAGING_SECRET_ARN" =~ ^arn:aws:secretsmanager:eu-west-2:707859598737:secret:hustle-isolated-staging-[A-Za-z0-9_-]+$ ]]
+          printf 'STAGING_SECRET_ARN=%s\n' "$STAGING_SECRET_ARN" >> "$GITHUB_ENV"
           npm ci
           node scripts/experience/check-aws-lambda-staging.cjs
       - name: Build and publish reviewed container image
@@ -76,8 +75,6 @@ jobs:
           [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
           printf 'IMAGE_URI=%s@%s\n' "$ECR_URI" "$DIGEST" >> "$GITHUB_ENV"
       - name: Deploy Lambda via locked CloudFormation stack, NOT production
-        env:
-          STAGING_SECRET_ARN: ${{ vars.HUSTLE_AWS_STAGING_SECRET_ARN }}
         run: |
           set -euo pipefail
           aws cloudformation deploy --region "$AWS_REGION" \
