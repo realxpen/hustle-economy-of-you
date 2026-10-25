@@ -1118,11 +1118,11 @@ async function main() {
     });
     assert.equal(reviewAlert.href,`/bookings/${fullBooking.id}`);
     assert.equal(reviewAlert.readAt,null);
-    const sellerInbox=await notifications.list(se,{limit:50});
-    assert.ok(sellerInbox.items.some(item=>item.id===reviewAlert.id &&
+    const ux007ReviewSellerInbox=await notifications.list(se,{limit:50});
+    assert.ok(ux007ReviewSellerInbox.items.some(item=>item.id===reviewAlert.id &&
       item.kind==="REVIEW" && item.readAt===null));
-    const buyerInbox=await notifications.list(by,{limit:50});
-    assert.ok(!buyerInbox.items.some(item=>item.id===reviewAlert.id));
+    const ux007ReviewBuyerInbox=await notifications.list(by,{limit:50});
+    assert.ok(!ux007ReviewBuyerInbox.items.some(item=>item.id===reviewAlert.id));
     const unreadBefore=(await notifications.unreadCount(se)).count;
     await expectRejected(()=>notifications.markRead(by,reviewAlert.id),
       "Buyer cannot read Hustler's notification");
