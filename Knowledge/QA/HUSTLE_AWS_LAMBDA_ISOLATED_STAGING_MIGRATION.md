@@ -38,23 +38,16 @@ These are required before the **manual** AWS deployment workflow can succeed. Av
 - `HUSTLE_SANDBOX_WEBHOOK_SECRET` — preserve the current simulated-payment HMAC test secret. No live provider credentials.
 - `HUSTLE_STAGING_TEST_EMAILS` — comma-separated list of the existing invited QA identities.
 
-Store the ARN only in GitHub, never the values. Secrets Manager is billable (including while the API has no traffic).
+Do not put this secret's values in GitHub, ChatGPT, code or build logs. Secrets Manager is billable (including while the API has no traffic).
 
-**GitHub protected environment:** create `hustle-aws-lambda-staging` in repo Settings → Environments; restrict deployments to `main` and add the founder as required reviewer. Add these **environment variables**, not secrets:
-
-| GitHub environment variable | Value |
-| --- | --- |
-| `HUSTLE_AWS_STAGING_DEPLOY_ROLE_ARN` | `arn:aws:iam::707859598737:role/hustle-github-isolated-staging-deployer` |
-| `HUSTLE_AWS_STAGING_SECRET_ARN` | ARN of the new AWS Secrets Manager JSON secret |
-
-The workflow relies on OpenID Connect temporary credentials, **not static AWS access keys**.
+**GitHub protected environment:** create `hustle-aws-lambda-staging` in repo Settings → Environments, restrict deployment branches to `main`, and add the founder as required reviewer. **No AWS key, GitHub environment variables, or extra tokens are required.** The deployment workflow pins the already-created OIDC role ARN and looks up the exact secret name `hustle-isolated-staging-credentials` in the approved AWS account. Its IAM trust requires this named GitHub environment.
 
 ## Rollout sequence
 
 1. Review/merge this PR only after Foundation CI passes. It deliberately does **not** deploy from pull requests or pushes.
-2. Complete the two private setup steps above.
+2. Create the single AWS JSON secret and protect the GitHub deployment environment as described above.
 3. Manually run GitHub Actions → **Hustle AWS Lambda Isolated Staging API** on `main` with `I_AUTHORIZE_AWS_ISOLATED_STAGING_ONLY`.
-4. The workflow asserts the exact AWS account and ECR repository; installs locked dependencies; builds the Node 22 container; pushes once to immutable ECR under the merge SHA; uses its digest in CloudFormation; creates the Function URL; updates Better Auth to the precise AWS URL; and tests public `/api/v1/health` plus a disabled payment route that must return 403.
+4. The workflow asserts the exact AWS account, secret name and ECR repository; installs locked dependencies; builds the Node 22 container; pushes once to immutable ECR under the merge SHA; uses its digest in CloudFormation; creates the Function URL; updates Better Auth to the precise AWS URL; and tests public `/api/v1/health` plus a disabled payment route that must return 403.
 5. Perform signed-in test-account acceptance against the AWS URL, including invitation, bearer auth, Client and Hustler roles, listing/discovery, messages, booking, sandbox escrow, review and Activity notifications. Validate Neon logs/CloudWatch without printing IDs or secrets.
 6. **Separate PR:** only after the new API passes, change `apps/web/lib/api/isolated-web-proxy.ts` from its pinned Vercel origin to the exact tested Lambda Function URL. Deploy only the isolated Cloudflare Worker, then verify the same end-to-end iPhone journey. Keep Vercel alias for instant rollback.
 7. Observe for errors/cost. Roll back by restoring the Cloudflare proxy's previous Vercel origin. Do not delete the Vercel API or Neon branch during stabilization.
