@@ -118,10 +118,14 @@ export function HustleMobileNav() {
     <div className={styles.appInner}>
       {mobileAppItems.map(item => {
         const current = isActive(pathname, item.href);
+        // Keep the approved five-item iPhone dock. Show Activity unread groups
+        // on You; Activity is already reachable from the You account screen.
+        const unreadOnYou = item.href === "/account" && unread && unread > 0 ? unread : null;
         return <Link href={item.href} onClick={(event) => requireAccount(event, item.href)} key={item.href}
           className={current ? `${styles.appLink} ${styles.appSelected}` : styles.appLink}
-          aria-label={item.label} aria-current={current ? "page" : undefined}>
+          aria-label={unreadOnYou ? `You, ${unreadOnYou} unread Activity groups` : item.label} aria-current={current ? "page" : undefined}>
           <Icon name={item.icon}/>
+          {unreadOnYou !== null && <span className={styles.appBadge} aria-hidden="true">{unreadOnYou > 99 ? "99+" : unreadOnYou}</span>}
           <span className={styles.srOnly}>{item.label}</span>
         </Link>;
       })}
