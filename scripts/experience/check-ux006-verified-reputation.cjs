@@ -50,6 +50,22 @@ const booking=get("apps/web/app/bookings/[bookingId]/page.tsx");
 assert.match(booking,/booking\.viewerRole === "CLIENT" && booking\.status === "COMPLETED"/);
 assert.match(booking,/setReviewRefreshKey\(\(version\) => version \+ 1\)/);
 assert.match(booking,/<ReviewEligibilityCard key=/);
+
+const bookingList=get("apps/web/app/bookings/page.tsx");
+const mobileNav=get("apps/web/components/navigation/hustle-mobile-nav.tsx");
+// iPhone routing regression: "Review service" previously opened the public
+// Service screen, not the verified-review form.
+assert.match(booking,/id="booking-review"/);
+assert.match(booking,/href="#booking-review"/);
+assert.match(booking,/>View service details<\/Link>/);
+assert.doesNotMatch(booking,/>Review service<\/Link>/);
+assert.match(bookingList,/Open booking to leave a verified review/);
+// A transient get-session error must not be interpreted as sign-out on 3G.
+// The signed-in You route performs its own protected account read.
+assert.match(mobileNav,/if \(isolatedWebMode && href === "\/account"\) return/);
+assert.match(mobileNav,/\.catch\(\(\) => window\.location\.assign\(href\)\)/);
+assert.doesNotMatch(mobileNav,/\.catch\(\(\) => window\.location\.assign\(authUrl\(href\)\)\)/);
+
 const reviewCard=get("apps/web/components/trust/review-eligibility-card.tsx");
 assert.match(reviewCard,/HUSTLE SANDBOX · TEST REPUTATION/);
 assert.match(reviewCard,/not production reputation/);
