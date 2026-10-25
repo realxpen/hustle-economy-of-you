@@ -11,6 +11,7 @@ import {
   type ReviewSubjectType
 } from "../../lib/trust";
 import styles from "./review-eligibility-card.module.css";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
 
 function StarRating({
   value,
@@ -136,12 +137,13 @@ export function ReviewEligibilityCard({
   return <section className={styles.card} aria-live="polite">
     <div className={styles.heading}>
       <div>
-        <small>TRUST · REVIEW</small>
-        <h2>Transaction review</h2>
+        <small>{isolatedWebMode ? "HUSTLE SANDBOX · TEST REPUTATION" : "TRUST · REVIEW"}</small>
+        <h2>{isolatedWebMode ? "Review this simulated booking" : "Transaction review"}</h2>
       </div>
       {eligibility?.verifiedTransaction && <span className={styles.verified}>✓ Verified transaction</span>}
     </div>
 
+    {isolatedWebMode && <p className={styles.muted}>TEST ONLY: This review records simulated booking completion in the disposable staging database. It is not production reputation.</p>}
     {loading && <p className={styles.muted}>Checking review eligibility…</p>}
 
     {error && <div className={styles.error}>
