@@ -65,6 +65,10 @@ jobs:
           ECR_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}"
           aws ecr get-login-password --region "$AWS_REGION" |
             docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          # Public ECR sometimes throttles anonymous GitHub runner IPs. Use
+          # short-lived AWS OIDC registry auth for the official adapter image.
+          aws ecr-public get-login-password --region us-east-1 |
+            docker login --username AWS --password-stdin public.ecr.aws
           if aws ecr describe-images --region "$AWS_REGION" --repository-name "$ECR_REPOSITORY" --image-ids "imageTag=$IMAGE_TAG" > /dev/null 2>&1; then
             echo 'Reviewed commit already has an immutable image; reuse its exact digest.'
           else
