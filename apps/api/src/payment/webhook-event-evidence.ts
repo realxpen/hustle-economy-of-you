@@ -6,7 +6,7 @@ import { ConflictException } from "@nestjs/common";
  * This helper does not authorize payments or mutate the ledger.
  */
 export function assertWebhookEventEvidence(
-  stored: { eventType: string; providerReference: string; payloadDigest: string },
+  stored: { eventType: string; providerReference: string | null; payloadDigest: string },
   incoming: { type: string; providerReference: string; payloadDigest: string }
 ) {
   if (stored.eventType !== incoming.type ||
