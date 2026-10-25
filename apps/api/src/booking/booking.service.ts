@@ -320,7 +320,7 @@ export class BookingService {
       const originalEnd = booking.requestedEndAt?.getTime() ?? null;
       const proposedEnd = confirmedEndAt?.getTime() ?? null;
       if (confirmedStartAt.getTime() !== booking.requestedStartAt.getTime() || originalEnd !== proposedEnd) {
-        throw new ConflictException("Discuss alternate times in Messages; the Client must submit a revised request");
+        throw new ConflictException("Send a structured time proposal and wait for the Client to accept it before confirming");
       }
     }
 
