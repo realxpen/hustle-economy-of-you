@@ -167,7 +167,10 @@ export default function BookingDetailPage() {
       return setError("The proposed end must follow the proposed start.");
     if (start === booking.requestedStartAt && (end ?? null) === booking.requestedEndAt)
       return setError("Choose a different time to propose.");
-
+    await act(() => proposeBookingTime(booking.id, {
+      startAt: start,
+      ...(end ? { endAt: end } : {})
+    }));
   }
 
   const booking = storedBooking?.id === params?.bookingId ? storedBooking : null;
