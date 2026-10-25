@@ -63,6 +63,8 @@ jobs:
         run: node scripts/experience/check-ux005-wallet-feed.cjs
       - name: Verify UX006 booking review lifecycle, iPhone proxy, and staging trust boundaries
         run: node scripts/experience/check-ux006-verified-reputation.cjs
+      - name: Verify UX007 Activity inbox, review alerts, read receipts and staging proxy guards
+        run: node scripts/experience/check-ux007-activity-notifications.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile

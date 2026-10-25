@@ -4,7 +4,9 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const authRead = /^\/api\/auth\/(get-session|ok)$/;
   const authWrite = /^\/api\/auth\/(sign-up\/email|sign-in\/email|sign-out)$/;
   const ordinaryRead = /^\/api\/v1(?:\/(?:health|foundation|auth\/me))?$/;
-  const discoveryRead = /^\/api\/v1\/(?:feed|search|marketplace|services|posts|products|messaging|notifications)(?:\/[A-Za-z0-9_-]+)*$/;
+  const discoveryRead = /^\/api\/v1\/(?:feed|search|marketplace|services|posts|products|messaging)(?:\/[A-Za-z0-9_-]+)*$/;
+  const notificationRead = /^\/api\/v1\/notifications(?:\/unread-count)?$/;
+  const notificationReceiptWrite = /^\/api\/v1\/notifications\/(?:read-all|[A-Za-z0-9_-]+\/read)$/;
   const postAction = /^\/api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media|publish|archive|like|save|share|comments|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
   const postDelete = /^\/api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media\/[A-Za-z0-9_-]+|like|save|comments\/[A-Za-z0-9_-]+|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
   const followAction = /^\/api\/v1\/users\/[A-Za-z0-9_-]+\/follow$/;
@@ -25,7 +27,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const guestRead = /^\/api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;
   const ownerRead = /^\/api\/v1\/(?:hustler-application|professional-profile|services\/mine(?:\/[A-Za-z0-9_-]+)?|hustler-reviews(?:\/[A-Za-z0-9_-]+)?|profiles\/[A-Za-z0-9_-]+|storefronts\/[A-Za-z0-9_-]+)$/;
   if (method === "GET" || method === "HEAD")
-    return authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || guestRead.test(path) || ownerRead.test(path) || safetyRead.test(path) || bookingRead.test(path) || guestSlots.test(path) || walletRead.test(path) || paymentRead.test(path) || reviewRead.test(path) || publicTrustRead.test(path);
+    return authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || guestRead.test(path) || ownerRead.test(path) || safetyRead.test(path) || bookingRead.test(path) || guestSlots.test(path) || walletRead.test(path) || paymentRead.test(path) || reviewRead.test(path) || publicTrustRead.test(path) || notificationRead.test(path);
   if (method === "PATCH") return path === "/api/v1/auth/profile";
   if (method === "PUT")
     return path === "/api/v1/hustler-application" || path === "/api/v1/professional-profile" ||
@@ -43,7 +45,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
       "/api/v1/search/events",
       "/api/v1/marketplace/events"
     ]).has(path) ||
-    postAction.test(path) || followAction.test(path) || bookingDecision.test(path) || path === "/api/v1/reviews" || sandboxWrite.test(path) || safetyBlock.test(path) || path === "/api/v1/trust-safety/reports" ||
+    postAction.test(path) || followAction.test(path) || bookingDecision.test(path) || notificationReceiptWrite.test(path) || path === "/api/v1/reviews" || sandboxWrite.test(path) || safetyBlock.test(path) || path === "/api/v1/trust-safety/reports" ||
     /^\/api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/.test(path) ||
     /^\/api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/.test(path) ||
     path === "/api/v1/messaging/conversations/direct" ||

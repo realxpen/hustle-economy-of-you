@@ -220,6 +220,8 @@ export default function BookingDetailPage() {
       <div><strong>Next step</strong><p>{booking.nextAction ?? "Check your booking status or discuss the details in Messages."}</p></div>
       <div className={styles.handoffLinks}>
         <Link href={messageUrl}>Message {otherLabel} ↗</Link>
+        {booking.viewerRole === "HUSTLER" && booking.status === "COMPLETED" && booking.hustler.username &&
+          <Link href={`/u/${encodeURIComponent(booking.hustler.username)}#reviews`}>View your public reviews</Link>}
         {canReviewBooking && <Link href="#booking-review">{isolatedWebMode ? "Review completed booking (test)" : "Review completed booking"}</Link>}
         <Link href={`/services/${encodeURIComponent(booking.serviceId)}`}>View service details</Link>
         <Link href="/bookings">All bookings</Link>

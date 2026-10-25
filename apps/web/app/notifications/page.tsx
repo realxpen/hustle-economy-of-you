@@ -45,9 +45,12 @@ function notificationDescription(item: HustleNotification) {
 }
 
 function allowedHref(path: string) {
-  return path.startsWith("/") && !path.startsWith("//") && !path.includes("\\")
-    ? path
-    : "/account";
+  // Notifications are server-generated, but never let a stored href navigate
+  // to another origin, /api or /auth in the iPhone PWA.
+  return path.startsWith("/") && !path.startsWith("//") && !path.includes("\\") &&
+    !/[\x00-\x1f]/.test(path) &&
+    /^\/(?:bookings|messages|posts|orders|u|hustler-application|agent-application|live|notifications|account)(?:\/|\?|#|$)/.test(path)
+    ? path : "/account";
 }
 
 export default function NotificationsPage() {
@@ -76,9 +79,8 @@ export default function NotificationsPage() {
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Could not load notifications";
       setError(message);
-      if (message.toLowerCase().includes("sign in")) {
-        router.replace("/auth");
-      }
+      // A temporary network or session lookup error is not proof of sign-out.
+      // Keep Activity visible with a retry action instead of a forced redirect.
     } finally {
       setBusy(false);
       setInitialLoad(false);

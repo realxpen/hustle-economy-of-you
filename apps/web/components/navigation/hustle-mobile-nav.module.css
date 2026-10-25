@@ -246,3 +246,7 @@
 @media (display-mode: standalone) and (prefers-reduced-transparency: reduce) {
   .appDock { box-shadow: none; }
 }
+
+/* UX007: Activity count is surfaced on You without adding a sixth tab. */
+.appLink{position:relative}
+.appBadge{position:absolute;top:1px;right:clamp(4px,2vw,14px);background:#ff5a1f;color:#fff;border:2px solid #141a17;min-width:18px;height:18px;padding:0 4px;border-radius:999px;font-size:10px;font-weight:900;line-height:14px;text-align:center;white-space:nowrap;pointer-events:none}

@@ -1107,6 +1107,46 @@ async function main() {
     assert.equal(publishedJourneyReview.review.verifiedTransaction,true);
     assert.equal(publishedJourneyReview.review.revieweeUserId,seller.id);
     assert.equal(publishedJourneyReview.reputation.averageRating,5);
+
+    // UX007: review publication writes recipient-scoped Activity evidence. The
+    // Hustler can list/acknowledge the alert; the Client and an unrelated actor
+    // cannot mark the Hustler's alert read or see it in their own inbox.
+    const reviewAlert = await prisma.notification.findFirstOrThrow({
+      where:{recipientUserId:seller.id,
+        eventKey:`review:verified:${publishedJourneyReview.review.id}`},
+      select:{id:true,href:true,readAt:true}
+    });
+    assert.equal(reviewAlert.href,`/bookings/${fullBooking.id}`);
+    assert.equal(reviewAlert.readAt,null);
+    const ux007ReviewSellerInbox=await notifications.list(se,{limit:50});
+    assert.ok(ux007ReviewSellerInbox.items.some(item=>item.id===reviewAlert.id &&
+      item.kind==="REVIEW" && item.readAt===null));
+    const ux007ReviewBuyerInbox=await notifications.list(by,{limit:50});
+    assert.ok(!ux007ReviewBuyerInbox.items.some(item=>item.id===reviewAlert.id));
+    const unreadBefore=(await notifications.unreadCount(se)).count;
+    await expectRejected(()=>notifications.markRead(by,reviewAlert.id),
+      "Buyer cannot read Hustler's notification");
+    await expectRejected(()=>notifications.markRead(
+      identity("unrelated-alert-reader-"+testId),reviewAlert.id),
+      "Outsider cannot access Hustler's notification");
+    assert.equal((await prisma.notification.findUniqueOrThrow({
+      where:{id:reviewAlert.id}
+    })).readAt,null,"Unauthorized read receipt must leave original unread");
+    assert.equal((await notifications.markRead(se,reviewAlert.id)).read,true);
+    assert.ok((await prisma.notification.findUniqueOrThrow({
+      where:{id:reviewAlert.id}
+    })).readAt instanceof Date);
+    assert.equal((await notifications.unreadCount(se)).count,unreadBefore-1,
+      "Acknowledging a verified review removes exactly that unread Activity group");
+    assert.equal((await notifications.markRead(se,reviewAlert.id)).read,true,
+      "A repeated acknowledgement is idempotent");
+    const buyerUnreadBeforeAll=(await notifications.unreadCount(by)).count;
+    await notifications.markAllRead(se);
+    assert.equal((await notifications.unreadCount(se)).count,0);
+    assert.equal((await notifications.unreadCount(by)).count,buyerUnreadBeforeAll,
+      "Hustler's mark-all cannot acknowledge the Client's Activity");
+    console.log("PASS: UX007 published Booking review -> Hustler Activity notification -> no cross-user read -> idempotent mark-read and recipient-only mark-all");
+
     const alreadyReviewed = await reviewEligibility.get(by,"BOOKING",fullBooking.id);
     assert.equal(alreadyReviewed.reasonCode,"ALREADY_REVIEWED");
     assert.equal(alreadyReviewed.existingReview.id,publishedJourneyReview.review.id);
