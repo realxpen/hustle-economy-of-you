@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
 
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
@@ -28,6 +28,10 @@ export class ReviewController {
     @CurrentIdentity() identity: AuthIdentity,
     @Body() input: CreateReviewInput
   ) {
+    // The isolated iPhone PWA has no Order checkout/fulfillment test pathway.
+    // Limit staging writes to completed, verified BOOKING reviews only.
+    if (process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging" && input?.subjectType !== "BOOKING")
+      throw new ForbiddenException("Only verified Booking reviews are enabled in isolated staging");
     return this.reviews.create(identity, input);
   }
 
