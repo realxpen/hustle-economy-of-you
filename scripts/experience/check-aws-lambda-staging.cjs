@@ -28,7 +28,10 @@ assert.match(ignore,/\*\*\/\.env\.\*/);
 assert.match(ignore,/\.git/);
 assert.ok(cf.includes("707859598737[.]dkr[.]ecr[.]eu-west-2"));
 assert.match(cf,/Code:\s*\n\s*ImageUri: !Ref ImageUri/);
-assert.match(cf,/ReservedConcurrentExecutions: 2/);
+// The configured AWS account is limited to 10 concurrent executions.
+ // AWS requires at least ten remain unreserved. Don't recreate the
+ // failing CloudFormation stack by reserving two on a quota-ten account.
+assert.doesNotMatch(cf,/ReservedConcurrentExecutions:/);
 assert.match(cf,/Timeout: 28/);
 assert.match(cf,/RetentionInDays: 7/);
 assert.match(cf,/StagingSecretArn:/);
@@ -52,6 +55,8 @@ assert.match(workflow,/hustle-github-isolated-staging-deployer/);
 assert.match(workflow,/docker build --platform linux\/amd64/);
 assert.match(workflow,/--image-ids "imageTag=\$IMAGE_TAG"/);
 assert.match(workflow,/--no-fail-on-empty-changeset/);
+assert.match(workflow,/AccountLimit.ConcurrentExecutions/);
+assert.match(workflow,/expected 10/);
 assert.match(workflow,/AuthBaseUrl=/);
 assert.match(workflow,/payments\/initialize/);
 assert.match(workflow,/test "\$BLOCKED_STATUS" = '403'/);
