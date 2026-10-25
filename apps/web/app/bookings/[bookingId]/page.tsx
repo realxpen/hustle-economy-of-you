@@ -56,6 +56,7 @@ function Fact({ label, value }: { label: string; value: string }) {
 export default function BookingDetailPage() {
   const params = useParams<{ bookingId: string }>();
   const [storedBooking, setBooking] = useState<BookingRecord | null>(null);
+  const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
   const [extensionMinutes, setExtensionMinutes] = useState(15);
   const [extensionNote, setExtensionNote] = useState("");
   const [extensionOpen, setExtensionOpen] = useState(false);
@@ -208,7 +209,7 @@ export default function BookingDetailPage() {
     <ExperienceHeader section="Booking detail" trail={[{ href: "/bookings", label: "Bookings" }]}
       secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, { href: "/wallet", label: isolatedWebMode ? "Sandbox Wallet" : "Wallet" }]} />
 
-    {isolatedWebMode ? <SandboxBookingActions booking={booking} onChange={load} /> : <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />}
+    {isolatedWebMode ? <SandboxBookingActions booking={booking} onChange={async () => { await load(); setReviewRefreshKey((version) => version + 1); }} /> : <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />}
     <section className={styles.handoff} aria-label="Booking next steps">
       <div><strong>Next step</strong><p>{booking.nextAction ?? "Check your booking status or discuss the details in Messages."}</p></div>
       <div className={styles.handoffLinks}>
@@ -276,7 +277,7 @@ export default function BookingDetailPage() {
           <TransactionFinanceActions key={`BOOKING:${booking.id}`} subjectType="BOOKING" subjectId={booking.id} canInitialize={booking.viewerRole === "CLIENT" && booking.status === "PAYMENT_PENDING"} canRefund={booking.viewerRole === "CLIENT" && booking.status === "FUNDED"} canRelease={booking.viewerRole === "CLIENT" && booking.status === "COMPLETED"} releaseKind="BOOKING_ESCROW" onFinancialChange={load} />
         </section>}
 
-        {!isolatedWebMode && <ReviewEligibilityCard subjectType="BOOKING" subjectId={booking.id} />}
+        {(!isolatedWebMode || (booking.viewerRole === "CLIENT" && booking.status === "COMPLETED")) && <ReviewEligibilityCard key={`${booking.id}:${reviewRefreshKey}`} subjectType="BOOKING" subjectId={booking.id} />}
         {!isolatedWebMode && <CounterpartyFeedbackCard subjectType="BOOKING" subjectId={booking.id} />}
         {!isolatedWebMode && <TransactionSafetyActions
           targetUserId={other.id}
