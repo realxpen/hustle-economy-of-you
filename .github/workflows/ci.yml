@@ -45,6 +45,8 @@ jobs:
         run: node scripts/experience/check-staging-acceptance-policy.cjs
       - name: Creator publishing and Live UX contracts
         run: node scripts/experience/check-creator-experience.cjs
+      - name: Verify UX009 shared public-service references and visible seller attribution
+        run: node scripts/experience/check-ux009-public-offer-attribution.cjs
       - name: Release readiness and async privacy contracts
         run: node scripts/experience/check-release-readiness.cjs
       - name: You identity and account UX contracts
