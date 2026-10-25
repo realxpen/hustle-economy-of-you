@@ -68,6 +68,17 @@ assert.match(get("apps/web/app/posts/[postId]/page.module.css"),/\.ownComment\{/
 assert.match(get("apps/web/app/home/page.module.css"),/\.postCanvas\{inset:0!important/);
 assert.match(get("apps/web/app/wallet/page.tsx"),/HUSTLE SANDBOX/);
 assert.match(get("apps/web/app/wallet/page.tsx"),/SIMULATION ONLY/);
+
+const releaseUi = get("apps/web/components/finance/sandbox-booking-actions.tsx");
+// UX005 regression: COMPLETED describes work only; it must never be used alone
+// to offer another escrow release. The authenticated ledger read is authoritative.
+assert.match(releaseUi, /getReleaseState\("BOOKING", bookingId\)/);
+assert.match(releaseUi, /currentRelease\.value\?\.status === "HELD" && currentRelease\.value\.released === false/);
+assert.match(releaseUi, /booking\.status === "COMPLETED" && canRelease/);
+assert.match(releaseUi, /Retry escrow status/);
+assert.match(releaseUi, /released: true, status: "RELEASED"/);
+assert.doesNotMatch(releaseUi, /booking\.status === "COMPLETED" \? "release"/);
+
 assert.match(get("apps/web/lib/finance.ts"),/commonAuthenticatedFetch\(path, init\)/);
 assert.match(get("apps/api/src/payment/payment.module.ts"),/IsolatedSandboxFinanceController/);
 // Exercise the real PWA proxy, not just its path allowlist: financial idempotency
