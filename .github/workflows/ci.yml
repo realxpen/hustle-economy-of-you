@@ -67,6 +67,8 @@ jobs:
         run: node scripts/experience/check-ux007-activity-notifications.cjs
       - name: Verify AWS Lambda isolated staging migration and no Cloudflare cutover
         run: node scripts/experience/check-aws-lambda-staging.cjs
+      - name: Verify isolated AWS iPhone Worker, auth host, cookie and fail-closed routing
+        run: node scripts/experience/check-cloudflare-aws-preview.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
