@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import {
   BookingStatus,
+  BookingTimeProposalStatus,
   BookingOperationMode,
   MessageContextType,
   NotificationKind,
@@ -18,6 +19,7 @@ import {
 } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
+import { randomUUID } from "node:crypto";
 import { NotificationsService } from "../notifications/notifications.service";
 import { BookingScheduleService } from "./booking-schedule.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
@@ -40,6 +42,17 @@ export interface BookingPaginationInput {
 export interface AcceptBookingInput {
   confirmedStartAt?: unknown;
   confirmedEndAt?: unknown;
+}
+
+export interface ProposeBookingTimeInput {
+  startAt?: unknown;
+  endAt?: unknown;
+  note?: unknown;
+}
+
+export interface RespondBookingTimeInput {
+  proposalId?: unknown;
+  decision?: unknown;
 }
 
 export interface ExtendBookingInput {
@@ -82,6 +95,13 @@ const bookingSelect = {
   requestedEndAt: true,
   confirmedStartAt: true,
   confirmedEndAt: true,
+  timeProposalId: true,
+  timeProposalStatus: true,
+  timeProposalStartAt: true,
+  timeProposalEndAt: true,
+  timeProposalNote: true,
+  timeProposalCreatedAt: true,
+  timeProposalRespondedAt: true,
   scheduledDurationMinutes: true,
   extendedMinutes: true,
   actualStartedAt: true,
@@ -279,6 +299,9 @@ export class BookingService {
     if (booking.status !== BookingStatus.REQUESTED) {
       throw new ConflictException(`Booking cannot be accepted from ${booking.status}`);
     }
+    if (booking.timeProposalStatus === BookingTimeProposalStatus.PENDING) {
+      throw new ConflictException("Awaiting Client response to the proposed time");
+    }
 
     const confirmedStartAt = this.optionalDate(input.confirmedStartAt, "confirmedStartAt")
       ?? booking.requestedStartAt;
@@ -316,7 +339,13 @@ export class BookingService {
         excludeBookingId: id
       });
       const result = await tx.booking.updateMany({
-        where: { id, status: BookingStatus.REQUESTED },
+        where: {
+          id, status: BookingStatus.REQUESTED,
+          OR: [
+            { timeProposalStatus: null },
+            { timeProposalStatus: { in: [BookingTimeProposalStatus.ACCEPTED, BookingTimeProposalStatus.DECLINED] } }
+          ]
+        },
         data: {
           status: nextStatus,
           confirmedStartAt,
@@ -355,6 +384,150 @@ export class BookingService {
       });
     }
 
+    return this.serializeBooking(updated, viewer.id);
+  }
+
+  /**
+   * Hustler proposes an alternate slot. This does NOT reserve capacity, change
+   * the booked time, accept the job or affect money; Client consent is required.
+   */
+  async proposeTime(identity: AuthIdentity, bookingId: string, input: ProposeBookingTimeInput) {
+    const viewer = await this.requireUser(identity);
+    await this.requireActiveHustler(viewer.id);
+    const id = this.requiredId(bookingId, "bookingId");
+    const booking = await this.requireBookingParticipant(id, viewer.id);
+    if (booking.hustlerUserId !== viewer.id) {
+      throw new ForbiddenException("Only the booked Hustler may propose a new time");
+    }
+    if (booking.status !== BookingStatus.REQUESTED) {
+      throw new ConflictException("Only an unaccepted Booking may receive a new time proposal");
+    }
+    const start = this.requiredDate(input.startAt, "startAt");
+    const end = this.optionalDate(input.endAt, "endAt");
+    const note = this.optionalText(input.note, "note", 300);
+    if (start.getTime() <= Date.now()) throw new BadRequestException("Proposed start must be in the future");
+    this.validateSchedule(start, end, "proposed");
+    if (start.getTime() === booking.requestedStartAt.getTime() &&
+        (end?.getTime() ?? null) === (booking.requestedEndAt?.getTime() ?? null)) {
+      throw new BadRequestException("Choose a different time to propose");
+    }
+    // Inform the Hustler early if a different accepted Booking already blocks
+    // this slot. Availability is checked again when the Hustler finally accepts.
+    const availability = await this.schedule.checkAvailability(identity, {
+      serviceId: booking.serviceId, startAt: start.toISOString(),
+      ...(end ? { endAt: end.toISOString() } : {})
+    });
+    if (!availability.available) throw new ConflictException(availability.reason ?? "Proposed time is unavailable");
+    const proposalId = randomUUID();
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // Lock the single Booking row before checking and replacing a prior
+      // declined proposal; two simultaneous submissions cannot both win.
+      await tx.$queryRaw`SELECT "id" FROM "Booking" WHERE "id" = ${id} FOR UPDATE`;
+      const current = await tx.booking.findUnique({ where: { id }, select: bookingSelect });
+      if (!current || current.hustlerUserId !== viewer.id ||
+          current.status !== BookingStatus.REQUESTED) {
+        throw new ConflictException("Booking changed. Refresh before suggesting another time");
+      }
+      if (current.timeProposalStatus === BookingTimeProposalStatus.PENDING) {
+        throw new ConflictException("The Client has not responded to the current proposal");
+      }
+      const now = new Date();
+      const next = await tx.booking.update({
+        where: { id },
+        data: {
+          timeProposalId: proposalId,
+          timeProposalStatus: BookingTimeProposalStatus.PENDING,
+          timeProposalStartAt: start,
+          timeProposalEndAt: end,
+          timeProposalNote: note,
+          timeProposalCreatedAt: now,
+          timeProposalRespondedAt: null
+        },
+        select: bookingSelect
+      });
+      await tx.notification.createMany({
+        data: [{
+          recipientUserId: next.clientUserId,
+          eventKey: `booking:time:${id}:${proposalId}:proposed`,
+          kind: NotificationKind.BOOKING,
+          title: "New booking time proposed",
+          body: "Your Hustler suggested another time. Open your booking to accept or decline it.",
+          href: `/bookings/${encodeURIComponent(id)}`
+        }],
+        skipDuplicates: true
+      });
+      return next;
+    });
+    return this.serializeBooking(updated, viewer.id);
+  }
+
+  /**
+   * Client agrees to revise the REQUESTED time, not to accept paid work or
+   * fund escrow. Hustler must separately accept and reserve capacity.
+   */
+  async respondTime(identity: AuthIdentity, bookingId: string, input: RespondBookingTimeInput) {
+    const viewer = await this.requireUser(identity);
+    const id = this.requiredId(bookingId, "bookingId");
+    const proposalId = this.requiredId(input.proposalId, "proposalId");
+    if (input.decision !== "ACCEPT" && input.decision !== "DECLINE") {
+      throw new BadRequestException("decision must be ACCEPT or DECLINE");
+    }
+    const current = await this.requireBookingParticipant(id, viewer.id);
+    if (current.clientUserId !== viewer.id) {
+      throw new ForbiddenException("Only the Client can accept or decline a proposed time");
+    }
+    if (current.status !== BookingStatus.REQUESTED ||
+        current.timeProposalStatus !== BookingTimeProposalStatus.PENDING ||
+        current.timeProposalId !== proposalId) {
+      throw new ConflictException("Time proposal is no longer pending. Refresh this booking");
+    }
+    const approved = input.decision === "ACCEPT";
+    const start = current.timeProposalStartAt;
+    const end = current.timeProposalEndAt;
+    if (!start) throw new ConflictException("Time proposal is incomplete");
+    if (approved) {
+      if (start.getTime() <= Date.now()) {
+        throw new ConflictException("Proposed time has passed. Ask the Hustler for another time");
+      }
+      this.validateSchedule(start, end, "proposed");
+      const availability = await this.schedule.checkAvailability(identity, {
+        serviceId: current.serviceId, startAt: start.toISOString(),
+        ...(end ? { endAt: end.toISOString() } : {})
+      });
+      if (!availability.available) {
+        throw new ConflictException("That time is no longer available. Ask the Hustler to propose another");
+      }
+    }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.booking.updateMany({
+        where: {
+          id, clientUserId: viewer.id, status: BookingStatus.REQUESTED,
+          timeProposalId: proposalId, timeProposalStatus: BookingTimeProposalStatus.PENDING
+        },
+        data: {
+          timeProposalStatus: approved ? BookingTimeProposalStatus.ACCEPTED : BookingTimeProposalStatus.DECLINED,
+          timeProposalRespondedAt: new Date(),
+          ...(approved ? { requestedStartAt: start, requestedEndAt: end } : {})
+        }
+      });
+      if (result.count !== 1) throw new ConflictException("Proposal has already been answered");
+      const next = await tx.booking.findUnique({ where: { id }, select: bookingSelect });
+      if (!next) throw new NotFoundException("Booking not found");
+      await tx.notification.createMany({
+        data: [{
+          recipientUserId: next.hustlerUserId,
+          eventKey: `booking:time:${id}:${proposalId}:${approved ? "accepted" : "declined"}`,
+          kind: NotificationKind.BOOKING,
+          title: approved ? "Client accepted your proposed time" : "Client declined your proposed time",
+          body: approved
+            ? "The requested booking time has been revised. Review and accept the request to confirm the slot."
+            : "The original requested time is still pending. You may propose another time or decline the booking.",
+          href: `/bookings/${encodeURIComponent(id)}`
+        }],
+        skipDuplicates: true
+      });
+      return next;
+    });
     return this.serializeBooking(updated, viewer.id);
   }
 
@@ -787,6 +960,21 @@ export class BookingService {
   private nextAction(booking: BookingRecord, viewerRole: "CLIENT" | "HUSTLER") {
     switch (booking.status) {
       case BookingStatus.REQUESTED:
+        if (booking.timeProposalStatus === BookingTimeProposalStatus.PENDING) {
+          return viewerRole === "CLIENT"
+            ? "Hustler suggested another time. Accept or decline the proposal"
+            : "Waiting for Client to accept or decline your suggested time";
+        }
+        if (booking.timeProposalStatus === BookingTimeProposalStatus.ACCEPTED) {
+          return viewerRole === "HUSTLER"
+            ? "Client agreed to the revised time. Accept the booking to confirm"
+            : "You agreed to the new time. Waiting for Hustler to confirm";
+        }
+        if (booking.timeProposalStatus === BookingTimeProposalStatus.DECLINED) {
+          return viewerRole === "HUSTLER"
+            ? "Client declined the alternate time. Accept the original request or propose again"
+            : "You declined the alternate time. Your original request is still pending";
+        }
         return viewerRole === "HUSTLER" ? "Accept or decline this request" : "Waiting for Hustler response";
       case BookingStatus.ACCEPTED:
         return booking.agreedPriceMinor > 0
