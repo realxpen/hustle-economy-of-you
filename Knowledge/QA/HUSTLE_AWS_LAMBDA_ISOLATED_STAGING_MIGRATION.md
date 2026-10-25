@@ -7,7 +7,7 @@
 - AWS account **707859598737**, region **eu-west-2** (London).
 - Already present: GitHub Actions OIDC provider `token.actions.githubusercontent.com`.
 - Created for Hustle: ECR `707859598737.dkr.ecr.eu-west-2.amazonaws.com/hustle-isolated-staging-api`. Tag immutability, scan-on-push and retain-last-10 lifecycle applied. Lambda-service image pull policy is restricted to the exact staging function.
-- Created for Hustle: `arn:aws:iam::707859598737:role/hustle-github-isolated-staging-deployer`, with OIDC trust restricted to `repo:realxpen/hustle-economy-of-you:environment:hustle-aws-lambda-staging`, and an inline policy scoped to the isolated ECR repository, CloudFormation stack, execution role, Lambda function, log group and staging secret prefix.
+- Created for Hustle: `arn:aws:iam::707859598737:role/hustle-github-isolated-staging-deployer`, with OIDC trust restricted to the GitHub-issued repository-ID subject `repo:realxpen@69223421/hustle-economy-of-you@1358682534:environment:hustle-aws-lambda-staging` (audience `sts.amazonaws.com`), and an inline policy scoped to the isolated ECR repository, CloudFormation stack, execution role, Lambda function, log group and staging secret prefix.
 - No Lambda function, Function URL, Secrets Manager secret or public AWS routing was created. No ECR image pushed or traffic switched.
 
 ## Deployment shape
@@ -62,7 +62,8 @@ The iPhone PWA's same-origin proxy and the Better Auth issuer are intentionally 
 
 ## Deployment incident — October 25, 2026
 
-- First approved workflow: OIDC role assumption and digest-pinned ECR image upload succeeded; Lambda stack failed because its 2-execution reservation violated the account's 10-unreserved minimum.
+- The first workflow attempt failed because GitHub now supplied its repository-ID OIDC subject. The IAM trust was corrected to the exact GitHub-issued subject (not a repository wildcard), and attempt 2 authenticated successfully.
+- Attempt 2: the digest-pinned ECR image upload succeeded; Lambda stack failed because its 2-execution reservation violated the account's 10-unreserved minimum.
 - Root cause confirmed from AWS Lambda `GetAccountSettings` and CloudFormation `DescribeStackEvents`, not inferred from application code.
-- The initial failed stack reached `ROLLBACK_COMPLETE`; its resources were rolled back. Before a new deployment, delete **only** the known `hustle-isolated-lambda-staging` failed stack in account `707859598737` / `eu-west-2`; retain the immutable ECR image.
+- The initial failed stack reached `ROLLBACK_COMPLETE`; all resources were rolled back and the **empty failed stack was deleted** after verifying its identity and that no live resources remained. The immutable ECR image was retained.
 - This PR removes the invalid reservation, checks the quota in CI and workflow, and leaves all real providers disabled. Manual GitHub deployment approval remains mandatory. No Cloudflare cutover is authorized by this fix.
