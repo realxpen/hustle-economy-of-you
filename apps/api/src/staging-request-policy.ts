@@ -13,6 +13,11 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const sandboxWrite = /^\/api\/v1\/sandbox\/(?:bookings\/[A-Za-z0-9_-]+\/(?:fund|start|complete|release)|wallet\/withdrawals)$/;
   const walletRead = /^\/api\/v1\/wallet(?:\/(?:transactions|reconciliation|withdrawals|refunds|release-state\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+))?$/;
   const paymentRead = /^\/api\/v1\/payments\/(?:[A-Za-z0-9_-]+|subjects\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+\/latest)$/;
+  // UX006: post-escrow verified booking reviews. All reads enforce the existing
+  // Review AuthGuard/eligibility checks. The public summary exposes published
+  // reviews of ACTIVE, published Hustlers only.
+  const reviewRead = /^\/api\/v1\/reviews\/(?:eligibility\/BOOKING\/[A-Za-z0-9_-]+|[A-Za-z0-9_-]+)$/;
+  const publicTrustRead = /^\/api\/v1\/trust\/users\/[A-Za-z0-9_-]+\/summary$/;
   const bookingRead = /^\/api\/v1\/bookings\/(?:client|hustler|availability|slots|duration-insights|[A-Za-z0-9_-]+)$/;
   const bookingDecision = /^\/api\/v1\/bookings\/[A-Za-z0-9_-]+\/(?:accept|decline|cancel)$/;
   const safetyRead = /^\/api\/v1\/trust-safety\/blocks\/status\/[A-Za-z0-9_-]+$/;
@@ -20,7 +25,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const guestRead = /^\/api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;
   const ownerRead = /^\/api\/v1\/(?:hustler-application|professional-profile|services\/mine(?:\/[A-Za-z0-9_-]+)?|hustler-reviews(?:\/[A-Za-z0-9_-]+)?|profiles\/[A-Za-z0-9_-]+|storefronts\/[A-Za-z0-9_-]+)$/;
   if (method === "GET" || method === "HEAD")
-    return authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || guestRead.test(path) || ownerRead.test(path) || safetyRead.test(path) || bookingRead.test(path) || guestSlots.test(path) || walletRead.test(path) || paymentRead.test(path);
+    return authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || guestRead.test(path) || ownerRead.test(path) || safetyRead.test(path) || bookingRead.test(path) || guestSlots.test(path) || walletRead.test(path) || paymentRead.test(path) || reviewRead.test(path) || publicTrustRead.test(path);
   if (method === "PATCH") return path === "/api/v1/auth/profile";
   if (method === "PUT")
     return path === "/api/v1/hustler-application" || path === "/api/v1/professional-profile" ||
@@ -38,7 +43,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
       "/api/v1/search/events",
       "/api/v1/marketplace/events"
     ]).has(path) ||
-    postAction.test(path) || followAction.test(path) || bookingDecision.test(path) || sandboxWrite.test(path) || safetyBlock.test(path) || path === "/api/v1/trust-safety/reports" ||
+    postAction.test(path) || followAction.test(path) || bookingDecision.test(path) || path === "/api/v1/reviews" || sandboxWrite.test(path) || safetyBlock.test(path) || path === "/api/v1/trust-safety/reports" ||
     /^\/api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/.test(path) ||
     /^\/api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/.test(path) ||
     path === "/api/v1/messaging/conversations/direct" ||
