@@ -270,3 +270,27 @@ body:has(main.h-discover-immersive) #hustle-page-content {
 .h-aws-preview-banner strong{letter-spacing:.09em;font-size:11px}
 .h-aws-preview-banner span{color:#d2f4df}
 @media(max-width:520px){.h-aws-preview-banner{gap:2px;flex-direction:column;font-size:10px;line-height:1.3;padding-bottom:9px}}
+
+
+/* UX009 iPhone: the fixed bottom app dock must not obscure the post's linked
+   marketplace offer. On the AWS preview, a separate banner precedes the main
+   page. A 100dvh child below that banner overflows the visible viewport.
+   Size the immersive viewer within the remaining space, not another 100dvh.
+   Only this fullscreen viewer is affected; regular scrolling pages are not. */
+@media(max-width:760px) and (display-mode:standalone){
+  body:has(main.h-discover-immersive){
+    display:flex;
+    flex-direction:column;
+    height:100dvh;
+    min-height:0;
+  }
+  body:has(main.h-discover-immersive) > .h-aws-preview-banner{
+    flex:0 0 auto;
+  }
+  body:has(main.h-discover-immersive) #hustle-page-content{
+    flex:1 1 auto;
+    height:auto;
+    min-height:0;
+    overflow:hidden;
+  }
+}
