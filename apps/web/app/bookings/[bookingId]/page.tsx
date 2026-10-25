@@ -150,7 +150,7 @@ export default function BookingDetailPage() {
     if (confirmedEndAt && !end) return setError("Choose a valid confirmed end date and time.");
     if (end && new Date(end).getTime() <= new Date(start).getTime()) return setError("Confirmed end must be after confirmed start.");
     if (isolatedWebMode && (start !== booking.requestedStartAt || (end ?? null) !== booking.requestedEndAt)) {
-      return setError("Send a new time proposal in Messages first. The client must submit an updated request.");
+      return setError("To confirm a different time, use Propose new time to Client and wait for the Client's approval.");
     }
     await act(() => acceptBooking(booking.id, { confirmedStartAt: start, ...(end ? { confirmedEndAt: end } : {}) }));
   }
