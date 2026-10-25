@@ -13,7 +13,12 @@ export default defineConfig({
     assets: {
       htmlHandling: "none",
       notFoundHandling: "none",
-      runWorkerFirst: ["/*", "!/_next/static/*", "!/*/_next/static/*"],
+      // Vinext's generated metadata route can return 404 in the deployed
+      // Worker. Let Cloudflare's static-assets binding serve the AWS-specific
+      // PWA manifest without invoking SSR. Regular staging stays unchanged.
+      runWorkerFirst: awsPreviewBuild
+        ? ["/*", "!/_next/static/*", "!/*/_next/static/*", "!/aws-test.webmanifest"]
+        : ["/*", "!/_next/static/*", "!/*/_next/static/*"],
     },
     env: {
       ASSETS: bindings.assets(),
