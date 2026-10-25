@@ -1,6 +1,8 @@
 "use client";
 
 import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch as commonAuthenticatedFetch } from "./api/authenticated-fetch";
+import { isolatedWebMode } from "./auth/isolated-web-auth";
 
 export type ReviewSubjectType = "BOOKING" | "ORDER";
 export type ReviewPartyRole = "CLIENT" | "HUSTLER" | "BUYER" | "SELLER";
@@ -114,6 +116,7 @@ async function parseError(response: Response) {
 }
 
 async function authenticatedFetch(path: string, init?: RequestInit) {
+  if (isolatedWebMode) return commonAuthenticatedFetch(path, init);
   const supabase = getSupabaseBrowserClient();
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session?.access_token) throw new Error("You need to sign in again");
@@ -180,7 +183,9 @@ export async function getUserReputation(userId: string) {
 export async function getPublicTrustSummary(userId: string, limit = 8) {
   const query = new URLSearchParams({ limit: String(limit) });
   const response = await fetch(
-    `${apiBase}/trust/users/${encodeURIComponent(userId)}/summary?${query.toString()}`,
+    isolatedWebMode
+      ? `/api/isolated/api/v1/trust/users/${encodeURIComponent(userId)}/summary?${query.toString()}`
+      : `${apiBase}/trust/users/${encodeURIComponent(userId)}/summary?${query.toString()}`,
     { cache: "no-store" }
   );
   if (!response.ok) throw new Error(await parseError(response));
