@@ -26,6 +26,7 @@ import { randomUUID } from "node:crypto";
 import { assertPreparedReference } from "./financial-dispatch-policy";
 import { describeFinancialDispatch } from "./financial-dispatch-reconciliation";
 import { classifyProviderEvidenceReadiness } from "./provider-evidence-readiness";
+import { assertWebhookEventEvidence } from "./webhook-event-evidence";
 
 import { BookingFinancialService } from "../booking/booking-financial.service";
 import { CommerceFinancialService } from "../commerce/commerce-financial.service";
@@ -815,7 +816,10 @@ export class FinancialOperationsService {
     const existing = await this.prisma.webhookEvent.findUnique({
       where: { provider_eventId: { provider: webhook.provider, eventId: webhook.eventId } }
     });
-    if (existing) return existing;
+    if (existing) {
+      assertWebhookEventEvidence(existing, webhook);
+      return existing;
+    }
     try {
       return await this.prisma.webhookEvent.create({
         data: {
@@ -833,7 +837,10 @@ export class FinancialOperationsService {
         const raced = await this.prisma.webhookEvent.findUnique({
           where: { provider_eventId: { provider: webhook.provider, eventId: webhook.eventId } }
         });
-        if (raced) return raced;
+        if (raced) {
+          assertWebhookEventEvidence(raced, webhook);
+          return raced;
+        }
       }
       throw error;
     }

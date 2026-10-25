@@ -19,6 +19,7 @@ import {
   WebhookEventStatus
 } from "@prisma/client";
 import { randomUUID } from "node:crypto";
+import { assertWebhookEventEvidence } from "./webhook-event-evidence";
 
 import { BookingService } from "../booking/booking.service";
 import { CommerceService } from "../commerce/commerce.service";
@@ -150,6 +151,7 @@ export class PaymentService {
       where: { provider_eventId: { provider: webhook.provider, eventId: webhook.eventId } }
     });
 
+    if (event) assertWebhookEventEvidence(event, webhook);
     if (event?.status === WebhookEventStatus.PROCESSED || event?.status === WebhookEventStatus.IGNORED) {
       return { accepted: true, duplicate: true, eventId: webhook.eventId, status: event.status };
     }
@@ -159,17 +161,29 @@ export class PaymentService {
     });
 
     if (!event) {
-      event = await this.prisma.webhookEvent.create({
-        data: {
-          provider: webhook.provider,
-          eventId: webhook.eventId,
-          paymentAttemptId: attempt?.id ?? null,
-          eventType: webhook.type,
-          providerReference: webhook.providerReference,
-          payloadDigest: webhook.payloadDigest,
-          status: WebhookEventStatus.RECEIVED
+      try {
+        event = await this.prisma.webhookEvent.create({
+          data: {
+            provider: webhook.provider,
+            eventId: webhook.eventId,
+            paymentAttemptId: attempt?.id ?? null,
+            eventType: webhook.type,
+            providerReference: webhook.providerReference,
+            payloadDigest: webhook.payloadDigest,
+            status: WebhookEventStatus.RECEIVED
+          }
+        });
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
+        event = await this.prisma.webhookEvent.findUnique({
+          where: { provider_eventId: { provider: webhook.provider, eventId: webhook.eventId } }
+        });
+        if (!event) throw error;
+        assertWebhookEventEvidence(event, webhook);
+        if (event.status === WebhookEventStatus.PROCESSED || event.status === WebhookEventStatus.IGNORED) {
+          return { accepted: true, duplicate: true, eventId: webhook.eventId, status: event.status };
         }
-      });
+      }
     } else if (!event.paymentAttemptId && attempt) {
       event = await this.prisma.webhookEvent.update({
         where: { id: event.id },
