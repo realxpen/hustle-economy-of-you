@@ -1247,3 +1247,46 @@
 .actionRail .commentedAction .actionDisc{background:var(--h-orange,#C9F26B);color:#101b10;
  border-color:var(--h-orange,#C9F26B)}
 .actionRail .commentedAction .actionNumber{font-weight:900}
+
+
+/* UX009 mobile attachment fix. The iPhone bottom dock is FIXED outside this
+   fullscreen viewer. Reserve its real 58px + 10px bottom position, safe area,
+   and a little tap clearance in the stage itself rather than padding an
+   absolutely positioned (and max-height-clipped) footer. This works for the
+   AWS preview's taller header and the regular staging PWA alike. */
+@media(max-width:760px) and (display-mode:standalone){
+  .shell{
+    height:100%;
+    min-height:0;
+    padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;
+  }
+  .discoverLayout,.playerColumn,.feed{min-height:0}
+  .cardBody{
+    bottom:0;
+    padding-bottom:clamp(10px,1.6dvh,16px);
+  }
+  .cardBodyOffersOpen{
+    bottom:0;
+    padding-bottom:clamp(10px,1.6dvh,16px);
+    max-height:min(82%,520px);
+    overflow:hidden;
+  }
+  .cardBodyOffersOpen .opportunityDock{
+    min-height:0;
+    flex:1 1 auto;
+  }
+  .cardBodyOffersOpen .opportunityBlock{
+    min-height:0;
+    flex:1 1 auto;
+    max-height:min(37dvh,260px);
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  .actionMenuTrigger{bottom:calc(var(--post-footer-height,160px) + 12px)}
+  .opportunityQuickView{min-height:44px}
+}
+@media(max-width:760px) and (display-mode:standalone) and (max-height:650px){
+  .cardBodyOffersOpen{max-height:90%}
+  .cardBodyOffersOpen .opportunityBlock{max-height:32dvh}
+}
