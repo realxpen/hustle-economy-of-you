@@ -29,3 +29,9 @@
 
 /* Persisted comment interaction: distinct from likes/saves, accessible in either theme. */
 .interactionBar .commentedAction{background:#C9F26B;color:#172015;border-color:#759927;box-shadow:inset 0 0 0 1px #759927}
+
+/* Recognize your own persisted comments whenever you return to a post. */
+.ownComment{background:#e8f9bf!important;border:2px solid #90b849!important;box-shadow:inset 3px 0 0 #5f8528}
+.ownComment p,.ownComment .commentMeta strong{color:#162314!important}
+.ownComment .commentMeta span{color:#42632a!important}
+.youBadge{color:#233c16!important;border-color:#759b43!important;background:#caec8b;font-weight:850!important}

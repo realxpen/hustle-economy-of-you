@@ -262,9 +262,9 @@ export default function PublicPostPage() {
       {viewer ? <form className={styles.commentForm} onSubmit={submitComment}><textarea maxLength={1200} rows={3} value={commentBody} onChange={(event) => setCommentBody(event.target.value)} placeholder="Add useful context, ask a question, or respond to this post…" /><button type="submit" disabled={busy === "comment" || !commentBody.trim()}>{busy === "comment" ? "Posting…" : "Post comment"}</button></form> : <div className={styles.signInPrompt}><span>Join the conversation with your Hustle identity.</span><a href={authUrl(`/posts/${params.postId}`)}>Sign in →</a></div>}
       <div className={styles.commentList}>
         {interactions.comments.length === 0 && <p className={styles.muted}>No comments yet.</p>}
-        {interactions.comments.map((comment) => <article key={comment.id} className={comment.parentId ? styles.replyComment : styles.commentCard}>
+        {interactions.comments.map((comment) => <article key={comment.id} className={[comment.parentId ? styles.replyComment : styles.commentCard, viewer?.viewerUserId === comment.user.id ? styles.ownComment : ""].filter(Boolean).join(" ")}>
           <div className={styles.commentAvatar}>{comment.user.avatarUrl ? <img src={comment.user.avatarUrl} alt="" /> : (comment.user.displayName ?? comment.user.username ?? "H").charAt(0).toUpperCase()}</div>
-          <div><div className={styles.commentMeta}><strong>{comment.user.displayName ?? comment.user.username ?? "Hustle user"}</strong><span>@{comment.user.username ?? "user"}</span>{comment.parentId && <em>reply</em>}</div><p>{comment.body}</p></div>
+          <div><div className={styles.commentMeta}><strong>{comment.user.displayName ?? comment.user.username ?? "Hustle user"}</strong><span>@{comment.user.username ?? "user"}</span>{comment.parentId && <em>reply</em>}{viewer?.viewerUserId === comment.user.id && <em className={styles.youBadge}>You · commented</em>}</div><p>{comment.body}</p></div>
           {viewer?.viewerUserId === comment.user.id && <button className={styles.deleteComment} type="button" onClick={() => removeComment(comment.id)} disabled={busy === comment.id}>Delete</button>}
         </article>)}
       </div>

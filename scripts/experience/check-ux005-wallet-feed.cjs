@@ -63,6 +63,8 @@ try{
 assert.match(get("apps/api/src/feed/feed.service.ts"),/commentedIds\.has/);
 assert.match(get("apps/api/src/post/post-interaction.service.ts"),/commented: Boolean\(comment\)/);
 assert.match(get("apps/web/app/home/page.tsx"),/styles\.commentedAction/);
+assert.match(get("apps/web/app/posts/[postId]/page.tsx"),/styles\.ownComment/);
+assert.match(get("apps/web/app/posts/[postId]/page.module.css"),/\.ownComment\{/);
 assert.match(get("apps/web/app/home/page.module.css"),/\.postCanvas\{inset:0!important/);
 assert.match(get("apps/web/app/wallet/page.tsx"),/HUSTLE SANDBOX/);
 assert.match(get("apps/web/app/wallet/page.tsx"),/SIMULATION ONLY/);
