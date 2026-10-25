@@ -107,3 +107,25 @@
 .flowTimeExtend button{min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid #111;background:#111;color:#fff;font-weight:800;cursor:pointer}
 .flowTimeExtend button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:580px){.flowTimeSlots{padding:12px}.flowTimeGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* UX009 — authoritative alternate-time proposal, visible above all booking
+   financial controls and reachable by Client or Hustler on iPhone. */
+.timeProposalPanel{
+  display:grid;gap:12px;margin:16px 0 18px;
+  padding:clamp(16px,4vw,25px);
+  border-radius:22px;border:2px solid var(--h-orange,#e85a16);
+  background:var(--h-surface,#fffaf0);
+  color:var(--h-ink,#171715);
+  scroll-margin-top:24px;
+}
+.timeProposalPanel h2{margin:0;font-size:clamp(20px,5vw,28px);line-height:1.18}
+.timeProposalPanel p{margin:0;font-size:13px;line-height:1.55}
+.timeProposalPanel .facts{gap:8px}
+.proposalActions{display:flex;flex-wrap:wrap;gap:10px}
+.proposalActions button{flex:1 1 190px;min-height:48px;white-space:normal}
+@media(max-width:760px){
+  .timeProposalPanel{margin:12px 0 18px;padding:15px}
+  .proposalActions{display:grid;grid-template-columns:minmax(0,1fr)}
+  .proposalActions button{width:100%;min-height:48px}
+}
