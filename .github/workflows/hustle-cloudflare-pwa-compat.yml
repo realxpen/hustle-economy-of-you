@@ -77,7 +77,7 @@ jobs:
             if curl -fsS --max-time 5 http://127.0.0.1:4175/aws-test.webmanifest -o /tmp/hustle-aws-preview-test-manifest.json; then break; fi
             sleep 2
           done
-          node -e 'const fs=require("fs");const m=JSON.parse(fs.readFileSync("/tmp/hustle-aws-preview-test-manifest.json","utf8"));if(m.name!=="Hustle AWS Test — The Economy of You"||m.id!=="/aws-test"||m.display!=="standalone")process.exit(1)'
+          node -e 'const fs=require("fs");const m=JSON.parse(fs.readFileSync("/tmp/hustle-aws-preview-test-manifest.json","utf8")); console.log("AWS manifest (public metadata only):",JSON.stringify({name:m.name,id:m.id,display:m.display,start_url:m.start_url})); if(m.name!=="Hustle AWS Test — The Economy of You"||m.id!=="/aws-test"||m.display!=="standalone")process.exit(1)'
           curl -fsS --max-time 20 http://127.0.0.1:4175/auth -o /tmp/hustle-aws-preview-test-auth.html
           grep -q 'aws-test.webmanifest' /tmp/hustle-aws-preview-test-auth.html
           echo 'PASS: AWS-only compiled Worker serves its static iPhone manifest and separate login UI, with no public deployment.'
