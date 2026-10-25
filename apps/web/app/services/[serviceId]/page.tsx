@@ -12,6 +12,7 @@ import { formatServicePrice, getPublicService } from "../../../lib/service";
 import styles from "./page.module.css";
 import { hasViewerSession, authUrl } from "../../../lib/api/public-browsing";
 import { isolatedWebMode } from "../../../lib/auth/isolated-web-auth";
+import { getPublicTrustSummary, type PublicTrustSummary } from "../../../lib/trust";
 import type { MouseEvent } from "react";
 
 function isVideo(url: string) {
@@ -21,6 +22,7 @@ function isVideo(url: string) {
 export default function PublicServicePage() {
   const params = useParams<{ serviceId: string }>();
   const [data, setData] = useState<PublicService | null>(null);
+  const [trust, setTrust] = useState<PublicTrustSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
   const sourcePostId = useSourcePost();
@@ -36,6 +38,16 @@ export default function PublicServicePage() {
       .catch((reason: Error) => { if (active) setError(reason.message); });
     return () => { active = false; };
   }, [params?.serviceId, retryVersion]);
+
+  useEffect(() => {
+    const ownerId = data?.owner.id;
+    let active = true;
+    setTrust(null);
+    if (ownerId) void getPublicTrustSummary(ownerId, 3)
+      .then((result) => { if (active) setTrust(result); })
+      .catch(() => { /* Reputation preview must never block service booking. */ });
+    return () => { active = false; };
+  }, [data?.owner.id]);
 
   const currentData = data?.service.id === params?.serviceId ? data : null;
   if (error && !currentData) return <main className={styles.shell}><ExperienceState kind="error" title="Service unavailable." description={error} action={{ label: "Try loading again", onClick: () => setRetryVersion((n) => n + 1) }} /></main>;
@@ -72,6 +84,13 @@ export default function PublicServicePage() {
         <h2>{owner.displayName ?? `@${owner.username}`}</h2>
         <p>@{owner.username} · {owner.location ?? "Location not set"}</p>
         <div className={styles.badges}><span>HUSTLER</span>{owner.verified && <span>VERIFIED</span>}</div>
+        {trust && <div className={styles.reputation} aria-label="Verified client reviews">
+          <strong>{trust.reputation.reviewCount > 0
+            ? `★ ${trust.reputation.averageRating?.toFixed(1)} · ${trust.reputation.verifiedReviewCount} verified client review${trust.reputation.verifiedReviewCount === 1 ? "" : "s"}`
+            : "No verified client reviews yet"}</strong>
+          {isolatedWebMode && <small>Sandbox test reputation, not production reviews</small>}
+          {trust.reviews.items[0] && <p>“{trust.reviews.items[0].body}”</p>}
+        </div>}
         <a href={consultHref} onClick={(event) => requireAuthForAction(event, consultHref)}>Message about this service →</a>
         {owner.username && <a href={`/u/${owner.username}`}>View professional identity ↗</a>}
       </aside>
@@ -91,7 +110,7 @@ export default function PublicServicePage() {
         <div><small>MODE</small><strong>{service.deliveryMode}</strong></div>
         <div><small>LOCATION</small><strong>{service.location ?? "Remote"}</strong></div>
         <div><small>AVAILABILITY</small><strong>{service.availabilityNote}</strong></div>
-        <p>{isolatedWebMode ? "Discuss the service in Messages, then propose an available time. Staging booking requests are test-only; payment, wallet and escrow stay disabled." : "Bookings preserve the Service terms and schedule. Paid work is funded only after authoritative payment confirmation."}</p>
+        <p>{isolatedWebMode ? "Discuss the service in Messages, then propose an available time. Staging bookings, escrow and wallet entries are simulated. No actual funds move." : "Bookings preserve the Service terms and schedule. Paid work is funded only after authoritative payment confirmation."}</p>
       </aside>
     </section>
 

@@ -16,6 +16,8 @@ const guestSlots = /^api\/v1\/guest\/bookings\/(?:availability|slots)$/;
 const sandboxWrite = /^api\/v1\/sandbox\/(?:bookings\/[A-Za-z0-9_-]+\/(?:fund|start|complete|release)|wallet\/withdrawals)$/;
 const walletRead = /^api\/v1\/wallet(?:\/(?:transactions|reconciliation|withdrawals|refunds|release-state\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+))?$/;
 const paymentRead = /^api\/v1\/payments\/(?:[A-Za-z0-9_-]+|subjects\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+\/latest)$/;
+const reviewRead = /^api\/v1\/reviews\/(?:eligibility\/BOOKING\/[A-Za-z0-9_-]+|[A-Za-z0-9_-]+)$/;
+const publicTrustRead = /^api\/v1\/trust\/users\/[A-Za-z0-9_-]+\/summary$/;
 const bookingRead = /^api\/v1\/bookings\/(?:client|hustler|availability|slots|duration-insights|[A-Za-z0-9_-]+)$/;
 const bookingDecision = /^api\/v1\/bookings\/[A-Za-z0-9_-]+\/(?:accept|decline|cancel)$/;
 const guestRead = /^api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;
@@ -45,9 +47,9 @@ export function stagingProxyAllowed(method: string, segments: string[]) {
     return method === "GET" && allowedAuthReads.has(endpoint)
       || method === "POST" && allowedAuthWrites.has(endpoint);
   }
-  return method === "GET" && (apiRead.test(route) || guestRead.test(route) || messagingRead.test(route) || bookingRead.test(route) || guestSlots.test(route) || walletRead.test(route) || paymentRead.test(route) || safetyRead.test(route)) ||
+  return method === "GET" && (apiRead.test(route) || guestRead.test(route) || messagingRead.test(route) || bookingRead.test(route) || guestSlots.test(route) || walletRead.test(route) || paymentRead.test(route) || reviewRead.test(route) || publicTrustRead.test(route) || safetyRead.test(route)) ||
     method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route) ||
-      route === "api/v1/bookings" || bookingDecision.test(route) || sandboxWrite.test(route) ||
+      route === "api/v1/bookings" || bookingDecision.test(route) || route === "api/v1/reviews" || sandboxWrite.test(route) ||
       route === "api/v1/posts" || postAction.test(route) || followAction.test(route) || messagingWrite.test(route) || safetyBlock.test(route) || route === "api/v1/trust-safety/reports" ||
       ["api/v1/feed/events", "api/v1/search/events", "api/v1/marketplace/events"].includes(route)) ||
     method === "PUT" && apiPut.test(route) ||

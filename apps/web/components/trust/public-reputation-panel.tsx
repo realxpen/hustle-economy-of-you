@@ -3,12 +3,14 @@
 import type { PublicTrustSummary } from "../../lib/trust";
 import { ReviewCard } from "./review-card";
 import styles from "./reputation-surfaces.module.css";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
 
 export function PublicReputationPanel({ summary }: { summary: PublicTrustSummary }) {
   const { reputation, reviews, trust } = summary;
   const average = reputation.averageRating === null ? "—" : reputation.averageRating.toFixed(1);
 
   return <section className={styles.section}>
+    {isolatedWebMode && <p role="note">HUSTLE SANDBOX · These reviews are from test-only transactions, not production work.</p>}
     <div className={styles.sectionHeader}>
       <div>
         <small>TRUST · VERIFIED OUTCOMES</small>

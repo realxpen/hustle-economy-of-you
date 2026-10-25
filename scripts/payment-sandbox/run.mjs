@@ -52,6 +52,8 @@ const { SandboxFinancialOperationGateway } = require("../../apps/api/dist/paymen
 const { NotificationsService } = require("../../apps/api/dist/notifications/notifications.service.js");
 const { LiveService } = require("../../apps/api/dist/live/live.service.js");
 const { ReviewService } = require("../../apps/api/dist/trust/review.service.js");
+const { ReviewEligibilityService } = require("../../apps/api/dist/trust/review-eligibility.service.js");
+const { PublicTrustService } = require("../../apps/api/dist/trust/public-trust.service.js");
 const { AnalyticsService } = require("../../apps/api/dist/analytics/analytics.service.js");
 const { AttributionConsentService } = require("../../apps/api/dist/analytics/attribution-consent.service.js");
 const { FeedService } = require("../../apps/api/dist/feed/feed.service.js");
@@ -87,6 +89,8 @@ async function main() {
   const notifications = app.get(NotificationsService);
   const live = app.get(LiveService);
   const reviews = app.get(ReviewService);
+  const reviewEligibility = app.get(ReviewEligibilityService);
+  const publicTrust = app.get(PublicTrustService);
   const analytics = app.get(AnalyticsService);
   const consent = app.get(AttributionConsentService);
   const feed = app.get(FeedService);
@@ -1064,6 +1068,19 @@ async function main() {
     assert.equal(completedJourney.status,"COMPLETED");
     await expectRejected(()=>wallet.releaseBookingEscrow(se,fullBooking.id),
       "Hustler cannot release Client-controlled Booking escrow");
+    // UX006: a completed but HELD escrow must not unlock a public review.
+    const lockedReview = await reviewEligibility.get(by,"BOOKING",fullBooking.id);
+    assert.equal(lockedReview.reasonCode,"BOOKING_ESCROW_NOT_RELEASED");
+    assert.equal(lockedReview.eligible,false);
+    await expectRejected(
+      ()=>reviews.create(by,{subjectType:"BOOKING",subjectId:fullBooking.id,
+        rating:5,body:"Premature review with held escrow"}),
+      "Client cannot publish a review before escrow is released");
+    await expectRejected(
+      ()=>reviews.create(se,{subjectType:"BOOKING",subjectId:fullBooking.id,
+        rating:5,body:"The Hustler cannot review their own delivery"}),
+      "Hustler cannot self-review the completed booking");
+
     const releasedJourney=await wallet.releaseBookingEscrow(by,fullBooking.id);
     assert.equal(releasedJourney.released,true);
     assert.equal((await wallet.releaseBookingEscrow(by,fullBooking.id)).duplicate,true);
@@ -1074,6 +1091,36 @@ async function main() {
       .find(x=>x.currency==="NGN")?.availableMinor??0,
       sellerWalletBeforeJourney+45000,
       "Only completed, Client-authorized sandbox escrow release credits the Hustler");
+    // Real PostgreSQL transaction: verified completed/released Booking -> one
+    // immutable, participant-authorized Client review -> public Hustler proof.
+    const unlockedReview = await reviewEligibility.get(by,"BOOKING",fullBooking.id);
+    assert.equal(unlockedReview.eligible,true);
+    assert.equal(unlockedReview.verifiedTransaction,true);
+    assert.equal(unlockedReview.reasonCode,"ELIGIBLE");
+    await expectRejected(
+      ()=>reviewEligibility.get(identity("sandbox-outsider-"+testId),"BOOKING",fullBooking.id),
+      "Unrelated identity cannot inspect a participant's review eligibility");
+    const publishedJourneyReview = await reviews.create(by,{
+      subjectType:"BOOKING",subjectId:fullBooking.id,rating:5,
+      body:"Excellent completed test haircut and clear communication"
+    });
+    assert.equal(publishedJourneyReview.review.verifiedTransaction,true);
+    assert.equal(publishedJourneyReview.review.revieweeUserId,seller.id);
+    assert.equal(publishedJourneyReview.reputation.averageRating,5);
+    const alreadyReviewed = await reviewEligibility.get(by,"BOOKING",fullBooking.id);
+    assert.equal(alreadyReviewed.reasonCode,"ALREADY_REVIEWED");
+    assert.equal(alreadyReviewed.existingReview.id,publishedJourneyReview.review.id);
+    await expectRejected(
+      ()=>reviews.create(by,{subjectType:"BOOKING",subjectId:fullBooking.id,
+        rating:1,body:"Duplicate booking review must fail"}),
+      "Completed booking cannot be reviewed twice");
+    const publicJourneyTrust=await publicTrust.providerSummary(seller.id,8);
+    assert.ok(publicJourneyTrust.reputation.verifiedReviewCount>=1);
+    assert.ok(publicJourneyTrust.reviews.items.some(
+      item=>item.id===publishedJourneyReview.review.id && item.verifiedTransaction
+    ),"Public Hustler reputation must show the newly verified transaction review");
+    console.log("PASS: UX006 completed paid Booking → escrow release → Client verified review → deduplicated reputation & public discovery proof");
+
     console.log("PASS: proof Discover → Marketplace Service → consulted Message → paid Booking → signed sandbox funding → completed work → one escrow release; ownership/ledger safeguards verified");
 
     // UX005: execute the same narrowly scoped isolated sandbox routes used by
