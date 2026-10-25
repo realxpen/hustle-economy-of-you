@@ -6,6 +6,8 @@ on:
       - apps/api/**
       - packages/**
       - infra/aws/staging/**
+      - infra/aws/lambda/**
+      - scripts/experience/check-aws-lambda-staging.cjs
       - package.json
       - package-lock.json
       - .github/workflows/hustle-aws-staging-container.yml
@@ -25,6 +27,17 @@ jobs:
       - name: Verify image has Nest entrypoint and generated clients offline
         run: |
           docker run --rm --network none --entrypoint node hustle-aws-child-staging:ci -e 'const fs=require("fs");const p="/srv/hustle/apps/api/dist/main.js";if(!fs.existsSync(p))throw Error("missing Nest server");if(!fs.existsSync("/srv/hustle/apps/api/node_modules" ) && !fs.existsSync("/srv/hustle/node_modules"))throw Error("missing Node runtime modules");console.log("PASS: Nest staging image has compiled main and production modules")'
+      - name: Package actual Lambda Web Adapter image without AWS access
+        run: |
+          docker build --file infra/aws/lambda/Dockerfile --tag hustle-isolated-lambda-staging:ci .
+          docker run --rm --network none --entrypoint sh hustle-isolated-lambda-staging:ci -c '
+            set -eu
+            test -x /opt/extensions/lambda-adapter
+            test -f /srv/hustle/apps/api/dist/main.js
+            test -d /srv/hustle/node_modules
+            test "$AWS_LWA_PORT" = "8080"
+            echo "PASS: Lambda adapter extension, compiled Nest, Prisma modules and pinned port packaged offline"
+          '
       - name: Validate fail-closed staging runtime pins from source
         run: |
           node -e 'const fs=require("fs");const s=fs.readFileSync("apps/api/src/auth/staging-auth-selection.ts","utf8");for(const k of ["NEON_EXPO_CHILD","BETTER_AUTH_URL !== EXPO_STAGING_AUTH_URL","HUSTLE_FINANCIAL_PROVIDERS_ENABLED","EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS"]) if(!s.includes(k))throw Error("missing pin: "+k);console.log("PASS: child-only DB, issuer and disabled commerce boundaries")'
