@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ExperienceState } from "../../components/experience/experience-state";
 import { useRouter } from "next/navigation";
 import { getMarketplacePage } from "../../lib/search";
+import { getMyAccount } from "../../lib/auth/hustle-account";
 import {
   addPostMedia,
   archivePost,
@@ -32,6 +33,7 @@ type OfferOption = {
   id: string;
   title: string | null;
   owner: string;
+  ownerUserId: string;
 };
 
 const emptyForm: PostForm = { caption: "", category: "", location: "", tags: "" };
@@ -56,6 +58,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
   const [services, setServices] = useState<OfferOption[]>([]);
   const [products, setProducts] = useState<OfferOption[]>([]);
   const [referenceQuery, setReferenceQuery] = useState("");
+  const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<PostMediaType>("IMAGE");
   const [mediaUrl, setMediaUrl] = useState("");
   const [loading, setLoading] = useState(Boolean(postId));
@@ -75,12 +78,14 @@ export default function PostEditor({ postId }: { postId?: string }) {
       setServices(servicePage.items.flatMap((item) => item.kind === "service" ? [{
         id: item.service.id,
         title: item.service.title,
-        owner: item.owner.displayName ?? item.owner.username ?? "Hustle user"
+        owner: item.owner.displayName ?? item.owner.username ?? "Hustle user",
+        ownerUserId: item.owner.id
       }] : []));
       setProducts(productPage.items.flatMap((item) => item.kind === "product" ? [{
         id: item.product.id,
         title: item.product.title,
-        owner: item.owner.displayName ?? item.owner.username ?? "Hustle user"
+        owner: item.owner.displayName ?? item.owner.username ?? "Hustle user",
+        ownerUserId: item.owner.id
       }] : []));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load public references");
@@ -96,9 +101,11 @@ export default function PostEditor({ postId }: { postId?: string }) {
     Promise.all([
       postId ? getMyPost(postId) : Promise.resolve(null),
       getMarketplacePage("services", { limit: 12 }),
-      getMarketplacePage("products", { limit: 12 })
+      getMarketplacePage("products", { limit: 12 }),
+      getMyAccount().catch(() => null)
     ])
-      .then(([loadedPost, servicePage, productPage]) => {
+      .then(([loadedPost, servicePage, productPage, account]) => {
+        if (active) setViewerUserId(account?.id ?? null);
         if (!active) return;
         if (loadedPost) {
           setPost(loadedPost);
@@ -107,12 +114,14 @@ export default function PostEditor({ postId }: { postId?: string }) {
         setServices(servicePage.items.flatMap((item) => item.kind === "service" ? [{
           id: item.service.id,
           title: item.service.title,
-          owner: item.owner.displayName ?? item.owner.username ?? "Hustle user"
+          owner: item.owner.displayName ?? item.owner.username ?? "Hustle user",
+        ownerUserId: item.owner.id
         }] : []));
         setProducts(productPage.items.flatMap((item) => item.kind === "product" ? [{
           id: item.product.id,
           title: item.product.title,
-          owner: item.owner.displayName ?? item.owner.username ?? "Hustle user"
+          owner: item.owner.displayName ?? item.owner.username ?? "Hustle user",
+        ownerUserId: item.owner.id
         }] : []));
       })
       .catch((reason: Error) => { if (active) setError(reason.message); })
@@ -307,16 +316,16 @@ export default function PostEditor({ postId }: { postId?: string }) {
           {mediaCount === 0 && <p className={styles.muted}>No media yet. Add one image or video to publish; incomplete drafts can still be saved.</p>}
         </div>
 
-        <div className={styles.sectionTitle}><span>03</span><div><strong>Hustle references</strong><p>Reference any currently published Service or Product, including another Hustler's offer. Use @username in the caption to reference a person.</p></div></div>
+        <div className={styles.sectionTitle}><span>03</span><div><strong>Link an offer to your post</strong><p>All published services and products can be discovered by every Hustle account. Link your own listing to promote it, or mention another Hustler's offer as a recommendation. Linking does not transfer ownership or count as a verified review.</p></div></div>
         <label><span>Search public offers</span><div className={styles.twoCol}><input type="search" value={referenceQuery} onChange={(event) => setReferenceQuery(event.target.value)} placeholder="Search product, service or creator name" /><button className={styles.secondary} type="button" onClick={() => void loadReferences(referenceQuery.trim())} disabled={loadingReferences}>{loadingReferences ? "Searching…" : "Search"}</button></div></label>
         <div className={styles.variants}>
           <strong>Published services</strong>
-          <div className={styles.variantList}>{services.length === 0 ? <p className={styles.muted}>No matching published services.</p> : services.map((service) => <label className={styles.check} key={service.id}><input type="checkbox" checked={attachedServiceIds.has(service.id)} onChange={() => void toggleService(service.id)} disabled={busy} /> {service.title ?? "Untitled service"} — {service.owner}</label>)}</div>
+          <div className={styles.variantList}>{services.length === 0 ? <p className={styles.muted}>No matching published services.</p> : services.map((service) => <label className={styles.check} key={service.id}><input type="checkbox" checked={attachedServiceIds.has(service.id)} onChange={() => void toggleService(service.id)} disabled={busy} /> {service.title ?? "Untitled service"} <small>· {viewerUserId && service.ownerUserId === viewerUserId ? "Your service" : `Offered by ${service.owner} · Public reference`}</small></label>)}</div>
           <strong>Published products</strong>
-          <div className={styles.variantList}>{products.length === 0 ? <p className={styles.muted}>No matching published products.</p> : products.map((product) => <label className={styles.check} key={product.id}><input type="checkbox" checked={attachedProductIds.has(product.id)} onChange={() => void toggleProduct(product.id)} disabled={busy} /> {product.title ?? "Untitled product"} — {product.owner}</label>)}</div>
+          <div className={styles.variantList}>{products.length === 0 ? <p className={styles.muted}>No matching published products.</p> : products.map((product) => <label className={styles.check} key={product.id}><input type="checkbox" checked={attachedProductIds.has(product.id)} onChange={() => void toggleProduct(product.id)} disabled={busy} /> {product.title ?? "Untitled product"} <small>· {viewerUserId && product.ownerUserId === viewerUserId ? "Your product" : `Sold by ${product.owner} · Public reference`}</small></label>)}</div>
         </div>
 
-        <p className={styles.notice}>You can review or recommend something in a post. Hustle only counts a rating toward public reputation when the separate verified Booking/Order review flow says the transaction is eligible.</p>
+        <p className={styles.notice}>An attached service or product always belongs to its original seller. Anyone may link a public offer, but a post or #review tag is not a transaction-verified rating. Only the separate verified Booking/Order review flow affects reputation.</p>
         {error && <p className={styles.error} role="alert">{error}</p>}
         {notice && <p className={styles.notice} role="status">{notice}</p>}
         <div className={styles.actions}>

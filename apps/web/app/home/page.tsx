@@ -419,23 +419,23 @@ function FeedCard({
         <button className={styles.offerToggle} type="button" aria-expanded={offersOpen}
           onClick={() => { setActionMenuOpen(false); setOffersOpen((previous) => !previous); }}>
           <span className={styles.offerIcon} aria-hidden="true">↗</span>
-          <span><strong>{offerCount} attached {offerCount === 1 ? "offer" : "offers"}</strong></span>
+          <span><strong>{offerCount} linked marketplace {offerCount === 1 ? "offer" : "offers"}</strong></span>
           <b aria-hidden="true">{offersOpen ? "−" : "+"}</b>
         </button>
         {offersOpen && <div className={styles.opportunityBlock}>
           <div className={styles.opportunityGrid}>
             {item.services.map((service) => <div className={styles.opportunityCard} key={service.id}>
-              <small>SERVICE</small><strong>{service.title ?? "Service"}</strong>
+              <small>PUBLIC SERVICE · ORIGINAL HUSTLER'S LISTING</small><strong>{service.title ?? "Service"}</strong>
               <span>{formatServicePrice(service)}</span>
-              <OfferQuickView type="SERVICE" id={service.id} label="View service ↗" sourceLabel="POST" sourcePostId={item.post.id}
+              <OfferQuickView type="SERVICE" id={service.id} label="View provider’s service ↗" sourceLabel="POST" sourcePostId={item.post.id}
                 className={styles.opportunityQuickView} onOpen={() => void captureFeedEvent({
                   name: "feed.service_clicked", postId: item.post.id, feedTab: tab, position, sessionId, serviceId: service.id
                 }).catch(() => undefined)} />
             </div>)}
             {item.products.map((product) => <div className={styles.opportunityCard} key={product.id}>
-              <small>PRODUCT</small><strong>{product.title ?? "Product"}</strong>
+              <small>PUBLIC PRODUCT · ORIGINAL SELLER'S LISTING</small><strong>{product.title ?? "Product"}</strong>
               <span>{formatProductPrice(product)}</span>
-              <OfferQuickView type="PRODUCT" id={product.id} label="View product ↗" sourceLabel="POST" sourcePostId={item.post.id}
+              <OfferQuickView type="PRODUCT" id={product.id} label="View seller’s product ↗" sourceLabel="POST" sourcePostId={item.post.id}
                 className={styles.opportunityQuickView} onOpen={() => void captureFeedEvent({
                   name: "feed.product_clicked", postId: item.post.id, feedTab: tab, position, sessionId, productId: product.id
                 }).catch(() => undefined)} />

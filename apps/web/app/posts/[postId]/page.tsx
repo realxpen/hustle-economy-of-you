@@ -225,10 +225,10 @@ export default function PublicPostPage() {
     </section>
 
     {(post.serviceAttachments.length > 0 || post.productAttachments.length > 0) && <section className={styles.offers}>
-      <div className={styles.sectionHeading}><small>REFERENCED ON HUSTLE</small><h2>See the Services and Products mentioned in this post.</h2></div>
+      <div className={styles.sectionHeading}><small>PUBLIC MARKETPLACE REFERENCES</small><h2>Services and Products linked in this post belong to their original sellers.</h2></div>
       <div className={styles.offerGrid}>
         {post.serviceAttachments.map(({ service }) => <article className={styles.offerCard} key={service.id}>
-          <span>REFERENCED SERVICE</span>
+          <span>PUBLIC SERVICE · OFFERED BY ORIGINAL HUSTLER</span>
           <h3>{service.title ?? "Service"}</h3>
           <p>{service.description?.slice(0, 150)}</p>
           <strong>{formatServicePrice(service)}</strong>
@@ -241,7 +241,7 @@ export default function PublicPostPage() {
           />
         </article>)}
         {post.productAttachments.map(({ product }) => <article className={styles.offerCard} key={product.id}>
-          <span>REFERENCED PRODUCT</span>
+          <span>PUBLIC PRODUCT · SOLD BY ORIGINAL SELLER</span>
           <h3>{product.title ?? "Product"}</h3>
           <p>{product.description?.slice(0, 150)}</p>
           <strong>{formatProductPrice(product)}</strong>
