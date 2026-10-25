@@ -15,11 +15,32 @@ const mod = new Module(manifestFile, module);
 mod.filename = manifestFile;
 mod.paths = Module._nodeModulePaths(path.dirname(manifestFile));
 mod._compile(compiled.outputText, manifestFile);
-const manifest = mod.exports.default();
-assert.equal(manifest.name, "Hustle — The Economy of You");
-assert.equal(manifest.short_name, "Hustle");
-assert.equal(manifest.start_url, "/home");
-assert.equal(manifest.id, "/home");
+// The same PWA source serves two independent Workers. Test BOTH manifest
+// identities regardless of which deployment workflow environment calls us.
+const savedPreview = process.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW;
+let manifest;
+try {
+  delete process.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW;
+  manifest = mod.exports.default();
+  assert.equal(manifest.name, "Hustle — The Economy of You");
+  assert.equal(manifest.short_name, "Hustle");
+  assert.equal(manifest.start_url, "/home");
+  assert.equal(manifest.id, "/home");
+
+  process.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW = "true";
+  const awsManifest = mod.exports.default();
+  assert.equal(awsManifest.name, "Hustle AWS Test — The Economy of You");
+  assert.equal(awsManifest.short_name, "Hustle AWS");
+  assert.equal(awsManifest.id, "/aws-test");
+  assert.equal(awsManifest.start_url, "/home");
+  assert.equal(awsManifest.scope, "/");
+  assert.equal(awsManifest.display, "standalone");
+  assert.deepEqual(awsManifest.shortcuts, manifest.shortcuts);
+  assert.deepEqual(awsManifest.icons, manifest.icons);
+} finally {
+  if (savedPreview === undefined) delete process.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW;
+  else process.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW = savedPreview;
+}
 assert.equal(manifest.scope, "/");
 assert.equal(manifest.display, "standalone");
 assert.equal(manifest.theme_color, "#121714");
