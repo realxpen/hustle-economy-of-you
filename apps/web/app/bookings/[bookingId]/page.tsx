@@ -191,6 +191,7 @@ export default function BookingDetailPage() {
   const other = booking.viewerRole === "CLIENT" ? booking.hustler : booking.client;
   const otherLabel = other.displayName ?? other.username ?? "participant";
   const canCancel = booking.viewerRole === "CLIENT" ? ["REQUESTED", "ACCEPTED", "PAYMENT_PENDING"].includes(booking.status) : ["ACCEPTED", "PAYMENT_PENDING"].includes(booking.status);
+  const canReviewBooking = booking.viewerRole === "CLIENT" && booking.status === "COMPLETED";
   const canAccept = booking.viewerRole === "HUSTLER" && booking.status === "REQUESTED";
   // Match the backend gate: unpaid free bookings may start after acceptance;
   // paid bookings require server-confirmed funding, never merely an ACCEPTED label.
@@ -210,11 +211,17 @@ export default function BookingDetailPage() {
       secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, { href: "/wallet", label: isolatedWebMode ? "Sandbox Wallet" : "Wallet" }]} />
 
     {isolatedWebMode ? <SandboxBookingActions booking={booking} onChange={async () => { await load(); setReviewRefreshKey((version) => version + 1); }} /> : <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />}
+    {isolatedWebMode && canReviewBooking && (
+      <section id="booking-review" aria-label="Review your completed booking" style={{ scrollMarginTop: 24, marginTop: 18 }}>
+        <ReviewEligibilityCard key={`${booking.id}:${reviewRefreshKey}`} subjectType="BOOKING" subjectId={booking.id} />
+      </section>
+    )}
     <section className={styles.handoff} aria-label="Booking next steps">
       <div><strong>Next step</strong><p>{booking.nextAction ?? "Check your booking status or discuss the details in Messages."}</p></div>
       <div className={styles.handoffLinks}>
         <Link href={messageUrl}>Message {otherLabel} ↗</Link>
-        <Link href={`/services/${encodeURIComponent(booking.serviceId)}`}>Review service</Link>
+        {canReviewBooking && <Link href="#booking-review">{isolatedWebMode ? "Review completed booking (test)" : "Review completed booking"}</Link>}
+        <Link href={`/services/${encodeURIComponent(booking.serviceId)}`}>View service details</Link>
         <Link href="/bookings">All bookings</Link>
       </div>
       <small>Messages help you consult; only Hustle's booking and payment records determine confirmed work or funding.</small>
@@ -277,7 +284,9 @@ export default function BookingDetailPage() {
           <TransactionFinanceActions key={`BOOKING:${booking.id}`} subjectType="BOOKING" subjectId={booking.id} canInitialize={booking.viewerRole === "CLIENT" && booking.status === "PAYMENT_PENDING"} canRefund={booking.viewerRole === "CLIENT" && booking.status === "FUNDED"} canRelease={booking.viewerRole === "CLIENT" && booking.status === "COMPLETED"} releaseKind="BOOKING_ESCROW" onFinancialChange={load} />
         </section>}
 
-        {(!isolatedWebMode || (booking.viewerRole === "CLIENT" && booking.status === "COMPLETED")) && <ReviewEligibilityCard key={`${booking.id}:${reviewRefreshKey}`} subjectType="BOOKING" subjectId={booking.id} />}
+        {!isolatedWebMode && <div id="booking-review" style={{ scrollMarginTop: 24 }}>
+          <ReviewEligibilityCard key={`${booking.id}:${reviewRefreshKey}`} subjectType="BOOKING" subjectId={booking.id} />
+        </div>}
         {!isolatedWebMode && <CounterpartyFeedbackCard subjectType="BOOKING" subjectId={booking.id} />}
         {!isolatedWebMode && <TransactionSafetyActions
           targetUserId={other.id}
