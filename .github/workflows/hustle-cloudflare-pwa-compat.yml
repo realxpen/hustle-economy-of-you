@@ -61,6 +61,26 @@ jobs:
           curl -fsS --max-time 20 http://127.0.0.1:4173/home -o /dev/null
           curl -fsS --max-time 20 http://127.0.0.1:4173/search -o /dev/null
           echo 'PASS: local Cloudflare Worker serves install manifest, invited login, Home and Explore.'
+      - name: Exercise AWS preview static manifest in local Cloudflare Worker before release
+        env:
+          HUSTLE_AWS_PREVIEW_BUILD: 'true'
+          NEXT_PUBLIC_HUSTLE_AWS_PREVIEW: 'true'
+          HUSTLE_API_BACKEND_TARGET: aws-lambda-isolated-staging
+        run: |
+          set -euo pipefail
+          npm run build:vinext --workspace=@hustle/web
+          test -f apps/web/.cloudflare/output/v0/workers/default/assets/aws-test.webmanifest
+          npm run start:vinext --workspace=@hustle/web -- --host 127.0.0.1 --port 4175 > /tmp/hustle-aws-preview-smoke.log 2>&1 &
+          process_id=$!
+          trap 'kill $process_id 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 5 http://127.0.0.1:4175/aws-test.webmanifest -o /tmp/hustle-aws-preview-test-manifest.json; then break; fi
+            sleep 2
+          done
+          node -e 'const fs=require("fs");const m=JSON.parse(fs.readFileSync("/tmp/hustle-aws-preview-test-manifest.json","utf8"));if(m.name!=="Hustle AWS Test — The Economy of You"||m.id!=="/aws-test"||m.display!=="standalone")process.exit(1)'
+          curl -fsS --max-time 20 http://127.0.0.1:4175/auth -o /tmp/hustle-aws-preview-test-auth.html
+          grep -q 'aws-test.webmanifest' /tmp/hustle-aws-preview-test-auth.html
+          echo 'PASS: AWS-only compiled Worker serves its static iPhone manifest and separate login UI, with no public deployment.'
       - name: Upload diagnostics only on failure (no provider secrets)
         if: failure()
         uses: actions/upload-artifact@v4
