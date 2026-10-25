@@ -22,5 +22,12 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><a className="h-skip-link" href="#hustle-page-content">Skip to content</a><div id="hustle-page-content" tabIndex={-1}>{children}</div><HustleMobileNav /></body></html>;
+  const awsPreview = process.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW === "true";
+  return <html lang="en"><body>
+    <a className="h-skip-link" href="#hustle-page-content">Skip to content</a>
+    {awsPreview && <div className="h-aws-preview-banner" role="status">
+      <strong>HUSTLE · AWS TEST</strong><span>Simulated transactions only · Separate from the regular staging app</span>
+    </div>}
+    <div id="hustle-page-content" tabIndex={-1}>{children}</div><HustleMobileNav />
+  </body></html>;
 }
