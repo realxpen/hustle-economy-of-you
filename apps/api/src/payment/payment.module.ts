@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { IsolatedSandboxFinanceController } from "./isolated-sandbox-finance.controller";
 
 import { AuthModule } from "../auth/auth.module";
 import { BookingModule } from "../booking/booking.module";
@@ -25,6 +26,7 @@ import { WalletService } from "./wallet.service";
     PaymentWebhookController,
     FinancialOperationsWebhookController,
     MoniflowSandboxReceiptController,
+    IsolatedSandboxFinanceController,
     WalletController,
     FinancialHistoryController
   ],

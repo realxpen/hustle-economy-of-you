@@ -10,6 +10,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const followAction = /^\/api\/v1\/users\/[A-Za-z0-9_-]+\/follow$/;
   // Isolated scheduling only: no booking funding, work, escrow or financial mutation.
   const guestSlots = /^\/api\/v1\/guest\/bookings\/(?:availability|slots)$/;
+  const sandboxWrite = /^\/api\/v1\/sandbox\/(?:bookings\/[A-Za-z0-9_-]+\/(?:fund|start|complete|release)|wallet\/withdrawals)$/;
   const walletRead = /^\/api\/v1\/wallet(?:\/(?:transactions|reconciliation|withdrawals|refunds|release-state\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+))?$/;
   const paymentRead = /^\/api\/v1\/payments\/(?:[A-Za-z0-9_-]+|subjects\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+\/latest)$/;
   const bookingRead = /^\/api\/v1\/bookings\/(?:client|hustler|availability|slots|duration-insights|[A-Za-z0-9_-]+)$/;
@@ -37,7 +38,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
       "/api/v1/search/events",
       "/api/v1/marketplace/events"
     ]).has(path) ||
-    postAction.test(path) || followAction.test(path) || bookingDecision.test(path) || safetyBlock.test(path) || path === "/api/v1/trust-safety/reports" ||
+    postAction.test(path) || followAction.test(path) || bookingDecision.test(path) || sandboxWrite.test(path) || safetyBlock.test(path) || path === "/api/v1/trust-safety/reports" ||
     /^\/api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/.test(path) ||
     /^\/api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/.test(path) ||
     path === "/api/v1/messaging/conversations/direct" ||
