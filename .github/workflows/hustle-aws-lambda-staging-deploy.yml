@@ -66,8 +66,12 @@ jobs:
           ECR_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}"
           aws ecr get-login-password --region "$AWS_REGION" |
             docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-          docker build --platform linux/amd64 -f infra/aws/lambda/Dockerfile -t "${ECR_URI}:${IMAGE_TAG}" .
-          docker push "${ECR_URI}:${IMAGE_TAG}"
+          if aws ecr describe-images --region "$AWS_REGION" --repository-name "$ECR_REPOSITORY" --image-ids "imageTag=$IMAGE_TAG" > /dev/null 2>&1; then
+            echo 'Reviewed commit already has an immutable image; reuse its exact digest.'
+          else
+            docker build --platform linux/amd64 -f infra/aws/lambda/Dockerfile -t "${ECR_URI}:${IMAGE_TAG}" .
+            docker push "${ECR_URI}:${IMAGE_TAG}"
+          fi
           DIGEST="$(aws ecr describe-images --repository-name "$ECR_REPOSITORY" --region "$AWS_REGION" --image-ids "imageTag=$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
           [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
           printf 'IMAGE_URI=%s@%s\n' "$ECR_URI" "$DIGEST" >> "$GITHUB_ENV"
