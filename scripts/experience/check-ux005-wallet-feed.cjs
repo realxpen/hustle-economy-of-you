@@ -70,4 +70,42 @@ assert.match(get("apps/web/app/wallet/page.tsx"),/HUSTLE SANDBOX/);
 assert.match(get("apps/web/app/wallet/page.tsx"),/SIMULATION ONLY/);
 assert.match(get("apps/web/lib/finance.ts"),/commonAuthenticatedFetch\(path, init\)/);
 assert.match(get("apps/api/src/payment/payment.module.ts"),/IsolatedSandboxFinanceController/);
-console.log("PASS: UX005 wallet links, persisted comment visual state, isolated finance controller, fail-closed guards and double policy allowlists");
+// Exercise the real PWA proxy, not just its path allowlist: financial idempotency
+// must survive the iPhone -> Next.js -> isolated API hop.
+async function testIdempotencyProxy() {
+  const originalFetch=global.fetch;
+  const gate=process.env.HUSTLE_ISOLATED_PWA_GATE;
+  const auth=process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH;
+  let calls=0, forwarded=null;
+  try {
+    process.env.HUSTLE_ISOLATED_PWA_GATE="isolated-staging";
+    process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH="true";
+    global.fetch=async(_url,init)=>{
+      calls++;
+      forwarded=init.headers.get("idempotency-key");
+      return new Response('{"ok":true}',{status:200,headers:{"content-type":"application/json"}});
+    };
+    const req=(key)=>({method:"POST",nextUrl:{origin:"https://hustle.test",searchParams:new URLSearchParams()},
+      headers:new Headers({origin:"https://hustle.test","content-type":"application/json",
+        ...(key===undefined?{}:{"idempotency-key":key})}),
+      text:async()=>JSON.stringify({amountMinor:100,currency:"NGN",confirmation:"SIMULATE_TEST_WITHDRAWAL"})});
+    const route=["api","v1","sandbox","wallet","withdrawals"];
+    const key="withdrawal-retry-123456789";
+    assert.equal((await web.proxyIsolatedRequest(req(key),route)).status,200);
+    assert.equal(forwarded,key,"proxy must forward original sandbox withdrawal idempotency key");
+    assert.equal((await web.proxyIsolatedRequest(req(undefined),route)).status,400,"missing key fails closed");
+    assert.equal((await web.proxyIsolatedRequest(req("bad key"),route)).status,400,"invalid key fails closed");
+    assert.equal(calls,1,"rejected writes never reach upstream API");
+    assert.equal((await web.proxyIsolatedRequest(req(key),["api","v1","posts"])).status,200);
+    assert.equal(forwarded,null,"financial idempotency header must not propagate to unrelated writes");
+  }finally{
+    global.fetch=originalFetch;
+    if(gate===undefined)delete process.env.HUSTLE_ISOLATED_PWA_GATE;
+    else process.env.HUSTLE_ISOLATED_PWA_GATE=gate;
+    if(auth===undefined)delete process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH;
+    else process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH=auth;
+  }
+}
+testIdempotencyProxy().then(()=>{
+  console.log("PASS: UX005 wallet, comments, isolate gate, and iPhone idempotency proxy roundtrip");
+}).catch(error=>{console.error(error);process.exitCode=1});
