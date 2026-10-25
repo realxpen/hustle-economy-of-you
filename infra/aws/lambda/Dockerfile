@@ -11,7 +11,13 @@ WORKDIR /srv/hustle
 COPY . .
 RUN npm ci --include=dev
 RUN npm run build --workspace=@hustle/api
-RUN npm prune --omit=dev --ignore-scripts
+# npm prune treats Prisma's custom generated staging-auth client as extraneous.
+# Preserve only this generated, child-only auth client before pruning.
+RUN cp -a apps/api/node_modules/@hustle/staging-auth-client /tmp/hustle-staging-auth-client \
+    && npm prune --omit=dev --ignore-scripts \
+    && mkdir -p apps/api/node_modules/@hustle \
+    && cp -a /tmp/hustle-staging-auth-client apps/api/node_modules/@hustle/staging-auth-client \
+    && test -f apps/api/node_modules/@hustle/staging-auth-client/index.js
 
 FROM node:22-bookworm-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl && rm -rf /var/lib/apt/lists/*
