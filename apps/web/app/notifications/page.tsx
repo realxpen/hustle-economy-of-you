@@ -45,11 +45,11 @@ function notificationDescription(item: HustleNotification) {
 }
 
 function allowedHref(path: string) {
-  // Notifications are server-generated, but never let a stored href route
-  // into auth, private API, or a non-local destination from the iPhone app.
+  // Notifications are server-generated, but never let a stored href navigate
+  // to another origin, /api or /auth in the iPhone PWA.
   return path.startsWith("/") && !path.startsWith("//") && !path.includes("\\") &&
-    !/[\\x00-\\x1f]/.test(path) &&
-    /^\\/(?:bookings|messages|posts|orders|u|hustler-application|agent-application|live|notifications|account)(?:\\/|\\?|#|$)/.test(path)
+    !/[\x00-\x1f]/.test(path) &&
+    /^\/(?:bookings|messages|posts|orders|u|hustler-application|agent-application|live|notifications|account)(?:\/|\?|#|$)/.test(path)
     ? path : "/account";
 }
 
