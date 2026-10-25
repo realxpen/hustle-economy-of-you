@@ -48,6 +48,13 @@ try {
   ["POST","posts/abc/comments"],["DELETE","posts/abc/comments/def"],
   ["POST","users/abc/follow"],["DELETE","users/abc/follow"],
   ["POST","feed/events"],["POST","search/events"],["POST","marketplace/events"],
+  ["GET","wallet"],["GET","wallet/transactions"],["GET","wallet/reconciliation"],
+  ["GET","wallet/withdrawals"],["GET","wallet/refunds"],
+  ["GET","wallet/release-state/BOOKING/b1"],
+  ["GET","payments/p1"],["GET","payments/subjects/BOOKING/b1/latest"],
+  ["POST","sandbox/bookings/b1/fund"],["POST","sandbox/bookings/b1/start"],
+  ["POST","sandbox/bookings/b1/complete"],["POST","sandbox/bookings/b1/release"],
+  ["POST","sandbox/wallet/withdrawals"],
   ["GET","bookings/client"],["GET","bookings/hustler"],["GET","bookings/booking1"],
   ["GET","bookings/availability"],["GET","bookings/slots"],["GET","bookings/duration-insights"],
   ["GET","guest/bookings/availability"],["GET","guest/bookings/slots"],
@@ -76,7 +83,10 @@ try {
   ["POST","bookings/booking1/extend"],["POST","bookings/booking1/fund"],
   ["POST","guest/bookings/availability"],["POST","guest/bookings/slots"],
   ["DELETE","bookings/booking1"],["POST","payments"],["POST","escrow/release"],
-  ["POST","orders"],["POST","wallet/deposit"],["PATCH","services/abc"],
+  ["POST","orders"],["POST","wallet/deposit"],["POST","wallet/withdrawals"],
+  ["POST","payments/initialize"],["POST","payments/webhooks/sandbox"],
+  ["POST","wallet/escrows/bookings/b1/release"],["POST","sandbox/wallet/deposit"],
+  ["PATCH","services/abc"],
   ["PUT","hustler-reviews/abc/approve"],["POST","services/abc/delete"]
  ];
  for(const [method,route] of denied) {

@@ -42,6 +42,21 @@ async function go(){
     for(const method of ["GET","POST","DELETE","PUT","PATCH"])
       assert.equal(proxy.stagingProxyAllowed(method,ep.split("/")),false,method+" "+ep);
   }
+  for(const path of ["wallet","wallet/transactions","wallet/reconciliation",
+    "wallet/withdrawals","wallet/refunds","wallet/release-state/BOOKING/b1",
+    "payments/p1","payments/subjects/BOOKING/b1/latest"]) {
+    assert.equal(proxy.stagingProxyAllowed("GET",("api/v1/"+path).split("/")),true,"wallet scoped reads "+path);
+  }
+  for(const path of ["sandbox/bookings/b1/fund","sandbox/bookings/b1/start",
+    "sandbox/bookings/b1/complete","sandbox/bookings/b1/release",
+    "sandbox/wallet/withdrawals"]) {
+    assert.equal(proxy.stagingProxyAllowed("POST",("api/v1/"+path).split("/")),true,"sandbox-only scoped writes "+path);
+  }
+  for(const path of ["payments/initialize","payments/webhooks/sandbox",
+    "wallet/withdrawals","wallet/refunds","wallet/escrows/bookings/b1/release",
+    "sandbox/wallet/deposit","sandbox/payments/p1/refund"]) {
+    assert.equal(proxy.stagingProxyAllowed("POST",("api/v1/"+path).split("/")),false,"ordinary finance remains blocked "+path);
+  }
   assert.equal(proxy.stagingProxyAllowed("POST",["api","v1","feed","for-you"]),false);
   for (const ep of ["api/v1/messaging/conversations",
     "api/v1/messaging/conversations/c1",
