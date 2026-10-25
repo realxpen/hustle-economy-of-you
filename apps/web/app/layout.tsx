@@ -23,7 +23,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const awsPreview = process.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW === "true";
-  return <html lang="en"><body>
+  return <html lang="en">
+    <head>{awsPreview && <link rel="manifest" href="/aws-test.webmanifest" />}</head>
+    <body>
     <a className="h-skip-link" href="#hustle-page-content">Skip to content</a>
     {awsPreview && <div className="h-aws-preview-banner" role="status">
       <strong>HUSTLE · AWS TEST</strong><span>Simulated transactions only · Separate from the regular staging app</span>
