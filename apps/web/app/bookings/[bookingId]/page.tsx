@@ -9,6 +9,7 @@ import { TransactionJourney } from "../../../components/commerce/transaction-jou
 import { withTransactionReturnTo } from "../../../lib/transaction-return";
 import { useParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
+import { SandboxBookingActions } from "../../../components/finance/sandbox-booking-actions";
 import { BookingDecisionPanel, type BookingDecision } from "../../../components/booking/booking-decision-panel";
 import { CounterpartyFeedbackCard } from "../../../components/trust/counterparty-feedback-card";
 import { ReviewEligibilityCard } from "../../../components/trust/review-eligibility-card";
@@ -205,9 +206,9 @@ export default function BookingDetailPage() {
 
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Booking detail" trail={[{ href: "/bookings", label: "Bookings" }]}
-      secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, ...(!isolatedWebMode ? [{ href: "/wallet", label: "Wallet" }] : [])]} />
+      secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, { href: "/wallet", label: isolatedWebMode ? "Sandbox Wallet" : "Wallet" }]} />
 
-    {isolatedWebMode ? <section className={styles.summaryCard} role="status"><strong>Isolated booking and availability test</strong><p>Scheduling requests and decisions only. No payment, deposit, escrow or actual job is authorized. An accepted paid request shows payment pending, but payment is unavailable here.</p></section> : <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />}
+    {isolatedWebMode ? <SandboxBookingActions booking={booking} onChange={load} /> : <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />}
     <section className={styles.handoff} aria-label="Booking next steps">
       <div><strong>Next step</strong><p>{booking.nextAction ?? "Check your booking status or discuss the details in Messages."}</p></div>
       <div className={styles.handoffLinks}>

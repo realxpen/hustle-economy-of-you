@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ExperienceState } from "../../components/experience/experience-state";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import styles from "./wallet.module.css";
+import Link from "next/link";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
+import { listClientBookings, type BookingRecord } from "../../lib/booking";
 
 import {
   formatWalletMoney,
@@ -14,6 +17,8 @@ import {
   listWithdrawals,
   newIdempotencyKey,
   requestWithdrawal,
+  simulateSandboxWithdrawal,
+  simulateSandboxBookingFunding,
   type PayoutRecord,
   type ReconciliationReport,
   type RefundRecord,
@@ -45,6 +50,7 @@ export default function WalletPage() {
   const [refunds, setRefunds] = useState<RefundRecord[]>([]);
   const [reconciliation, setReconciliation] = useState<ReconciliationReport | null>(null);
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
+  const [pendingBookings, setPendingBookings] = useState<BookingRecord[]>([]);
   const [withdrawalCurrency, setWithdrawalCurrency] = useState("NGN");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -52,18 +58,20 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const [walletData, transactionData, payoutData, refundData, reconciliationData] = await Promise.all([
+    const [walletData, transactionData, payoutData, refundData, reconciliationData, bookingData] = await Promise.all([
       getWallet(),
       listWalletTransactions(50),
       listWithdrawals(50),
       listRefunds(50),
-      getReconciliation()
+      getReconciliation(),
+      isolatedWebMode ? listClientBookings({ limit: 50 }) : Promise.resolve({ items: [] as BookingRecord[] })
     ]);
     setWallet(walletData);
     setTransactions(transactionData.items);
     setPayouts(payoutData.items);
     setRefunds(refundData.items);
     setReconciliation(reconciliationData);
+    setPendingBookings(bookingData.items.filter((booking) => booking.status === "PAYMENT_PENDING" && booking.agreedPriceMinor > 0));
     if (walletData.balances.length > 0 && !walletData.balances.some((item) => item.currency === withdrawalCurrency)) {
       setWithdrawalCurrency(walletData.balances[0].currency);
     }
@@ -98,21 +106,39 @@ export default function WalletPage() {
       setError("The requested amount exceeds your currently available ledger-backed balance.");
       return;
     }
+    if (isolatedWebMode && !window.confirm("SIMULATION ONLY: Reserve this amount for a test withdrawal? No money will reach a bank.")) return;
     const { storageKey, idempotencyKey } = operationKey(withdrawalCurrency, amountMinor);
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
-      const payout = await requestWithdrawal(amountMinor, withdrawalCurrency, idempotencyKey);
+      const payout = isolatedWebMode
+        ? await simulateSandboxWithdrawal(amountMinor, idempotencyKey)
+        : await requestWithdrawal(amountMinor, withdrawalCurrency, idempotencyKey);
       window.sessionStorage.removeItem(storageKey);
       setWithdrawalAmount("");
-      setNotice(`Withdrawal request status: ${payout.status}. ${payout.providerReference ? `Provider reference: ${payout.providerReference}.` : "Confirmation depends on the payment provider."}`);
+      setNotice(isolatedWebMode
+        ? `TEST-ONLY withdrawal: ${payout.status}. No real bank transfer was made.`
+        : `Withdrawal request status: ${payout.status}. ${payout.providerReference ? `Provider reference: ${payout.providerReference}.` : "Confirmation depends on the payment provider."}`);
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Withdrawal request failed");
     } finally {
       setBusy(false);
     }
+  }
+
+  async function fundBooking(id: string) {
+    if (busy || !window.confirm("SIMULATE FUNDS ONLY: No card, bank account, crypto or real money is charged. Fund this booking's test escrow?")) return;
+    setBusy(true); setError(null); setNotice(null);
+    try {
+      const result = await simulateSandboxBookingFunding(id);
+      if (!result.simulated || result.realFundsMoved) throw new Error("Unsafe provider response");
+      setNotice("Test booking funded. Only the Hustle sandbox ledger was updated.");
+      await load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not fund the test booking");
+    } finally { setBusy(false); }
   }
 
   if (!wallet) return <main className="accountShell h-experience-shell">
@@ -124,15 +150,29 @@ export default function WalletPage() {
     <main className="accountShell h-experience-shell">
       <ExperienceHeader section="Wallet" trail={[{ href: "/account", label: "Account" }]} secondaryLinks={[{ href: "/bookings", label: "Bookings" }, { href: "/orders", label: "Orders" }]} />
 
+      {isolatedWebMode && <div className={styles.sandboxBanner} role="status"><strong>HUSTLE SANDBOX · SIMULATED ₦ ONLY</strong><span>No real deposits, withdrawals or transfers. Balances are test ledger entries in the isolated database.</span></div>}
       <section className="identityHero" style={{ gridTemplateColumns: "1fr auto" }}>
         <div className="identityText">
-          <p className="kicker">YOUR MONEY ON HUSTLE</p>
+          <p className="kicker">{isolatedWebMode ? "SIMULATED MONEY · TEST WALLET" : "YOUR MONEY ON HUSTLE"}</p>
           <h1>Wallet.</h1>
-          <p>Ledger-backed balances, escrow, withdrawals and authoritative financial history.</p>
+          <p>{isolatedWebMode ? "View sandbox test balances, escrow holds, payment movements and withdrawal requests." : "Ledger-backed balances, escrow, withdrawals and authoritative financial history."}</p>
         </div>
         <div className="roundAction" aria-label="Ledger authority">₦</div>
       </section>
 
+      {isolatedWebMode && <section className={styles.sandboxPayments} aria-label="Simulated booking deposits">
+        <div><span className="kicker">SANDBOX DEPOSIT · FUND A BOOKING</span><h2>Pending test payments</h2>
+        <p>Only an accepted booking can receive simulated funds. Payment goes to test escrow, not a withdrawable client balance.</p></div>
+        {pendingBookings.length === 0
+          ? <p>No accepted bookings are awaiting test funds. <Link href="/bookings">View bookings ↗</Link></p>
+          : pendingBookings.map(booking => <div key={booking.id} className={styles.pendingBooking}>
+              <div><strong>{booking.serviceTitleSnapshot}</strong><small>{formatWalletMoney(booking.agreedPriceMinor, booking.currency)} · PAYMENT_PENDING</small></div>
+              <button type="button" disabled={busy} onClick={() => void fundBooking(booking.id)}>
+                {busy ? "Processing…" : "Simulate deposit →"}
+              </button>
+              <Link href={`/bookings/${booking.id}`}>Details</Link>
+            </div>)}
+      </section>}
       {notice && <div className="formNotice" style={{ marginBottom: 18 }} role="status">{notice}</div>}
       <div className={styles.walletTools}><p>Balances and statuses come from Hustle’s ledger. Pending, escrow and reserved amounts are not available to withdraw.</p><button type="button" disabled={loading || busy} onClick={() => void retry()}>{loading ? "Refreshing…" : "Refresh wallet"}</button></div>
       {error && <div className="formNotice errorNotice" role="alert" style={{ marginBottom: 18 }}>{error}</div>}
@@ -166,8 +206,8 @@ export default function WalletPage() {
 
         <article className="nextCard">
           <small>WITHDRAW</small>
-          <h2>Move available balance out.</h2>
-          <p>Hustle reserves funds first. Only a signed provider event can mark the payout successful.</p>
+          <h2>{isolatedWebMode ? "Simulate a withdrawal reservation." : "Move available balance out."}</h2>
+          <p>{isolatedWebMode ? "Reserves test-only available funds. Nothing is transferred to a bank; provider confirmation remains simulated." : "Hustle reserves funds first. Only a signed provider event can mark the payout successful."}</p>
           <label style={{ display: "grid", gap: 8, marginTop: 18 }}>
             <span style={{ fontSize: 12, fontWeight: 800 }}>AMOUNT</span>
             <input
@@ -192,7 +232,7 @@ export default function WalletPage() {
             </select>
           </label>
           <button className="primaryAction" disabled={busy || loading || currencies.length === 0} onClick={() => void withdraw()} style={{ marginTop: 18 }}>
-            <span>{busy ? "Reserving…" : "Request withdrawal"}</span><b>↗</b>
+            <span>{busy ? "Reserving…" : isolatedWebMode ? "Simulate withdrawal" : "Request withdrawal"}</span><b>↗</b>
           </button>
         </article>
       </section>
@@ -253,7 +293,7 @@ export default function WalletPage() {
 
       <footer className="previewFooter">
         <span>Wallet balances are projections of immutable ledger postings.</span>
-        <span>Sandbox payout/refund success requires signed provider confirmation.</span>
+        <span>{isolatedWebMode ? "TEST FUNDS ONLY · No real deposits, card charges, bank transfers or cash-out." : "Sandbox payout/refund success requires signed provider confirmation."}</span>
       </footer>
     </main>
   );

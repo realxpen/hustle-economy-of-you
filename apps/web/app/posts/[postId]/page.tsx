@@ -199,6 +199,9 @@ export default function PublicPostPage() {
           {post.tags.length > 0 && <div className={styles.tags}>{post.tags.map((tag) => <span key={tag}>#{tag}</span>)}</div>}
           <div className={styles.interactionBar}>
             <button type="button" className={viewer?.liked ? styles.activeAction : ""} onClick={toggleLike} disabled={busy === "like"}>{viewer?.liked ? "♥" : "♡"} {interactions.likeCount} Like</button>
+            <button type="button" className={viewer?.commented ? styles.commentedAction : ""} aria-label={viewer?.commented ? "You commented on this post" : "View post comments"} onClick={() => document.getElementById("post-comments")?.scrollIntoView({ behavior: "smooth" })}>
+              {viewer?.commented ? "✓ Commented" : "Comment"} · {interactions.commentCount}
+            </button>
             <button type="button" className={viewer?.saved ? styles.activeAction : ""} onClick={toggleSave} disabled={busy === "save"}>{viewer?.saved ? "Saved" : "Save"} · {interactions.saveCount}</button>
             <button type="button" onClick={sharePost} disabled={busy === "share"}>Share ↗</button>
           </div>
@@ -254,14 +257,14 @@ export default function PublicPostPage() {
       <p className={styles.muted}>References, recommendations and opinions in posts are community content. Only eligible transaction-backed Reviews affect Hustle public reputation.</p>
     </section>}
 
-    <section className={styles.comments}>
+    <section id="post-comments" className={styles.comments}>
       <div className={styles.sectionHeading}><small>CONVERSATION</small><h2>{interactions.commentCount} comment{interactions.commentCount === 1 ? "" : "s"}</h2></div>
       {viewer ? <form className={styles.commentForm} onSubmit={submitComment}><textarea maxLength={1200} rows={3} value={commentBody} onChange={(event) => setCommentBody(event.target.value)} placeholder="Add useful context, ask a question, or respond to this post…" /><button type="submit" disabled={busy === "comment" || !commentBody.trim()}>{busy === "comment" ? "Posting…" : "Post comment"}</button></form> : <div className={styles.signInPrompt}><span>Join the conversation with your Hustle identity.</span><a href={authUrl(`/posts/${params.postId}`)}>Sign in →</a></div>}
       <div className={styles.commentList}>
         {interactions.comments.length === 0 && <p className={styles.muted}>No comments yet.</p>}
-        {interactions.comments.map((comment) => <article key={comment.id} className={comment.parentId ? styles.replyComment : styles.commentCard}>
+        {interactions.comments.map((comment) => <article key={comment.id} className={[comment.parentId ? styles.replyComment : styles.commentCard, viewer?.viewerUserId === comment.user.id ? styles.ownComment : ""].filter(Boolean).join(" ")}>
           <div className={styles.commentAvatar}>{comment.user.avatarUrl ? <img src={comment.user.avatarUrl} alt="" /> : (comment.user.displayName ?? comment.user.username ?? "H").charAt(0).toUpperCase()}</div>
-          <div><div className={styles.commentMeta}><strong>{comment.user.displayName ?? comment.user.username ?? "Hustle user"}</strong><span>@{comment.user.username ?? "user"}</span>{comment.parentId && <em>reply</em>}</div><p>{comment.body}</p></div>
+          <div><div className={styles.commentMeta}><strong>{comment.user.displayName ?? comment.user.username ?? "Hustle user"}</strong><span>@{comment.user.username ?? "user"}</span>{comment.parentId && <em>reply</em>}{viewer?.viewerUserId === comment.user.id && <em className={styles.youBadge}>You · commented</em>}</div><p>{comment.body}</p></div>
           {viewer?.viewerUserId === comment.user.id && <button className={styles.deleteComment} type="button" onClick={() => removeComment(comment.id)} disabled={busy === comment.id}>Delete</button>}
         </article>)}
       </div>

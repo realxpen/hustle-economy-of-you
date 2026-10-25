@@ -126,6 +126,7 @@ export interface PostInteractionSummary {
 export interface PostInteractionState {
   liked: boolean;
   saved: boolean;
+  commented: boolean;
   followingCreator: boolean;
   isCreator: boolean;
   viewerUserId: string;

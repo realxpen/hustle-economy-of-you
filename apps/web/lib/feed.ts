@@ -50,6 +50,7 @@ export interface FeedItem {
   viewer: {
     liked: boolean;
     saved: boolean;
+    commented: boolean;
     following: boolean;
   };
   services: Service[];
@@ -88,6 +89,7 @@ function normalizeFeedPage(page: FeedPage): FeedPage {
     ...page,
     items: page.items.map((item) => ({
       ...item,
+      viewer: { ...item.viewer, commented: Boolean(item.viewer?.commented) },
       creator: {
         ...item.creator,
         professionalProfile: item.creator.professionalProfile ?? {

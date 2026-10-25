@@ -41,6 +41,8 @@ const { PrismaService } = require("../../apps/api/dist/database/prisma.service.j
 const { CommerceService } = require("../../apps/api/dist/commerce/commerce.service.js");
 const { FulfillmentService } = require("../../apps/api/dist/commerce/fulfillment.service.js");
 const { PaymentService } = require("../../apps/api/dist/payment/payment.service.js");
+const { IsolatedSandboxFinanceController } = require("../../apps/api/dist/payment/isolated-sandbox-finance.controller.js");
+const { assertIsolatedSandboxFinance } = require("../../apps/api/dist/payment/isolated-sandbox-finance.guard.js");
 const { sendSandboxCollectionToMoniflow, sendPersistedSandboxFinancialCommandToMoniflow, observeSignedMoniflowSandboxReceipt, toMoniflowSandboxCollection, signedMoniflowSandboxRequest, requireLocalMoniflowSandbox } = require("../../apps/api/dist/payment/moniflow-sandbox-partner.client.js");
 const { FinancialOperationsService } = require("../../apps/api/dist/payment/financial-operations.service.js");
 const { describeFinancialDispatch } = require("../../apps/api/dist/payment/financial-dispatch-reconciliation.js");
@@ -1073,6 +1075,88 @@ async function main() {
       sellerWalletBeforeJourney+45000,
       "Only completed, Client-authorized sandbox escrow release credits the Hustler");
     console.log("PASS: proof Discover → Marketplace Service → consulted Message → paid Booking → signed sandbox funding → completed work → one escrow release; ownership/ledger safeguards verified");
+
+    // UX005: execute the same narrowly scoped isolated sandbox routes used by
+    // the iPhone client. The existing Services/Payment/Wallet state machines are
+    // authoritative; no provider or synthetic test money leaves this process.
+    const flagNames=["HUSTLE_RUNTIME_SCOPE","HUSTLE_SANDBOX_FINANCIAL_TESTS_ENABLED",
+      "HUSTLE_FINANCIAL_PROVIDERS_ENABLED"];
+    const originalFlags=Object.fromEntries(flagNames.map(k=>[k,process.env[k]]));
+    try {
+      await expectRejected(()=>Promise.resolve(assertIsolatedSandboxFinance()),
+        "Unconfigured staging sandbox must fail closed");
+      process.env.HUSTLE_RUNTIME_SCOPE="isolated-staging";
+      process.env.HUSTLE_SANDBOX_FINANCIAL_TESTS_ENABLED="true";
+      process.env.HUSTLE_FINANCIAL_PROVIDERS_ENABLED="false";
+      assert.ok(assertIsolatedSandboxFinance().length>=32);
+      const sandboxController=app.get(IsolatedSandboxFinanceController);
+      const nextStart=new Date(Date.now()+12*86_400_000).toISOString();
+      const demoBooking=await bookingService.create(by,{
+        serviceId:serviceJourney.id,
+        requestedStartAt:nextStart,
+        requirements:"Dedicated test-only sandbox wallet and escrow flow",
+        conversationId:directJourney.conversation.id
+      });
+      await bookingService.accept(se,demoBooking.id,{confirmedStartAt:nextStart});
+      await expectRejected(
+        ()=>sandboxController.fundBooking(se,demoBooking.id,{confirmation:"SIMULATE_TEST_FUNDS"}),
+        "Hustler cannot simulate the Client's deposit"
+      );
+      await expectRejected(
+        ()=>sandboxController.fundBooking(by,demoBooking.id,{confirmation:"false"}),
+        "Sandbox deposit requires explicit confirmation"
+      );
+      assert.equal((await bookingService.get(by,demoBooking.id)).status,"PAYMENT_PENDING");
+      const funding=await sandboxController.fundBooking(by,demoBooking.id,{confirmation:"SIMULATE_TEST_FUNDS"});
+      assert.equal(funding.status,"FUNDED");
+      assert.equal(funding.realFundsMoved,false);
+      const firstAttemptId=funding.paymentAttemptId;
+      const replayFunding=await sandboxController.fundBooking(by,demoBooking.id,{confirmation:"SIMULATE_TEST_FUNDS"});
+      assert.equal(replayFunding.status,"FUNDED");
+      assert.equal(await prisma.paymentAttempt.count({
+        where:{subjectType:"BOOKING",subjectId:demoBooking.id}
+      }),1,"No duplicate payment attempts when test deposit button is tapped twice");
+      assert.equal(await prisma.ledgerTransaction.count({
+        where:{paymentAttemptId:firstAttemptId,type:"PAYMENT_CONFIRMED"}
+      }),1,"One sandbox deposit creates exactly one capture posting");
+      await expectRejected(
+        ()=>sandboxController.start(by,demoBooking.id,{confirmation:"SIMULATE_TEST_WORK"}),
+        "Only Hustler starts work"
+      );
+      await sandboxController.start(se,demoBooking.id,{confirmation:"SIMULATE_TEST_WORK"});
+      await sandboxController.complete(se,demoBooking.id,{confirmation:"SIMULATE_TEST_WORK"});
+      await expectRejected(
+        ()=>sandboxController.release(se,demoBooking.id,{confirmation:"SIMULATE_TEST_RELEASE"}),
+        "Only the Client can release sandbox escrow"
+      );
+      const released=await sandboxController.release(by,demoBooking.id,{confirmation:"SIMULATE_TEST_RELEASE"});
+      assert.equal(released.released,true);
+      const secondRelease=await sandboxController.release(by,demoBooking.id,{confirmation:"SIMULATE_TEST_RELEASE"});
+      assert.equal(secondRelease.duplicate,true);
+      assert.equal(await prisma.ledgerTransaction.count({
+        where:{subjectType:"BOOKING",subjectId:demoBooking.id,type:"ESCROW_RELEASED"}
+      }),1);
+      const simulatedWithdrawal=await sandboxController.withdraw(se,{
+        confirmation:"SIMULATE_TEST_WITHDRAWAL",amountMinor:1000,currency:"NGN"
+      },"ux005-test-only-"+testId);
+      assert.equal(simulatedWithdrawal.provider,"HUSTLE_SANDBOX");
+      assert.ok(["REQUESTED","PROCESSING"].includes(simulatedWithdrawal.status));
+      assert.equal(await prisma.ledgerTransaction.count({
+        where:{subjectType:"PAYOUT",subjectId:simulatedWithdrawal.id,type:"PAYOUT_RESERVED"}
+      }),1);
+      await expectRejected(
+        ()=>sandboxController.withdraw(by,{
+          confirmation:"SIMULATE_TEST_WITHDRAWAL",amountMinor:100000000,currency:"NGN"
+        },"ux005-too-big-"+testId),
+        "Sandbox withdrawal maximum is capped"
+      );
+      console.log("PASS: UX005 real sandbox controller -> paid booking escrow -> work -> client-only release -> test withdrawal reservation; no bank movement");
+    } finally {
+      for(const key of flagNames){
+        if(originalFlags[key]===undefined) delete process.env[key];
+        else process.env[key]=originalFlags[key];
+      }
+    }
 
     console.log("PASS: scoped, read-only financial reconciliation and no-automatic-retry recovery labels");
     console.log("PASS: P0 durable reserve-before-provider, unknown-outcome, payout reversal, refund hold and signed webhook replay");
