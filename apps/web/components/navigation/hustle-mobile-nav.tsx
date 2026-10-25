@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { getUnreadNotificationCount } from "../../lib/notifications";
 import styles from "./hustle-mobile-nav.module.css";
 import { authUrl, hasViewerSession } from "../../lib/api/public-browsing";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
 import type { MouseEvent } from "react";
 
 type NavIcon = "discover" | "search" | "create" | "market" | "messages" | "activity" | "identity";
@@ -79,9 +80,15 @@ export function HustleMobileNav() {
   function requireAccount(event: MouseEvent<HTMLAnchorElement>, href: string) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
     if (!["/posts/new", "/messages", "/notifications", "/account"].includes(href)) return;
+    // The "You" page already resolves Better Auth and renders sign-in/retry
+    // states itself. Rechecking the session on every iPhone nav tap can
+    // redirect a valid user to /auth on a slow or transient network response.
+    if (isolatedWebMode && href === "/account") return;
     event.preventDefault();
     void hasViewerSession().then(signedIn => window.location.assign(signedIn ? href : authUrl(href)))
-      .catch(() => window.location.assign(authUrl(href)));
+      // A network error is not proof of sign-out. Let the target page show its
+      // own recoverable session error rather than discarding the current route.
+      .catch(() => window.location.assign(href));
   }
 
   return <>
