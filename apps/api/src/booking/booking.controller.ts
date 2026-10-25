@@ -11,7 +11,9 @@ import {
   type CancelBookingInput,
   type CreateBookingInput,
   type DeclineBookingInput,
-  type ExtendBookingInput
+  type ExtendBookingInput,
+  type ProposeBookingTimeInput,
+  type RespondBookingTimeInput
 } from "./booking.service";
 
 @Controller("bookings")
@@ -84,6 +86,24 @@ export class BookingController {
   ) {
     // Acceptance checks and commits capacity atomically inside BookingService.
     return this.bookingService.accept(identity, bookingId, input);
+  }
+
+  @Post(":bookingId/propose-time")
+  proposeTime(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("bookingId") bookingId: string,
+    @Body() input: ProposeBookingTimeInput
+  ) {
+    return this.bookingService.proposeTime(identity, bookingId, input);
+  }
+
+  @Post(":bookingId/respond-time")
+  respondTime(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("bookingId") bookingId: string,
+    @Body() input: RespondBookingTimeInput
+  ) {
+    return this.bookingService.respondTime(identity, bookingId, input);
   }
 
   @Post(":bookingId/extend")
