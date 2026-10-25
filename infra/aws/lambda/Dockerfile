@@ -11,7 +11,10 @@ RUN npm prune --omit=dev --ignore-scripts
 
 FROM node:22-bookworm-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl && rm -rf /var/lib/apt/lists/*
-COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0 /lambda-adapter /opt/extensions/lambda-adapter
+# CI may swap ONLY this build-time image source for an offline extension-file
+# fixture. The manually approved deployment always uses the official default.
+ARG LAMBDA_ADAPTER_IMAGE=public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0
+COPY --from=${LAMBDA_ADAPTER_IMAGE} /lambda-adapter /opt/extensions/lambda-adapter
 WORKDIR /srv/hustle
 COPY --from=builder --chown=node:node /srv/hustle /srv/hustle
 USER node
