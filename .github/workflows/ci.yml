@@ -65,6 +65,8 @@ jobs:
         run: node scripts/experience/check-ux006-verified-reputation.cjs
       - name: Verify UX007 Activity inbox, review alerts, read receipts and staging proxy guards
         run: node scripts/experience/check-ux007-activity-notifications.cjs
+      - name: Verify AWS Lambda isolated staging migration and no Cloudflare cutover
+        run: node scripts/experience/check-aws-lambda-staging.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
