@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Hustle — The Economy of You",
   description: "Discover people through what they make, do, and share. Find Hustlers. Get It Done.",
   applicationName: "Hustle",
-  manifest: "/manifest.webmanifest",
+  manifest: process.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW === "true" ? "/aws-test.webmanifest" : "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Hustle", statusBarStyle: "black-translucent" },
   icons: { icon: "/icon.svg", apple: "/apple-icon" },
   formatDetection: { telephone: false }
