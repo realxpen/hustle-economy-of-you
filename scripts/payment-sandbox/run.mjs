@@ -332,6 +332,30 @@ async function main() {
     assert.equal(retryResponse.status, 201);
     const retryBody = await retryResponse.json();
     assert.equal(retryBody.duplicate, true);
+    const storedEvidence = await prisma.webhookEvent.findUniqueOrThrow({
+      where:{provider_eventId:{provider:"HUSTLE_SANDBOX",eventId}}
+    });
+    // An attacker with the test key still cannot reuse a consumed provider
+    // event id with altered amount, reference or type.
+    for(const changed of [
+      {...payload,amountMinor:payload.amountMinor+1},
+      {...payload,reference:"hsbx_not_the_original"},
+      {...payload,type:"payment.failed"}
+    ]){
+      const sig=createHmac("sha256",process.env.HUSTLE_SANDBOX_WEBHOOK_SECRET)
+        .update([changed.eventId,changed.type,changed.reference,String(changed.amountMinor),
+          changed.currency.toUpperCase(),"",""].join("|")).digest("hex");
+      const attemptReplay=await fetch(webhookUrl,{
+        method:"POST",headers:{"content-type":"application/json","x-hustle-sandbox-signature":sig},
+        body:JSON.stringify(changed)
+      });
+      assert.equal(attemptReplay.status,409,"Changed signed webhook event must be rejected");
+    }
+    const afterEvidence=await prisma.webhookEvent.findUniqueOrThrow({
+      where:{provider_eventId:{provider:"HUSTLE_SANDBOX",eventId}}
+    });
+    assert.equal(afterEvidence.payloadDigest,storedEvidence.payloadDigest);
+    assert.equal((await prisma.order.findUniqueOrThrow({where:{id:orderId}})).status,"PAID");
     const repeatedInit = await payments.initialize(by, { subjectType: "ORDER", subjectId: orderId }, `sandbox-order-${testId}`);
     assert.equal(repeatedInit.id, attempt.id);
     assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).inventoryQuantity, 2);
@@ -744,6 +768,16 @@ async function main() {
     };
     await operations.handleWebhook(failedPayout,operationSignature(failedPayout));
     await operations.handleWebhook(failedPayout,operationSignature(failedPayout));
+    for(const changed of [
+      {...failedPayout,amountMinor:failedPayout.amountMinor+1},
+      {...failedPayout,reference:"hsbx_other_payout"},
+      {...failedPayout,type:"payout.succeeded"}
+    ]){
+      await expectRejected(
+        ()=>operations.handleWebhook(changed,operationSignature(changed)),
+        "Changed signed payout event id must be rejected"
+      );
+    }
     assert.equal((await wallet.getWallet(se)).balances.find(x=>x.currency==="NGN").availableMinor,130000);
     assert.equal(await prisma.ledgerTransaction.count({
       where:{subjectType:"PAYOUT",subjectId:acceptedPayout.id,type:"PAYOUT_REVERSED"}
@@ -866,6 +900,16 @@ async function main() {
     };
     await operations.handleWebhook(confirmedRefund,operationSignature(confirmedRefund));
     await operations.handleWebhook(confirmedRefund,operationSignature(confirmedRefund));
+    for(const changed of [
+      {...confirmedRefund,amountMinor:confirmedRefund.amountMinor+1},
+      {...confirmedRefund,reference:"hsbx_other_refund"},
+      {...confirmedRefund,type:"refund.failed"}
+    ]){
+      await expectRejected(
+        ()=>operations.handleWebhook(changed,operationSignature(changed)),
+        "Changed signed refund event id must be rejected"
+      );
+    }
     assert.equal((await prisma.order.findUniqueOrThrow({where:{id:refundOrderId}})).status,"REFUNDED");
     assert.equal(await prisma.ledgerTransaction.count({
       where:{subjectType:"ORDER",subjectId:refundOrderId,type:"REFUND"}
