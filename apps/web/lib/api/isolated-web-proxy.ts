@@ -104,6 +104,15 @@ export async function proxyIsolatedRequest(req: NextRequest, segments: string[])
       if (stagingOnly) headers.set("cookie", stagingOnly);
     } else headers.set(key, value);
   }
+  // Only sandbox withdrawal reservations may carry a financial idempotency key.
+  // Preserve it end-to-end so a retried iPhone request cannot double-reserve funds.
+  if (req.method === "POST" && segments.join("/") === "api/v1/sandbox/wallet/withdrawals") {
+    const idempotencyKey = req.headers.get("idempotency-key");
+    if (!idempotencyKey || !/^[A-Za-z0-9._:-]{8,200}$/.test(idempotencyKey)) {
+      return NextResponse.json({message:"Valid sandbox withdrawal Idempotency-Key required"}, {status:400});
+    }
+    headers.set("idempotency-key", idempotencyKey);
+  }
   const body = req.method !== "GET" ? await req.text() : undefined;
   if (body && body.length > 10_000) return NextResponse.json({message:"Payload too large"}, {status:413});
   try {
