@@ -73,6 +73,16 @@ async function expectRejected(fn, label) {
   assert.ok(rejected, label);
 }
 
+// Require a real Nest authorization denial, not just any input/state error.
+// Runs only against the temporary localhost database with throwaway identities.
+async function expectForbidden(fn, label) {
+  await assert.rejects(fn, (error) => {
+    assert.equal(typeof error?.getStatus, "function", label + ": expected a Nest HTTP error");
+    assert.equal(error.getStatus(), 403, label + ": expected HTTP 403 Forbidden");
+    return true;
+  }, label);
+}
+
 async function main() {
   const app = await NestFactory.create(SandboxTestModule, { logger: ["error"], rawBody: true });
   app.setGlobalPrefix("api/v1");
@@ -995,7 +1005,7 @@ async function main() {
     await expectRejected(()=>bookingService.get(
       identity("not-a-customer-"+testId),fullBooking.id
     ),"Unrelated account must never access booking details");
-    await expectRejected(()=>bookingService.accept(by,fullBooking.id,{}),
+    await expectForbidden(()=>bookingService.accept(by,fullBooking.id,{}),
       "Client cannot impersonate Hustler acceptance");
     const acceptedJourney=await bookingService.accept(se,fullBooking.id,{});
     assert.equal(acceptedJourney.status,"PAYMENT_PENDING");
@@ -1066,7 +1076,7 @@ async function main() {
     assert.equal(workingJourney.status,"IN_PROGRESS");
     const completedJourney=await bookingService.complete(se,fullBooking.id);
     assert.equal(completedJourney.status,"COMPLETED");
-    await expectRejected(()=>wallet.releaseBookingEscrow(se,fullBooking.id),
+    await expectForbidden(()=>wallet.releaseBookingEscrow(se,fullBooking.id),
       "Hustler cannot release Client-controlled Booking escrow");
     // UX006: a completed but HELD escrow must not unlock a public review.
     const lockedReview = await reviewEligibility.get(by,"BOOKING",fullBooking.id);
@@ -1206,13 +1216,13 @@ async function main() {
       assert.equal(await prisma.ledgerTransaction.count({
         where:{paymentAttemptId:firstAttemptId,type:"PAYMENT_CONFIRMED"}
       }),1,"One sandbox deposit creates exactly one capture posting");
-      await expectRejected(
+      await expectForbidden(
         ()=>sandboxController.start(by,demoBooking.id,{confirmation:"SIMULATE_TEST_WORK"}),
         "Only Hustler starts work"
       );
       await sandboxController.start(se,demoBooking.id,{confirmation:"SIMULATE_TEST_WORK"});
       await sandboxController.complete(se,demoBooking.id,{confirmation:"SIMULATE_TEST_WORK"});
-      await expectRejected(
+      await expectForbidden(
         ()=>sandboxController.release(se,demoBooking.id,{confirmation:"SIMULATE_TEST_RELEASE"}),
         "Only the Client can release sandbox escrow"
       );
@@ -1245,6 +1255,49 @@ async function main() {
       }
     }
 
+    // UX009: both invited-identity analogues must see only their own financial
+    // invariants. Compare wallet read models to independently summed postings.
+    // Read-only assertions; never release an existing booking or call a provider.
+    const financeReadLedgerBefore = await prisma.ledgerTransaction.count();
+    for (const [role, who, userId] of [
+      ["Client", by, buyer.id],
+      ["Hustler", se, seller.id]
+    ]) {
+      const walletSnapshot = await wallet.getWallet(who);
+      const reconciliation = await operations.reconciliation(who);
+      assert.equal(walletSnapshot.userId, userId, role + " wallet identity");
+      assert.equal(walletSnapshot.balanceAuthority, "LEDGER");
+      assert.equal(reconciliation.userId, userId, role + " reconciliation identity");
+      assert.equal(reconciliation.scope, "USER_FINANCIAL_INVARIANTS");
+      assert.equal(reconciliation.issueCount, reconciliation.issues.length);
+      const accounts = await prisma.ledgerAccount.findMany({
+        where: { userId },
+        include: { postings: { select: { direction: true, amountMinor: true } } }
+      });
+      const expectedBalances = new Map();
+      for (const account of accounts) {
+        const balance = expectedBalances.get(account.currency) ?? {
+          currency: account.currency, availableMinor: 0, pendingMinor: 0,
+          escrowMinor: 0, payoutReservedMinor: 0
+        };
+        const field = ({
+          AVAILABLE: "availableMinor", PENDING: "pendingMinor",
+          ESCROW: "escrowMinor", PAYOUT_RESERVED: "payoutReservedMinor"
+        })[account.type];
+        if (field) {
+          balance[field] += account.postings.reduce((sum, posting) =>
+            sum + (posting.direction === "CREDIT" ? posting.amountMinor : -posting.amountMinor), 0);
+        }
+        expectedBalances.set(account.currency, balance);
+      }
+      const order = (a, b) => a.currency.localeCompare(b.currency);
+      assert.deepEqual([...walletSnapshot.balances].sort(order),
+        [...expectedBalances.values()].sort(order),
+        role + " displayed wallet read model must match authoritative ledger");
+    }
+    assert.equal(await prisma.ledgerTransaction.count(), financeReadLedgerBefore,
+      "Client/Hustler wallet reads and reconciliation must never create ledger entries");
+    console.log("PASS: UX009 explicit 403 wrong-participant guards and scoped Client/Hustler wallet vs ledger reconciliation");
     console.log("PASS: scoped, read-only financial reconciliation and no-automatic-retry recovery labels");
     console.log("PASS: P0 durable reserve-before-provider, unknown-outcome, payout reversal, refund hold and signed webhook replay");
 
