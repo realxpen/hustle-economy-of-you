@@ -81,6 +81,7 @@ export function UX009AuthorizationCheck() {
       : { proposalId: booking.timeProposalId, decision: "DECLINE" };
 
     let status: number | null = null;
+    let participantGuardDenied = false;
     try {
       const response = await authenticatedFetch(route, {
         method: "POST", cache: "no-store",
@@ -94,6 +95,13 @@ export function UX009AuthorizationCheck() {
       // labeling the expected HTTP 403 as "not received".
       if (reason instanceof AuthenticatedApiError) {
         status = reason.status;
+        // HTTP 403 from a proxy/CSRF/staging gate is not evidence of the
+        // BookingService participant permission guard. Match its exact, fixed
+        // domain error message without exposing server payloads in the UI.
+        participantGuardDenied = status === 403 && (client
+          ? reason.message === "An ACTIVE HUSTLER capability is required for this action" ||
+            reason.message === "Only the booked Hustler can accept this Booking"
+          : reason.message === "Only the Client can accept or decline a proposed time");
       } else {
         setState({
           stage: "complete", booking, passed: false, status: null, unchanged: false,
@@ -112,12 +120,12 @@ export function UX009AuthorizationCheck() {
         after.updatedAt === booking.updatedAt &&
         after.timeProposalStatus === booking.timeProposalStatus &&
         after.timeProposalId === booking.timeProposalId;
-      const passed = status === 403 && unchanged;
+      const passed = status === 403 && participantGuardDenied && unchanged;
       setState({
         stage: "complete", booking, passed, status, unchanged,
         message: passed
           ? "PASS: The live API returned HTTP 403 Forbidden; the completed booking remained unchanged."
-          : "NOT VERIFIED: The API response or booking invariants differed. Stop here and report this result."
+          : "NOT VERIFIED: The HTTP result, participant permission denial, or booking invariants differed. Stop here and report this result."
       });
     } catch {
       setState({
