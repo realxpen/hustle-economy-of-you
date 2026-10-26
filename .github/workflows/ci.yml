@@ -43,6 +43,8 @@ jobs:
         run: node scripts/experience/check-hustler-booking-response.cjs
       - name: Staging QA safety policy regression (no credentials or external calls)
         run: node scripts/experience/check-staging-acceptance-policy.cjs
+      - name: UX009 live 403 diagnostic safety (staging-only, finance-free)
+        run: node scripts/experience/check-ux009-live-authorization-probe.cjs
       - name: Creator publishing and Live UX contracts
         run: node scripts/experience/check-creator-experience.cjs
       - name: Verify UX009 shared public-service references and visible seller attribution
