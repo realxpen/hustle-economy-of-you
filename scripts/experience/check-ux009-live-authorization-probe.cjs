@@ -20,7 +20,16 @@ assert.match(client, /booking\.timeProposalStatus !== "ACCEPTED"/);
 assert.match(client, /booking\.clientUserId === booking\.hustlerUserId/);
 assert.match(client, /\/accept\`/);
 assert.match(client, /\/respond-time\`/);
-assert.match(client, /status === 403 && unchanged/, "HTTP 403 and unchanged state are both required");
+assert.match(client, /status === 403 && participantGuardDenied && unchanged/,
+  "PASS requires explicit participant denial and unchanged booking");
+assert.match(client, /participantGuardDenied = status === 403/,
+  "Reject unrelated HTTP 403 from routing/CSRF as proof of role authorization");
+assert.match(client, /An ACTIVE HUSTLER capability is required for this action/,
+  "Client denial may be active-Hustler capability guard");
+assert.match(client, /Only the booked Hustler can accept this Booking/,
+  "Client denial may be booked-Hustler identity guard");
+assert.match(client, /Only the Client can accept or decline a proposed time/,
+  "Hustler denial must come from the BookingService Client participant guard");
 assert.match(authenticated, /class AuthenticatedApiError extends Error/, "HTTP errors must preserve their status");
 assert.match(authenticated, /new AuthenticatedApiError\(response.status, await parseError\(response\)\)/,
   "Non-2xx API errors must retain HTTP code, without exposing tokens or response payload");
