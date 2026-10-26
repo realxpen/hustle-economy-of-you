@@ -36,6 +36,13 @@ export interface BookingRecord {
   requestedEndAt: string | null;
   confirmedStartAt: string | null;
   confirmedEndAt: string | null;
+  timeProposalId: string | null;
+  timeProposalStatus: "PENDING" | "ACCEPTED" | "DECLINED" | null;
+  timeProposalStartAt: string | null;
+  timeProposalEndAt: string | null;
+  timeProposalNote: string | null;
+  timeProposalCreatedAt: string | null;
+  timeProposalRespondedAt: string | null;
   scheduledDurationMinutes: number | null;
   extendedMinutes: number;
   actualStartedAt: string | null;
@@ -164,6 +171,27 @@ export async function acceptBooking(
   const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}/accept`, {
     method: "POST",
     body: JSON.stringify(input)
+  });
+  return response.json() as Promise<BookingRecord>;
+}
+
+export async function proposeBookingTime(bookingId: string, input: {
+  startAt: string;
+  endAt?: string;
+  note?: string;
+}) {
+  const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}/propose-time`, {
+    method: "POST", body: JSON.stringify(input)
+  });
+  return response.json() as Promise<BookingRecord>;
+}
+
+export async function respondToBookingTime(bookingId: string, input: {
+  proposalId: string;
+  decision: "ACCEPT" | "DECLINE";
+}) {
+  const response = await authenticatedFetch(`/bookings/${encodeURIComponent(bookingId)}/respond-time`, {
+    method: "POST", body: JSON.stringify(input)
   });
   return response.json() as Promise<BookingRecord>;
 }

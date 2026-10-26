@@ -21,7 +21,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const reviewRead = /^\/api\/v1\/reviews\/(?:eligibility\/BOOKING\/[A-Za-z0-9_-]+|[A-Za-z0-9_-]+)$/;
   const publicTrustRead = /^\/api\/v1\/trust\/users\/[A-Za-z0-9_-]+\/summary$/;
   const bookingRead = /^\/api\/v1\/bookings\/(?:client|hustler|availability|slots|duration-insights|[A-Za-z0-9_-]+)$/;
-  const bookingDecision = /^\/api\/v1\/bookings\/[A-Za-z0-9_-]+\/(?:accept|decline|cancel)$/;
+  const bookingDecision = /^\/api\/v1\/bookings\/[A-Za-z0-9_-]+\/(?:accept|decline|cancel|propose-time|respond-time)$/;
   const safetyRead = /^\/api\/v1\/trust-safety\/blocks\/status\/[A-Za-z0-9_-]+$/;
   const safetyBlock = /^\/api\/v1\/trust-safety\/blocks\/[A-Za-z0-9_-]+$/;
   const guestRead = /^\/api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;

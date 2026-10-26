@@ -189,6 +189,12 @@ enum MessageContextType {
   PRODUCT
 }
 
+enum BookingTimeProposalStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 enum BookingStatus {
   REQUESTED
   ACCEPTED
@@ -942,6 +948,15 @@ model Booking {
   requestedEndAt       DateTime?
   confirmedStartAt     DateTime?
   confirmedEndAt       DateTime?
+  // A Client's response is authoritative for proposed scheduling only.
+  // Neither acceptance of a proposal nor a new requested time funds work.
+  timeProposalId       String?
+  timeProposalStatus   BookingTimeProposalStatus?
+  timeProposalStartAt  DateTime?
+  timeProposalEndAt    DateTime?
+  timeProposalNote     String?
+  timeProposalCreatedAt DateTime?
+  timeProposalRespondedAt DateTime?
   scheduledDurationMinutes Int?
   extendedMinutes      Int                @default(0)
   actualStartedAt      DateTime?

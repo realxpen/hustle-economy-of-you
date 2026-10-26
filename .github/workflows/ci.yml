@@ -47,6 +47,8 @@ jobs:
         run: node scripts/experience/check-creator-experience.cjs
       - name: Verify UX009 shared public-service references and visible seller attribution
         run: node scripts/experience/check-ux009-public-offer-attribution.cjs
+      - name: Verify UX009 actionable Client response to Hustler alternate booking time
+        run: node scripts/experience/check-ux009-client-booking-time-proposal.cjs
       - name: Release readiness and async privacy contracts
         run: node scripts/experience/check-release-readiness.cjs
       - name: You identity and account UX contracts
@@ -79,6 +81,8 @@ jobs:
       - run: npm run build --workspace=@hustle/web
       - run: npm run build --workspace=@hustle/admin
       - run: npm run build --workspace=@hustle/api
+      - name: Exercise real Nest Client/Hustler alternate-time consent state machine
+        run: node scripts/experience/check-ux009-time-consent-runtime.cjs
       - name: FlowTime adaptive scheduling and capacity safety regression
         run: node scripts/experience/check-flowtime.cjs
       - name: Install Chromium for isolated local Web UI smoke

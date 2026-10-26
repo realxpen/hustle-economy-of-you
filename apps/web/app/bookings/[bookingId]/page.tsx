@@ -17,6 +17,8 @@ import { TransactionSafetyActions } from "../../../components/trust/transaction-
 import {
   type BookingRecord,
   acceptBooking,
+  proposeBookingTime,
+  respondToBookingTime,
   cancelBooking,
   completeBooking,
   declineBooking,
@@ -27,7 +29,6 @@ import {
 } from "../../../lib/booking";
 import styles from "../bookings.module.css";
 import { isolatedWebMode } from "../../../lib/auth/isolated-web-auth";
-import { sendMessage } from "../../../lib/messaging";
 
 function formatDate(value: string | null) {
   if (!value) return "Not set";
@@ -67,7 +68,6 @@ export default function BookingDetailPage() {
   const [confirmedEndAt, setConfirmedEndAt] = useState("");
   const [decision, setDecision] = useState<BookingDecision | null>(null);
   const [decisionReason, setDecisionReason] = useState("");
-  const [proposalSent, setProposalSent] = useState(false);
 
   const applyBooking = useCallback((next: BookingRecord) => {
     setBooking(next);
@@ -94,7 +94,6 @@ export default function BookingDetailPage() {
     setBooking(null);
     setDecision(null);
     setDecisionReason("");
-    setProposalSent(false);
     setExtensionOpen(false);
     void load();
     return () => { requestVersion.current += 1; };
@@ -151,7 +150,7 @@ export default function BookingDetailPage() {
     if (confirmedEndAt && !end) return setError("Choose a valid confirmed end date and time.");
     if (end && new Date(end).getTime() <= new Date(start).getTime()) return setError("Confirmed end must be after confirmed start.");
     if (isolatedWebMode && (start !== booking.requestedStartAt || (end ?? null) !== booking.requestedEndAt)) {
-      return setError("Send a new time proposal in Messages first. The client must submit an updated request.");
+      return setError("To confirm a different time, use Propose new time to Client and wait for the Client's approval.");
     }
     await act(() => acceptBooking(booking.id, { confirmedStartAt: start, ...(end ? { confirmedEndAt: end } : {}) }));
   }
@@ -159,7 +158,6 @@ export default function BookingDetailPage() {
   async function proposeAlternateTime() {
     const booking = storedBooking?.id === params?.bookingId ? storedBooking : null;
     if (!isolatedWebMode || !booking || booking.viewerRole !== "HUSTLER" || booking.status !== "REQUESTED" || busy) return;
-    if (!booking.conversationId) return setError("Start a consultation in Messages before suggesting another time.");
     const start = toIso(confirmedStartAt);
     const end = toIso(confirmedEndAt);
     if (!start || new Date(start).getTime() <= Date.now())
@@ -169,19 +167,10 @@ export default function BookingDetailPage() {
       return setError("The proposed end must follow the proposed start.");
     if (start === booking.requestedStartAt && (end ?? null) === booking.requestedEndAt)
       return setError("Choose a different time to propose.");
-    setBusy(true); setError(null); setProposalSent(false);
-    try {
-      await sendMessage(booking.conversationId, {
-        text: "Alternative scheduling proposal for " + booking.serviceTitleSnapshot +
-          " (request " + booking.id + "): " + formatDate(start) +
-          (end ? " to " + formatDate(end) : "") +
-          ". Please confirm in this consultation. Your original request is still pending. If we agree, cancel it and submit a new request for the new time.",
-        contextType: "SERVICE", contextId: booking.serviceId
-      });
-      setProposalSent(true);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not send alternate time proposal.");
-    } finally { setBusy(false); }
+    await act(() => proposeBookingTime(booking.id, {
+      startAt: start,
+      ...(end ? { endAt: end } : {})
+    }));
   }
 
   const booking = storedBooking?.id === params?.bookingId ? storedBooking : null;
@@ -192,7 +181,10 @@ export default function BookingDetailPage() {
   const otherLabel = other.displayName ?? other.username ?? "participant";
   const canCancel = booking.viewerRole === "CLIENT" ? ["REQUESTED", "ACCEPTED", "PAYMENT_PENDING"].includes(booking.status) : ["ACCEPTED", "PAYMENT_PENDING"].includes(booking.status);
   const canReviewBooking = booking.viewerRole === "CLIENT" && booking.status === "COMPLETED";
-  const canAccept = booking.viewerRole === "HUSTLER" && booking.status === "REQUESTED";
+  const pendingTimeProposal = booking.status === "REQUESTED" &&
+    booking.timeProposalStatus === "PENDING" && Boolean(booking.timeProposalId);
+  const canAccept = booking.viewerRole === "HUSTLER" && booking.status === "REQUESTED" &&
+    !pendingTimeProposal;
   // Match the backend gate: unpaid free bookings may start after acceptance;
   // paid bookings require server-confirmed funding, never merely an ACCEPTED label.
   const canStart = !isolatedWebMode && booking.viewerRole === "HUSTLER" && (
@@ -209,6 +201,42 @@ export default function BookingDetailPage() {
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Booking detail" trail={[{ href: "/bookings", label: "Bookings" }]}
       secondaryLinks={[{ href: `/services/${booking.serviceId}`, label: "Service" }, { href: "/messages", label: "Messages" }, { href: "/wallet", label: isolatedWebMode ? "Sandbox Wallet" : "Wallet" }]} />
+
+    {booking.status === "REQUESTED" && booking.timeProposalId && booking.timeProposalStartAt && (
+      <section className={styles.timeProposalPanel} aria-label="Alternate booking time proposal">
+        <p className={styles.eyebrow}>BOOKING TIME PROPOSAL</p>
+        <h2>{pendingTimeProposal
+          ? booking.viewerRole === "CLIENT" ? "The Hustler proposed another time" : "Waiting for the Client"
+          : booking.timeProposalStatus === "ACCEPTED" ? "Alternate time accepted" : "Alternate time declined"}</h2>
+        <div className={styles.facts}>
+          <Fact label="CURRENT REQUEST" value={formatDate(booking.requestedStartAt)} />
+          <Fact label="PROPOSED START" value={formatDate(booking.timeProposalStartAt)} />
+          <Fact label="PROPOSED END" value={formatDate(booking.timeProposalEndAt)} />
+        </div>
+        {booking.timeProposalNote && <p className={styles.copy}>{booking.timeProposalNote}</p>}
+        {pendingTimeProposal && booking.viewerRole === "CLIENT" ? <>
+          <p>Accept to revise your requested time, or decline to keep the original request.
+            The Hustler must still confirm the booking. No payment is made.</p>
+          <div className={styles.proposalActions}>
+            <button type="button" className={styles.primary} disabled={busy}
+              onClick={() => void act(() => respondToBookingTime(booking.id, {
+                proposalId: booking.timeProposalId!, decision: "ACCEPT"
+              }))}>{busy ? "Processing…" : "Accept proposed time"}</button>
+            <button type="button" className={styles.secondary} disabled={busy}
+              onClick={() => void act(() => respondToBookingTime(booking.id, {
+                proposalId: booking.timeProposalId!, decision: "DECLINE"
+              }))}>Decline proposed time</button>
+          </div>
+        </> : pendingTimeProposal ? <p>The Client can accept or decline the new time from this booking.
+          You cannot confirm the schedule while the proposal is pending.</p>
+          : <p>{booking.timeProposalStatus === "ACCEPTED"
+            ? "The Client agreed to the new time. The Hustler must still confirm the booking; no payment is authorized."
+            : "The original request remains pending. The Hustler may accept it or suggest another time."}</p>}
+        <button type="button" className={styles.secondary} disabled={busy}
+          onClick={() => void load()}>Refresh proposal status</button>
+        {error && <p className={styles.error} role="alert">{error}</p>}
+      </section>
+    )}
 
     {isolatedWebMode ? <SandboxBookingActions booking={booking} onChange={async () => { await load(); setReviewRefreshKey((version) => version + 1); }} /> : <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />}
     {isolatedWebMode && canReviewBooking && (
@@ -301,7 +329,7 @@ export default function BookingDetailPage() {
         <section className={styles.summaryCard}>
           <p className={styles.eyebrow}>ACTIONS</p>
           <div className={styles.actions}>
-            {canAccept && <><div className={styles.field}><label htmlFor="confirmed-start">CONFIRM START</label><input id="confirmed-start" type="datetime-local" value={confirmedStartAt} onChange={(event) => setConfirmedStartAt(event.target.value)} /></div><div className={styles.field}><label htmlFor="confirmed-end">CONFIRM END · OPTIONAL</label><input id="confirmed-end" type="datetime-local" value={confirmedEndAt} onChange={(event) => setConfirmedEndAt(event.target.value)} /></div><p className={styles.actionNote}>{isolatedWebMode ? "Accept only the Client's original time. Select a different time and use Suggest alternative to discuss it first. Accepted paid requests remain payment pending with no payment capability." : "Accepting a paid Booking moves it to payment pending; work cannot start without authoritative funding. Free Bookings can start after acceptance."}</p><button type="button" className={styles.primary} disabled={busy} onClick={() => void acceptWithSchedule()}>{isolatedWebMode ? "Accept requested time (test)" : "Accept with confirmed schedule"}</button>{isolatedWebMode && <button type="button" className={styles.secondary} disabled={busy} onClick={() => void proposeAlternateTime()}>Suggest alternate time in Messages</button>}{proposalSent && <p role="status">Proposal sent in consultation. The original request is unchanged. <Link href={messageUrl}>Open Messages</Link></p>}<button type="button" className={styles.secondary} disabled={busy} onClick={() => openDecision("DECLINE")}>Decline request</button></>}
+            {canAccept && <><div className={styles.field}><label htmlFor="confirmed-start">CONFIRM START</label><input id="confirmed-start" type="datetime-local" value={confirmedStartAt} onChange={(event) => setConfirmedStartAt(event.target.value)} /></div><div className={styles.field}><label htmlFor="confirmed-end">CONFIRM END · OPTIONAL</label><input id="confirmed-end" type="datetime-local" value={confirmedEndAt} onChange={(event) => setConfirmedEndAt(event.target.value)} /></div><p className={styles.actionNote}>{isolatedWebMode ? "Accept only the Client's original time. Select a different time and use Suggest alternative to send the Client an actionable booking proposal. Accepted paid requests remain payment pending with no payment capability." : "Accepting a paid Booking moves it to payment pending; work cannot start without authoritative funding. Free Bookings can start after acceptance."}</p><button type="button" className={styles.primary} disabled={busy} onClick={() => void acceptWithSchedule()}>{isolatedWebMode ? "Accept requested time (test)" : "Accept with confirmed schedule"}</button>{isolatedWebMode && <button type="button" className={styles.secondary} disabled={busy} onClick={() => void proposeAlternateTime()}>Propose new time to Client</button>}<button type="button" className={styles.secondary} disabled={busy} onClick={() => openDecision("DECLINE")}>Decline request</button></>}
             {canStart && <button className={styles.primary} disabled={busy} onClick={() => void act(() => startBooking(booking.id))}>Start work</button>}
             {canComplete && <button className={styles.primary} disabled={busy} onClick={() => void act(() => completeBooking(booking.id))}>Mark work complete</button>}
             {canCancel && <button type="button" className={styles.danger} disabled={busy} onClick={() => openDecision("CANCEL")}>Cancel booking</button>}
