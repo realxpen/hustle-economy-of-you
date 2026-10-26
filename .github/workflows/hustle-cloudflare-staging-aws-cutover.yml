@@ -72,7 +72,7 @@ jobs:
           npm ls vite-css-modules vite typescript --workspace=@hustle/web --depth=0
           node scripts/experience/check-workflow-yaml.cjs
           node scripts/cloudflare/check-worker-config.cjs
-          node scripts/experience/check-cloudflare-aws-preview.cjs
+          HUSTLE_STAGING_AWS_CUTOVER_BUILD=false node scripts/experience/check-cloudflare-aws-preview.cjs
           node scripts/experience/check-cloudflare-staging-aws-cutover.cjs
           node scripts/experience/check-ios-pwa-parity.cjs
           node scripts/experience/check-ios-pwa-connected-staging.cjs
