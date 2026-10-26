@@ -8,8 +8,10 @@ on:
       - package-lock.json
       - .github/workflows/hustle-cloudflare-pwa-compat.yml
       - .github/workflows/hustle-cloudflare-staging-deploy.yml
+      - .github/workflows/hustle-cloudflare-staging-aws-cutover.yml
       - .github/workflows/hustle-cloudflare-aws-preview.yml
       - scripts/experience/check-cloudflare-aws-preview.cjs
+      - scripts/experience/check-cloudflare-staging-aws-cutover.cjs
       - scripts/cloudflare/**
   workflow_dispatch:
 

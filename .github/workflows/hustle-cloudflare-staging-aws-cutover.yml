@@ -96,13 +96,28 @@ jobs:
         run: |
           set -euo pipefail
           HOST="https://hustle-ios-pwa-staging.realxpens.workers.dev"
-          curl -fsS --max-time 25 "$HOST/auth" -o /tmp/hustle-cutover-auth.html
-          grep -q 'HUSTLE' /tmp/hustle-cutover-auth.html
-          if grep -q 'HUSTLE · AWS TEST' /tmp/hustle-cutover-auth.html; then
-            echo "::error::Parallel AWS preview banner leaked into regular staging"
+          # The regular invited-login page renders PRIVATE TEST; only the
+          # separate preview page renders the uppercase AWS TEST banner.
+          # The former 'grep -q HUSTLE' was a false-negative after deploy.
+          # Check actual HTTP statuses and retry briefly for Worker propagation.
+          confirmed=false
+          for attempt in 1 2 3 4 5; do
+            AUTH_STATUS="$(curl -sS --max-time 25 -o /tmp/hustle-cutover-auth.html -w '%{http_code}' "$HOST/auth" || true)"
+            HEALTH_STATUS="$(curl -sS --max-time 25 -o /dev/null -w '%{http_code}' "$HOST/api/isolated/api/v1/health" || true)"
+            DENIED_STATUS="$(curl -sS --max-time 25 -o /dev/null -w '%{http_code}' "$HOST/api/isolated/api/v1/notifications" || true)"
+            if test "$AUTH_STATUS" = "200" &&
+               grep -q 'PRIVATE TEST' /tmp/hustle-cutover-auth.html &&
+               ! grep -q 'HUSTLE · AWS TEST' /tmp/hustle-cutover-auth.html &&
+               test "$HEALTH_STATUS" = "200" &&
+               test "$DENIED_STATUS" = "401"; then
+              confirmed=true
+              break
+            fi
+            echo "Regular staging smoke attempt $attempt/5: auth=$AUTH_STATUS health=$HEALTH_STATUS unauthenticated_notifications=$DENIED_STATUS"
+            if test "$attempt" != "5"; then sleep 3; fi
+          done
+          if test "$confirmed" != "true"; then
+            echo "::error::Normal staging smoke failed; validate HTTP statuses, login-page identity and AWS routing before acceptance. Vercel rollback workflow remains available."
             exit 1
           fi
-          curl -fsS --max-time 25 "$HOST/api/isolated/api/v1/health" -o /dev/null
-          DENIED="$(curl -sS --max-time 25 -o /dev/null -w '%{http_code}' "$HOST/api/isolated/api/v1/notifications")"
-          test "$DENIED" = "401"
-          echo 'PASS: reviewed nonproduction staging Worker published. Complete device smoke before closing UX009.'
+          echo 'PASS: nonproduction staging Worker serves invited sign-in, healthy API and guest notification denial. Complete authenticated device smoke before closing UX009.'
