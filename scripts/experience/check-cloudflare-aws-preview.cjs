@@ -83,10 +83,13 @@ async function main(){
   // match is insufficient protection against overwriting the current Worker.
   const configFile=path.join(root,"apps/web/cloudflare.config.ts");
   const configSource=get("apps/web/cloudflare.config.ts");
-  const runConfig=(awsFlag)=>{
+  const runConfig=(awsFlag,cutoverFlag=false)=>{
     const original=process.env.HUSTLE_AWS_PREVIEW_BUILD;
+    const originalCutover=process.env.HUSTLE_STAGING_AWS_CUTOVER_BUILD;
     if(awsFlag)process.env.HUSTLE_AWS_PREVIEW_BUILD="true";
     else delete process.env.HUSTLE_AWS_PREVIEW_BUILD;
+    if(cutoverFlag)process.env.HUSTLE_STAGING_AWS_CUTOVER_BUILD="true";
+    else delete process.env.HUSTLE_STAGING_AWS_CUTOVER_BUILD;
     try{
       const cm=new Module(configFile,module);
       cm.filename=configFile;
@@ -105,9 +108,12 @@ async function main(){
     }finally{
       if(original===undefined)delete process.env.HUSTLE_AWS_PREVIEW_BUILD;
       else process.env.HUSTLE_AWS_PREVIEW_BUILD=original;
+      if(originalCutover===undefined)delete process.env.HUSTLE_STAGING_AWS_CUTOVER_BUILD;
+      else process.env.HUSTLE_STAGING_AWS_CUTOVER_BUILD=originalCutover;
     }
   };
-  const normalWorker=runConfig(false),awsWorker=runConfig(true);
+  const normalWorker=runConfig(false),awsWorker=runConfig(true),cutoverWorker=runConfig(false,true);
+  assert.throws(()=>runConfig(true,true),/mutually exclusive/);
   assert.equal(normalWorker.name,"hustle-ios-pwa-staging");
   assert.equal(normalWorker.env.HUSTLE_API_BACKEND_TARGET,"vercel-isolated-staging");
   assert.equal(normalWorker.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW,"false");
@@ -115,6 +121,10 @@ async function main(){
   assert.equal(awsWorker.env.HUSTLE_API_BACKEND_TARGET,"aws-lambda-isolated-staging");
   assert.equal(awsWorker.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW,"true");
   assert.notEqual(awsWorker.name,normalWorker.name);
+  assert.equal(cutoverWorker.name,"hustle-ios-pwa-staging","cutover must never deploy to test-worker name");
+  assert.equal(cutoverWorker.env.HUSTLE_API_BACKEND_TARGET,"aws-lambda-isolated-staging");
+  assert.equal(cutoverWorker.env.NEXT_PUBLIC_HUSTLE_AWS_PREVIEW,"false","retain normal PWA identity");
+  assert.deepEqual(cutoverWorker.assets.runWorkerFirst,normalWorker.assets.runWorkerFirst);
   // The AWS install manifest is a real Cloudflare static asset. Vinext's
   // /manifest.webmanifest route returned 404 after the first successful upload.
   const manifestPath="apps/web/public/aws-test.webmanifest";
@@ -137,10 +147,22 @@ async function main(){
   const manifest=get("apps/web/app/manifest.ts");
   const release=get(".github/workflows/hustle-cloudflare-aws-preview.yml");
   const standard=get(".github/workflows/hustle-cloudflare-staging-deploy.yml");
+  const cutover=get(".github/workflows/hustle-cloudflare-staging-aws-cutover.yml");
+  const cutoverYaml=YAML.parseDocument(cutover,{uniqueKeys:true});
+  assert.equal(cutoverYaml.errors.length,0,"staging cutover workflow YAML must parse");
+  assert.match(cutover,/workflow_dispatch:/);
+  assert.doesNotMatch(cutover,/^\s{2}(?:push|pull_request):/m);
+  assert.match(cutover,/I_AUTHORIZE_AWS_STAGING_CUTOVER_ONLY/);
+  assert.match(cutover,/HUSTLE_STAGING_AWS_CUTOVER_BUILD: 'true'/);
+  assert.match(cutover,/HUSTLE_API_BACKEND_TARGET: aws-lambda-isolated-staging/);
+  assert.match(cutover,/environment: hustle-cloudflare-staging/);
+  assert.match(cutover,/hustle-ios-pwa-staging.realxpens.workers.dev/);
+  assert.doesNotMatch(standard,/HUSTLE_STAGING_AWS_CUTOVER_BUILD: 'true'/);
   const p=YAML.parseDocument(release,{uniqueKeys:true});
   assert.equal(p.errors.length,0,"manual parallel release YAML must parse");
   assert.match(config,/awsPreviewBuild \? "hustle-ios-pwa-aws-test" : "hustle-ios-pwa-staging"/);
   assert.match(config,/HUSTLE_API_BACKEND_TARGET: bindings\.text/);
+  assert.match(config,/stagingAwsCutoverBuild/);
   assert.match(config,/awsPreviewBuild \? "aws-lambda-isolated-staging" : "vercel-isolated-staging"/);
   assert.match(config,/NEXT_PUBLIC_HUSTLE_AWS_PREVIEW: bindings\.text\(awsPreviewBuild \? "true" : "false"\)/);
   assert.match(layout,/HUSTLE · AWS TEST/);
