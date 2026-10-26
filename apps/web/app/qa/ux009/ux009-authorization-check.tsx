@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { authenticatedFetch } from "../../../lib/api/authenticated-fetch";
+import { AuthenticatedApiError, authenticatedFetch } from "../../../lib/api/authenticated-fetch";
 import { isolatedWebMode } from "../../../lib/auth/isolated-web-auth";
 import type { BookingRecord } from "../../../lib/booking";
 
@@ -81,16 +81,33 @@ export function UX009AuthorizationCheck() {
       : { proposalId: booking.timeProposalId, decision: "DECLINE" };
 
     let status: number | null = null;
-    let unchanged = false;
     try {
-      const denied = await authenticatedFetch(route, {
+      const response = await authenticatedFetch(route, {
         method: "POST", cache: "no-store",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body)
       });
-      status = denied.status;
+      status = response.status;
+    } catch (reason) {
+      // authenticatedFetch intentionally throws on every non-2xx HTTP status.
+      // Preserve the actual status of a server denial instead of incorrectly
+      // labeling the expected HTTP 403 as "not received".
+      if (reason instanceof AuthenticatedApiError) {
+        status = reason.status;
+      } else {
+        setState({
+          stage: "complete", booking, passed: false, status: null, unchanged: false,
+          message: "INCOMPLETE: No HTTP response was captured. Do not repeat the action."
+        });
+        return;
+      }
+    }
+
+    // Even an HTTP 403 does not qualify as PASS until a separate authenticated
+    // GET proves this exact terminal booking and proposal remain unchanged.
+    try {
       const after = await loadSafeBooking();
-      unchanged =
+      const unchanged =
         after.status === booking.status &&
         after.updatedAt === booking.updatedAt &&
         after.timeProposalStatus === booking.timeProposalStatus &&
@@ -104,8 +121,8 @@ export function UX009AuthorizationCheck() {
       });
     } catch {
       setState({
-        stage: "complete", booking, passed: false, status, unchanged,
-        message: "INCOMPLETE: Could not safely verify the server response and unchanged booking state. No further requests are needed."
+        stage: "complete", booking, passed: false, status, unchanged: false,
+        message: "INCOMPLETE: The server status was captured but booking integrity could not be independently confirmed. Do not repeat the action."
       });
     }
   }
