@@ -69,6 +69,17 @@ try {
   assert.match(cutover,/test "\$PAYMENT_DENIED" = "403"/);
   assert.match(cutover,/concurrency:[\s\S]*?group: hustle-cloudflare-isolated-staging/);
   assert.match(cutover,/hustle-ios-pwa-staging\.realxpens\.workers\.dev/);
+  // Prevent another false-negative: the regular staging sign-in never
+  // renders the parallel AWS banner or the former arbitrary 'HUSTLE' token.
+  const signIn=get("apps/web/app/auth/staging-sign-in.tsx");
+  assert.match(signIn,/PRIVATE TEST/);
+  assert.match(cutover,/grep -q 'PRIVATE TEST'/);
+  assert.doesNotMatch(cutover,/grep -q 'HUSTLE' /);
+  assert.match(cutover,/for attempt in 1 2 3 4 5/);
+  assert.match(cutover,/test "\$AUTH_STATUS" = "200"/);
+  assert.match(cutover,/test "\$HEALTH_STATUS" = "200"/);
+  assert.match(cutover,/test "\$DENIED_STATUS" = "401"/);
+  assert.match(cutover,/confirmed=true/);
   assert.doesNotMatch(oldDeploy,/HUSTLE_STAGING_AWS_CUTOVER_BUILD: 'true'/);
   assert.match(oldDeploy,/I_AUTHORIZE_ISOLATED_STAGING_ONLY/);
   assert.match(awsPreviewWorkflow,/hustle-ios-pwa-aws-test\.realxpens\.workers\.dev/);
