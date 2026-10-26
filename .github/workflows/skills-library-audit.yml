@@ -1,0 +1,31 @@
+name: Skills Library Audit
+on:
+  pull_request:
+    paths:
+      - '.agents/skills/**'
+      - 'AGENTS.md'
+      - 'Knowledge/Technical/SKILLS_REGISTRY.md'
+      - 'scripts/skills/validate-library.cjs'
+      - 'ChatGPT/**'
+      - '.github/workflows/skills-library-audit.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.agents/skills/**'
+      - 'AGENTS.md'
+      - 'Knowledge/Technical/SKILLS_REGISTRY.md'
+      - 'scripts/skills/validate-library.cjs'
+      - 'ChatGPT/**'
+      - '.github/workflows/skills-library-audit.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate reviewed agent skills (offline, no installs)
+        run: node scripts/skills/validate-library.cjs
