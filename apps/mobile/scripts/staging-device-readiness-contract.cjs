@@ -25,7 +25,7 @@ function load(relative, mocks = {}) {
 }
 const origin = "https://hustle-isolated-staging-api.vercel.app";
 const expectedEnv = {
-  APP_VARIANT: "preview",
+  EXPO_PUBLIC_HUSTLE_APP_VARIANT: "preview",
   EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE: "isolated-staging",
   EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER: "expo-better-auth",
   EXPO_PUBLIC_HUSTLE_DEMO: "false",
@@ -53,13 +53,24 @@ async function check(label, fn) { await fn(); tests.push(label); console.log("PA
 (async () => {
   try {
     Object.assign(process.env, expectedEnv);
-    await check("Exact internal preview and staging auth configuration passes", () => {
-      assert.equal(auth.isExpoStagingSelected(), true);
-      assert.doesNotThrow(() => auth.validateExpoStagingConfiguration());
+    await check("Native runtime accepts only Expo-inlined public preview flag", () => {
+      // Simulate a standalone Android bundle: APP_VARIANT is a build-time native
+      // config variable, NOT a runtime JS variable. Never depend on its presence.
+      const originalBuildVariant = process.env.APP_VARIANT;
+      delete process.env.APP_VARIANT;
+      try {
+        assert.equal(auth.isExpoStagingSelected(), true);
+        assert.doesNotThrow(() => auth.validateExpoStagingConfiguration());
+      } finally {
+        if (originalBuildVariant === undefined) delete process.env.APP_VARIANT;
+        else process.env.APP_VARIANT = originalBuildVariant;
+      }
+      assert.doesNotMatch(fs.readFileSync(path.join(root, "src/lib/staging-auth.ts"), "utf8"),
+        /process\.env\.APP_VARIANT/, "Metro must not depend on a Node-only build-time variable");
     });
     await check("Both app variant AND runtime scope required; production/demo fail closed", () => {
       for (const [name, bad] of [
-        ["APP_VARIANT", "production"],
+        ["EXPO_PUBLIC_HUSTLE_APP_VARIANT", "production"],
         ["EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE", "production"],
         ["EXPO_PUBLIC_HUSTLE_DEMO", "true"],
         ["EXPO_PUBLIC_HUSTLE_AUTH_URL", "https://untrusted.invalid/api/auth"],

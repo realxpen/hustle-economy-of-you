@@ -11,6 +11,12 @@ module.exports = ({ config }) => {
     ...config,
     ...(projectId ? { extra: { ...config.extra, eas: { ...config.extra?.eas, projectId } } } : {})
   };
+  // APP_VARIANT configures the native package. Expo does not inline this name
+  // into client JS: the matching EXPO_PUBLIC_ identity must be present as well.
+  if (process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE === "isolated-staging" &&
+      (!isPreview || process.env.EXPO_PUBLIC_HUSTLE_APP_VARIANT !== "preview")) {
+    throw new Error("Isolated staging needs both preview build and public app identities.");
+  }
   if (!isPreview) return base;
   const isStaging = process.env.EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE === "isolated-staging";
   return {
