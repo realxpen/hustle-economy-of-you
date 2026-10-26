@@ -43,8 +43,8 @@ else {
       if (!/^description:\s*\S/m.test(header[1])) fail('missing description: ' + name);
     }
     for (const file of walk(folder)) {
-      if (!/\.(?:md|txt|py|js|json|yaml|yml)$/.test(file)) fail('unreviewed file type: ' + path.relative(root,file));
-      if (!/\.(?:md|txt|py|js|json|yaml|yml)$/.test(file)) continue;
+      if (!/\.(?:md|txt|py|js|json|yaml|yml)$/.test(file) && !/\/LICENSE$/.test(file)) fail('unreviewed file type: ' + path.relative(root,file));
+      if (!/\.(?:md|txt|py|js|json|yaml|yml)$/.test(file) && !/\/LICENSE$/.test(file)) continue;
       const content = fs.readFileSync(file,'utf8');
       if (!file.endsWith('LICENSE') && !file.endsWith('LICENSE.txt')) {
         for (const rule of bad) if (rule.re.test(content)) fail(rule.name + ': ' + path.relative(root,file));
