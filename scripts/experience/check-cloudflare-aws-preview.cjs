@@ -162,7 +162,8 @@ async function main(){
   assert.equal(p.errors.length,0,"manual parallel release YAML must parse");
   assert.match(config,/awsPreviewBuild \? "hustle-ios-pwa-aws-test" : "hustle-ios-pwa-staging"/);
   assert.match(config,/HUSTLE_API_BACKEND_TARGET: bindings\.text/);
-  assert.match(config,/awsPreviewBuild \|\| stagingAwsCutoverBuild/);
+  assert.match(config,/stagingAwsCutoverBuild/);
+  assert.match(config,/awsPreviewBuild \? "aws-lambda-isolated-staging" : "vercel-isolated-staging"/);
   assert.match(config,/NEXT_PUBLIC_HUSTLE_AWS_PREVIEW: bindings\.text\(awsPreviewBuild \? "true" : "false"\)/);
   assert.match(layout,/HUSTLE · AWS TEST/);
   assert.match(layout,/<head>\{awsPreview && <link rel="manifest" href="\/aws-test\.webmanifest" \/>\}<\/head>/);
