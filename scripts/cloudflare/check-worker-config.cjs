@@ -14,7 +14,9 @@ const manifest = read("apps/web/app/manifest.ts");
 const legacyVercel = JSON.parse(read("apps/web/vercel.json"));
 assert.match(config, /awsPreviewBuild \? "hustle-ios-pwa-aws-test" : "hustle-ios-pwa-staging"/);
 assert.match(config, /HUSTLE_API_BACKEND_TARGET: bindings\.text/);
-assert.match(config, /awsPreviewBuild \? "aws-lambda-isolated-staging" : "vercel-isolated-staging"/);
+assert.match(config, /awsPreviewBuild \|\| stagingAwsCutoverBuild/);
+assert.match(config, /HUSTLE_STAGING_AWS_CUTOVER_BUILD === "true"/);
+assert.match(config, /mutually exclusive/);
 assert.match(config, /compatibilityFlags: \["nodejs_compat"\]/);
 assert.match(config, /HUSTLE_ISOLATED_PWA_GATE: bindings\.text\("isolated-staging"\)/);
 assert.match(config, /NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: bindings\.text\("true"\)/);
@@ -48,6 +50,13 @@ assert.match(release, /build:vinext/);
 // npm ci omit build-time devDependencies (TS2307: vite-css-modules).
 assert.match(release, /npm ci --include=dev/, "Cloudflare staging needs pinned development build tools");
 assert(release.includes("npm ls vite-css-modules vite typescript --workspace=@hustle/web --depth=0"));
+const cutover = read(".github/workflows/hustle-cloudflare-staging-aws-cutover.yml");
+assert.match(cutover, /workflow_dispatch:/);
+assert.doesNotMatch(cutover, /^  push:|^  pull_request:/m);
+assert.match(cutover, /I_AUTHORIZE_AWS_STAGING_CUTOVER_ONLY/);
+assert.match(cutover, /HUSTLE_STAGING_AWS_CUTOVER_BUILD: 'true'/);
+assert.match(cutover, /environment: hustle-cloudflare-staging/);
+assert.match(cutover, /test "\$HUSTLE_AWS_PREVIEW_BUILD" = "false"/);
 const jobHeader = release.slice(release.indexOf("  build-and-deploy:"), release.indexOf("    steps:"));
 assert(!/NODE_ENV: *production/.test(jobHeader), "Do not set production NODE_ENV before installing build tools");
 
