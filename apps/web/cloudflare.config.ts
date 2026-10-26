@@ -34,9 +34,9 @@ export default defineConfig({
       NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: bindings.text("true"),
       // Separate origins/host-only cookies; never retrofit the working Worker.
       HUSTLE_API_BACKEND_TARGET: bindings.text(
-        awsPreviewBuild || stagingAwsCutoverBuild
+        stagingAwsCutoverBuild
           ? "aws-lambda-isolated-staging"
-          : "vercel-isolated-staging"
+          : awsPreviewBuild ? "aws-lambda-isolated-staging" : "vercel-isolated-staging"
       ),
       NEXT_PUBLIC_HUSTLE_AWS_PREVIEW: bindings.text(awsPreviewBuild ? "true" : "false"),
     },
