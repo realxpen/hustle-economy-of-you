@@ -44,6 +44,23 @@ type OfferOption = {
 
 const emptyForm: PostForm = { caption: "", category: "", location: "", tags: "" };
 
+/**
+ * Pending/attached private media is available only through the signed-in
+ * owner preview fetch. Its stable /media/p URL deliberately returns 404
+ * until the Post is published; never use it as a fallback for drafts.
+ */
+function editorMediaPreviewSource(
+  item: Post["media"][number] | undefined,
+  status: Post["status"] | undefined,
+  ownerMediaUrls: Record<string, string>
+): string | null {
+  if (!item) return null;
+  if (item.storageKey?.startsWith("media/") && status !== "PUBLISHED") {
+    return ownerMediaUrls[item.id] ?? null;
+  }
+  return item.mediaUrl ?? null;
+}
+
 function toForm(post: Post): PostForm {
   return {
     caption: post.caption ?? "",
@@ -433,12 +450,20 @@ export default function PostEditor({ postId }: { postId?: string }) {
         </div>
         <div className={styles.actions}><button className={styles.secondary} type="button" onClick={addMedia} disabled={busy || !mediaUrl.trim()}>{busy ? "Working…" : "Add media"}</button></div>
         <div className={styles.variantList}>
-          {post?.media.map((item, index) => <article className={styles.variantCard} key={item.id}>
-            <strong>{index + 1}. {item.type}</strong>
-            {(draftMediaPreviews[item.id] || item.mediaUrl) && (item.type === "VIDEO" ? <video src={draftMediaPreviews[item.id] || item.mediaUrl || ""} controls preload="metadata" style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} /> : <img src={draftMediaPreviews[item.id] || item.mediaUrl || ""} loading="lazy" alt={`Attached post image ${index+1}`} style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} />)}
-            <p className={styles.muted}>{item.storageKey ? "Private media attached to this draft" : (item.mediaUrl ?? "No source")}</p>
-            <div className={styles.variantActions}><button className={styles.dangerText} type="button" onClick={() => void removeMedia(item.id)} disabled={busy}>Remove</button></div>
-          </article>)}
+          {post?.media.map((item, index) => {
+            const source = editorMediaPreviewSource(item, post.status, draftMediaPreviews);
+            return <article className={styles.variantCard} key={item.id}>
+              <strong>{index + 1}. {item.type}</strong>
+              {source ? (item.type === "VIDEO"
+                ? <video src={source} controls preload="metadata" style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} />
+                : <img src={source} loading="lazy" alt={`Attached post image ${index+1}`} style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} />
+              ) : item.storageKey?.startsWith("media/") && post.status !== "PUBLISHED"
+                ? <p role="status" className={styles.muted}>Loading your private media preview…</p>
+                : null}
+              <p className={styles.muted}>{item.storageKey ? "Private media attached to this draft" : (item.mediaUrl ?? "No source")}</p>
+              <div className={styles.variantActions}><button className={styles.dangerText} type="button" onClick={() => void removeMedia(item.id)} disabled={busy}>Remove</button></div>
+            </article>;
+          })}
           {mediaCount === 0 && <p className={styles.muted}>No media yet. Add one image or video to publish; incomplete drafts can still be saved.</p>}
         </div>
 
@@ -464,7 +489,14 @@ export default function PostEditor({ postId }: { postId?: string }) {
 
       <aside className={styles.preview}>
         <p className={styles.previewLabel}>CONTENT PREVIEW</p>
-        <div className={styles.media}>{post?.media[0]?.mediaUrl ? post.media[0].type === "VIDEO" ? <video src={post.media[0].mediaUrl} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <img src={post.media[0].mediaUrl} alt="Post image preview" style={{width:"100%",height:"100%",objectFit:"cover"}} /> : <span>Post media</span>}</div>
+        <div className={styles.media}>{(() => {
+          const item = post?.media[0];
+          const source = editorMediaPreviewSource(item, post?.status, draftMediaPreviews);
+          if (!source) return <span role="status">{item?.storageKey?.startsWith("media/") && post?.status !== "PUBLISHED" ? "Loading private preview…" : "Post media"}</span>;
+          return item?.type === "VIDEO"
+            ? <video src={source} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <img src={source} alt="Post image preview" style={{width:"100%",height:"100%",objectFit:"cover"}} />;
+        })()}</div>
         <div className={styles.previewBody}>
           <span className={styles.badge}>{form.category || "CATEGORY"}</span>
           <h2>{form.caption ? form.caption.slice(0, 72) : "What you want to share"}</h2>
