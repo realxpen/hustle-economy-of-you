@@ -77,6 +77,8 @@ jobs:
         run: node scripts/experience/check-cloudflare-aws-preview.cjs
       - name: Verify guarded regular Cloudflare staging AWS cutover and Vercel rollback
         run: node scripts/experience/check-cloudflare-staging-aws-cutover.cjs
+      - name: Figma Mobile V1 design consistency contract
+        run: node scripts/experience/check-figma-mobile-v1.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
