@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { validSourcePostId, withSourcePost } from "../../lib/opportunity-source";
 import type { PublicService } from "@hustle/types";
@@ -181,7 +182,7 @@ export function OfferQuickView({
       {label}
     </button>
 
-    {open && <div className={styles.backdrop} role="presentation" onMouseDown={() => setOpen(false)}>
+    {open && createPortal(<div className={styles.backdrop} role="presentation" onMouseDown={() => setOpen(false)}>
       <section
         className={styles.sheet}
         ref={dialogRef}
@@ -265,6 +266,6 @@ export function OfferQuickView({
           </div>
         </div>}
       </section>
-    </div>}
+    </div>, document.body)}
   </>;
 }

@@ -83,3 +83,12 @@
   .actions a{flex:1 1 100%}
 }
 @media(prefers-reduced-transparency:reduce){.sheet{background:var(--hf-paper,#F7F6F2)}}
+
+
+/* UX013 screenshot review: fixed mobile navigation was painting above an
+   offer quick-view. This portal-backed backdrop is a top-level modal layer,
+   NOT a child of the Feed card's stacking context. Keep it above all docks. */
+.backdrop {
+  z-index: 6000;
+  isolation: isolate;
+}

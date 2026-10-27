@@ -123,6 +123,20 @@ function localOnly(url) {
          "Popup must fit horizontally");
        assert.ok(metrics.top>=-2 && metrics.bottom<=size.height+2,
          "Popup must fit available viewport height");
+       // A screenshot audit revealed the floating bottom nav rendered ABOVE
+       // the cream sheet. A portal-backed modal must obscure that dock.
+       const modalAboveDock=await dialog.evaluate(el=>{
+         const nav=document.querySelector('nav[aria-label="Hustle main navigation"]');
+         if(!nav) return true;
+         const rect=nav.getBoundingClientRect(), css=getComputedStyle(nav);
+         if(rect.width<1 || rect.height<1 || css.display==="none" || css.visibility==="hidden") return true;
+         const x=Math.min(innerWidth-8,Math.max(8,rect.x+rect.width/2));
+         const y=Math.min(innerHeight-8,Math.max(8,rect.y+rect.height/2));
+         const front=document.elementFromPoint(x,y);
+         return !!front && !!el.parentElement?.contains(front);
+       });
+       assert.equal(modalAboveDock,true,
+         "Offer sheet must paint above floating nav, not behind it");
        assert.equal(await page.evaluate(()=>document.body.style.overflow),"hidden",
          "Open popup must prevent scrolling underlying Feed");
        await dialog.evaluate(el=>{el.scrollTop=el.scrollHeight});
