@@ -1,6 +1,6 @@
 "use client";
 
-import { getSupabaseBrowserClient } from "../supabase/client";
+import { getSupabaseBrowserClient, isSupabaseConfigured } from "../supabase/client";
 import { isolatedWebMode, stagingSession } from "../auth/isolated-web-auth";
 
 /** Visitors can read published content without holding a Hustle account. */
@@ -9,6 +9,9 @@ export async function hasViewerSession(): Promise<boolean> {
     const { session, user } = await stagingSession();
     return Boolean(session?.token && user?.id);
   }
+  // Published public GET routes must remain browseable when optional login is
+  // not configured. Do not suppress real session/network errors when configured.
+  if (!isSupabaseConfigured()) return false;
   const { data, error } = await getSupabaseBrowserClient().auth.getSession();
   if (error) throw error;
   return Boolean(data.session?.access_token);

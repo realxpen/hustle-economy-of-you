@@ -1,0 +1,14 @@
+# UX013 tester release gate — do not mark approved before actual device evidence
+milestone: UX013
+source_figma: psxnn95X8nPqEEp7IvEw5s
+automated_public_web: pending_ci
+synthetic_feed_explore_and_offer_popup: pending_ci
+physical_android_connected_login: not_tested
+physical_iphone_pwa_login: not_tested
+real_media_two_posts: not_tested
+real_client_hustler_consultation: not_tested
+real_booking_availability_without_payment: not_tested
+keyboard_and_accessibility_devices: not_tested
+figma_twelve_frame_visual_review: not_verified
+external_tester_invitation: BLOCKED
+reason: "Real signed-in, physical-device and Figma frame comparisons require evidence beyond synthetic CI."

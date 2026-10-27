@@ -83,6 +83,8 @@ jobs:
         run: node scripts/experience/check-ux011-screens-sheets.cjs
       - name: UX012 mobile polish and visual capture safety contract
         run: node scripts/experience/check-ux012-visual-contract.cjs
+      - name: UX013 synthetic journey and guest-safe browsing contract
+        run: node scripts/experience/check-ux013-journey-policy.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
@@ -127,6 +129,11 @@ jobs:
         env:
           NODE_PATH: /tmp/hustle-smoke/node_modules
         run: node scripts/experience/local-service-interaction.cjs
+      - name: UX013 test guest Feed and Explore → offer popup → intent (synthetic only)
+        env:
+          NODE_PATH: /tmp/hustle-smoke/node_modules
+          HUSTLE_UX013_ARTIFACT_DIR: /tmp/hustle-ux013-journey-qa
+        run: node scripts/experience/local-ux013-journeys.cjs
       - name: UX012 capture unauthenticated Figma review screenshots
         env:
           NODE_PATH: /tmp/hustle-smoke/node_modules
@@ -145,6 +152,14 @@ jobs:
         with:
           name: hustle-ux012-figma-visual-review
           path: /tmp/hustle-ux012-visual-review/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload UX013 synthetic user-journey screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hustle-ux013-journey-evidence
+          path: /tmp/hustle-ux013-journey-qa/
           if-no-files-found: ignore
           retention-days: 7
 

@@ -1,0 +1,26 @@
+#!/usr/bin/env node
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
+const root=path.resolve(__dirname,"../.."),read=p=>fs.readFileSync(path.join(root,p),"utf8");
+const b=read("apps/web/lib/api/public-browsing.ts");
+const ci=read(".github/workflows/ci.yml");
+const e2e=read("scripts/experience/local-ux013-journeys.cjs");
+const quick=read("apps/web/components/commerce/offer-quick-view.tsx");
+const quickCss=read("apps/web/components/commerce/offer-quick-view.module.css");
+assert.match(b,/if \(!isSupabaseConfigured\(\)\) return false;/);
+assert.match(b,/const \{ data, error \} = await getSupabaseBrowserClient\(\)\.auth\.getSession\(\)/);
+assert.match(b,/if \(error\) throw error;/);
+assert.match(b,/if \(isolatedWebMode\) \{/);
+assert.match(e2e,/127\\\.0\\\.0\\\.1/);
+assert.match(e2e,/req\.method\(\)!=="GET" && req\.method\(\)!=="HEAD"/);
+assert.match(e2e,/unmockedRemote\+\+;return route\.abort\(\)/);
+assert.match(e2e,/guest\\\/feed\\\/for-you/);
+assert.match(e2e,/sourcePost=qa-post-001/);
+assert.match(e2e,/actualSignedInTest:"PENDING"/);
+assert.match(quick,/createPortal\(<div className=\{styles\.backdrop\}/);
+assert.match(quick,/<\/div>, document\.body\)\}/);
+assert.match(quickCss,/\.backdrop\s*\{\s*z-index:\s*6000/);
+assert.match(e2e,/modalAboveDock/);
+assert.match(ci,/node scripts\/experience\/local-ux013-journeys\.cjs/);
+assert.match(ci,/name: hustle-ux013-journey-evidence/);
+console.log("PASS UX013 local synthetic journey + guest-only auth fallback policy");
