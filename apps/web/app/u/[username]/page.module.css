@@ -85,3 +85,44 @@
 @media(prefers-reduced-transparency:reduce){
  .metaCard,.offerCard,.productCard,.workCard,.summary{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+/* UX011 — Work-first public Hustler storefront, Figma cream utility hierarchy. */
+.shell{background:var(--h-paper,var(--hf-paper,#F7F6F2));
+  color:var(--h-ink,var(--hf-text,#181A18));font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.header{background:var(--h-paper,var(--hf-paper,#F7F6F2));
+  border-bottom-color:var(--h-border,#E3E8DF)}
+.cover{background-color:var(--hf-dark-card,#27372C);border-radius:28px}
+.avatar{background:var(--hf-raised,#E4EFD7);color:var(--hf-ink,#18281E);
+  border-color:var(--h-paper,#F7F6F2)}
+.nameRow{border-bottom-color:var(--h-border,#E3E8DF)}
+.kicker,.sectionEyebrow,.bio,.ratingLine span{color:var(--h-muted,#596759)}
+.skills span,.metaCard,.storefrontStats>div,.emptyState{background:var(--h-surface,#FFF);
+  border-color:var(--h-border,#E3E8DF);color:var(--h-ink,#181A18)}
+.storefrontStats{background:var(--h-border,#E3E8DF);border-color:var(--h-border,#E3E8DF);border-radius:20px}
+.storefrontStats span,.metaCard small,.metaCard p{color:var(--h-muted,#596759)}
+.metaCard{border-radius:20px}
+.heroCtas :is(a,button),.primaryCta,.secondaryCta{min-height:48px;border-radius:16px}
+.primaryCta{background:var(--hf-accent,#C9F26B);color:var(--hf-ink,#18281E)}
+.secondaryCta{border:1px solid var(--h-border,#E3E8DF);background:var(--h-surface,#FFF);
+  color:var(--h-ink,#181A18)}
+.offerCard,.productCard,.workCard{border:1px solid var(--h-border,#E3E8DF);
+  background:var(--h-surface,#FFF);border-radius:20px;box-shadow:0 7px 22px rgba(7,20,9,.04)}
+.offerMedia,.productMedia,.workMedia{background:var(--hf-dark-card,#27372C);color:#FFF}
+.offerMeta,.offerBody p,.productBody p{color:var(--h-muted,#596759)}
+@media(max-width:760px){
+ .shell{padding:18px 16px calc(110px + env(safe-area-inset-bottom,0px))}
+ .cover{height:190px;border-radius:24px}
+ .identity{padding-inline:4px}
+ .avatar{width:86px;height:86px;margin-top:-43px;border-width:5px}
+ .nameRow{gap:16px;padding-bottom:20px;align-items:flex-start}
+ .nameRow h1{font-size:clamp(27px,8vw,43px);line-height:1.05}
+ .heroCtas{gap:9px}
+ .heroCtas :is(a,button){flex:1 1 auto}
+ .storefrontStats{margin:18px 4px}
+ .contentGrid{padding:25px 4px 8px;gap:18px}
+ .mainStory h2{font-size:clamp(28px,8vw,44px)}
+ .storeSection,.reputationWrap{padding:27px 4px 0}
+ .sectionHeader h2{font-size:clamp(23px,6vw,34px)}
+ .serviceGrid,.productGrid,.workGrid{gap:12px}
+ .offerCard,.productCard,.workCard{border-radius:20px}
+}

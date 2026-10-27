@@ -267,3 +267,45 @@
   .filters.filtersOpen { padding-inline:12px; }
   .searchBar button { min-width: 74px; }
 }
+
+/* UX011 — Figma Explore/Marketplace: one consistent shell, cards, search and chips. */
+.shell{background:var(--h-paper,var(--hf-paper,#F7F6F2));color:var(--h-ink,#181A18)}
+.hero{padding-block:clamp(24px,4vw,50px) 24px}
+.hero h1{font-size:clamp(34px,5.4vw,70px);line-height:1.02;letter-spacing:-.05em}
+.hero p{color:var(--h-muted,#596759);font-size:clamp(14px,1.4vw,16px)}
+.searchBar{background:var(--h-surface,#FFF);border:1px solid var(--h-border,#E3E8DF);
+  border-radius:16px;box-shadow:0 6px 22px rgba(7,20,9,.045)}
+.searchBar input{color:var(--h-ink,#181A18);min-height:44px}
+.searchBar button,.primaryButton{background:var(--hf-ink,#18281E);color:#FFF;
+  border-radius:14px;min-height:48px}
+.searchBar button:focus-visible,.primaryButton:focus-visible{outline:3px solid #446A25;outline-offset:3px}
+.tabs{gap:8px}
+.tab{background:var(--h-surface,#FFF);border:1px solid var(--h-border,#E3E8DF);
+  color:var(--h-ink,#181A18);border-radius:999px;min-height:44px}
+.tabActive{background:var(--hf-ink,#18281E);border-color:var(--hf-ink,#18281E);color:#FFF}
+.filters :is(input,select),.checkField{border-radius:16px;border-color:var(--h-border,#E3E8DF);
+  background:var(--h-surface,#FFF);color:var(--h-ink,#181A18)}
+.resultMeta{color:var(--h-muted,#596759)}
+.resultMeta strong{color:var(--h-ink,#181A18)}
+.card{background:var(--h-surface,#FFF);border:1px solid var(--h-border,#E3E8DF);
+  border-radius:20px;box-shadow:0 5px 18px rgba(7,20,9,.035)}
+.card:hover{border-color:#8AAB74;box-shadow:0 9px 26px rgba(7,20,9,.09)}
+.media{background:var(--hf-raised,#E4EFD7)}
+.mediaFallback,.kind,.card p,.ownerText span,.rank span{color:var(--h-muted,#596759)}
+.card h3,.price,.ownerText strong{color:var(--h-ink,#181A18)}
+.owner{border-top-color:var(--h-border,#E3E8DF)}
+.avatar{background:var(--hf-ink,#18281E);color:#FFF}
+.rank span{border-color:var(--h-border,#E3E8DF)}
+.empty,.error,.loading{border-radius:20px;background:var(--h-surface,#FFF);
+  border-color:var(--h-border,#E3E8DF);color:var(--h-muted,#596759)}
+@media(max-width:760px){
+ .hero{padding-top:20px}
+ .pwaSkills a,.pwaSkills button{background:var(--h-surface,#FFF);border:1px solid var(--h-border,#E3E8DF);
+   border-radius:17px;color:var(--h-ink,#181A18)}
+ .pwaSkills button.selectedSkill{background:var(--hf-raised,#E4EFD7)}
+ .tab{font-size:13px}
+ .grid{grid-template-columns:minmax(0,1fr);gap:12px}
+ .card{border-radius:20px}
+ .resultMeta{font-size:12px}
+ .filterToggle{border-radius:16px;background:var(--h-surface,#FFF);color:var(--h-ink,#181A18)}
+}

@@ -34,3 +34,25 @@
 @media(prefers-reduced-transparency:reduce){
  .summary,.cartBox,.details,.ownerCard{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+/* UX011 — Product detail uses the same Figma utility surface and controls. */
+.shell{background:var(--h-paper,var(--hf-paper,#F7F6F2));
+ color:var(--h-ink,var(--hf-text,#181A18))}
+.summary,.details,.cartBox,.ownerCard{background:var(--h-surface,#FFF);
+ border:1px solid var(--h-border,#E3E8DF);border-radius:20px}
+.summary h1{font-size:clamp(32px,5.2vw,65px);line-height:1.06;letter-spacing:-.05em}
+.kicker,.description,.cartPolicy,.detailGrid p{color:var(--h-muted,#596759)}
+.media{background:var(--hf-dark-card,#27372C);border-radius:20px}
+.price{color:var(--hf-ink,#18281E)}
+.cartField :is(input,select,textarea){border-radius:16px;min-height:48px;
+ background:var(--h-surface,#FFF);border-color:var(--h-border,#E3E8DF)}
+.cartButton{min-height:48px;border-radius:16px;
+ background:var(--hf-accent,#C9F26B);color:var(--hf-ink,#18281E)}
+.avatar{background:var(--hf-raised,#E4EFD7);color:var(--hf-ink,#18281E)}
+@media(max-width:760px){
+ .shell{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px))}
+ .topGrid,.detailGrid{gap:14px}
+ .summary,.details,.cartBox,.ownerCard{padding:20px}
+ .summary h1{font-size:clamp(30px,8vw,45px)}
+ .cartButton{width:100%}
+}
