@@ -1,22 +1,30 @@
-/** UX004-ADR-001: approved Hybrid theme. No global dark-mode switch. */
+/** Hustle Mobile V1 semantic palette, sourced from Figma psxnn95X8nPqEEp7IvEw5s.
+ * Consumer mode: immersive dark Feed/Live; warm light utility/screens.
+ * Never use accent alone to represent verified trust, payment or success. */
 export const colors = {
-  ink: "#151D19",
-  charcoal: "#26332A",
   paper: "#F7F6F2",
   surface: "#FFFFFF",
-  lime: "#C9F26B",
-  textPrimaryLight: "#151D19",
-  textSecondaryLight: "#536159",
+  raised: "#E4EFD7",
+  darkBase: "#0E1210",
+  darkCard: "#27372C",
+  ink: "#18281E",
+  charcoal: "#27372C",
+  textPrimaryLight: "#181A18",
+  textSecondaryLight: "#778074",
   textPrimaryDark: "#FFFFFF",
-  textSecondaryDark: "#A7C2AC",
-  mutedDecorative: "#758178",
-  line: "#D9E2D8",
+  textSecondaryDark: "#BCD0BF",
+  mutedDecorative: "#778074",
+  lime: "#C9F26B",
+  line: "#E3E8DF",
+  darkLine: "#405046",
+  danger: "#BA5555",
+  success: "#47704A",
   scrim: "rgba(3,8,5,0.63)",
   overlayDark: "rgba(4,8,6,0.50)",
 } as const;
 
 export type SurfaceMode = "darkFeed" | "lightUtility";
 export const surfaceColors: Record<SurfaceMode, string> = {
-  darkFeed: colors.ink,
+  darkFeed: colors.darkBase,
   lightUtility: colors.paper,
 };

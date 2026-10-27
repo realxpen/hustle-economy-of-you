@@ -1,0 +1,72 @@
+/* Figma Mobile V1; file psxnn95X8nPqEEp7IvEw5s.
+ * Mirrored tokens: apps/mobile/src/ux004/theme/colors.ts.
+ * Scope to consumer shells, not admin, auth, or sensitive finance.
+ */
+:root{
+  --hf-paper:#F7F6F2;
+  --hf-card:#FFFFFF;
+  --hf-raised:#E4EFD7;
+  --hf-text:#181A18;
+  --hf-muted:#778074;
+  --hf-ink:#18281E;
+  --hf-accent:#C9F26B;
+  --hf-border:#E3E8DF;
+  --hf-danger:#BA5555;
+  --hf-success:#47704A;
+  --hf-dark:#0E1210;
+  --hf-dark-card:#27372C;
+  --hf-dark-muted:#BCD0BF;
+  --hf-dark-border:#405046;
+  --hf-radius-card:20px;
+  --hf-radius-input:16px;
+  --hf-radius-pill:28px;
+}
+main:is(.h-adaptive,.h-experience-shell):not(.h-discover-immersive){
+  --h-paper:var(--hf-paper);--h-canvas:var(--hf-paper);
+  --h-surface:var(--hf-card);--h-sand:var(--hf-raised);
+  --h-ink:var(--hf-text);--h-ink-soft:var(--hf-ink);
+  --h-muted:var(--hf-muted);--h-muted-quiet:var(--hf-muted);
+  --h-border:var(--hf-border);--h-border-subtle:var(--hf-border);
+  --h-focus:#446A25;--h-success:var(--hf-success);--h-danger:var(--hf-danger);
+  --h-radius-md:var(--hf-radius-input);--h-radius-lg:var(--hf-radius-card);
+  --h-radius-xl:var(--hf-radius-pill);
+  /* White-text legacy controls retain readable dark green until migrated. */
+  --h-orange:#355C36;
+  --h-shadow-raised:0 12px 32px rgba(11,24,15,.08);
+  background-color:var(--hf-paper);color:var(--hf-text);
+}
+html[data-hustle-theme="dark"] main.h-adaptive:not(.h-discover-immersive){
+  --h-paper:var(--hf-dark);--h-canvas:#18231C;
+  --h-surface:var(--hf-dark-card);--h-sand:#314335;
+  --h-ink:#FFFFFF;--h-ink-soft:#E3EDE2;
+  --h-muted:var(--hf-dark-muted);--h-muted-quiet:var(--hf-dark-muted);
+  --h-border:var(--hf-dark-border);--h-border-subtle:var(--hf-dark-border);
+  --h-orange:var(--hf-accent);--h-orange-on-dark:var(--hf-accent);
+  --h-focus:var(--hf-accent);--h-danger:#F2AAAA;--h-success:#A5D7A7;
+  background-color:var(--hf-dark);color:#FFFFFF;
+}
+:is(main.h-adaptive,main.h-experience-shell) :is(.h-ui-card,.h-experience-surface){
+  border-radius:var(--hf-radius-card)
+}
+:is(main.h-adaptive,main.h-experience-shell) :where(input,select,textarea){
+  border-radius:var(--hf-radius-input);border-color:var(--h-border)
+}
+:is(main.h-adaptive,main.h-experience-shell) :where(a,button,input,select,textarea):focus-visible{
+  outline:3px solid var(--h-focus);outline-offset:3px
+}
+/* Mobile media discovery is charcoal regardless of standalone PWA install. */
+@media(max-width:760px){
+  main.h-discover-immersive{
+    --h-paper:var(--hf-dark);--h-canvas:var(--hf-dark);
+    --h-surface:var(--hf-dark-card);--h-ink:#FFFFFF;
+    --h-muted:var(--hf-dark-muted);
+    --h-border:var(--hf-dark-border);--h-border-subtle:var(--hf-dark-border);
+    --h-orange:var(--hf-accent);--h-focus:var(--hf-accent);
+    background-color:var(--hf-dark);color:#FFFFFF;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  main:is(.h-adaptive,.h-experience-shell) :where(a,button){
+    transition-duration:.01ms;animation-duration:.01ms
+  }
+}
