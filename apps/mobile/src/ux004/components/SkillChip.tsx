@@ -3,10 +3,10 @@ import { Pressable, StyleSheet, Text } from "react-native";
 import { colors, layout, radii, spacing, typography } from "../theme";
 
 /** One consistent selected/idle state for skill and filter chips. */
-export function SkillChip({ label, active = false, onPress, role = "button" }: {
-  label: string; active?: boolean; onPress: () => void; role?: "tab" | "button";
+export function SkillChip({ label, accessibilityLabel, active = false, onPress, role = "button" }: {
+  label: string; accessibilityLabel?: string; active?: boolean; onPress: () => void; role?: "tab" | "button";
 }) {
-  return <Pressable accessibilityRole={role} accessibilityLabel={label}
+  return <Pressable accessibilityRole={role} accessibilityLabel={accessibilityLabel ?? label}
     accessibilityState={{ selected: active }} onPress={onPress}
     style={({ pressed }) => [styles.base, active && styles.active, pressed && styles.pressed]}>
     <Text style={[styles.text, active && styles.textActive]}>{label}</Text>
