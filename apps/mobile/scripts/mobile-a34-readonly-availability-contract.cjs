@@ -74,7 +74,8 @@ check("Existing authenticated backend provides only a GET slot read and truthful
   assert.match(backend,/@UseGuards\(AuthGuard\)/);
   assert.match(backend,/@Get\("slots"\)/);
   assert.match(backend,/bookingScheduleService\.listSlots\(identity, serviceId, date\)/);
-  assert.match(schedule,/async listSlots\(identity: AuthIdentity, serviceId: string, date: string\)/);
+  // The read-only scheduling contract accepts a nullable identity for public GET routes.
+  assert.match(schedule,/async listSlots\(identity: AuthIdentity \| null, serviceId: string, date: string\)/);
   assert.match(schedule,/if \(service\.status !== ServiceStatus\.PUBLISHED\)/);
   assert.match(schedule,/if \(service\.bookingMode !== BookingOperationMode\.APPOINTMENT\)/);
   assert.match(schedule,/timezone: service\.bookingTimezone/);

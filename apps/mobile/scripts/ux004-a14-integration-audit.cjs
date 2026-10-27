@@ -44,11 +44,11 @@ function styleFontSize(style){
 }
 verify("Locked Hybrid screen roles and contrast",()=>{
  assert.match(reviewed,/Hybrid — dark immersive Feed and future Live/i);
- assert.match(color,/darkFeed: colors\.ink/);
+ assert.match(color,/darkFeed: colors\.darkBase/);
  assert.match(color,/lightUtility: colors\.paper/);
  assert.match(screen,/surfaceColors\[mode\]/);
  assert.match(demo,/mode=\{screen === "Home" \? "darkFeed" : "lightUtility"\}/);
- for(const [fg,bg] of [["textPrimaryLight","paper"],["textSecondaryLight","paper"],["textPrimaryDark","ink"],["lime","ink"]]){
+ for(const [fg,bg] of [["textPrimaryLight","paper"],["textSecondaryLight","paper"],["textPrimaryDark","darkBase"],["lime","darkBase"]]){
   assert.ok(contrast(token(fg),token(bg))>=4.5,fg+" on "+bg+" fails 4.5:1");
  }
 });

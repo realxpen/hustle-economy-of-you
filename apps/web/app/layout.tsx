@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./adaptive-foundation.css";
 import "./glass-system.css";
+import "./figma-mobile-v1.css";
 import { HustleMobileNav } from "../components/navigation/hustle-mobile-nav";
 
 export const metadata: Metadata = {

@@ -7,6 +7,7 @@ import {
 import type { MobileSession as Session } from '../lib/mobile-session';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, layout, radii, spacing } from '../ux004/theme';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { syncMobileAccount } from '../lib/account';
 import { mobileApi, type FeedItem, type FeedTab, type Offer, type PostComment, type SearchResult, type SearchTab, type BookingSlot, type SlotPage } from './feed-api';
@@ -19,7 +20,8 @@ import { currentEnquirySlots, enquiryNextDays, enquiryServiceId, enquirySlotLabe
 import { consultationWebLink, createEnquiryDelivery, prepareEnquiryMessage, type Delivery }
   from '../ux004/discovery/enquiryConsultation';
 
-const C = { dark: '#121714', lime: '#C9F26B', paper: '#F7F6F2', white: '#FFFFFF', muted: '#727A70', card: '#E9EEE4' };
+const C = { dark: colors.darkBase, lime: colors.lime, paper: colors.paper, white: colors.surface,
+  muted: colors.textSecondaryLight, card: colors.raised };
 const SEARCH_TABS: ReadonlyArray<{ id: SearchTab; label: string }> = [
   { id: 'top', label: 'Top' }, { id: 'people', label: 'People' },
   { id: 'posts', label: 'Posts' }, { id: 'services', label: 'Services' },
@@ -828,21 +830,21 @@ export function MobileExperience(props: { session: Session; onSignOut: () => Pro
   </SafeAreaProvider>;
 }
 const styles = StyleSheet.create({
-  post: { backgroundColor: C.dark, width: '100%' }, mediaUnavailable: { flex: 1, backgroundColor: '#344A3C', justifyContent: 'center', alignItems: 'center', gap: 16 },
+  post: { backgroundColor: C.dark, width: '100%' }, mediaUnavailable: { flex: 1, backgroundColor: colors.darkCard, justifyContent: 'center', alignItems: 'center', gap: 16 },
   mediaUnavailableText: { color: C.white, fontSize: 12 }, mediaShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(3,10,5,.23)' },
   topBar: { position: 'absolute', left: 22, right: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { color: C.white, fontWeight: '900', fontSize: 24 }, feedTabs: { position: 'absolute', left: 20, right: 20, flexDirection: 'row', justifyContent: 'center' },
   feedTab: { paddingHorizontal: 9, paddingBottom: 8 }, feedTabActive: { borderBottomWidth: 2, borderBottomColor: C.lime },
-  feedTabText: { fontSize: 14, fontWeight: '700', color: '#B8C1B8' }, sideRail: { position: 'absolute', right: 12, gap: 14 },
+  feedTabText: { fontSize: 14, fontWeight: '700', color: colors.textSecondaryDark }, sideRail: { position: 'absolute', right: 12, gap: 14 },
   railButton: { width: 55, alignItems: 'center' }, railCount: { color: C.white, fontSize: 11, fontWeight: '800' },
   postBottom: { position: 'absolute', left: 20, right: 85 }, creator: { fontSize: 16, fontWeight: '800', color: C.white },
   caption: { color: C.white, fontSize: 14, marginTop: 9, lineHeight: 20 }, audio: { color: '#E5ECE4', fontSize: 11, marginTop: 8 },
-  attached: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#293D31', marginTop: 16, padding: 12, borderRadius: 16 },
-  offer: { fontWeight: '800', color: C.white, fontSize: 13 }, offerPrice: { fontSize: 11, color: '#D4E7D0', marginTop: 4 },
-  nav: { position: 'absolute', left: 18, right: 18, height: 58, backgroundColor: C.dark, borderRadius: 30, paddingHorizontal: 8, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
-  navItem: { width: 52, height: 43, borderRadius: 23, alignItems: 'center', justifyContent: 'center' }, navSelected: { backgroundColor: C.lime },
-  lightPage: { flex: 1, backgroundColor: C.paper, paddingHorizontal: 23 }, pageTitle: { fontSize: 29, fontWeight: '900', color: C.dark },
-  subline: { color: C.muted, marginTop: 8, marginBottom: 18 }, searchRow: { height: 50, backgroundColor: C.white, paddingHorizontal: 15, borderRadius: 16, flexDirection: 'row', alignItems: 'center' },
+  attached: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.darkCard, marginTop: 16, padding: 12, borderRadius: 16 },
+  offer: { fontWeight: '800', color: C.white, fontSize: 13 }, offerPrice: { fontSize: 11, color: colors.textSecondaryDark, marginTop: 4 },
+  nav: { position: 'absolute', left: 18, right: 18, height: layout.navVisualHeight, backgroundColor: C.dark, borderRadius: radii.pill, paddingHorizontal: 8, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
+  navItem: { width: 52, minHeight: layout.minTapTarget, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' }, navSelected: { backgroundColor: C.lime },
+  lightPage: { flex: 1, backgroundColor: C.paper, paddingHorizontal: spacing.lg }, pageTitle: { fontSize: 29, fontWeight: '900', color: C.dark },
+  subline: { color: C.muted, marginTop: 8, marginBottom: 18 }, searchRow: { minHeight: 51, backgroundColor: C.white, paddingHorizontal: spacing.md, borderRadius: 16, flexDirection: 'row', alignItems: 'center' },
   searchInput: { flex: 1, marginLeft: 8, color: C.dark },
   searchSubmit: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   searchRetry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
@@ -855,25 +857,25 @@ const styles = StyleSheet.create({
   searchTabLabel: { fontSize: 13, fontWeight: '800', color: C.dark },
   searchTabLabelActive: { color: C.white },
   searchLoadMore: { minHeight: 48, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#DFECCF', borderRadius: 14, marginTop: 12 },
+    backgroundColor: colors.raised, borderRadius: 14, marginTop: 12 },
   searchLoadMoreText: { color: C.dark, fontSize: 14, fontWeight: '800' },
   sectionTitle: { fontSize: 19, fontWeight: '800', marginVertical: 20, color: C.dark },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, chip: { backgroundColor: '#DFECCF', padding: 14, borderRadius: 16 },
-  chipText: { fontSize: 13, fontWeight: '800', color: C.dark }, mapPlaceholder: { height: 160, backgroundColor: '#E6EDDE', borderRadius: 18, justifyContent: 'center', alignItems: 'center', gap: 6, padding: 16 },
-  mapText: { fontWeight: '800', color: '#354C38' }, meta: { fontSize: 12, color: C.muted, lineHeight: 18, marginTop: 9 },
-  resultCard: { backgroundColor: C.white, borderRadius: 16, padding: 16, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, chip: { backgroundColor: colors.raised, padding: 14, borderRadius: 16 },
+  chipText: { fontSize: 13, fontWeight: '800', color: C.dark }, mapPlaceholder: { height: 160, backgroundColor: colors.raised, borderRadius: 18, justifyContent: 'center', alignItems: 'center', gap: 6, padding: 16 },
+  mapText: { fontWeight: '800', color: colors.ink }, meta: { fontSize: 12, color: C.muted, lineHeight: 18, marginTop: 9 },
+  resultCard: { backgroundColor: C.white, borderRadius: radii.card, padding: spacing.md, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
   resultTitle: { fontWeight: '800', color: C.dark, fontSize: 15, flexShrink: 1 }, emptyDark: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 35, backgroundColor: C.dark },
   emptyHeading: { fontSize: 23, fontWeight: '800', color: C.white, textAlign: 'center', marginTop: 12 },
   emptyBody: { color: '#DCE4D8', textAlign: 'center', marginTop: 12, lineHeight: 22 }, errorSmall: { color: C.white, textAlign: 'center', margin: 20 },
   modalRoot: { flex: 1, justifyContent: 'flex-end' }, scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.55)' },
   sheet: { backgroundColor: C.paper, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 22, paddingTop: 15, minHeight: 260, maxHeight: '90%' },
-  handle: { width: 65, height: 5, backgroundColor: '#C9D1C5', borderRadius: 3, alignSelf: 'center', marginBottom: 19 },
+  handle: { width: 65, height: 5, backgroundColor: colors.line, borderRadius: 3, alignSelf: 'center', marginBottom: 19 },
   sheetTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 17 }, sheetTitle: { fontSize: 21, fontWeight: '800', color: C.dark },
   action: { alignItems: 'center', justifyContent: 'center', backgroundColor: C.lime, padding: 17, marginTop: 19, borderRadius: 20 },
-  actionText: { fontWeight: '800', fontSize: 15, color: C.dark }, secondaryAction: { backgroundColor: C.card }, avatar: { backgroundColor: '#E0EBD3', width: 37, height: 37, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  actionText: { fontWeight: '800', fontSize: 15, color: C.dark }, secondaryAction: { backgroundColor: C.card }, avatar: { backgroundColor: colors.raised, width: 37, height: 37, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   comment: { flexDirection: 'row', gap: 12, paddingVertical: 9 }, commentBody: { color: C.dark, fontSize: 14, marginTop: 4 },
-  composer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E9EEE5', borderRadius: 25, paddingHorizontal: 16, marginTop: 14 },
-  price: { fontSize: 22, fontWeight: '900', marginVertical: 12, color: C.dark }, dateChoice: { padding: 13, borderRadius: 13, backgroundColor: '#E7ECE5', marginRight: 9 },
+  composer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.raised, borderRadius: 25, paddingHorizontal: 16, marginTop: 14 },
+  price: { fontSize: 22, fontWeight: '900', marginVertical: 12, color: C.dark }, dateChoice: { padding: 13, borderRadius: 13, backgroundColor: colors.raised, marginRight: 9 },
   selectedDate: { backgroundColor: C.dark },
   opportunitySection: { padding: 14, backgroundColor: C.white, borderRadius: 16, marginTop: 12 },
   opportunitySectionTitle: { color: C.dark, fontWeight: '800', fontSize: 15, marginTop: 16 },

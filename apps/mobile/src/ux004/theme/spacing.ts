@@ -14,8 +14,8 @@ export const spacing = {
 export const radii = {
   small: 8,
   medium: 12,
-  card: 16,
-  button: 20,
-  large: 24,
+  card: 20,
+  button: 16,
+  large: 28,
   pill: 999,
 } as const;

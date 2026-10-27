@@ -250,3 +250,27 @@
 /* UX007: Activity count is surfaced on You without adding a sixth tab. */
 .appLink{position:relative}
 .appBadge{position:absolute;top:1px;right:clamp(4px,2vw,14px);background:#ff5a1f;color:#fff;border:2px solid #141a17;min-width:18px;height:18px;padding:0 4px;border-radius:999px;font-size:10px;font-weight:900;line-height:14px;text-align:center;white-space:nowrap;pointer-events:none}
+
+
+/* Figma Mobile V1 dark capsule. Keep current browser/installed routes and gates. */
+@media(max-width:760px){
+  .dock{background:#0E1210;border:1px solid #405046;border-radius:32px;
+    box-shadow:0 12px 32px rgba(7,16,10,.26);-webkit-backdrop-filter:none;backdrop-filter:none}
+  .link{color:#D2DCD2;min-height:52px;border-radius:24px}
+  .link:active{background:#27372C}
+  .selected,.selected:active{background:#C9F26B;color:#18281E}
+  .selected .icon{color:#18281E}
+  .unread{background:#C9F26B;color:#18281E;box-shadow:0 0 0 2px #0E1210}
+  :global(html[data-hustle-theme="dark"]) .dock{background:#0E1210;border-color:#405046}
+  :global(html[data-hustle-theme="dark"]) .link{color:#D2DCD2}
+  :global(html[data-hustle-theme="dark"]) .selected{background:#C9F26B;color:#18281E}
+  :global(html[data-hustle-theme="dark"]) .selected .icon{color:#18281E}
+  :global(html[data-hustle-theme="dark"]) .unread{box-shadow:0 0 0 2px #0E1210}
+}
+@media(max-width:760px) and (display-mode:standalone){
+  .appDock{height:64px;background:#0E1210;border-color:#405046;border-radius:32px}
+  .appLink{height:48px;min-height:48px;border-radius:24px;color:#FFFFFF}
+  .appSelected{background:#C9F26B;color:#18281E}
+}
+.appBadge{background:#C9F26B;border-color:#0E1210;color:#18281E}
+@media(max-width:760px) and (prefers-reduced-transparency:reduce){.dock{background:#0E1210}}
