@@ -309,3 +309,31 @@
  .resultMeta{font-size:12px}
  .filterToggle{border-radius:16px;background:var(--h-surface,#FFF);color:var(--h-ink,#181A18)}
 }
+
+/* UX013: compact Explore in regular mobile browsers, matching installed PWA. */
+@media(max-width:760px) {
+ .hero{padding:16px 18px 12px}
+ .hero .pwaExploreTitle{display:block;font-size:clamp(30px,8vw,35px);line-height:1.08;letter-spacing:-.045em;margin:0 0 5px}
+ .hero .pwaExploreSubtitle{display:block;color:var(--hf-muted,#596759);font-size:13px;line-height:1.45;margin:0}
+ .hero .eyebrow,.hero h1:not(.pwaExploreTitle),.hero>p:not(.pwaExploreSubtitle){display:none}
+ .searchForm{padding:0 18px 10px}
+ .searchBar{display:flex;flex-direction:row;align-items:center;gap:7px;padding:6px;border-radius:16px}
+ .searchBar input{flex:1 1 0;min-width:0;width:auto;max-width:none;min-height:44px;padding:8px 10px;font-size:16px;line-height:24px}
+ .searchBar button{flex:0 0 auto;min-height:44px;height:44px;min-width:78px;padding:8px 12px;border-radius:12px}
+ .searchButtonLabel{display:none}
+ .searchButtonShort{display:inline}
+ .tabs{padding:0 18px 12px;gap:7px}
+ .tab{min-height:44px}
+ .filterToggle{display:flex;align-items:center;justify-content:space-between;width:calc(100% - 36px);min-height:46px;margin:0 18px 12px;padding:10px 14px;border:1px solid var(--hf-border,#E3E8DF);border-radius:16px;color:var(--hf-ink,#18281E);background:var(--hf-card,#FFFFFF);font-size:14px;font-weight:800}
+ .filters{display:none}
+ .filters.filtersOpen{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:9px;padding:0 18px 14px;border:0;background:transparent}
+ .filters.filtersOpen>:is(input,select,button){min-width:0;min-height:46px;font-size:14px}
+ .filters.filtersOpen>:is(input,select):nth-child(-n+3),.filters.filtersOpen>.checkField{grid-column:1/-1}
+ .resultsWrap{padding:4px 18px calc(108px + env(safe-area-inset-bottom,0px))}
+ .filterToggle:focus-visible{outline:3px solid #446A25;outline-offset:2px}
+}
+@media(max-width:355px) {
+ .filterToggle{margin-inline:12px;width:calc(100% - 24px)}
+ .filters.filtersOpen,.tabs,.searchForm,.resultsWrap{padding-inline:12px}
+ .searchBar button{min-width:74px}
+}
