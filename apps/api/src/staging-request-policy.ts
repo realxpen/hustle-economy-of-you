@@ -3,7 +3,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   if (method === "OPTIONS") return true;
   const authRead = /^\/api\/auth\/(get-session|ok)$/;
   const authWrite = /^\/api\/auth\/(sign-up\/email|sign-in\/email|sign-out)$/;
-  const ordinaryRead = /^\/api\/v1(?:\/(?:health|foundation|auth\/me))?$/;
+  const ordinaryRead = /^\/api\/v1(?:\/(?:health|foundation|auth\/me|creator-activation))?$/;
   const discoveryRead = /^\/api\/v1\/(?:feed|search|marketplace|services|posts|products|messaging)(?:\/[A-Za-z0-9_-]+)*$/;
   const notificationRead = /^\/api\/v1\/notifications(?:\/unread-count)?$/;
   const notificationReceiptWrite = /^\/api\/v1\/notifications\/(?:read-all|[A-Za-z0-9_-]+\/read)$/;
