@@ -6,6 +6,7 @@ const path = require("node:path");
 const base = path.resolve(__dirname,"..");
 const read = (p)=>fs.readFileSync(path.join(base,p),"utf8");
 const source=read("src/experience/DemoExperience.tsx");
+const chrome=read("src/ux004/components/SheetChrome.tsx");
 const back=read("src/ux004/navigation/useDemoAndroidBack.ts");
 const tab=read("src/ux004/components/FloatingTabBar.tsx");
 const nav=read("src/ux004/navigation/useDemoNavigation.ts");
@@ -37,7 +38,10 @@ assert.match(source, /<ScrollView style=\{styles\.sheetScroll\} nestedScrollEnab
 assert.match(source, /contentContainerStyle=\{\{ paddingTop: insets\.top \+ 27, paddingBottom: bottomReserve \}\}/);
 assert.match(source, /screen === "Inbox" \? <View style=\{\[styles\.lightPage, styles\.centerPage,/);
 assert.match(source, /\{!keyboardVisible && <FloatingTabBar/);
-assert.match(source, /style=\{styles\.sheetCloseTarget\}/);
+// UX011 passes the established close hitbox into the shared sheet header.
+assert.match(source, /closeStyle=\{styles\.sheetCloseTarget\}/);
+assert.match(chrome, /style=\{\(\{ pressed \}\) => \[styles\.close, closeStyle,/);
+assert.match(chrome, /minHeight: layout\.minTapTarget/);
 assert.match(source, /style=\{styles\.sendTarget\}/);
 assert.match(source, /onSubmitEditing=\{addComment\}/);
 assert.match(source, /minHeight: layout\.minTapTarget/);
