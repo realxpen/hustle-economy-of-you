@@ -97,10 +97,12 @@ function localOnly(url) {
        return route.continue();
      });
      const page=await ctx.newPage();
+     // Fast failure; avoid hiding a broken CTA behind repeated 30s waits.
+     page.setDefaultTimeout(9000);
      try {
        await page.goto(root+"/home",{waitUntil:"domcontentloaded",timeout:25000});
        await page.getByText(fixturePost.post.caption,{exact:true}).waitFor({timeout:18000});
-       const toggle=page.getByRole("button",{name:/linked marketplace 2 offers/});
+       const toggle=page.getByRole("button",{name:/2 linked marketplace offers/});
        await toggle.click();
        const serviceTrigger=page.getByRole("button",{name:"View provider’s service ↗"});
        await serviceTrigger.click();
