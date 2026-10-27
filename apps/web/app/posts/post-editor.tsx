@@ -202,11 +202,11 @@ export default function PostEditor({ postId }: { postId?: string }) {
     };
   }
 
-  async function ensurePost() {
+  async function ensurePost(navigate = true) {
     const next = currentId ? await savePost(currentId, buildInput()) : await createPost(buildInput());
     setPost(next);
     setForm(toForm(next));
-    if (!currentId) router.replace(`/posts/${next.id}/edit`);
+    if (!currentId && navigate) router.replace(`/posts/${next.id}/edit`);
     return next;
   }
 
@@ -255,7 +255,9 @@ export default function PostEditor({ postId }: { postId?: string }) {
     setNotice(null);
     setUploadProgress(0);
     try {
-      const draft = await ensurePost();
+      // Stay on this screen until the upload finishes; navigating to /edit
+      // during transfer would unmount the component and abort the file.
+      const draft = await ensurePost(false);
       if (controller.signal.aborted) return;
       const ticket = await authorizeStagingPostMedia(draft.id, selectedFile);
       if (controller.signal.aborted) return;
@@ -267,6 +269,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
       await confirmStagingPostMedia(draft.id, ticket.receipt);
       const updated = await getMyPost(draft.id);
       setPost(updated);
+      if (!currentId) router.replace(`/posts/${draft.id}/edit`);
       setSelectedFile(null);
       setUploadProgress(null);
       setNotice("Private upload attached to your draft. Publish only when ready.");
