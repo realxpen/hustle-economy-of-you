@@ -126,7 +126,7 @@ export default function NotificationsPage() {
         <p className={styles.eyebrow}>YOUR ACTIVITY / THE ECONOMY OF YOU</p>
         <div className={styles.titleRow}>
           <div>
-            <h1>Stay in the loop.</h1>
+            <h1>Activity</h1>
             <p>Important activity from your Hustle. No noise for the sake of engagement.</p>
           </div>
           <span className={styles.unreadCount}>{unread} unread</span>
