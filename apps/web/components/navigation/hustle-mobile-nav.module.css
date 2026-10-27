@@ -274,3 +274,33 @@
 }
 .appBadge{background:#C9F26B;border-color:#0E1210;color:#18281E}
 @media(max-width:760px) and (prefers-reduced-transparency:reduce){.dock{background:#0E1210}}
+
+
+/* UX015: one Figma five-destination bottom system on mobile Safari AND
+   installed PWA. Activity remains available under You / Activity & alerts,
+   while Explore reaches Marketplace. No URL/auth gate is removed. */
+@media(max-width:760px){
+ .dock{display:none!important}
+ .appDock{
+   display:block;position:fixed;z-index:101;
+   left:max(18px,env(safe-area-inset-left,0px));
+   right:max(18px,env(safe-area-inset-right,0px));
+   bottom:calc(8px + env(safe-area-inset-bottom,0px));
+   height:59px;padding:6px 8px;
+   border-radius:30px;background:#121714;border:1px solid #405046;
+   box-shadow:0 10px 30px rgba(0,0,0,.32);
+ }
+ .appInner{
+   display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+   width:100%;height:100%;gap:4px;place-items:center;
+ }
+ .appLink{
+   position:relative;display:grid;place-items:center;
+   width:min(100%,52px);height:46px;min-height:46px;
+   border-radius:23px;color:#FFFFFF;text-decoration:none;
+ }
+ .appLink svg{width:23px;height:23px}
+ .appSelected{background:#C9F26B!important;color:#18281E!important}
+ .appLink:focus-visible{outline:3px solid #C9F26B;outline-offset:2px}
+ .appBadge{background:#C9F26B;color:#18281E;border-color:#121714}
+}
