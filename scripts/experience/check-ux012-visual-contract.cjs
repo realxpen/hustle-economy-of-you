@@ -1,0 +1,26 @@
+#!/usr/bin/env node
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
+const root=path.resolve(__dirname,"../..");
+const read=p=>fs.readFileSync(path.join(root,p),"utf8");
+const m=read("apps/mobile/src/experience/MobileExperience.tsx");
+const chip=read("apps/mobile/src/ux004/components/SkillChip.tsx");
+const tabs=read("apps/mobile/scripts/mobile-a32-search-tabs-contract.cjs");
+const ci=read(".github/workflows/ci.yml");
+const capture=read("scripts/responsive/capture-figma-review.cjs");
+assert.match(chip,/accessibilityLabel=\{accessibilityLabel \?\? label\}/);
+assert.match(m,/role="tab" label=\{tab\.label\} accessibilityLabel=\{tab\.label \+ " search results"\}/);
+assert.match(m,/label=\{category\} accessibilityLabel=\{"Search skill " \+ category\}/);
+assert.match(tabs,/const chip = read\("apps\/mobile\/src\/ux004\/components\/SkillChip\.tsx"\)/);
+assert.match(m,/function dismissFeedSheet\(\) \{\s*if \(Keyboard\.isVisible\(\)\) \{ Keyboard\.dismiss\(\); return; \}/);
+assert.match(m,/function dismissOpportunityPreview\(\) \{\s*if \(Keyboard\.isVisible\(\)\) \{ Keyboard\.dismiss\(\); return; \}\s*closeOpportunity\(\)/);
+assert.match(m,/onRequestClose=\{dismissFeedSheet\}/);
+assert.match(m,/onRequestClose=\{dismissOpportunityPreview\}/);
+assert.match(m,/function closeOpportunity\(\)/);
+assert.match(ci,/node scripts\/responsive\/capture-figma-review\.cjs/);
+assert.match(ci,/name: hustle-ux012-figma-visual-review/);
+assert.match(capture,/127\\\.0\\\.0\\\.1/);
+assert.match(capture,/route\.abort\(\)/);
+assert.match(capture,/visualFigmaComparison: "PENDING/);
+assert.doesNotMatch(capture,/storageState|page\.fill\(|\.click\(|password|Authorization:/i);
+console.log("PASS UX012: concise visual chip labels, accessible naming, keyboard-first sheet escape and local-only screenshot review.");

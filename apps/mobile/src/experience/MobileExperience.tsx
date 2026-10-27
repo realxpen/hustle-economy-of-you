@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Linking, Modal,
+  ActivityIndicator, Alert, FlatList, Image, Keyboard, KeyboardAvoidingView, Linking, Modal,
   Platform, Pressable, ScrollView, Share, StatusBar, StyleSheet, Text,
   TextInput, useWindowDimensions, View
 } from 'react-native';
@@ -366,6 +366,16 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     clearEnquirySlots();
     setOpportunityStage('profile');
   }
+  // Android Back dismisses the keyboard before the sheet. The enquiry's
+  // explicit leave-confirmation is still enforced by closeOpportunity().
+  function dismissFeedSheet() {
+    if (Keyboard.isVisible()) { Keyboard.dismiss(); return; }
+    setSheet(null);
+  }
+  function dismissOpportunityPreview() {
+    if (Keyboard.isVisible()) { Keyboard.dismiss(); return; }
+    closeOpportunity();
+  }
   function closeOpportunity() {
     const status = enquiryDelivery.current.snapshot().status;
     if (['opening', 'sending', 'uncertain'].includes(status)) {
@@ -530,10 +540,10 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.searchTabStrip}
         contentContainerStyle={styles.searchTabContent}
         accessibilityLabel="Published search result types">
-        {SEARCH_TABS.map(tab => <SkillChip key={tab.id} role="tab" label={tab.label + " search results"}
+        {SEARCH_TABS.map(tab => <SkillChip key={tab.id} role="tab" label={tab.label} accessibilityLabel={tab.label + " search results"}
           active={searchTab === tab.id} onPress={() => chooseSearchTab(tab.id)} />)}
       </ScrollView>
-      <ScrollView keyboardShouldPersistTaps="handled"><Text style={styles.sectionTitle}>Browse by skill</Text><View style={styles.chips}>{['Beauty','Fashion','Home','Media','Digital'].map(category => <SkillChip key={category} label={"Search skill " + category}
+      <ScrollView keyboardShouldPersistTaps="handled"><Text style={styles.sectionTitle}>Browse by skill</Text><View style={styles.chips}>{['Beauty','Fashion','Home','Media','Digital'].map(category => <SkillChip key={category} label={category} accessibilityLabel={"Search skill " + category}
              onPress={() => void runSearch(category)}/>)}</View>
         <Text style={styles.sectionTitle}>Nearby discovery</Text><View style={styles.mapPlaceholder}><Icon name="map-outline" color="#354C38" size={34}/><Text style={styles.mapText}>Live map not connected</Text><Text style={styles.meta}>Search works now. Map pins require a location provider and verified coordinates.</Text></View>
         <Text style={styles.sectionTitle}>Search results</Text>
@@ -586,12 +596,12 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
         else setScreen(label);
       }} style={[styles.navItem, screen === label && styles.navSelected]}><Icon name={icon} color={screen === label ? C.dark : C.white} size={23}/></Pressable>)}
     </View>
-    <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
-      <View style={styles.modalRoot}><Pressable style={styles.scrim} onPress={() => setSheet(null)} accessibilityLabel="Dismiss sheet" />
+    <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={dismissFeedSheet}>
+      <View style={styles.modalRoot}><Pressable style={styles.scrim} onPress={dismissFeedSheet} accessibilityRole="button" accessibilityLabel="Dismiss sheet" />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetKeyboard}>
           <ScrollView style={styles.sheet} nestedScrollEnabled keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
-            <SheetTitle title={sheet === 'comments' ? 'Comments' : sheet === 'save' ? 'Save this post' : sheet === 'share' ? 'Share this work' : sheet === 'creator' ? 'Creator' : sheet === 'service' ? 'Attached service' : sheet === 'product' ? 'Attached product' : 'Request booking'} onClose={() => setSheet(null)} />
+            <SheetTitle title={sheet === 'comments' ? 'Comments' : sheet === 'save' ? 'Save this post' : sheet === 'share' ? 'Share this work' : sheet === 'creator' ? 'Creator' : sheet === 'service' ? 'Attached service' : sheet === 'product' ? 'Attached product' : 'Request booking'} onClose={dismissFeedSheet} />
             {active && sheet === 'comments' && <><ScrollView style={{ maxHeight: 340 }} keyboardShouldPersistTaps="handled">{discussionLoading ? <ActivityIndicator /> : comments.length ? comments.map(comment => <View key={comment.id} style={[styles.comment, comment.parentId && { marginLeft: 28 }]}><View style={styles.avatar}><Icon name="person-outline" color={C.dark} /></View><View style={{ flex: 1 }}><Text style={styles.resultTitle}>@{comment.user.username || comment.user.displayName || 'member'}</Text><Text style={styles.commentBody}>{comment.body}</Text><Pressable onPress={() => setReplyTo(comment.id)}><Text style={styles.meta}>Reply</Text></Pressable></View></View>) : <Text style={styles.meta}>Start the conversation.</Text>}</ScrollView>{replyTo && <Pressable onPress={() => setReplyTo(null)}><Text style={styles.meta}>Replying to a comment · Cancel</Text></Pressable>}<View style={styles.composer}><TextInput accessibilityLabel="Write a comment" placeholder="Write a comment…" style={{ flex: 1, color: C.dark }} value={draft} onChangeText={setDraft}/><Pressable disabled={working} onPress={() => void submitComment()}><Icon name="send" color={C.dark} /></Pressable></View></>}
             {active && sheet === 'save' && <><Text style={styles.meta}>Saved posts are tied to your Hustle account. Named collections are not supported by the current API yet.</Text><Action disabled={working} onPress={() => void mutate('save', active)}>{active.viewer.saved ? 'Remove saved post' : 'Save to Hustle'}</Action></>}
             {active && sheet === 'share' && <><Text style={styles.meta}>Share demonstrated work with someone who needs it.</Text><Action onPress={() => void sharePost(active)}>Open share menu</Action></>}
@@ -613,16 +623,16 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
       </View>
     </Modal>
     <Modal visible={opportunityStage !== null} transparent animationType="slide"
-      onRequestClose={closeOpportunity}>
+      onRequestClose={dismissOpportunityPreview}>
       <View style={styles.modalRoot}>
         <Pressable style={styles.scrim} accessibilityRole="button"
-          accessibilityLabel="Dismiss Hustler preview" onPress={closeOpportunity}/>
+          accessibilityLabel="Dismiss Hustler preview" onPress={dismissOpportunityPreview}/>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetKeyboard}>
           <ScrollView style={styles.sheet} nestedScrollEnabled keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
             <SheetTitle title={opportunityStage === 'profile' ? 'Hustler profile'
               : opportunityStage === 'offer' ? 'Published offer' : 'Service enquiry'}
-              onClose={closeOpportunity}/>
+              onClose={dismissOpportunityPreview}/>
             {opportunitySource && opportunityHustler && <ScrollView
               style={{ maxHeight: 430 }} keyboardShouldPersistTaps="handled">
               {opportunityStage === 'profile' && <>

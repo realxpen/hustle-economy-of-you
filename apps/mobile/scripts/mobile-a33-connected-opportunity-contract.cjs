@@ -125,7 +125,9 @@ check("Feed booking permissions, search paging and A1 rollback unaffected",()=>{
   assert.match(app,/searchMorePending\.current/);
   assert.match(app,/setSearchResults\(old => appendUniqueSearchResults\(old, page\.items\)\)/);
   assert.match(app,/function closeOpportunity\(\)/);
-  assert.match(app,/onRequestClose=\{closeOpportunity\}/);
+  // UX012: hardware Back dismisses the IME, then re-enters the unchanged guarded enquiry-close path.
+  assert.match(app,/onRequestClose=\{dismissOpportunityPreview\}/);
+  assert.match(app,/function dismissOpportunityPreview\(\) \{\s*if \(Keyboard\.isVisible\(\)\) \{ Keyboard\.dismiss\(\); return; \}\s*closeOpportunity\(\)/);
   assert.match(qa,/Runtime acceptance: PENDING/);
   assert.match(qa,/No Expo APK/);
   assert.ok(read("apps/mobile/scripts/mobile-experience-contract.mjs").includes("mobile-a33-connected-opportunity-contract.cjs"));

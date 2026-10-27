@@ -81,6 +81,8 @@ jobs:
         run: node scripts/experience/check-figma-mobile-v1.cjs
       - name: UX011 Figma screens, reusable components and popups
         run: node scripts/experience/check-ux011-screens-sheets.cjs
+      - name: UX012 mobile polish and visual capture safety contract
+        run: node scripts/experience/check-ux012-visual-contract.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
@@ -125,6 +127,11 @@ jobs:
         env:
           NODE_PATH: /tmp/hustle-smoke/node_modules
         run: node scripts/experience/local-service-interaction.cjs
+      - name: UX012 capture unauthenticated Figma review screenshots
+        env:
+          NODE_PATH: /tmp/hustle-smoke/node_modules
+          HUSTLE_VISUAL_REVIEW_DIR: /tmp/hustle-ux012-visual-review
+        run: node scripts/responsive/capture-figma-review.cjs
       - name: Upload local UI smoke report
         if: always()
         uses: actions/upload-artifact@v4
@@ -132,4 +139,12 @@ jobs:
           name: local-web-responsive-smoke
           path: /tmp/hustle-local-web-smoke.json
           if-no-files-found: ignore
+      - name: Upload UX012 screenshot review pack
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hustle-ux012-figma-visual-review
+          path: /tmp/hustle-ux012-visual-review/
+          if-no-files-found: ignore
+          retention-days: 7
 

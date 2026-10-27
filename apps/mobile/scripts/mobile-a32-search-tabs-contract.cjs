@@ -94,9 +94,11 @@ check("Connected Explore switches actual API tabs instead of filtering one mixed
   // UX011 moved tab semantics, selected state and 48dp tap targets to one reusable primitive.
   const chip = read("apps/mobile/src/ux004/components/SkillChip.tsx");
   const layout = read("apps/mobile/src/ux004/theme/layout.ts");
-  assert.match(app,/<SkillChip key=\{tab\.id\} role="tab"/);
+  assert.match(app,/<SkillChip key=\{tab\.id\} role="tab" label=\{tab\.label\} accessibilityLabel=\{tab\.label \+ " search results"\}/);
   assert.match(app,/active=\{searchTab === tab\.id\} onPress=\{\(\) => chooseSearchTab\(tab\.id\)\}/);
   assert.match(chip,/accessibilityRole=\{role\}/);
+  assert.match(chip,/accessibilityLabel=\{accessibilityLabel \?\? label\}/);
+  assert.match(app,/label=\{category\} accessibilityLabel=\{"Search skill " \+ category\}/);
   assert.match(chip,/accessibilityState=\{\{ selected: active \}\}/);
   assert.match(chip,/minHeight: layout\.minTapTarget/);
   assert.match(layout,/minTapTarget: 48/);
