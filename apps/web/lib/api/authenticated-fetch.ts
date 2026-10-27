@@ -82,6 +82,14 @@ export async function getAuthenticatedUserId() {
   return identity.userId;
 }
 
+/** Preserve HTTP status for opt-in diagnostics while all callers still fail closed. */
+export class AuthenticatedApiError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+    this.name = "AuthenticatedApiError";
+  }
+}
+
 async function parseError(response: Response) {
   const body = await response.json().catch(() => null) as {
     error?: { message?: string };
@@ -115,7 +123,7 @@ export async function authenticatedFetch(
     return authenticatedFetch(path, init, false);
   }
 
-  if (!response.ok) throw new Error(await parseError(response));
+  if (!response.ok) throw new AuthenticatedApiError(response.status, await parseError(response));
   return response;
 }
 
