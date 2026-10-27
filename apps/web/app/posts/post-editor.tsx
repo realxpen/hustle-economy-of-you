@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ExperienceState } from "../../components/experience/experience-state";
 import { useRouter } from "next/navigation";
 import { getMarketplacePage } from "../../lib/search";
@@ -21,6 +21,11 @@ import {
   type PostMediaType
 } from "../../lib/post";
 import styles from "../products/product-editor.module.css";
+import {
+  authorizeStagingPostMedia, confirmStagingPostMedia,
+  transferFileToPrivateStaging, validateStagingUploadFile
+} from "../../lib/post-media-upload";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
 
 type PostForm = {
   caption: string;
@@ -61,6 +66,17 @@ export default function PostEditor({ postId }: { postId?: string }) {
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<PostMediaType>("IMAGE");
   const [mediaUrl, setMediaUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const uploadAbort = useRef<AbortController | null>(null);
+  useEffect(() => {
+    if (!selectedFile) { setSelectedPreview(null); return; }
+    const url = URL.createObjectURL(selectedFile);
+    setSelectedPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
+  useEffect(() => () => uploadAbort.current?.abort(), []);
   const [loading, setLoading] = useState(Boolean(postId));
   const [retry, setRetry] = useState(0);
   const [loadingReferences, setLoadingReferences] = useState(false);
@@ -189,6 +205,42 @@ export default function PostEditor({ postId }: { postId?: string }) {
     }
   }
 
+  async function uploadSelectedFile() {
+    if (!selectedFile || busy) return;
+    const problem = validateStagingUploadFile(selectedFile);
+    if (problem) { setError(problem); return; }
+    const controller = new AbortController();
+    uploadAbort.current = controller;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    setUploadProgress(0);
+    try {
+      const draft = await ensurePost();
+      if (controller.signal.aborted) return;
+      const ticket = await authorizeStagingPostMedia(draft.id, selectedFile);
+      if (controller.signal.aborted) return;
+      await transferFileToPrivateStaging(
+        selectedFile, ticket, pct => setUploadProgress(pct), controller.signal
+      );
+      if (controller.signal.aborted) return;
+      // Do not publish merely because an object landed in private storage.
+      await confirmStagingPostMedia(draft.id, ticket.receipt);
+      const updated = await getMyPost(draft.id);
+      setPost(updated);
+      setSelectedFile(null);
+      setUploadProgress(null);
+      setNotice("Private upload attached to your draft. Publish only when ready.");
+    } catch (reason) {
+      if (controller.signal.aborted) setNotice("Upload cancelled. Your draft was not published.");
+      else setError(reason instanceof Error ? reason.message : "Could not finish private media upload");
+    } finally {
+      if (uploadAbort.current === controller) uploadAbort.current = null;
+      setBusy(false);
+      setUploadProgress(null);
+    }
+  }
+
   async function removeMedia(mediaId: string) {
     if (!currentId) return;
     setBusy(true);
@@ -301,9 +353,41 @@ export default function PostEditor({ postId }: { postId?: string }) {
         <label><span>Tags · comma separated</span><input value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} placeholder="review, recommendation, react, lagos" /><small>Up to 20 tags. # is optional.</small></label>
 
         <div className={styles.sectionTitle}><span>02</span><div><strong>Media</strong><p>Use one video, one image, or multiple images for a carousel.</p></div></div>
+        {isolatedWebMode && <div style={{border:"1px solid var(--h-border, #aaa)",borderRadius:18,padding:16,marginBottom:18,display:"grid",gap:12}}>
+          <strong>Upload from your iPhone</strong>
+          <p className={styles.muted}>Choose a JPEG, PNG or WebP image (up to 8 MB), or an MP4 video (up to 30 MB). You can add up to 10 photos or one video. HEIC and MOV files need conversion first. Your file stays private until you publish.</p>
+          <label>
+            <span>Choose photo or video</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4"
+              disabled={busy || published || mediaCount >= 10 || Boolean(post?.media.some(item => item.type === "VIDEO"))}
+              onChange={event => {
+                const next = event.target.files?.[0] ?? null;
+                setSelectedFile(next);
+                setError(next ? validateStagingUploadFile(next) : null);
+                event.target.value = "";
+              }} />
+          </label>
+          {selectedFile && <div style={{display:"grid",gap:10}}>
+            <p className={styles.muted}>{selectedFile.name} · {(selectedFile.size / 1_000_000).toFixed(2)} MB</p>
+            {selectedPreview && (selectedFile.type.startsWith("image/")
+              ? <img src={selectedPreview} alt="Your selected photo preview" style={{maxWidth:"100%",maxHeight:230,objectFit:"contain",borderRadius:12}} />
+              : <video src={selectedPreview} controls preload="metadata" style={{maxWidth:"100%",maxHeight:230,borderRadius:12}} />)}
+            {uploadProgress !== null && <div role="status" aria-live="polite">
+              <progress value={uploadProgress} max={100} style={{width:"100%"}} />
+              <small>{uploadProgress >= 99 ? "Verifying your uploaded media…" : `Uploading ${uploadProgress}%`}</small>
+            </div>}
+            <div className={styles.actions}>
+              <button type="button" className={styles.primary} onClick={() => void uploadSelectedFile()} disabled={busy || Boolean(validateStagingUploadFile(selectedFile))}>Upload privately</button>
+              <button type="button" className={styles.secondary} onClick={() => {
+                uploadAbort.current?.abort();
+                if (!busy) setSelectedFile(null);
+              }}>{busy ? "Cancel upload" : "Remove selection"}</button>
+            </div>
+          </div>}
+        </div>}
         <div className={styles.twoCol}>
           <label><span>Media type</span><select value={mediaType} onChange={(event) => setMediaType(event.target.value as PostMediaType)} disabled={busy || Boolean(mediaCount > 0 && post?.media[0]?.type === "VIDEO")}><option value="IMAGE">Image</option><option value="VIDEO">Video</option></select></label>
-          <label><span>Public media URL</span><input type="url" inputMode="url" value={mediaUrl} onChange={(event) => setMediaUrl(event.target.value)} placeholder="https://…" /></label>
+          <label><span>Or use a public media URL</span><input type="url" inputMode="url" value={mediaUrl} onChange={(event) => setMediaUrl(event.target.value)} placeholder="https://…" /></label>
         </div>
         <div className={styles.actions}><button className={styles.secondary} type="button" onClick={addMedia} disabled={busy || !mediaUrl.trim()}>{busy ? "Working…" : "Add media"}</button></div>
         <div className={styles.variantList}>
