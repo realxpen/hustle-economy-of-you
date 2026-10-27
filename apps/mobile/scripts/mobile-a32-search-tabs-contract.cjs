@@ -91,9 +91,15 @@ check("Connected Explore switches actual API tabs instead of filtering one mixed
   assert.match(app,/await mobileApi\.searchTab\(token, tab, query\)/);
   assert.match(app,/function chooseSearchTab\(tab: SearchTab\) \{\s*if \(searchTab === tab\) return;\s*\/\//);
   assert.match(app,/void runSearch\(searchText, tab\)/);
-  assert.match(app,/accessibilityRole="tab"/);
-  assert.match(app,/accessibilityState=\{\{ selected: searchTab === tab\.id \}\}/);
-  assert.match(app,/searchTabChoice: \{ minHeight: 44/);
+  // UX011 moved tab semantics, selected state and 48dp tap targets to one reusable primitive.
+  const chip = read("apps/mobile/src/ux004/components/SkillChip.tsx");
+  const layout = read("apps/mobile/src/ux004/theme/layout.ts");
+  assert.match(app,/<SkillChip key=\{tab\.id\} role="tab"/);
+  assert.match(app,/active=\{searchTab === tab\.id\} onPress=\{\(\) => chooseSearchTab\(tab\.id\)\}/);
+  assert.match(chip,/accessibilityRole=\{role\}/);
+  assert.match(chip,/accessibilityState=\{\{ selected: active \}\}/);
+  assert.match(chip,/minHeight: layout\.minTapTarget/);
+  assert.match(layout,/minTapTarget: 48/);
 });
 
 check("Tab changes, edited queries and pagination cannot overwrite a more recent search",()=>{
