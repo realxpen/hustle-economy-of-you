@@ -87,7 +87,7 @@ global.fetch=async (url,init)=>{
   assert.ok(String(url).startsWith("https://hustle-ux011-isolated-media-707859598737-eu-west-2.s3.eu-west-2.amazonaws.com/"));
   if(action==="HEAD")return new Response(null,{status:200,headers:{"content-length":"1234","content-type":"image/jpeg"}});
   if(action==="GET")return new Response(Buffer.from([0xff,0xd8,0xff,0xe0,0x12,0x34]),{status:206});
-  if(action==="PUT")return new Response(null,{status:200});
+  if(action==="PUT")return new Response("<CopyObjectResult><ETag>mock</ETag></CopyObjectResult>",{status:200});
   if(action==="DELETE")return new Response(null,{status:204});
   throw Error("Unexpected S3 method: "+action);
 };
