@@ -15,7 +15,7 @@ const page = fs.readFileSync("apps/web/app/grow/page.tsx", "utf8");
 assert.match(controller, /@UseGuards\(AuthGuard\)/, "Activation must require a real session");
 assert.match(controller, /@CurrentIdentity\(\) identity: AuthIdentity/, "Identity must come from AuthGuard");
 assert.match(proxy, /route === creatorActivationRead/, "Cloudflare proxy allows exact read route");
-assert.match(policy, /auth\\\/me\\\|creator-activation/, "Backend allows exact read route");
+assert.match(policy, /const ordinaryRead =[^\n]+creator-activation/, "Backend allows exact read route");
 assert.match(account, /href="\/grow"/, "Account links to workspace");
 assert.match(page, /getCreatorActivation\(\)/, "Workspace consumes owner-scoped read API");
 assert.doesNotMatch(controller, /@Post\(|@Put\(|@Patch\(|@Delete\(/, "Activation must never expose writes");
