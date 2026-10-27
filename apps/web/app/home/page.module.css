@@ -1486,3 +1486,5 @@
  .actionRail,.actionRail:not(.railCompact){gap:1px;bottom:8px!important}
  .actionRail a,.actionRail button{min-height:45px}
 }
+
+@media(max-width:760px){.creatorLocation{display:none}}

@@ -399,7 +399,7 @@ function FeedCard({
           <span className={styles.avatar}>{item.creator.avatarUrl ? <img src={item.creator.avatarUrl} alt="" /> : initial}</span>
           <span className={styles.creatorName}>
             <strong>{item.creator.displayName ?? item.creator.username ?? "Hustle user"} {item.creator.verified && <span className={styles.verification} aria-label="Verified creator">✓</span>}</strong>
-            <small>{"@" + (item.creator.username ?? "user")}{item.post.location || item.creator.location ? " · " + (item.post.location ?? item.creator.location) : ""}</small>
+            <small>{"@" + (item.creator.username ?? "user")}{item.post.location || item.creator.location ? <span className={styles.creatorLocation}>{" · " + (item.post.location ?? item.creator.location)}</span> : null}</small>
           </span>
         </Link>
         <button className={item.viewer.following ? styles.following : styles.follow} type="button"

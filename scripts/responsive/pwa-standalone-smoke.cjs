@@ -26,16 +26,16 @@ const { chromium } = require("playwright");
     await page.goto(root + "/search", { waitUntil: "domcontentloaded" });
     const nav = page.getByRole("navigation", { name: "Hustle mobile application", includeHidden: true });
     assert.equal(await nav.count(), 1, "five-tab native dock must be in the render tree");
-    assert.equal(await nav.isVisible(), false, "regular Safari/browser navigation must not be replaced");
+    assert.equal(await nav.isVisible(), true, "Figma five-tab dock must appear on mobile Safari and installed PWA");
     for (const name of ["Home", "Explore", "Create", "Inbox", "You"]) {
       assert.equal(await nav.getByRole("link", { name, includeHidden: true }).count(), 1, "missing " + name);
     }
     assert.equal(await nav.getByRole("link", { includeHidden: true }).count(), 5);
-    assert.equal(await page.getByRole("navigation", { name: "Hustle main navigation" }).isVisible(), true);
+    assert.equal(await page.getByRole("navigation", { name: "Hustle main navigation", includeHidden: true }).isVisible(), false, "Do not paint two mobile docks");
     assert.equal(await page.locator('[class*="pwaExploreTitle"]').count(), 1);
     await page.goto(root + "/home", { waitUntil: "domcontentloaded" });
     const wordmark = page.locator('[class*="appWordmark"]');
     assert.equal(await wordmark.count(), 1, "Figma wordmark must be available in installed mode");
-    console.log("PASS: live Next.js manifest/icons, native five-tab DOM and Figma home/search structure (installed iPhone CSS validated by source contract, NOT Chromium emulation).");
+    console.log("PASS: live Next.js manifest/icons, unified Figma five-tab mobile DOM and feed/search structure (native iPhone Safari must still be manually verified).");
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
