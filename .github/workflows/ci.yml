@@ -79,6 +79,8 @@ jobs:
         run: node scripts/experience/check-cloudflare-staging-aws-cutover.cjs
       - name: Figma Mobile V1 design consistency contract
         run: node scripts/experience/check-figma-mobile-v1.cjs
+      - name: UX011 Figma screens, reusable components and popups
+        run: node scripts/experience/check-ux011-screens-sheets.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
