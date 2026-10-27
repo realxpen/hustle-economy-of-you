@@ -17,6 +17,9 @@ import { HybridScreenSurface } from "../ux004/components/HybridScreenSurface";
 import { TactilePressable } from "../ux004/components/TactilePressable";
 import { DemoDisclosure } from "../ux004/components/DemoDisclosure";
 import { FloatingTabBar } from "../ux004/components/FloatingTabBar";
+import { SheetChrome } from "../ux004/components/SheetChrome";
+import { SkillChip } from "../ux004/components/SkillChip";
+import { ScreenHeader } from "../ux004/components/ScreenHeader";
 import { useDemoNavigation } from "../ux004/navigation/useDemoNavigation";
 import { useDemoAndroidBack } from "../ux004/navigation/useDemoAndroidBack";
 import type { RootTab } from "../ux004/navigation/types";
@@ -338,8 +341,7 @@ function Experience() {
         <Button title="Return to For You" onPress={returnToForYou} />
       </View>} />
     : screen === "Explore" ? <View style={[styles.lightPage, { paddingTop: insets.top + 18 }]}>
-      <Text style={styles.pageTitle}>Explore</Text>
-      <Text style={styles.subtitle}>Find great work, not just listings.</Text>
+      <ScreenHeader title="Explore" subtitle="Find great work, not just listings." eyebrow="DISCOVER WORK"/>
       <View style={styles.searchBar}><I name="search-outline" color={C.ink} size={21}/>
         <TextInput value={search} onChangeText={setSearch}
           placeholder="Search skills, work, people..." placeholderTextColor="#89948A"
@@ -353,10 +355,8 @@ function Experience() {
       <Text style={styles.sectionHeading}>Discover by skill</Text>
       <ScrollView horizontal style={{ flexGrow: 0 }} showsHorizontalScrollIndicator={false}>
         {["All","Fashion","Beauty","Food","Media"].map(cat =>
-          <Pressable key={cat} onPress={() => setCategory(cat)}
-            style={[styles.category, category === cat && { backgroundColor: C.ink }]}>
-            <Text style={[styles.categoryText, category === cat && { color: C.white }]}>{cat}</Text>
-          </Pressable>)}
+          <SkillChip key={cat} label={cat} active={category === cat}
+            onPress={() => setCategory(cat)}/>)}
       </ScrollView>
       <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: exploreSavedOnly }}
         accessibilityLabel="Show only locally saved sample work"
@@ -479,14 +479,10 @@ function Experience() {
           <ScrollView style={styles.sheetScroll} nestedScrollEnabled
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 14) + 14 }]}>
-            <View style={styles.grabber}/>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{sheet === "comments" ? "Comments" : sheet === "save" ? "Save to collection" :
+            <SheetChrome onClose={requestDismissSheet}
+              title={sheet === "comments" ? "Comments" : sheet === "save" ? "Save to collection" :
                 sheet === "share" ? "Share this work" : sheet === "creator" ? "Creator" :
-                sheet === "offer" ? current.offer.kind === "service" ? "Attached service" : "Attached product" : "Booking preview"}</Text>
-              <Pressable onPress={requestDismissSheet} accessibilityRole="button"
-                style={styles.sheetCloseTarget} accessibilityLabel="Close sheet"><I name="close" color={C.ink}/></Pressable>
-            </View>
+                sheet === "offer" ? current.offer.kind === "service" ? "Attached service" : "Attached product" : "Booking preview"}/>
             {sheet === "comments" && <>
               <Text style={styles.commentsSummary}>
                 {currentComments.length} demo {currentComments.length === 1 ? "comment" : "comments"} · Only saved in this session
@@ -670,8 +666,8 @@ const styles = StyleSheet.create({
   modalRoot: { flex: 1, justifyContent: "flex-end" },
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(3,8,5,.63)" },
   modalKeyboardArea: { width: "100%", maxHeight: "100%", flexShrink: 1 },
-  sheetScroll: { backgroundColor: C.cream, borderTopLeftRadius: 27, borderTopRightRadius: 27, maxHeight: "90%" },
-  sheet: { paddingHorizontal: 22, paddingTop: 12 },
+  sheetScroll: { backgroundColor: C.cream, borderTopLeftRadius: radii.large, borderTopRightRadius: radii.large, maxHeight: "90%" },
+  sheet: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   grabber: { width: 65, height: 5, borderRadius: 3, backgroundColor: "#CAD5C5", alignSelf: "center", marginBottom: 21 },
   sheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15 },
   sheetCloseTarget: { minWidth: layout.minTapTarget, minHeight: layout.minTapTarget, alignItems: "center", justifyContent: "center" },
