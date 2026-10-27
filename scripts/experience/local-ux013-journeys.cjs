@@ -180,6 +180,17 @@ function localOnly(url) {
        // Explore discovery is a separate real page, with a fake GET-only result.
        await page.goto(root+"/search?q=barber",{waitUntil:"domcontentloaded"});
        await page.getByRole("heading",{name:service.title}).waitFor({timeout:15000});
+       if(size.width<=760) {
+         const refine=page.getByRole("button",{name:/Refine results/});
+         await refine.waitFor({state:"visible"});
+         assert.equal(await refine.getAttribute("aria-expanded"),"false");
+         const filters=page.getByRole("region",{name:"Search filters"});
+         assert.equal(await filters.isVisible(),false,"Mobile filters should default collapsed");
+         await refine.click();
+         assert.equal(await filters.isVisible(),true,"Advanced filters must open");
+         await refine.click();
+         assert.equal(await filters.isVisible(),false,"Advanced filters must close");
+       }
        await page.getByRole("button",{name:"Services",exact:true}).click();
        await page.getByRole("heading",{name:service.title}).waitFor({timeout:10000});
        const serviceResult=page.getByRole("link",{name:/QA Barber Session/});
