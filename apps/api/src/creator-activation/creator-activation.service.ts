@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { PostStatus, ProductStatus, ProfessionalProfileStatus, ServiceStatus } from "@prisma/client";
+import { BookingStatus, PostStatus, ProductStatus, ProfessionalProfileStatus, ServiceStatus } from "@prisma/client";
 
 import { PrismaService } from "../database/prisma.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
@@ -36,7 +36,7 @@ export class CreatorActivationService {
     const profile = owner.professionalProfile;
 
     // Do not create a professional profile or any content by reading this page.
-    const [posts, publishedServices, publishedProducts] = await Promise.all([
+    const [posts, publishedServices, publishedProducts, completedBookings] = await Promise.all([
       profile
         ? this.prisma.post.findMany({
             where: { professionalProfileId: profile.id },
@@ -64,6 +64,11 @@ export class CreatorActivationService {
         ? this.prisma.product.count({
             where: { professionalProfileId: profile.id, status: ProductStatus.PUBLISHED }
           })
+        : Promise.resolve(0),
+      hustlerActive
+        ? this.prisma.booking.count({
+            where: { hustlerUserId: owner.id, status: BookingStatus.COMPLETED }
+          })
         : Promise.resolve(0)
     ]);
 
@@ -85,7 +90,8 @@ export class CreatorActivationService {
         drafts: posts.filter(post => post.status === PostStatus.DRAFT).length,
         linkedPublishedPosts: linkedPublishedPosts.length,
         publishedServices,
-        publishedProducts
+        publishedProducts,
+        completedBookings
       },
       // Only return posts owned by the requester. Full media URLs and unrelated
       // buyer/seller private records are never included in this projection.
