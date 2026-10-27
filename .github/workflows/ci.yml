@@ -85,6 +85,8 @@ jobs:
         run: node scripts/experience/check-ux012-visual-contract.cjs
       - name: UX013 synthetic journey and guest-safe browsing contract
         run: node scripts/experience/check-ux013-journey-policy.cjs
+      - name: UX015 Figma feed and Inbox visual hierarchy contract
+        run: node scripts/experience/check-ux015-figma-fidelity.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
