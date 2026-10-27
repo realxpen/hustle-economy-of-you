@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ExperienceState } from "../../components/experience/experience-state";
 import { useRouter } from "next/navigation";
 import { getMarketplacePage } from "../../lib/search";
@@ -21,6 +21,12 @@ import {
   type PostMediaType
 } from "../../lib/post";
 import styles from "../products/product-editor.module.css";
+import {
+  authorizeStagingPostMedia, confirmStagingPostMedia,
+  transferFileToPrivateStaging, validateStagingUploadFile
+} from "../../lib/post-media-upload";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
+import { authenticatedFetch } from "../../lib/api/authenticated-fetch";
 
 type PostForm = {
   caption: string;
@@ -61,6 +67,55 @@ export default function PostEditor({ postId }: { postId?: string }) {
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<PostMediaType>("IMAGE");
   const [mediaUrl, setMediaUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [draftMediaPreviews, setDraftMediaPreviews] = useState<Record<string,string>>({});
+  const uploadAbort = useRef<AbortController | null>(null);
+  useEffect(() => {
+    if (!selectedFile) { setSelectedPreview(null); return; }
+    const url = URL.createObjectURL(selectedFile);
+    setSelectedPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
+  useEffect(() => () => uploadAbort.current?.abort(), []);
+
+  // Draft objects need a Bearer token, so <img src> cannot load the private
+  // read route directly. Fetch via the same authenticated bridge and revoke
+  // temporary browser blob URLs when the post changes or the account signs out.
+  useEffect(() => {
+    if (!isolatedWebMode || !post || post.status === "PUBLISHED") {
+      setDraftMediaPreviews({});
+      return;
+    }
+    let active = true;
+    const objects: string[] = [];
+    const controller = new AbortController();
+    const privateMedia = post.media.filter(item => item.storageKey?.startsWith("media/"));
+    Promise.all(privateMedia.map(async item => {
+      try {
+        const response = await authenticatedFetch(
+          `/media/o/${encodeURIComponent(post.id)}/${encodeURIComponent(item.id)}`,
+          { signal: controller.signal, cache: "no-store" }
+        );
+        const blob = await response.blob();
+        if (!active) return;
+        const url = URL.createObjectURL(blob);
+        objects.push(url);
+        return { id: item.id, url };
+      } catch { return null; }
+    })).then(results => {
+      if (active) setDraftMediaPreviews(Object.fromEntries(
+        results.filter((item): item is { id: string; url: string } => Boolean(item))
+          .map(item => [item.id, item.url])
+      ));
+    });
+    return () => {
+      active = false;
+      controller.abort();
+      objects.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [post]);
   const [loading, setLoading] = useState(Boolean(postId));
   const [retry, setRetry] = useState(0);
   const [loadingReferences, setLoadingReferences] = useState(false);
@@ -147,11 +202,11 @@ export default function PostEditor({ postId }: { postId?: string }) {
     };
   }
 
-  async function ensurePost() {
+  async function ensurePost(navigate = true) {
     const next = currentId ? await savePost(currentId, buildInput()) : await createPost(buildInput());
     setPost(next);
     setForm(toForm(next));
-    if (!currentId) router.replace(`/posts/${next.id}/edit`);
+    if (!currentId && navigate) router.replace(`/posts/${next.id}/edit`);
     return next;
   }
 
@@ -186,6 +241,45 @@ export default function PostEditor({ postId }: { postId?: string }) {
       setError(reason instanceof Error ? reason.message : "Could not add media");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function uploadSelectedFile() {
+    if (!selectedFile || busy) return;
+    const problem = validateStagingUploadFile(selectedFile);
+    if (problem) { setError(problem); return; }
+    const controller = new AbortController();
+    uploadAbort.current = controller;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    setUploadProgress(0);
+    try {
+      // Stay on this screen until the upload finishes; navigating to /edit
+      // during transfer would unmount the component and abort the file.
+      const draft = await ensurePost(false);
+      if (controller.signal.aborted) return;
+      const ticket = await authorizeStagingPostMedia(draft.id, selectedFile);
+      if (controller.signal.aborted) return;
+      await transferFileToPrivateStaging(
+        selectedFile, ticket, pct => setUploadProgress(pct), controller.signal
+      );
+      if (controller.signal.aborted) return;
+      // Do not publish merely because an object landed in private storage.
+      await confirmStagingPostMedia(draft.id, ticket.receipt);
+      const updated = await getMyPost(draft.id);
+      setPost(updated);
+      if (!currentId) router.replace(`/posts/${draft.id}/edit`);
+      setSelectedFile(null);
+      setUploadProgress(null);
+      setNotice("Private upload attached to your draft. Publish only when ready.");
+    } catch (reason) {
+      if (controller.signal.aborted) setNotice("Upload cancelled. Your draft was not published.");
+      else setError(reason instanceof Error ? reason.message : "Could not finish private media upload");
+    } finally {
+      if (uploadAbort.current === controller) uploadAbort.current = null;
+      setBusy(false);
+      setUploadProgress(null);
     }
   }
 
@@ -301,16 +395,48 @@ export default function PostEditor({ postId }: { postId?: string }) {
         <label><span>Tags · comma separated</span><input value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} placeholder="review, recommendation, react, lagos" /><small>Up to 20 tags. # is optional.</small></label>
 
         <div className={styles.sectionTitle}><span>02</span><div><strong>Media</strong><p>Use one video, one image, or multiple images for a carousel.</p></div></div>
+        {isolatedWebMode && <div style={{border:"1px solid var(--h-border, #aaa)",borderRadius:18,padding:16,marginBottom:18,display:"grid",gap:12}}>
+          <strong>Upload from your iPhone</strong>
+          <p className={styles.muted}>Choose a JPEG, PNG or WebP image (up to 8 MB), or an MP4 video (up to 30 MB). You can add up to 10 photos or one video. HEIC and MOV files need conversion first. Your file stays private until you publish.</p>
+          <label>
+            <span>Choose photo or video</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4"
+              disabled={busy || published || mediaCount >= 10 || Boolean(post?.media.some(item => item.type === "VIDEO"))}
+              onChange={event => {
+                const next = event.target.files?.[0] ?? null;
+                setSelectedFile(next);
+                setError(next ? validateStagingUploadFile(next) : null);
+                event.target.value = "";
+              }} />
+          </label>
+          {selectedFile && <div style={{display:"grid",gap:10}}>
+            <p className={styles.muted}>{selectedFile.name} · {(selectedFile.size / 1_000_000).toFixed(2)} MB</p>
+            {selectedPreview && (selectedFile.type.startsWith("image/")
+              ? <img src={selectedPreview} alt="Your selected photo preview" style={{maxWidth:"100%",maxHeight:230,objectFit:"contain",borderRadius:12}} />
+              : <video src={selectedPreview} controls preload="metadata" style={{maxWidth:"100%",maxHeight:230,borderRadius:12}} />)}
+            {uploadProgress !== null && <div role="status" aria-live="polite">
+              <progress value={uploadProgress} max={100} style={{width:"100%"}} />
+              <small>{uploadProgress >= 99 ? "Verifying your uploaded media…" : `Uploading ${uploadProgress}%`}</small>
+            </div>}
+            <div className={styles.actions}>
+              <button type="button" className={styles.primary} onClick={() => void uploadSelectedFile()} disabled={busy || Boolean(validateStagingUploadFile(selectedFile))}>Upload privately</button>
+              <button type="button" className={styles.secondary} onClick={() => {
+                uploadAbort.current?.abort();
+                if (!busy) setSelectedFile(null);
+              }}>{busy ? "Cancel upload" : "Remove selection"}</button>
+            </div>
+          </div>}
+        </div>}
         <div className={styles.twoCol}>
           <label><span>Media type</span><select value={mediaType} onChange={(event) => setMediaType(event.target.value as PostMediaType)} disabled={busy || Boolean(mediaCount > 0 && post?.media[0]?.type === "VIDEO")}><option value="IMAGE">Image</option><option value="VIDEO">Video</option></select></label>
-          <label><span>Public media URL</span><input type="url" inputMode="url" value={mediaUrl} onChange={(event) => setMediaUrl(event.target.value)} placeholder="https://…" /></label>
+          <label><span>Or use a public media URL</span><input type="url" inputMode="url" value={mediaUrl} onChange={(event) => setMediaUrl(event.target.value)} placeholder="https://…" /></label>
         </div>
         <div className={styles.actions}><button className={styles.secondary} type="button" onClick={addMedia} disabled={busy || !mediaUrl.trim()}>{busy ? "Working…" : "Add media"}</button></div>
         <div className={styles.variantList}>
           {post?.media.map((item, index) => <article className={styles.variantCard} key={item.id}>
             <strong>{index + 1}. {item.type}</strong>
-            {item.mediaUrl && (item.type === "VIDEO" ? <video src={item.mediaUrl} controls preload="metadata" style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} /> : <img src={item.mediaUrl} loading="lazy" alt={`Attached post image ${index+1}`} style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} />)}
-            <p className={styles.muted}>{item.mediaUrl ?? item.storageKey ?? "No source"}</p>
+            {(draftMediaPreviews[item.id] || item.mediaUrl) && (item.type === "VIDEO" ? <video src={draftMediaPreviews[item.id] || item.mediaUrl || ""} controls preload="metadata" style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} /> : <img src={draftMediaPreviews[item.id] || item.mediaUrl || ""} loading="lazy" alt={`Attached post image ${index+1}`} style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} />)}
+            <p className={styles.muted}>{item.storageKey ? "Private media attached to this draft" : (item.mediaUrl ?? "No source")}</p>
             <div className={styles.variantActions}><button className={styles.dangerText} type="button" onClick={() => void removeMedia(item.id)} disabled={busy}>Remove</button></div>
           </article>)}
           {mediaCount === 0 && <p className={styles.muted}>No media yet. Add one image or video to publish; incomplete drafts can still be saved.</p>}

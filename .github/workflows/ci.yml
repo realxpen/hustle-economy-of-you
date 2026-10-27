@@ -89,6 +89,8 @@ jobs:
       - run: npm run build --workspace=@hustle/api
       - name: UX010 real Client/Hustler creator opportunity and privacy service regression
         run: node scripts/experience/check-ux010-creator-activation.cjs
+      - name: UX011 local signed object store and private iPhone media lifecycle
+        run: node scripts/experience/check-ux011-media-lifecycle.cjs
       - name: Exercise real Nest Client/Hustler alternate-time consent state machine
         run: node scripts/experience/check-ux009-time-consent-runtime.cjs
       - name: FlowTime adaptive scheduling and capacity safety regression
