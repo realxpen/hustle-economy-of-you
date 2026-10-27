@@ -11,7 +11,7 @@ The founder considers Hustle's tester-facing UI/UX inconsistent and wants one cl
 ## Evidence from the actual Figma file
 Page 01 has 12 designed mobile frames, each 390x844: Welcome, For You Feed, Hustler Profile, Service Booking, Next Video, Explore/Search/Map, Comments, Save to Collection, Share, Creator Preview, Attached Service and Attached Product. Page 02 contains reusable semantic colors, dimension variables, Inputs, Cards, Chips, Sheets, Icons and Floating Navigation. Page 03 is currently an empty placeholder.
 
-Light: paper #F7F6F2, white #FFFFFF, raised #E4EFD7, text #181A18, secondary #778074, ink #18281E and borders #E3E8DF. Accent: #C9F26B. Dark: background #0E1210, card #27372C, secondary #BCD0BF, border #405046. Semantic danger #BA5555, success #47704A. Spacing 4/8/12/16/24, card radius 20, input 16 and pill 28.
+Light: paper #F7F6F2, white #FFFFFF, raised #E4EFD7, text #181A18, secondary #778074 (decorative only; 3.79:1 on paper), accessible small-text secondary #596759 (5.53:1), ink #18281E and borders #E3E8DF. Accent: #C9F26B. Dark: background #0E1210, card #27372C, secondary #BCD0BF, border #405046. Semantic danger #BA5555, success #47704A. Spacing 4/8/12/16/24, card radius 20, input 16 and pill 28.
 
 Figma's stacked illustrated feed is placeholder artwork, not a license to replace real provider content. Dates, prices, reviews and verified labels in the mockup are illustrative and cannot be claimed without real data.
 

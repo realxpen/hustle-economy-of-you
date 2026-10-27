@@ -37,9 +37,9 @@ function color(name) {
 assert.match(spec, /Hybrid — dark immersive Feed and future Live/i);
 assert.ok(contrast(color("textPrimaryLight"),color("paper"))>=4.5);
 assert.ok(contrast(color("textSecondaryLight"),color("paper"))>=4.5);
-assert.ok(contrast(color("textPrimaryDark"),color("ink"))>=4.5);
-assert.ok(contrast(color("lime"),color("ink"))>=4.5);
-assert.match(colors, /darkFeed: colors\.ink/);
+assert.ok(contrast(color("textPrimaryDark"),color("darkBase"))>=4.5);
+assert.ok(contrast(color("lime"),color("darkBase"))>=4.5);
+assert.match(colors, /darkFeed: colors\.darkBase/);
 assert.match(colors, /lightUtility: colors\.paper/);
 assert.match(demo, /HybridScreenSurface mode=\{screen === "Home" \? "darkFeed" : "lightUtility"\}/);
 assert.match(demo, /import \{ AppIcon, type AppIconName \}/);

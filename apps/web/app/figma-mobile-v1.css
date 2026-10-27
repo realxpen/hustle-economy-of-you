@@ -7,7 +7,8 @@
   --hf-card:#FFFFFF;
   --hf-raised:#E4EFD7;
   --hf-text:#181A18;
-  --hf-muted:#778074;
+  --hf-muted:#596759;
+  --hf-muted-decorative:#778074; /* Figma raw secondary: below 4.5:1 on cream */
   --hf-ink:#18281E;
   --hf-accent:#C9F26B;
   --hf-border:#E3E8DF;

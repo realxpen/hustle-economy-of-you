@@ -10,9 +10,10 @@ export const colors = {
   ink: "#18281E",
   charcoal: "#27372C",
   textPrimaryLight: "#181A18",
-  textSecondaryLight: "#778074",
+  textSecondaryLight: "#596759",
   textPrimaryDark: "#FFFFFF",
   textSecondaryDark: "#BCD0BF",
+  // Figma #778074 is 3.79:1 against cream, so use it for non-text decoration only.
   mutedDecorative: "#778074",
   lime: "#C9F26B",
   line: "#E3E8DF",

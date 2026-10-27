@@ -15,7 +15,7 @@ const palette = {
   paper: ['#F7F6F2','paper'], surface: ['#FFFFFF','card'],
   raised: ['#E4EFD7','raised'], darkBase: ['#0E1210','dark'],
   darkCard: ['#27372C','dark-card'], ink: ['#18281E','ink'],
-  textPrimaryLight: ['#181A18','text'], textSecondaryLight: ['#778074','muted'],
+  textPrimaryLight: ['#181A18','text'], textSecondaryLight: ['#596759','muted'],
   textSecondaryDark: ['#BCD0BF','dark-muted'], lime: ['#C9F26B','accent'],
   line: ['#E3E8DF','border'], darkLine: ['#405046','dark-border']
 };
