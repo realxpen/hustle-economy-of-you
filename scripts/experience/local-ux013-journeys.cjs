@@ -120,6 +120,13 @@ function localOnly(url) {
        await page.screenshot({path:path.join(out,size.label+"__feed-figma-v1.png"),
          animations:"disabled",caret:"hide"});
        const toggle=page.getByRole("button",{name:/2 linked marketplace offers/});
+       if(size.width<=760 && size.height>500){
+         const offerRect=await toggle.boundingBox();
+         const shareRect=await page.getByRole("button",{name:"Share post"}).boundingBox();
+         assert.ok(offerRect && shareRect &&
+           offerRect.x+offerRect.width<=shareRect.x-2,
+           "Figma offer action must NEVER overlap Share rail or be hidden under controls");
+       }
        await toggle.click();
        const serviceTrigger=page.getByRole("button",{name:"View provider’s service ↗"});
        await serviceTrigger.click();

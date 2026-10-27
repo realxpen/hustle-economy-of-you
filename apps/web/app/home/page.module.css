@@ -1384,6 +1384,7 @@
  .postBadge{display:none}
  .cardBody,.cardBodyOffersOpen{
    position:absolute;bottom:0;left:0;right:58px;top:auto;
+   width:auto!important;max-width:calc(100% - 58px)!important;
    display:flex;flex-direction:column;gap:7px;
    padding:0 4px 13px 18px!important;
    min-height:0;max-height:min(53%,410px);
