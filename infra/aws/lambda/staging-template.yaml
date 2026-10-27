@@ -15,6 +15,62 @@ Parameters:
     Description: Keep Vercel issuer only during pre-cutover; update to THIS function's exact URL + /api/auth before testing sessions.
     AllowedPattern: '^https://(hustle-isolated-staging-api[.]vercel[.]app|[a-z0-9]{10,64}[.]lambda-url[.]eu-west-2[.]on[.]aws)/api/auth$'
 Resources:
+  # UX011: a separate nonproduction-only, private bucket. The protected manual
+  # API deployment creates this resource only after its staging approval.
+  # No ACLs or public object reads. Uncommitted uploads expire in one day.
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: hustle-ux011-isolated-media-707859598737-eu-west-2
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      LifecycleConfiguration:
+        Rules:
+          - Id: RemoveUncommittedUploads
+            Status: Enabled
+            Prefix: pending/
+            ExpirationInDays: 1
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - https://hustle-ios-pwa-staging.realxpens.workers.dev
+            AllowedMethods: [POST, GET, HEAD]
+            AllowedHeaders: ['*']
+            ExposedHeaders: [ETag]
+            MaxAge: 300
+
+  MediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MediaBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: RequireHttpsTransport
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !GetAtt MediaBucket.Arn
+              - !Sub '${MediaBucket.Arn}/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+
   StagingExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -27,6 +83,15 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       Policies:
+        - PolicyName: isolated-staging-private-ux011-media-only
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [s3:PutObject, s3:GetObject, s3:DeleteObject]
+                Resource:
+                  - !Sub '${MediaBucket.Arn}/pending/*'
+                  - !Sub '${MediaBucket.Arn}/media/*'
         - PolicyName: isolated-staging-lambda-logs-only
           PolicyDocument:
             Version: '2012-10-17'
@@ -64,6 +129,7 @@ Resources:
           AWS_LWA_READINESS_CHECK_PATH: /api/v1/health
           WEB_ORIGIN: https://hustle-ios-pwa-staging.realxpens.workers.dev
           HUSTLE_RUNTIME_SCOPE: isolated-staging
+          HUSTLE_STAGING_MEDIA_BUCKET: !Ref MediaBucket
           HUSTLE_AUTH_PROVIDER: expo-better-auth
           HUSTLE_AWS_ACCOUNT_ID: '707859598737'
           HUSTLE_STAGING_PROJECT_ID: summer-sound-54525078
