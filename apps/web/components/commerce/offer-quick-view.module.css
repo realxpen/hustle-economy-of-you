@@ -33,3 +33,53 @@
  backdrop-filter:blur(28px) saturate(130%);
 }
 @media(prefers-reduced-transparency:reduce){.sheet{background:#17171a;-webkit-backdrop-filter:none;backdrop-filter:none}}
+
+/* UX011 — Figma mobile light-sheet parity. Real offers and dialog focus are unchanged. */
+.backdrop{background:rgba(5,13,8,.67);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+.sheet{background:var(--hf-paper,#F7F6F2);color:var(--hf-text,#181A18);
+  border:1px solid var(--hf-border,#E3E8DF);border-radius:28px;
+  box-shadow:0 28px 85px rgba(4,12,6,.35);-webkit-backdrop-filter:none;backdrop-filter:none}
+.sheet:focus-visible{outline:3px solid #446A25;outline-offset:-5px}
+.handle{background:#D0D9CC}
+.topline{color:var(--hf-muted,#596759);font-size:11px;letter-spacing:.08em;padding:18px 24px 10px}
+.close{display:grid;place-items:center;min-width:48px;width:48px;height:48px;
+  border:1px solid var(--hf-border,#E3E8DF);background:var(--hf-raised,#E4EFD7);
+  border-radius:999px;color:var(--hf-ink,#18281E)}
+.close:focus-visible,.actions a:focus-visible,.error button:focus-visible{
+  outline:3px solid #446A25;outline-offset:3px}
+.copy{padding:24px;gap:0}
+.offerType{color:var(--hf-ink,#18281E);font-size:11px;letter-spacing:.14em}
+.copy h2{font-size:clamp(24px,4vw,34px);letter-spacing:-.04em;color:var(--hf-text,#181A18)}
+.price{color:var(--hf-ink,#18281E);font-size:23px;font-weight:900}
+.copy>p{color:var(--hf-muted,#596759);font-size:14px;line-height:1.6}
+.facts span{color:var(--hf-ink,#18281E);background:var(--hf-raised,#E4EFD7);
+  border-color:var(--hf-border,#E3E8DF);border-radius:999px;line-height:1.4}
+.provider{border-top-color:var(--hf-border,#E3E8DF)}
+.provider small,.provider span{color:var(--hf-muted,#596759)}
+.provider strong{color:var(--hf-text,#181A18)}
+.avatar{background:var(--hf-raised,#E4EFD7);color:var(--hf-ink,#18281E)}
+.media{background:var(--hf-dark-card,#27372C)}
+.actions{margin-top:24px}
+.actions a{min-height:48px;border-radius:16px;padding:12px 17px}
+.primary{background:var(--hf-accent,#C9F26B);color:var(--hf-ink,#18281E);
+  border:1px solid transparent}
+.secondary{border:1px solid var(--hf-border,#E3E8DF);background:#FFF;color:var(--hf-ink,#18281E)}
+.loading,.error{color:var(--hf-ink,#18281E)}
+.loading span,.error span{color:var(--hf-muted,#596759)}
+.error button{background:var(--hf-accent,#C9F26B);color:var(--hf-ink,#18281E);border:0;min-height:48px}
+@media(max-width:680px){
+  .backdrop{align-items:end;padding:0}
+  .sheet{width:100%;max-height:90dvh;border-radius:28px 28px 0 0;border-bottom:0;
+    padding-bottom:env(safe-area-inset-bottom,0px)}
+  .handle{display:block;margin:12px auto 3px}
+  .topline{padding:8px 20px 8px}
+  .content{grid-template-columns:minmax(0,1fr)}
+  .media{min-height:170px;max-height:29dvh}
+  .media img,.media video{min-height:170px;max-height:29dvh}
+  .copy{padding:16px 20px 20px}
+  .copy h2{font-size:25px}
+  .actions{position:sticky;bottom:0;z-index:2;background:var(--hf-paper,#F7F6F2);
+    padding:14px 0 2px;gap:9px}
+  .actions a{flex:1 1 100%}
+}
+@media(prefers-reduced-transparency:reduce){.sheet{background:var(--hf-paper,#F7F6F2)}}

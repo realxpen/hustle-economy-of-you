@@ -8,6 +8,9 @@ import type { MobileSession as Session } from '../lib/mobile-session';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, layout, radii, spacing } from '../ux004/theme';
+import { SheetChrome } from '../ux004/components/SheetChrome';
+import { SkillChip } from '../ux004/components/SkillChip';
+import { ScreenHeader } from '../ux004/components/ScreenHeader';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { syncMobileAccount } from '../lib/account';
 import { mobileApi, type FeedItem, type FeedTab, type Offer, type PostComment, type SearchResult, type SearchTab, type BookingSlot, type SlotPage } from './feed-api';
@@ -72,7 +75,7 @@ function Action({ children, onPress, secondary = false, disabled = false }: { ch
   </Pressable>;
 }
 function SheetTitle({ title, onClose }: { title: string; onClose: () => void }) {
-  return <View style={styles.sheetTop}><Text style={styles.sheetTitle}>{title}</Text><Pressable accessibilityLabel="Close" onPress={onClose}><Icon name="close" color={C.dark} /></Pressable></View>;
+  return <SheetChrome title={title} onClose={onClose}/>;
 }
 
 function Experience({ session, onSignOut }: { session: Session; onSignOut: () => Promise<void> }) {
@@ -519,7 +522,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
           ListEmptyComponent={<View style={styles.emptyDark}><Text style={styles.emptyHeading}>No posts yet</Text><Text style={styles.emptyBody}>Follow Hustlers or check the Nearby feed as people publish their work.</Text></View>}
           ListFooterComponent={loadingMore ? <ActivityIndicator color={C.lime} /> : feedError ? <Pressable onPress={() => void fetchMore()}><Text style={styles.errorSmall}>{feedError} · Retry</Text></Pressable> : null} /> : null}
     {screen === 'Explore' && <View style={[styles.lightPage, { paddingTop: insets.top + 18 }]}>
-      <Text style={styles.pageTitle}>Explore</Text><Text style={styles.subline}>Find skills, people, services and products.</Text>
+      <ScreenHeader title="Explore" subtitle="Find skills, people, services and products." eyebrow="DISCOVER WORK"/>
       <View style={styles.searchRow}><Icon name="search" color={C.dark} size={20} /><TextInput accessibilityLabel="Search Hustle" placeholder="Try 'tailor in Lagos'" placeholderTextColor={C.muted} style={styles.searchInput} value={searchText} onChangeText={editSearch} onSubmitEditing={() => void runSearch(searchText)} returnKeyType="search"/><Pressable accessibilityRole="button" accessibilityLabel="Search published Hustle records"
           onPress={() => void runSearch(searchText)} style={styles.searchSubmit}>
           <Icon name="arrow-forward" color={C.dark} size={20}/>
@@ -527,19 +530,11 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.searchTabStrip}
         contentContainerStyle={styles.searchTabContent}
         accessibilityLabel="Published search result types">
-        {SEARCH_TABS.map(tab => <Pressable key={tab.id} accessibilityRole="tab"
-          accessibilityLabel={tab.label + ' search results'}
-          accessibilityState={{ selected: searchTab === tab.id }}
-          onPress={() => chooseSearchTab(tab.id)}
-          style={[styles.searchTabChoice, searchTab === tab.id && styles.searchTabChoiceActive]}>
-          <Text style={[styles.searchTabLabel, searchTab === tab.id && styles.searchTabLabelActive]}>
-            {tab.label}
-          </Text>
-        </Pressable>)}
+        {SEARCH_TABS.map(tab => <SkillChip key={tab.id} role="tab" label={tab.label + " search results"}
+          active={searchTab === tab.id} onPress={() => chooseSearchTab(tab.id)} />)}
       </ScrollView>
-      <ScrollView keyboardShouldPersistTaps="handled"><Text style={styles.sectionTitle}>Browse by skill</Text><View style={styles.chips}>{['Beauty','Fashion','Home','Media','Digital'].map(category => <Pressable key={category} style={styles.chip} accessibilityRole="button"
-            accessibilityLabel={"Search skill " + category}
-            onPress={() => void runSearch(category)}><Text style={styles.chipText}>{category}</Text></Pressable>)}</View>
+      <ScrollView keyboardShouldPersistTaps="handled"><Text style={styles.sectionTitle}>Browse by skill</Text><View style={styles.chips}>{['Beauty','Fashion','Home','Media','Digital'].map(category => <SkillChip key={category} label={"Search skill " + category}
+             onPress={() => void runSearch(category)}/>)}</View>
         <Text style={styles.sectionTitle}>Nearby discovery</Text><View style={styles.mapPlaceholder}><Icon name="map-outline" color="#354C38" size={34}/><Text style={styles.mapText}>Live map not connected</Text><Text style={styles.meta}>Search works now. Map pins require a location provider and verified coordinates.</Text></View>
         <Text style={styles.sectionTitle}>Search results</Text>
         {hasSearched && !searchLoading && !searchError && searchResults.length > 0 &&
@@ -593,9 +588,9 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     </View>
     <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
       <View style={styles.modalRoot}><Pressable style={styles.scrim} onPress={() => setSheet(null)} accessibilityLabel="Dismiss sheet" />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
-            <View style={styles.handle} />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetKeyboard}>
+          <ScrollView style={styles.sheet} nestedScrollEnabled keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
             <SheetTitle title={sheet === 'comments' ? 'Comments' : sheet === 'save' ? 'Save this post' : sheet === 'share' ? 'Share this work' : sheet === 'creator' ? 'Creator' : sheet === 'service' ? 'Attached service' : sheet === 'product' ? 'Attached product' : 'Request booking'} onClose={() => setSheet(null)} />
             {active && sheet === 'comments' && <><ScrollView style={{ maxHeight: 340 }} keyboardShouldPersistTaps="handled">{discussionLoading ? <ActivityIndicator /> : comments.length ? comments.map(comment => <View key={comment.id} style={[styles.comment, comment.parentId && { marginLeft: 28 }]}><View style={styles.avatar}><Icon name="person-outline" color={C.dark} /></View><View style={{ flex: 1 }}><Text style={styles.resultTitle}>@{comment.user.username || comment.user.displayName || 'member'}</Text><Text style={styles.commentBody}>{comment.body}</Text><Pressable onPress={() => setReplyTo(comment.id)}><Text style={styles.meta}>Reply</Text></Pressable></View></View>) : <Text style={styles.meta}>Start the conversation.</Text>}</ScrollView>{replyTo && <Pressable onPress={() => setReplyTo(null)}><Text style={styles.meta}>Replying to a comment · Cancel</Text></Pressable>}<View style={styles.composer}><TextInput accessibilityLabel="Write a comment" placeholder="Write a comment…" style={{ flex: 1, color: C.dark }} value={draft} onChangeText={setDraft}/><Pressable disabled={working} onPress={() => void submitComment()}><Icon name="send" color={C.dark} /></Pressable></View></>}
             {active && sheet === 'save' && <><Text style={styles.meta}>Saved posts are tied to your Hustle account. Named collections are not supported by the current API yet.</Text><Action disabled={working} onPress={() => void mutate('save', active)}>{active.viewer.saved ? 'Remove saved post' : 'Save to Hustle'}</Action></>}
@@ -613,7 +608,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
             {slotMode === 'APPOINTMENT' && !slotLoading && slots.length === 0 ? <Text style={styles.meta}>No available slots for this day.</Text> : null}
             <TextInput accessibilityLabel="Project requirements" style={styles.requirements} multiline placeholder="Describe the work you need..." value={requirements} onChangeText={setRequirements}/>
             <Action disabled={working || !chosenSlot || !requirements.trim()} onPress={bookingRequest}>Request booking</Action><Text style={styles.meta}>Booking submission is disabled by default. No payment or escrow action occurs here.</Text></>}
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -622,9 +617,9 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
       <View style={styles.modalRoot}>
         <Pressable style={styles.scrim} accessibilityRole="button"
           accessibilityLabel="Dismiss Hustler preview" onPress={closeOpportunity}/>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
-            <View style={styles.handle}/>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetKeyboard}>
+          <ScrollView style={styles.sheet} nestedScrollEnabled keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
             <SheetTitle title={opportunityStage === 'profile' ? 'Hustler profile'
               : opportunityStage === 'offer' ? 'Published offer' : 'Service enquiry'}
               onClose={closeOpportunity}/>
@@ -801,7 +796,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                   onPress={() => { clearEnquirySlots(); setOpportunityStage('offer'); }}>Back to service</Action>
               </>}
             </ScrollView>}
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -863,12 +858,16 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, chip: { backgroundColor: colors.raised, padding: 14, borderRadius: 16 },
   chipText: { fontSize: 13, fontWeight: '800', color: C.dark }, mapPlaceholder: { height: 160, backgroundColor: colors.raised, borderRadius: 18, justifyContent: 'center', alignItems: 'center', gap: 6, padding: 16 },
   mapText: { fontWeight: '800', color: colors.ink }, meta: { fontSize: 12, color: C.muted, lineHeight: 18, marginTop: 9 },
-  resultCard: { backgroundColor: C.white, borderRadius: radii.card, padding: spacing.md, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  resultCard: { backgroundColor: C.white, borderRadius: radii.card, padding: spacing.md, marginTop: 10,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   resultTitle: { fontWeight: '800', color: C.dark, fontSize: 15, flexShrink: 1 }, emptyDark: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 35, backgroundColor: C.dark },
   emptyHeading: { fontSize: 23, fontWeight: '800', color: C.white, textAlign: 'center', marginTop: 12 },
   emptyBody: { color: '#DCE4D8', textAlign: 'center', marginTop: 12, lineHeight: 22 }, errorSmall: { color: C.white, textAlign: 'center', margin: 20 },
+  sheetKeyboard: { width: '100%', maxHeight: '90%', flexShrink: 1 },
   modalRoot: { flex: 1, justifyContent: 'flex-end' }, scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.55)' },
-  sheet: { backgroundColor: C.paper, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 22, paddingTop: 15, minHeight: 260, maxHeight: '90%' },
+  sheet: { backgroundColor: C.paper, borderTopLeftRadius: radii.large, borderTopRightRadius: radii.large,
+    paddingHorizontal: spacing.lg, paddingTop: spacing.md, maxHeight: '100%' },
   handle: { width: 65, height: 5, backgroundColor: colors.line, borderRadius: 3, alignSelf: 'center', marginBottom: 19 },
   sheetTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 17 }, sheetTitle: { fontSize: 21, fontWeight: '800', color: C.dark },
   action: { alignItems: 'center', justifyContent: 'center', backgroundColor: C.lime, padding: 17, marginTop: 19, borderRadius: 20 },

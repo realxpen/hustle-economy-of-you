@@ -7,5 +7,6 @@ export function SurfaceCard({ children, style }: Props) {
   return <View style={[styles.card, style]}>{children}</View>;
 }
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.md },
+  card: { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.md,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
 });

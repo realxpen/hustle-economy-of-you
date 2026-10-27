@@ -112,3 +112,33 @@
  .mine .bubble{background:#E1EDCD;color:#121714;border-color:#CAD8BC}
  .threadShell{padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))}
 }
+
+/* UX011 — Inbox/threads share Figma utility cards, action chips and focus. */
+.shell{background:var(--h-paper,var(--hf-paper,#F7F6F2));
+ color:var(--h-ink,var(--hf-text,#181A18))}
+.hero h1{font-size:clamp(32px,5vw,56px)}
+.eyebrow,.headlineDot{color:var(--hf-ink,#18281E)}
+.searchLabel input{border-radius:16px;border-color:var(--h-border,#E3E8DF);
+ background:var(--h-surface,#FFF)}
+.segmented{border-color:var(--h-border,#E3E8DF);background:var(--h-surface,#FFF)}
+.filterButton[aria-pressed="true"]{background:var(--hf-ink,#18281E);color:#FFF;box-shadow:none}
+.conversation{background:var(--h-surface,#FFF);border:1px solid var(--h-border,#E3E8DF);
+ border-radius:20px;box-shadow:0 5px 18px rgba(7,20,9,.035)}
+.conversationUnread{border:2px solid #64874F;background:var(--h-surface,#FFF);
+ box-shadow:inset 3px 0 #64874F}
+.conversation:hover{border-color:#64874F;background:var(--h-surface,#FFF)}
+.avatar{background:var(--hf-raised,#E4EFD7);color:var(--hf-ink,#18281E)}
+.unread,.unreadDot{background:var(--hf-accent,#C9F26B);color:var(--hf-ink,#18281E)}
+.verified{background:var(--hf-raised,#E4EFD7);color:var(--hf-ink,#18281E)}
+.threadHeader,.composerWrap{background:var(--h-surface,#FFF);border-color:var(--h-border,#E3E8DF)}
+.composeRow textarea{border-radius:16px}
+.composeRow button,.startActions button{min-height:48px;border-radius:16px;
+ background:var(--hf-accent,#C9F26B);color:var(--hf-ink,#18281E)}
+@media(max-width:760px){
+ .shell{padding:18px 16px calc(108px + env(safe-area-inset-bottom,0px))}
+ .hero{padding:14px 0}
+ .hero h1{font-size:30px}
+ .inboxTools{gap:9px}
+ .conversation{padding:14px;border-radius:18px}
+ .threadShell{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+}

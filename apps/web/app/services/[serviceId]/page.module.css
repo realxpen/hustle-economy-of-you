@@ -36,3 +36,36 @@
 .reputation strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
 .reputation small{font-size:11px;line-height:1.4;letter-spacing:normal;color:var(--h-text-muted,#999)}
 .reputation p{font-size:13px;line-height:1.5;white-space:normal;overflow-wrap:anywhere;margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+
+/* UX011 — Figma service-detail → booking, without changing real offer state. */
+.shell{background:var(--h-paper,var(--hf-paper,#F7F6F2));
+  color:var(--h-ink,var(--hf-text,#181A18))}
+.header{border-bottom-color:var(--h-border,#E3E8DF)}
+.hero{gap:16px;padding-top:clamp(28px,4vw,54px)}
+.offer,.description,.details{background:var(--h-surface,#FFF);
+  border:1px solid var(--h-border,#E3E8DF);border-radius:20px}
+.offer h1{font-size:clamp(36px,6vw,70px);line-height:1.02;letter-spacing:-.05em}
+.offer>strong{color:var(--hf-ink,#18281E)}
+.bookButton,.messageButton{min-height:48px;border-radius:16px;padding:12px 18px}
+.bookButton{background:var(--hf-accent,#C9F26B);color:var(--hf-ink,#18281E)}
+.messageButton{background:var(--h-surface,#FFF);color:var(--h-ink,#181A18);
+  border:1px solid var(--h-border,#E3E8DF)}
+.ownerCard{background:var(--hf-dark,#0E1210);color:#FFF;border-radius:20px}
+.avatar{background:var(--hf-accent,#C9F26B);color:var(--hf-ink,#18281E);border-radius:20px}
+.ownerCard small,.ownerCard p{color:var(--hf-dark-muted,#BCD0BF)}
+.description>p:not(.kicker){color:var(--h-muted,#596759);font-size:clamp(15px,2vw,19px)}
+.details small,.details>p{color:var(--h-muted,#596759)}
+.details>div{border-bottom-color:var(--h-border,#E3E8DF)}
+.mediaGrid img,.mediaGrid video{border-radius:20px}
+@media(max-width:760px){
+ .shell{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px))}
+ .hero{padding:24px 0 14px;gap:12px}
+ .offer{padding:22px}
+ .offer h1{font-size:clamp(31px,8vw,48px)}
+ .offerActions{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+ .ownerCard{min-height:0;padding:22px}
+ .avatar{width:64px;height:64px;font-size:32px;margin-bottom:14px}
+ .mediaGrid img,.mediaGrid video{height:clamp(190px,54vw,310px)}
+ .contentGrid{gap:12px}
+ .description,.details{padding:22px}
+}

@@ -129,3 +129,33 @@
   .proposalActions{display:grid;grid-template-columns:minmax(0,1fr)}
   .proposalActions button{width:100%;min-height:48px}
 }
+
+/* UX011 — Consultation and Booking forms use identical Figma inputs/cards. 
+ * Transaction statuses keep their own semantic danger/success colors. */
+.shell{background:var(--h-paper,var(--hf-paper,#F7F6F2));
+ color:var(--h-ink,var(--hf-text,#181A18))}
+.formWrap{max-width:980px;margin-block:clamp(22px,5vw,48px)}
+.formHero{gap:16px}
+.offerCard,.formCard,.summaryCard,.panel{background:var(--h-surface,#FFF);
+ border:1px solid var(--h-border,#E3E8DF);border-radius:20px}
+.offerCard h1{font-size:clamp(30px,5vw,55px);line-height:1.04}
+.price{color:var(--hf-ink,#18281E)}
+.field label,.eyebrow,.panelHead small{color:var(--h-muted,#596759)}
+.field input,.field textarea,.flowTimeDate input{min-height:48px;
+ background:var(--h-surface,#FFF);border:1px solid var(--h-border,#E3E8DF);
+ border-radius:16px;color:var(--h-ink,#181A18)}
+.formCard .primary,.primary{min-height:48px;border-radius:16px;
+ background:var(--hf-accent,#C9F26B);color:var(--hf-ink,#18281E)}
+.secondary{min-height:48px;border-radius:16px;
+ background:var(--hf-raised,#E4EFD7);color:var(--hf-ink,#18281E)}
+.field :is(input,textarea):focus-visible,.flowTimeDate input:focus-visible{
+ outline:3px solid #446A25;outline-offset:2px}
+@media(max-width:760px){
+ .shell{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px))}
+ .formHero{grid-template-columns:minmax(0,1fr);gap:12px}
+ .offerCard,.formCard,.summaryCard,.panel{padding:20px}
+ .formCard{gap:16px}
+ .grid2{grid-template-columns:minmax(0,1fr)}
+ .flowTimeGrid{min-width:0}
+ .formCard .primary{width:100%}
+}
