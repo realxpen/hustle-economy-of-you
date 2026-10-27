@@ -28,6 +28,18 @@ assert.match(files.editor, /type="file"/);
 assert.match(files.editor, /selectedPreview/);
 assert.match(files.editor, /uploadProgress/);
 assert.match(files.editor, /uploadAbort\.current\?\.abort\(\)/);
+assert.match(files.editor, /function editorMediaPreviewSource\(/,
+  "Both editor previews must share the same draft/private media policy");
+assert.match(files.editor, /item\.storageKey\?\.startsWith\("media\/"\) && status !== "PUBLISHED"/,
+  "Attached private draft media must not use anonymous public URLs");
+assert.match(files.editor, /ownerMediaUrls\[item\.id\] \?\? null/,
+  "Draft source must come exclusively from the authenticated blob preview");
+assert.match(files.editor, /editorMediaPreviewSource\(item, post\.status, draftMediaPreviews\)/,
+  "Attached-media thumbnails must obey private preview policy");
+assert.match(files.editor, /editorMediaPreviewSource\(item, post\?\.status, draftMediaPreviews\)/,
+  "Large content preview must obey the same private preview policy");
+assert.doesNotMatch(files.editor, /src=\{post\.media\[0\]\.mediaUrl\}/,
+  "Never read a DRAFT via published-only /media/p in the large preview");
 assert.match(files.editor, /confirmStagingPostMedia/);
 
 for (const path of [
