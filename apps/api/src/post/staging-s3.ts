@@ -123,9 +123,14 @@ export async function firstBytes(key: string) {
 
 export async function promoteObject(pending: string, destination: string) {
   // Same private bucket. Copy keeps original Content-Type, then removes pending.
-  await request("PUT", destination, {
+  const copied = await request("PUT", destination, {
     "x-amz-copy-source": `/${bucketName}/${encodedKey(pending)}`
   });
+  // S3 CopyObject may return HTTP 200 containing an XML <Error>; never
+  // accept success solely from the status or drop the pending upload early.
+  const result = await copied.text();
+  if (!result.includes("<CopyObjectResult") || result.includes("<Error"))
+    throw new BadGatewayException("Private media object promotion was not confirmed");
   await request("DELETE", pending);
 }
 
