@@ -283,12 +283,12 @@
  .dock{display:none!important}
  .appDock{
    display:block;position:fixed;z-index:101;
-   left:max(18px,env(safe-area-inset-left,0px));
-   right:max(18px,env(safe-area-inset-right,0px));
-   bottom:calc(8px + env(safe-area-inset-bottom,0px));
-   height:59px;padding:6px 8px;
-   border-radius:30px;background:#121714;border:1px solid #405046;
-   box-shadow:0 10px 30px rgba(0,0,0,.32);
+   left:0;right:0;bottom:0;
+   height:calc(57px + env(safe-area-inset-bottom,0px));
+   padding:5px 14px calc(5px + env(safe-area-inset-bottom,0px));
+   border-radius:0;background:#121614;
+   border:0;border-top:1px solid #27372C;
+   box-shadow:none;
  }
  .appInner{
    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));

@@ -46,6 +46,7 @@ export function OfferQuickView({
   type,
   id,
   label = "Quick view",
+  trailingLabel,
   className,
   sourceLabel,
   sourcePostId,
@@ -54,6 +55,7 @@ export function OfferQuickView({
   type: OfferQuickViewType;
   id: string;
   label?: string;
+  trailingLabel?: string;
   className?: string;
   sourceLabel?: string;
   sourcePostId?: string;
@@ -179,7 +181,7 @@ export function OfferQuickView({
       onFocus={preload}
       aria-haspopup="dialog"
     >
-      {label}
+      {trailingLabel ? <><span className={styles.triggerMain}>{label}</span><span className={styles.triggerAction}>{trailingLabel}</span></> : label}
     </button>
 
     {open && createPortal(<div className={styles.backdrop} role="presentation" onMouseDown={() => setOpen(false)}>

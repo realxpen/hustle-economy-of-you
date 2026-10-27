@@ -418,7 +418,7 @@ function FeedCard({
       {offerCount > 0 && <section className={styles.opportunityDock} aria-label="Services and products attached to this post">
         {offerCount === 1 && item.services.length === 1
           ? <OfferQuickView type="SERVICE" id={item.services[0].id}
-              label={`✦  ${item.services[0].title ?? "Service"}   ·   Book ↗`}
+              label={`✦  ${item.services[0].title ?? "Service"}`} trailingLabel="Book ↗"
               sourceLabel="POST" sourcePostId={item.post.id} className={styles.directOffer}
               onOpen={() => void captureFeedEvent({
                 name: "feed.service_clicked", postId: item.post.id, feedTab: tab,
@@ -426,7 +426,7 @@ function FeedCard({
               }).catch(() => undefined)} />
           : offerCount === 1 && item.products.length === 1
             ? <OfferQuickView type="PRODUCT" id={item.products[0].id}
-                label={`✦  ${item.products[0].title ?? "Product"}   ·   View ↗`}
+                label={`✦  ${item.products[0].title ?? "Product"}`} trailingLabel="View ↗"
                 sourceLabel="POST" sourcePostId={item.post.id} className={styles.directOffer}
                 onOpen={() => void captureFeedEvent({
                   name: "feed.product_clicked", postId: item.post.id, feedTab: tab,

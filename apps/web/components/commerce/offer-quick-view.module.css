@@ -92,3 +92,9 @@
   z-index: 6000;
   isolation: isolate;
 }
+
+
+/* Figma 02 attachment: compact work title + quiet lime conversion action.
+   Both spans belong to a single real, accessible quick-view button. */
+.triggerMain { flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.triggerAction { flex:0 0 auto;color:#C9F26B;font-size:13px;font-weight:850;white-space:nowrap }
