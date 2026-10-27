@@ -6,12 +6,15 @@ import {
   Param,
   Post,
   Put,
+  Res,
   UseGuards
 } from "@nestjs/common";
 
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
+import type { Response } from "express";
+import { StagingUploadService } from "./staging-upload.service";
 import {
   PostService,
   type AddPostMediaInput,
@@ -21,7 +24,7 @@ import {
 @Controller("posts")
 @UseGuards(AuthGuard)
 export class OwnerPostController {
-  constructor(private readonly posts: PostService) {}
+  constructor(private readonly posts: PostService, private readonly uploads: StagingUploadService) {}
 
   @Get("mine")
   listMine(@CurrentIdentity() identity: AuthIdentity) {
@@ -60,6 +63,24 @@ export class OwnerPostController {
     @Body() body: AddPostMediaInput
   ) {
     return this.posts.addMedia(identity, postId, body);
+  }
+
+  @Post(":postId/media/uploads/authorize")
+  authorizeMediaUpload(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("postId") postId: string,
+    @Body() body: { contentType?: unknown; size?: unknown }
+  ) {
+    return this.uploads.authorize(identity, postId, body);
+  }
+
+  @Post(":postId/media/uploads/confirm")
+  confirmMediaUpload(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("postId") postId: string,
+    @Body() body: { receipt?: unknown }
+  ) {
+    return this.uploads.confirm(identity, postId, body);
   }
 
   @Delete(":postId/media/:mediaId")
@@ -131,5 +152,35 @@ export class PublicPostController {
   @Get(":postId")
   getPublic(@Param("postId") postId: string) {
     return this.posts.getPublic(postId);
+  }
+}
+
+/** A public post's media is served via a short-lived, private-bucket redirect.
+ * Draft and archived media are never exposed through this public route.
+ */
+@Controller("media")
+export class StagingPostMediaController {
+  constructor(private readonly uploads: StagingUploadService) {}
+
+  @Get("p/:postId/:mediaId")
+  async public(
+    @Param("postId") postId: string,
+    @Param("mediaId") mediaId: string,
+    @Res() response: Response
+  ) {
+    response.setHeader("Cache-Control", "private, no-store");
+    response.redirect(307, await this.uploads.publicMedia(postId, mediaId));
+  }
+
+  @Get("o/:postId/:mediaId")
+  @UseGuards(AuthGuard)
+  async owner(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("postId") postId: string,
+    @Param("mediaId") mediaId: string,
+    @Res() response: Response
+  ) {
+    response.setHeader("Cache-Control", "private, no-store");
+    response.redirect(307, await this.uploads.ownedMedia(identity, postId, mediaId));
   }
 }
