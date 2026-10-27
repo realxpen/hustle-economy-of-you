@@ -57,7 +57,7 @@ function decodeClaim(value: unknown): UploadClaim {
   let claim: UploadClaim;
   try { claim = JSON.parse(Buffer.from(data, "base64url").toString()) as UploadClaim; }
   catch { throw new ForbiddenException("Invalid media upload receipt"); }
-  if (claim.v !== 1 || !claim.expires || claim.expires <= Date.now() ||
+  if (!claim || typeof claim !== "object" || claim.v !== 1 || !claim.expires || claim.expires <= Date.now() ||
       !allowed.includes(claim.mime) || !Number.isInteger(claim.size) ||
       claim.size < 1 || claim.size > maxBytes[claim.mime] ||
       !/^[a-f0-9-]{36}$/.test(claim.mediaId) ||
