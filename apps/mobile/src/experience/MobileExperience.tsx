@@ -617,8 +617,9 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
       <View style={styles.modalRoot}>
         <Pressable style={styles.scrim} accessibilityRole="button"
           accessibilityLabel="Dismiss Hustler preview" onPress={closeOpportunity}/>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetKeyboard}>
+          <ScrollView style={styles.sheet} nestedScrollEnabled keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
             <SheetTitle title={opportunityStage === 'profile' ? 'Hustler profile'
               : opportunityStage === 'offer' ? 'Published offer' : 'Service enquiry'}
               onClose={closeOpportunity}/>
@@ -795,7 +796,7 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                   onPress={() => { clearEnquirySlots(); setOpportunityStage('offer'); }}>Back to service</Action>
               </>}
             </ScrollView>}
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </View>
     </Modal>

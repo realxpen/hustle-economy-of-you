@@ -1,11 +1,12 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { AppIcon } from "./AppIcon";
 import { colors, layout, radii, spacing, typography } from "../theme";
 
 /** Shared Figma Mobile V1 sheet chrome: headings, grabber, accessible close. */
-export function SheetChrome({ title, onClose, caption }: {
+export function SheetChrome({ title, onClose, caption, closeStyle }: {
   title: string; onClose: () => void; caption?: string;
+  closeStyle?: StyleProp<ViewStyle>;
 }) {
   return <View style={styles.wrapper}>
     <View style={styles.grabber} accessible={false}/>
@@ -18,7 +19,7 @@ export function SheetChrome({ title, onClose, caption }: {
         accessibilityRole="button" accessibilityLabel={"Close " + title}
         accessibilityHint="Returns to the previous screen"
         onPress={onClose} hitSlop={4}
-        style={({ pressed }) => [styles.close, pressed && styles.pressed]}>
+        style={({ pressed }) => [styles.close, closeStyle, pressed && styles.pressed]}>
         <AppIcon name="close" size={22} color={colors.ink}/>
       </Pressable>
     </View>

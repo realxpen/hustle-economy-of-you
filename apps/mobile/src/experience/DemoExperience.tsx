@@ -479,7 +479,7 @@ function Experience() {
           <ScrollView style={styles.sheetScroll} nestedScrollEnabled
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 14) + 14 }]}>
-            <SheetChrome onClose={requestDismissSheet}
+            <SheetChrome onClose={requestDismissSheet} closeStyle={styles.sheetCloseTarget}
               title={sheet === "comments" ? "Comments" : sheet === "save" ? "Save to collection" :
                 sheet === "share" ? "Share this work" : sheet === "creator" ? "Creator" :
                 sheet === "offer" ? current.offer.kind === "service" ? "Attached service" : "Attached product" : "Booking preview"}/>
