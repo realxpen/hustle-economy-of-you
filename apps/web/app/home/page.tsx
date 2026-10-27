@@ -416,6 +416,23 @@ function FeedCard({
       {item.post.tags.length > 0 && <div className={styles.tags}>{item.post.tags.slice(0, 3).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
 
       {offerCount > 0 && <section className={styles.opportunityDock} aria-label="Services and products attached to this post">
+        {offerCount === 1 && item.services.length === 1
+          ? <OfferQuickView type="SERVICE" id={item.services[0].id}
+              label={`✦  ${item.services[0].title ?? "Service"}   ·   Book ↗`}
+              sourceLabel="POST" sourcePostId={item.post.id} className={styles.directOffer}
+              onOpen={() => void captureFeedEvent({
+                name: "feed.service_clicked", postId: item.post.id, feedTab: tab,
+                position, sessionId, serviceId: item.services[0].id
+              }).catch(() => undefined)} />
+          : offerCount === 1 && item.products.length === 1
+            ? <OfferQuickView type="PRODUCT" id={item.products[0].id}
+                label={`✦  ${item.products[0].title ?? "Product"}   ·   View ↗`}
+                sourceLabel="POST" sourcePostId={item.post.id} className={styles.directOffer}
+                onOpen={() => void captureFeedEvent({
+                  name: "feed.product_clicked", postId: item.post.id, feedTab: tab,
+                  position, sessionId, productId: item.products[0].id
+                }).catch(() => undefined)} />
+            : <>
         <button className={styles.offerToggle} type="button" aria-expanded={offersOpen}
           onClick={() => { setActionMenuOpen(false); setOffersOpen((previous) => !previous); }}>
           <span className={styles.offerIcon} aria-hidden="true">↗</span>
@@ -442,6 +459,7 @@ function FeedCard({
             </div>)}
           </div>
         </div>}
+        </>}
       </section>}
       {notice && <p className={styles.notice} role="status">{notice}</p>}
     </div>
@@ -622,16 +640,27 @@ export default function DiscoveryHomePage() {
     <section className={styles.discoverLayout} aria-label="Hustle Discovery">
       <div className={styles.playerColumn}>
         <div className={styles.feedTopBar}>
-          <span className={styles.appWordmark} aria-hidden="true">hustle<span>.</span></span>
+          <span className={styles.appWordmark} aria-hidden="true">hustle</span>
           <div className={styles.feedHeading}>
             <strong>Discover<span>.</span></strong>
             <small>Real people. Real work.</small>
           </div>
+          <Link className={styles.mobileSearch} href="/search" aria-label="Search Hustlers, skills and work">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="10.8" cy="10.8" r="7"/><path d="m16 16 5 5"/>
+            </svg>
+          </Link>
           <nav className={styles.tabs} aria-label="Discovery feed tabs">
+            <Link className={styles.tabLink} href="/live">LIVE</Link>
             {tabs.map((option) => <button key={option.id} type="button"
-              className={tab === option.id ? styles.activeTab : undefined}
+              className={[tab === option.id ? styles.activeTab : "", option.id === "connections" ? styles.extraTab : ""].filter(Boolean).join(" ")}
               aria-pressed={tab === option.id} onClick={() => setTab(option.id)}>{option.label}</button>)}
-            <Link className={styles.tabLink} href="/live">Live</Link>
+            <details className={styles.feedMore}>
+              <summary aria-label="More feed views">···</summary>
+              <button type="button" onClick={() => setTab("connections")}
+                aria-pressed={tab === "connections"}>Connections</button>
+            </details>
           </nav>
           <div className={styles.quickLinks}>
             <Link href="/wallet" aria-label="Open Hustle Sandbox Wallet" title="Wallet" onClick={event => { if (meta.guest) { event.preventDefault(); window.location.assign(authUrl("/wallet")); } }}>₦</Link>
