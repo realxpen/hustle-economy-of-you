@@ -194,6 +194,7 @@ export default function AccountPage() {
           </Link>
         </div>
         <div className={styles.studioLinks}>
+          <ToolRow href="/grow" icon="spark" label="Your creator progress" supporting="See published work, linked offers and your next opportunity" />
           <ToolRow href="/posts/new" icon="play" label="Create a post" supporting="Show your work to the community" />
           <ToolRow href="/stories/create" icon="spark" label="Share a Story" supporting="An update that lasts 24 hours" />
           {hustlerActive && <>

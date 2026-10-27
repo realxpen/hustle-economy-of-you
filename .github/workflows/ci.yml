@@ -85,6 +85,8 @@ jobs:
       - run: npm run build --workspace=@hustle/web
       - run: npm run build --workspace=@hustle/admin
       - run: npm run build --workspace=@hustle/api
+      - name: UX010 real Client/Hustler creator opportunity and privacy service regression
+        run: node scripts/experience/check-ux010-creator-activation.cjs
       - name: Exercise real Nest Client/Hustler alternate-time consent state machine
         run: node scripts/experience/check-ux009-time-consent-runtime.cjs
       - name: FlowTime adaptive scheduling and capacity safety regression
