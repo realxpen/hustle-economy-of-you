@@ -26,6 +26,7 @@ import {
   transferFileToPrivateStaging, validateStagingUploadFile
 } from "../../lib/post-media-upload";
 import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
+import { authenticatedFetch } from "../../lib/api/authenticated-fetch";
 
 type PostForm = {
   caption: string;
@@ -69,6 +70,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [draftMediaPreviews, setDraftMediaPreviews] = useState<Record<string,string>>({});
   const uploadAbort = useRef<AbortController | null>(null);
   useEffect(() => {
     if (!selectedFile) { setSelectedPreview(null); return; }
@@ -77,6 +79,43 @@ export default function PostEditor({ postId }: { postId?: string }) {
     return () => URL.revokeObjectURL(url);
   }, [selectedFile]);
   useEffect(() => () => uploadAbort.current?.abort(), []);
+
+  // Draft objects need a Bearer token, so <img src> cannot load the private
+  // read route directly. Fetch via the same authenticated bridge and revoke
+  // temporary browser blob URLs when the post changes or the account signs out.
+  useEffect(() => {
+    if (!isolatedWebMode || !post || post.status === "PUBLISHED") {
+      setDraftMediaPreviews({});
+      return;
+    }
+    let active = true;
+    const objects: string[] = [];
+    const controller = new AbortController();
+    const privateMedia = post.media.filter(item => item.storageKey?.startsWith("media/"));
+    Promise.all(privateMedia.map(async item => {
+      try {
+        const response = await authenticatedFetch(
+          `/media/o/${encodeURIComponent(post.id)}/${encodeURIComponent(item.id)}`,
+          { signal: controller.signal, cache: "no-store" }
+        );
+        const blob = await response.blob();
+        if (!active) return;
+        const url = URL.createObjectURL(blob);
+        objects.push(url);
+        return { id: item.id, url };
+      } catch { return null; }
+    })).then(results => {
+      if (active) setDraftMediaPreviews(Object.fromEntries(
+        results.filter((item): item is { id: string; url: string } => Boolean(item))
+          .map(item => [item.id, item.url])
+      ));
+    });
+    return () => {
+      active = false;
+      controller.abort();
+      objects.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [post]);
   const [loading, setLoading] = useState(Boolean(postId));
   const [retry, setRetry] = useState(0);
   const [loadingReferences, setLoadingReferences] = useState(false);
@@ -393,8 +432,8 @@ export default function PostEditor({ postId }: { postId?: string }) {
         <div className={styles.variantList}>
           {post?.media.map((item, index) => <article className={styles.variantCard} key={item.id}>
             <strong>{index + 1}. {item.type}</strong>
-            {item.mediaUrl && (item.type === "VIDEO" ? <video src={item.mediaUrl} controls preload="metadata" style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} /> : <img src={item.mediaUrl} loading="lazy" alt={`Attached post image ${index+1}`} style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} />)}
-            <p className={styles.muted}>{item.mediaUrl ?? item.storageKey ?? "No source"}</p>
+            {(draftMediaPreviews[item.id] || item.mediaUrl) && (item.type === "VIDEO" ? <video src={draftMediaPreviews[item.id] || item.mediaUrl || ""} controls preload="metadata" style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} /> : <img src={draftMediaPreviews[item.id] || item.mediaUrl || ""} loading="lazy" alt={`Attached post image ${index+1}`} style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12}} />)}
+            <p className={styles.muted}>{item.storageKey ? "Private media attached to this draft" : (item.mediaUrl ?? "No source")}</p>
             <div className={styles.variantActions}><button className={styles.dangerText} type="button" onClick={() => void removeMedia(item.id)} disabled={busy}>Remove</button></div>
           </article>)}
           {mediaCount === 0 && <p className={styles.muted}>No media yet. Add one image or video to publish; incomplete drafts can still be saved.</p>}
