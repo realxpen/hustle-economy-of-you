@@ -96,7 +96,7 @@ const prisma={
     findUnique: async ({where}) => media.find(m=>m.id===where.id)||null,
     findFirst: async ({where}) => status==="PUBLISHED" &&
       where.postId==="client-post" && media.some(m=>m.id===where.id)
-      ? {storageKey:media.find(m=>m.id===where.id).storageKey}: null,
+      ? media.find(m=>m.id===where.id): null,
     upsert: async ({create}) => { writes++; media.push(create); return create; },
     delete: async ({where}) => {
       const removed = media.find(item => item.id === where.id);
