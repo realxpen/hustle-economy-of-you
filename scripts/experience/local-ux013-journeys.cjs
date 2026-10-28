@@ -102,7 +102,31 @@ function localOnly(url) {
      try {
        await page.goto(root+"/home",{waitUntil:"domcontentloaded",timeout:25000});
        await page.getByText(fixturePost.post.caption,{exact:true}).waitFor({timeout:18000});
+       // Figma 02 Home should show one brand/search row and a second
+       // LIVE / For You / Nearby row. The canonical dock has five targets.
+       if(size.width<=760){
+         const nav=page.getByRole("navigation",{name:"Hustle mobile application"});
+         await nav.waitFor({state:"visible"});
+         assert.equal(await nav.getByRole("link").count(),5,
+           "Mobile should render exactly five Figma navigation targets");
+         assert.equal(await page.getByRole("navigation",{name:"Hustle main navigation",includeHidden:true}).isVisible(),false);
+         await page.getByRole("link",{name:"Search Hustlers, skills and work"}).waitFor({state:"visible"});
+         const top=page.getByRole("navigation",{name:"Discovery feed tabs"});
+         assert.equal(await top.getByRole("button",{name:"For You"}).isVisible(),true);
+         assert.equal(await top.getByRole("button",{name:"Nearby"}).isVisible(),true);
+         assert.equal(await top.getByRole("link",{name:"LIVE"}).isVisible(),true);
+         assert.equal(await page.locator('main h1').count(),0,"Mobile Feed must not show marketing header");
+       }
+       await page.screenshot({path:path.join(out,size.label+"__feed-figma-v1.png"),
+         animations:"disabled",caret:"hide"});
        const toggle=page.getByRole("button",{name:/2 linked marketplace offers/});
+       if(size.width<=760 && size.height>500){
+         const offerRect=await toggle.boundingBox();
+         const shareRect=await page.getByRole("button",{name:"Share post"}).boundingBox();
+         assert.ok(offerRect && shareRect &&
+           offerRect.x+offerRect.width<=shareRect.x-2,
+           "Figma offer action must NEVER overlap Share rail or be hidden under controls");
+       }
        await toggle.click();
        const serviceTrigger=page.getByRole("button",{name:"View provider’s service ↗"});
        await serviceTrigger.click();
@@ -126,7 +150,7 @@ function localOnly(url) {
        // A screenshot audit revealed the floating bottom nav rendered ABOVE
        // the cream sheet. A portal-backed modal must obscure that dock.
        const modalAboveDock=await dialog.evaluate(el=>{
-         const nav=document.querySelector('nav[aria-label="Hustle main navigation"]');
+         const nav=document.querySelector('nav[aria-label="Hustle mobile application"]');
          if(!nav) return true;
          const rect=nav.getBoundingClientRect(), css=getComputedStyle(nav);
          if(rect.width<1 || rect.height<1 || css.display==="none" || css.visibility==="hidden") return true;

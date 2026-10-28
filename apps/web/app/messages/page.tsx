@@ -116,7 +116,7 @@ export default function MessagesPage() {
 
     <section className={styles.hero}>
       <p className={styles.eyebrow}>YOUR PEOPLE · YOUR OPPORTUNITIES</p>
-      <h1>Messages<span className={styles.headlineDot}>.</span></h1>
+      <h1>Inbox<span className={styles.headlineDot}>.</span></h1>
       <p>Keep the conversation moving, from first hello to work done.</p>
     </section>
 

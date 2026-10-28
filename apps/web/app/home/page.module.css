@@ -1290,3 +1290,202 @@
   .cardBodyOffersOpen{max-height:90%}
   .cardBodyOffersOpen .opportunityBlock{max-height:32dvh}
 }
+
+
+/* UX015 — measured Figma frame 2:18, actual consumer hierarchy for ALL mobile
+   browsers and installed PWAs. This replaces the legacy browser-only stacked
+   header/toolbar treatment without copying prototype rectangles or fake media.
+   Desktop workbench and real feed/event handlers remain intact. */
+.mobileSearch,.feedMore{display:none}
+@media(max-width:760px){
+ .shell {
+   --h-paper:#0E1210;--h-ink:#FFFFFF;--h-muted:#BCD0BF;
+   --h-surface:#27372C;--h-orange:#C9F26B;
+   height:100dvh!important;min-height:0!important;
+   padding:0 0 calc(57px + env(safe-area-inset-bottom,0px))!important;
+   background:#0E1210!important;background-image:none!important;color:#FFFFFF;
+ }
+ .shell>header{display:none!important}
+ .discoverLayout,.playerColumn{
+   width:100%;max-width:100%;min-width:0;margin:0;
+   height:100%;min-height:0;overflow:hidden;
+ }
+ .playerColumn{grid-template-rows:calc(112px + env(safe-area-inset-top,0px)) minmax(0,1fr)}
+ .feedTopBar{
+   position:relative;z-index:6;
+   display:grid;grid-template-columns:1fr 48px;grid-template-rows:52px 52px;
+   align-content:start;align-items:center;column-gap:0;row-gap:0;
+   width:100%;max-width:100%;height:100%;min-height:0;
+   padding:calc(8px + env(safe-area-inset-top,0px)) 20px 0;
+   border:0;background:#0E1210;color:#FFFFFF;overflow:visible;
+ }
+ .appWordmark{
+   display:block;grid-column:1;grid-row:1;
+   font-size:23px;font-weight:900;letter-spacing:-.055em;
+   line-height:1;color:#fff;text-transform:lowercase;
+ }
+ .mobileSearch{
+   display:grid;place-items:center;grid-column:2;grid-row:1;
+   width:48px;height:48px;color:#FFFFFF;text-decoration:none;
+   border-radius:14px;
+ }
+ .mobileSearch:focus-visible{outline:3px solid #C9F26B;outline-offset:1px}
+ .feedHeading{display:none}
+ .tabs{
+   display:grid;grid-template-columns:1fr 1.3fr 1fr 40px;
+   grid-column:1/-1;grid-row:2;justify-items:stretch;
+   width:100%;min-width:0;max-width:none;
+   height:52px;gap:2px;align-items:stretch;
+   overflow:visible;scroll-snap-type:none;
+ }
+ .tabs button,.tabLink{
+   display:flex;min-width:0;min-height:44px;
+   align-items:center;justify-content:center;
+   font-size:14px;font-weight:750;
+   padding:9px 2px;line-height:1.2;
+   text-transform:none;color:#B7BDB8;
+   background:transparent;border:0;border-bottom:3px solid transparent;border-radius:0;
+ }
+ .tabLink{order:0;color:#E7E8E3;font-size:13px;letter-spacing:.02em}
+ .tabs .activeTab{background:transparent;color:#FFFFFF;border-bottom:3px solid #C9F26B}
+ .tabs .extraTab{display:none}
+ .feedMore{display:block;position:relative;min-width:0;align-self:center}
+ .feedMore summary{
+   display:grid;place-items:center;min-width:40px;min-height:44px;
+   color:#B7BDB8;font-size:24px;line-height:1;cursor:pointer;list-style:none;
+ }
+ .feedMore summary::-webkit-details-marker{display:none}
+ .feedMore button{
+   position:absolute;z-index:15;right:0;top:42px;
+   width:max-content;min-width:130px;
+   border:1px solid #405046;border-radius:13px;
+   padding:14px;background:#27372C;color:#fff;
+   box-shadow:0 14px 32px rgba(0,0,0,.4);
+ }
+ .feedMore button[aria-pressed="true"]{color:#C9F26B}
+ .quickLinks{display:none}
+ .feed{width:100%;height:100%;max-width:none;border-radius:0;background:#0E1210}
+ .card{width:100%;height:100%;min-height:100%;overflow:hidden}
+ .postCanvas{
+   position:absolute;inset:0!important;width:100%;height:100%;
+   border:0;border-radius:0;box-shadow:none;
+   background:#151B19;
+ }
+ .mediaRail,.mediaSlide,.media{background:#151B19;width:100%;max-width:100%}
+ .media,.mediaImage{
+   width:100%;height:100%;max-width:100%;
+   object-fit:cover;object-position:center;
+ }
+ .mediaBackdrop{display:none}
+ .mediaShade{
+   background:linear-gradient(to bottom,rgba(0,0,0,.12) 0%,transparent 30%,
+     transparent 46%,rgba(0,0,0,.26) 64%,rgba(0,0,0,.86) 100%);
+ }
+ .postBadge{display:none}
+ .cardBody,.cardBodyOffersOpen{
+   position:absolute;bottom:0;left:0;right:58px;top:auto;
+   width:auto!important;max-width:calc(100% - 58px)!important;
+   display:flex;flex-direction:column;gap:7px;
+   padding:0 4px 13px 18px!important;
+   min-height:0;max-height:min(53%,410px);
+   overflow:visible;
+   background:transparent;box-shadow:none;border:0;
+   color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.8);
+ }
+ .creatorRow{display:flex;align-items:center;flex-wrap:nowrap;gap:9px;min-width:0}
+ .creator{min-width:0;flex:0 1 auto;gap:0;color:#fff}
+ .avatar{display:none}
+ .creatorName{display:block;min-width:0}
+ .creatorName strong{display:none}
+ .creatorName small{
+   display:block;max-width:100%;font-size:15px;
+   font-weight:850;line-height:1.3;white-space:nowrap;
+   overflow:hidden;text-overflow:ellipsis;color:#FFFFFF;
+ }
+ .follow,.following{
+   min-height:44px;flex:0 0 auto;
+   padding:5px 2px;border:0;border-radius:0;box-shadow:none;
+   background:transparent;color:#fff;font-weight:800;font-size:13px;
+ }
+ .follow::before,.following::before{content:"·";margin-right:8px;color:#BCC9B9}
+ .captionWrap{flex:0 1 auto;min-height:0;max-height:9em;overflow:auto}
+ .captionWrap p{
+   margin:0;color:#fff;font-size:14px;
+   line-height:1.4;letter-spacing:0;
+ }
+ .caption{-webkit-line-clamp:2}
+ .captionWrap button{color:#C9F26B;min-height:28px;padding-inline:6px}
+ .tags{display:none}
+ .opportunityDock{
+   width:100%;max-width:100%;margin:4px 0 0;padding:0;
+   border:0;min-height:0;flex:0 0 auto;
+ }
+ .directOffer,.offerToggle{
+   width:100%;max-width:100%;min-height:48px;
+   display:flex;align-items:center;justify-content:flex-start;gap:8px;
+   padding:9px 14px;
+   border:1px solid rgba(255,255,255,.08);
+   border-radius:16px;background:#303C32;
+   color:#FFFFFF;font-size:13px;font-weight:850;
+   text-align:left;text-shadow:none;box-shadow:none;
+   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ }
+ .directOffer{cursor:pointer}
+ .offerIcon{background:transparent;border:0;width:auto;height:auto;color:#C9F26B}
+ .offerToggle>span:nth-child(2){flex:1;min-width:0;text-overflow:ellipsis;overflow:hidden}
+ .offerToggle b{color:#C9F26B}
+ .opportunityBlock{
+   max-height:min(25dvh,210px);margin-top:5px;
+   overflow-y:auto;overscroll-behavior-y:contain;
+   border-radius:16px;background:rgba(15,25,18,.96);
+ }
+ .opportunityCard{padding:10px;background:#27372C;color:#fff;border-color:#405046}
+ .opportunityQuickView{min-height:44px}
+ .actionMenuTrigger{display:none!important}
+ .actionRail,.actionRail:not(.railCompact),.actionRail.railCompact{
+   position:absolute;z-index:6;
+   top:auto!important;bottom:14px!important;
+   right:7px!important;left:auto;
+   width:46px;max-width:46px;
+   height:auto;min-height:0;max-height:calc(100% - 90px);
+   display:flex;flex-direction:column;justify-content:flex-end;
+   align-items:center;gap:5px;overflow-y:auto;
+   background:transparent;box-shadow:none;
+ }
+ .actionRail.railCompactClosed{display:flex}
+ .actionRail a,.actionRail button,
+ .actionRail:not(.railCompact) a,.actionRail:not(.railCompact) button{
+   min-width:44px;min-height:51px;gap:0;padding:1px 0;
+   color:#FFFFFF;background:transparent;text-shadow:0 2px 5px rgba(0,0,0,.85);
+ }
+ .actionDisc,.actionRail:not(.railCompact) .actionDisc{
+   width:42px;height:35px;
+   background:transparent;border:0;border-radius:0;
+   color:#FFFFFF;box-shadow:none;
+   backdrop-filter:none;-webkit-backdrop-filter:none;
+ }
+ .actionDisc svg,.actionRail:not(.railCompact) .actionDisc svg{width:27px;height:27px}
+ .actionNumber,.actionRail:not(.railCompact) .actionNumber{
+   color:#FFF;font-size:11px;font-weight:800;line-height:1.2;
+   text-shadow:0 1px 4px #000;
+ }
+ .actionRail .activeAction .actionDisc,
+ .actionRail .commentedAction .actionDisc{
+   background:transparent!important;border:0!important;
+   color:#C9F26B!important;
+ }
+ .railBehindOffers{display:none}
+ .feedFootnote{display:none}
+}
+/* Short phones keep all controls reachable without using a noise-filled
+   three-dot action menu or allowing the dock to cover the single offer. */
+@media(max-width:760px) and (max-height:650px){
+ .playerColumn{grid-template-rows:calc(98px + env(safe-area-inset-top,0px)) minmax(0,1fr)}
+ .feedTopBar{grid-template-rows:45px 45px}
+ .cardBody,.cardBodyOffersOpen{max-height:60%;gap:4px;padding-bottom:9px!important}
+ .captionWrap{max-height:4em}
+ .actionRail,.actionRail:not(.railCompact){gap:1px;bottom:8px!important}
+ .actionRail a,.actionRail button{min-height:45px}
+}
+
+@media(max-width:760px){.creatorLocation{display:none}}
