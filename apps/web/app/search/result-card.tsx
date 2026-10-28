@@ -91,15 +91,15 @@ export function ResultCard({
           : <span className={styles.discoveryMediaEmpty} aria-hidden="true">✦</span>}
         <span className={styles.discoveryMediaTag}>Service</span>
       </span>
-      <span className={styles.discoveryOfferInfo}>
-        <strong className={styles.discoveryOfferTitle}>{item.service.title ?? "Service"}</strong>
+      <div className={styles.discoveryOfferInfo}>
+        <h3 className={styles.discoveryOfferTitle}>{item.service.title ?? "Service"}</h3>
         <strong className={styles.discoveryOfferPrice}>{formatServicePrice(item.service)}</strong>
         <span className={styles.discoveryOfferDescription}>
           {item.service.description ?? item.service.category ?? "Explore this service"}
         </span>
         <Creator owner={item.owner} />
         <span className={styles.discoveryOfferAction}>View service <span aria-hidden="true">↗</span></span>
-      </span>
+      </div>
     </a>;
   }
 
@@ -110,10 +110,10 @@ export function ResultCard({
         : <span className={styles.discoveryMediaEmpty} aria-hidden="true">◈</span>}
       <span className={styles.discoveryMediaTag}>Product</span>
     </span>
-    <span className={styles.discoveryProductInfo}>
-      <strong className={styles.discoveryOfferTitle}>{item.product.title ?? "Product"}</strong>
+    <div className={styles.discoveryProductInfo}>
+      <h3 className={styles.discoveryOfferTitle}>{item.product.title ?? "Product"}</h3>
       <strong className={styles.discoveryOfferPrice}>{formatProductPrice(item.product)}</strong>
       <Creator owner={item.owner} />
-    </span>
+    </div>
   </a>;
 }
