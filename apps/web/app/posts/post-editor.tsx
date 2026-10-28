@@ -430,7 +430,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
           {selectedFile && <div style={{display:"grid",gap:10}}>
             <p className={styles.muted} role="status">Selected: {selectedFile.name} · {(selectedFile.size / 1_000_000).toFixed(2)} MB</p>
             {validateStagingUploadFile(selectedFile) && <p role="alert" style={{color:"#b44e38",fontWeight:700}}>{validateStagingUploadFile(selectedFile)}</p>}
-            {selectedFile.name.toLowerCase().endsWith(".mov") && <p className={styles.muted}>iPhone MOV is supported for this private upload, but other viewers may need an MP4 version for compatible playback.</p>
+            {selectedFile.name.toLowerCase().endsWith(".mov") && <p className={styles.muted}>iPhone MOV is supported for this private upload, but other viewers may need an MP4 version for compatible playback.</p>}
             {selectedPreview && (selectedFile.type.startsWith("image/")
               ? <img src={selectedPreview} alt="Your selected photo preview" style={{maxWidth:"100%",maxHeight:230,objectFit:"contain",borderRadius:12}} />
               : <video src={selectedPreview} controls preload="metadata" style={{maxWidth:"100%",maxHeight:230,borderRadius:12}} />)}
