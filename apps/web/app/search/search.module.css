@@ -556,3 +556,147 @@
 /* UX019 screenshot QA: drop inherited h-experience-shell horizontal inset.
    Figma title/search/skill/map start at 20–24px, not 38–42px. */
 @media(max-width:760px){.searchExperience{padding-left:0!important;padding-right:0!important}}
+
+
+/* UX021 — TikTok visual discovery meets X-style compact people.
+   Search-only rules. Marketplace, Figma Explore controls, API and dock stay intact. */
+.searchExperience .discoveryResults{display:flex;flex-direction:column;gap:24px;padding-bottom:8px}
+.searchExperience .discoverySection{min-width:0}
+.searchExperience .discoverySectionHeading{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ margin:0 0 11px;padding:0 1px;
+}
+.searchExperience .discoverySectionHeading h2{
+ margin:0;font-size:19px;line-height:1.2;letter-spacing:-.035em;color:#18231B;font-weight:850;
+}
+.searchExperience .discoverySectionHeading button{
+ min-height:40px;padding:7px 2px;background:transparent;border:0;
+ color:#435B43;font-size:12px;font-weight:750;cursor:pointer;
+}
+.searchExperience .discoverySectionHeading button:focus-visible,
+.searchExperience .discoveryResults a:focus-visible{
+ outline:3px solid #83A94C;outline-offset:3px;
+}
+.searchExperience .discoveryPeople{display:flex;flex-direction:column;gap:0;background:#fff;border-radius:18px;overflow:hidden}
+.searchExperience .discoveryPerson{
+ display:flex;align-items:center;min-height:92px;gap:12px;padding:13px;
+ text-decoration:none;color:#18231B;border-bottom:1px solid #EDF0EB;
+}
+.searchExperience .discoveryPerson:last-child{border-bottom:0}
+.searchExperience .discoveryAvatarLarge{
+ display:grid;place-items:center;flex:0 0 60px;width:60px;height:60px;border-radius:50%;
+ background:#E2EED4;color:#243F2C;font-size:24px;font-weight:800;overflow:hidden;
+}
+.searchExperience .discoveryAvatarLarge img,.searchExperience .discoveryAvatar img{
+ width:100%;height:100%;object-fit:cover;
+}
+.searchExperience .discoveryPersonText{display:flex;flex-direction:column;gap:3px;flex:1 1 0;min-width:0}
+.searchExperience .discoveryPersonText strong{
+ font-size:15px;font-weight:820;line-height:1.25;overflow:hidden;text-overflow:ellipsis;
+}
+.searchExperience .discoveryHandle,.searchExperience .discoveryLocation{
+ font-size:11px;line-height:1.3;color:#647366;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.searchExperience .discoverySummary{
+ font-size:12px;line-height:1.35;color:#344739;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
+}
+.searchExperience .discoveryAction{font-size:19px;font-weight:750;color:#36563B;padding:0 2px}
+.searchExperience .discoveryPosts,.searchExperience .discoveryProducts{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;
+}
+.searchExperience .discoveryPost,.searchExperience .discoveryProduct{
+ display:flex;flex-direction:column;min-width:0;overflow:hidden;border-radius:15px;
+ background:#fff;color:#18231B;text-decoration:none;
+}
+.searchExperience .discoveryPostVisual,.searchExperience .discoveryProductVisual,
+.searchExperience .discoveryOfferVisual{
+ display:block;position:relative;overflow:hidden;background:#E4EFD7;isolation:isolate;
+}
+.searchExperience .discoveryPostVisual{aspect-ratio:3/4}
+.searchExperience .discoveryProductVisual{aspect-ratio:1/1}
+.searchExperience .discoveryOfferVisual{width:130px;min-height:132px;align-self:stretch;flex:0 0 130px}
+.searchExperience .discoveryPostVisual img,.searchExperience .discoveryPostVisual video,
+.searchExperience .discoveryOfferVisual img,.searchExperience .discoveryProductVisual img{
+ width:100%;height:100%;position:absolute;inset:0;object-fit:cover;
+}
+.searchExperience .discoveryMediaEmpty{
+ position:absolute;inset:0;display:grid;place-items:center;
+ font-size:46px;font-weight:800;color:#7C9870;background:linear-gradient(145deg,#DBE9CD,#F1F5E9);
+}
+.searchExperience .discoveryMediaTag{
+ position:absolute;top:9px;left:9px;z-index:2;
+ background:rgba(18,32,22,.83);color:#fff;border-radius:99px;
+ padding:5px 8px;font-size:10px;font-weight:800;line-height:1;
+}
+.searchExperience .discoveryPlay{
+ position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+ display:grid;place-items:center;width:47px;height:47px;border-radius:50%;
+ background:rgba(18,32,22,.65);color:#fff;font-size:20px;padding-left:3px;
+}
+.searchExperience .discoveryPostDetails,.searchExperience .discoveryProductInfo{
+ display:flex;flex-direction:column;gap:7px;padding:11px;min-width:0;
+}
+.searchExperience .discoveryPostCaption{
+ font-size:13px;font-weight:730;line-height:1.35;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.searchExperience .discoveryCreator{
+ display:flex;align-items:center;gap:7px;min-width:0;font-size:11px;color:#536355;
+}
+.searchExperience .discoveryAvatar{
+ flex:0 0 22px;width:22px;height:22px;display:grid;place-items:center;
+ border-radius:50%;overflow:hidden;background:#233D2B;color:#fff;font-size:10px;font-weight:800;
+}
+.searchExperience .discoveryCreatorName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.searchExperience .discoveryPostFoot{
+ display:flex;justify-content:space-between;gap:5px;min-width:0;
+ color:#758275;font-size:10px;line-height:1.25;
+}
+.searchExperience .discoveryPostFoot span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.searchExperience .discoveryPostFoot span:last-child{white-space:nowrap}
+.searchExperience .discoveryServices{display:flex;flex-direction:column;gap:10px}
+.searchExperience .discoveryService{
+ display:flex;align-items:stretch;min-width:0;min-height:132px;
+ border-radius:16px;overflow:hidden;background:#fff;color:#18231B;text-decoration:none;
+}
+.searchExperience .discoveryOfferInfo{
+ flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:flex-start;
+ padding:12px;gap:6px;
+}
+.searchExperience .discoveryOfferTitle{
+ font-size:14px;font-weight:830;line-height:1.27;letter-spacing:-.01em;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.searchExperience .discoveryOfferPrice{font-size:13px;line-height:1.2;font-weight:850;color:#243D28}
+.searchExperience .discoveryOfferDescription{
+ color:#657266;font-size:11px;line-height:1.35;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.searchExperience .discoveryOfferAction{
+ display:flex;align-items:center;gap:6px;margin-top:auto;color:#355E37;
+ font-size:11px;font-weight:800;
+}
+.searchExperience .discoveryProductInfo{gap:6px}
+.searchExperience .discoveryProductInfo .discoveryOfferTitle{font-size:12px}
+.searchExperience .discoveryProductInfo .discoveryOfferPrice{font-size:13px}
+@media(min-width:761px){
+ .searchExperience .discoveryPeople{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px}
+ .searchExperience .discoveryPerson{border:0;border-right:1px solid #EDF0EB}
+ .searchExperience .discoveryPosts,.searchExperience .discoveryProducts{
+   grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;
+ }
+ .searchExperience .discoveryServices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .searchExperience .discoveryOfferVisual{width:145px;flex-basis:145px}
+ .searchExperience .discoveryResults{gap:30px}
+}
+@media(max-width:365px){
+ .searchExperience .discoveryPosts,.searchExperience .discoveryProducts{gap:7px}
+ .searchExperience .discoveryPostDetails,.searchExperience .discoveryProductInfo{padding:9px}
+ .searchExperience .discoveryOfferVisual{width:110px;flex-basis:110px}
+ .searchExperience .discoveryOfferInfo{padding:10px}
+}
+@media(prefers-reduced-motion:no-preference){
+ .searchExperience .discoveryResults a{transition:background-color .15s ease,transform .15s ease}
+ .searchExperience .discoveryResults a:active{transform:scale(.99)}
+}
