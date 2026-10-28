@@ -87,6 +87,12 @@ export default function PostEditor({ postId }: { postId?: string }) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  // Keep the signed receipt when bytes reached S3 but confirmation failed.
+  // Retrying verification must NOT upload a second object.
+  const [pendingConfirmation, setPendingConfirmation] = useState<{
+    file: File; postId: string; receipt: string;
+  } | null>(null);
+  const [verifyingUpload, setVerifyingUpload] = useState(false);
   const [draftMediaPreviews, setDraftMediaPreviews] = useState<Record<string,string>>({});
   const uploadAbort = useRef<AbortController | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
@@ -266,38 +272,56 @@ export default function PostEditor({ postId }: { postId?: string }) {
     if (!selectedFile || busy) return;
     const problem = validateStagingUploadFile(selectedFile);
     if (problem) { setError(problem); return; }
+    const existingReceipt = pendingConfirmation?.file === selectedFile ? pendingConfirmation : null;
     const controller = new AbortController();
     uploadAbort.current = controller;
     setBusy(true);
     setError(null);
     setNotice(null);
-    setUploadProgress(0);
+    setUploadProgress(existingReceipt ? 100 : 0);
     try {
-      // Stay on this screen until the upload finishes; navigating to /edit
-      // during transfer would unmount the component and abort the file.
-      const draft = await ensurePost(false);
-      if (controller.signal.aborted) return;
-      const ticket = await authorizeStagingPostMedia(draft.id, selectedFile);
-      if (controller.signal.aborted) return;
-      await transferFileToPrivateStaging(
-        selectedFile, ticket, pct => setUploadProgress(pct), controller.signal
-      );
-      if (controller.signal.aborted) return;
-      // Do not publish merely because an object landed in private storage.
-      await confirmStagingPostMedia(draft.id, ticket.receipt);
-      const updated = await getMyPost(draft.id);
+      let draftId: string;
+      let receipt: string;
+      if (existingReceipt) {
+        // A network timeout may occur AFTER S3 succeeded. Recover the same
+        // signed receipt and idempotent media ID rather than duplicating bytes.
+        draftId = existingReceipt.postId;
+        receipt = existingReceipt.receipt;
+      } else {
+        // Stay on this screen until transfer finishes; navigating during
+        // transfer would unmount the component and abort the upload.
+        const draft = await ensurePost(false);
+        if (controller.signal.aborted) return;
+        const ticket = await authorizeStagingPostMedia(draft.id, selectedFile);
+        if (controller.signal.aborted) return;
+        await transferFileToPrivateStaging(
+          selectedFile, ticket, pct => setUploadProgress(pct), controller.signal
+        );
+        if (controller.signal.aborted) return;
+        draftId = draft.id;
+        receipt = ticket.receipt;
+        setPendingConfirmation({ file: selectedFile, postId: draftId, receipt });
+      }
+      // Confirmation may mutate the database. Do not label this phase
+      // cancellable: a late Cancel could imply a rollback that never occurred.
+      setVerifyingUpload(true);
+      setUploadProgress(100);
+      await confirmStagingPostMedia(draftId, receipt);
+      const updated = await getMyPost(draftId);
       setPost(updated);
-      if (!currentId) router.replace(`/posts/${draft.id}/edit`);
+      if (!currentId) router.replace(`/posts/${draftId}/edit`);
+      setPendingConfirmation(null);
       setSelectedFile(null);
       if (fileInput.current) fileInput.current.value = "";
-      setUploadProgress(null);
       setNotice("Private upload attached to your draft. Publish only when ready.");
     } catch (reason) {
-      if (controller.signal.aborted) setNotice("Upload cancelled. Your draft was not published.");
+      if (controller.signal.aborted && !verifyingUpload)
+        setNotice("Transfer cancelled. Your draft was not published.");
       else setError(reason instanceof Error ? reason.message : "Could not finish private media upload");
     } finally {
       if (uploadAbort.current === controller) uploadAbort.current = null;
       setBusy(false);
+      setVerifyingUpload(false);
       setUploadProgress(null);
     }
   }
@@ -424,6 +448,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
               onChange={event => {
                 const next = event.target.files?.[0] ?? null;
                 setSelectedFile(next);
+                setPendingConfirmation(null);
                 setError(next ? validateStagingUploadFile(next) : null);
               }} />
           </label>
@@ -439,14 +464,15 @@ export default function PostEditor({ postId }: { postId?: string }) {
               <small>{uploadProgress >= 99 ? "Verifying your uploaded media…" : `Uploading ${uploadProgress}%`}</small>
             </div>}
             <div className={styles.actions}>
-              <button type="button" className={styles.primary} onClick={() => void uploadSelectedFile()} disabled={busy || Boolean(validateStagingUploadFile(selectedFile))}>Upload privately</button>
-              <button type="button" className={styles.secondary} onClick={() => {
+              <button type="button" className={styles.primary} onClick={() => void uploadSelectedFile()} disabled={busy || Boolean(validateStagingUploadFile(selectedFile))}>{pendingConfirmation?.file === selectedFile ? "Retry verification" : "Upload privately"}</button>
+              <button type="button" className={styles.secondary} disabled={verifyingUpload} onClick={() => {
                 uploadAbort.current?.abort();
                 if (!busy) {
+                  setPendingConfirmation(null);
                   setSelectedFile(null);
                   if (fileInput.current) fileInput.current.value = "";
                 }
-              }}>{busy ? "Cancel upload" : "Remove selection"}</button>
+              }}>{verifyingUpload ? "Verifying media…" : busy ? "Cancel transfer" : "Remove selection"}</button>
             </div>
           </div>}
         </div>}
