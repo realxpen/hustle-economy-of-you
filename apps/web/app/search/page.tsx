@@ -214,7 +214,16 @@ export default function SearchPageScreen() {
       <p>Search people by capability, inspect proof, and move directly into a published Service, Product or professional identity.</p>
     </section>
 
-    <div className={styles.searchInputGroup} ref={searchGroup}>
+    <div className={styles.searchInputGroup} ref={searchGroup} onKeyDownCapture={(event)=>{
+      // type=search normally clears itself on Escape in WebKit/Chromium,
+      // which can re-open our suggestions through onChange. Close first,
+      // keep the query, and relinquish keyboard focus instead.
+      if(event.key==="Escape"){
+        event.preventDefault();event.stopPropagation();
+        setSuggestOpen(false);
+        if(event.target instanceof HTMLElement)event.target.blur();
+      }
+    }}>
       <form className={[styles.searchForm, "h-experience-content"].join(" ")} onSubmit={submit}>
         <div className={styles.searchBar} role="search">
           <span className={styles.searchGlyph} aria-hidden="true">⌕</span>
