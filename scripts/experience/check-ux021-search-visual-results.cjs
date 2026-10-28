@@ -16,8 +16,9 @@ assert.match(collection,/item\.kind === kind/);
 assert.match(collection,/onOpen\(item, index\)/);
 for(const kind of ["person","post","service","product"]){
   assert.match(collection,new RegExp('kind: "'+kind+'"'));
-  assert.match(card,new RegExp('item\\.kind === "'+kind+'"'));
+  if(kind!=="product") assert.match(card,new RegExp('item\\.kind === "'+kind+'"'));
 }
+assert.match(card,/className=\{styles\.discoveryProduct\}/);
 assert.match(card,/href=\{href\}/);
 assert.match(card,/item\.url \?\? "#"/);
 assert.match(card,/window\.location\.assign\(href\)/);
