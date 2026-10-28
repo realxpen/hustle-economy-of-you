@@ -292,16 +292,10 @@ export class SearchService {
     const posts = await this.prisma.post.findMany({
       where: {
         status: PostStatus.PUBLISHED,
-        professionalProfile: {
-          is: {
-            status: ProfessionalProfileStatus.PUBLISHED,
-            user: {
-              capabilities: {
-                some: { capability: Capability.HUSTLER, status: CapabilityStatus.ACTIVE }
-              }
-            }
-          }
-        }
+        moderationState: "CLEAR"
+        // Feed/public post URLs allow published work before professional
+        // activation. Search must not silently hide that published content.
+        // Professional drafts themselves are still never indexed or exposed.
       },
       include: postInclude,
       orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
@@ -313,7 +307,20 @@ export class SearchService {
       const owner = profile.user;
       const verified = owner.emailVerified || owner.phoneVerified;
       const location = post.location ?? owner.location;
-      if (!this.passesCommonFilters(filters, post.category ?? profile.category, profile, location, verified)) return [];
+      // A published post may belong to a profile that is still in DRAFT.
+      // Index only public post fields and public owner identity in that case.
+      // Never rank on an unpublished profile's private skills/summary.
+      const profilePublished = profile.status === ProfessionalProfileStatus.PUBLISHED;
+      const searchProfile = profilePublished ? profile : {
+        ...profile,
+        headline: null,
+        primarySkill: null,
+        secondarySkills: [],
+        category: null,
+        professionalSummary: null,
+        yearsExperience: null
+      };
+      if (!this.passesCommonFilters(filters, post.category ?? searchProfile.category, searchProfile, location, verified)) return [];
 
       const searchable = [
         { label: "caption", value: post.caption, weight: 14 },
@@ -321,9 +328,9 @@ export class SearchService {
         ...post.tags.map((value) => ({ label: "tag", value, weight: 13 })),
         { label: "creator", value: owner.displayName, weight: 8 },
         { label: "username", value: owner.username, weight: 9 },
-        { label: "headline", value: profile.headline, weight: 9 },
-        { label: "primary-skill", value: profile.primarySkill, weight: 12 },
-        ...profile.secondarySkills.map((value) => ({ label: "skill", value, weight: 8 })),
+        { label: "headline", value: searchProfile.headline, weight: 9 },
+        { label: "primary-skill", value: searchProfile.primarySkill, weight: 12 },
+        ...searchProfile.secondarySkills.map((value) => ({ label: "skill", value, weight: 8 })),
         { label: "location", value: location, weight: 7 }
       ];
       const lexical = this.lexicalScore(query, searchable);
@@ -597,6 +604,7 @@ export class SearchService {
 
   private publicOwner(profile: ProfessionalContext) {
     const owner = profile.user;
+    const published = profile.status === ProfessionalProfileStatus.PUBLISHED;
     return {
       id: owner.id,
       displayName: owner.displayName,
@@ -607,12 +615,12 @@ export class SearchService {
       verified: owner.emailVerified || owner.phoneVerified,
       professionalProfile: {
         id: profile.id,
-        headline: profile.headline,
-        primarySkill: profile.primarySkill,
-        secondarySkills: profile.secondarySkills,
-        category: profile.category,
-        professionalSummary: profile.professionalSummary,
-        yearsExperience: profile.yearsExperience
+        headline: published ? profile.headline : null,
+        primarySkill: published ? profile.primarySkill : null,
+        secondarySkills: published ? profile.secondarySkills : [],
+        category: published ? profile.category : null,
+        professionalSummary: published ? profile.professionalSummary : null,
+        yearsExperience: published ? profile.yearsExperience : null
       }
     };
   }
