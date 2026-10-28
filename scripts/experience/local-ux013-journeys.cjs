@@ -117,6 +117,36 @@ function localOnly(url) {
          assert.equal(await top.getByRole("link",{name:"LIVE"}).isVisible(),true);
          assert.equal(await page.locator('main h1').count(),0,"Mobile Feed must not show marketing header");
        }
+       if(size.width<=760){
+         // Screenshot-based bug report: a legacy compact-actions card retained
+         // glass padding, border and blur, hiding the work underneath.
+         const rail=page.locator('[aria-label="Post actions"]').first();
+         const railStyle=await rail.evaluate(el=>{
+           const style=getComputedStyle(el);
+           return {background:style.backgroundColor,border:style.borderTopWidth,
+             radius:style.borderTopLeftRadius,
+             blur:style.getPropertyValue("backdrop-filter").trim(),
+             // Chromium may not expose style.webkitBackdropFilter at all;
+             // querying the CSS property returns an empty string when unsupported.
+             webkitBlur:style.getPropertyValue("-webkit-backdrop-filter").trim()};
+         });
+         assert.ok(["transparent","rgba(0, 0, 0, 0)"].includes(railStyle.background),
+           "Post action controls must have a transparent canvas");
+         assert.equal(railStyle.border,"0px","Action rail cannot be a glass-bordered pill");
+         assert.equal(railStyle.radius,"0px","Action rail cannot have a pill radius");
+         assert.ok(["none",""].includes(railStyle.blur),"Action rail must not blur work");
+         assert.ok(["none",""].includes(railStyle.webkitBlur),
+           `Safari rail must not blur work (computed: ${railStyle.webkitBlur})`);
+         const summary=page.locator('summary[aria-label="More feed views"]');
+         await summary.click();
+         const details=page.locator('details').filter({has:summary});
+         assert.equal(await details.getAttribute("open"),"",
+           "Additional feed choices must open only when requested");
+         await page.getByRole("navigation",{name:"Discovery feed tabs"})
+           .getByRole("button",{name:"For You"}).click();
+         assert.equal(await details.getAttribute("open"),null,
+           "Additional feed choices must close after choosing a feed tab");
+       }
        await page.screenshot({path:path.join(out,size.label+"__feed-figma-v1.png"),
          animations:"disabled",caret:"hide"});
        const toggle=page.getByRole("button",{name:/2 linked marketplace offers/});

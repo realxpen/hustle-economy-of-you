@@ -98,3 +98,19 @@
    Both spans belong to a single real, accessible quick-view button. */
 .triggerMain { flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 .triggerAction { flex:0 0 auto;color:#C9F26B;font-size:13px;font-weight:850;white-space:nowrap }
+
+
+/* UX016: don't discard the true listing title on narrow iPhones. Keep
+   the actionable Book/View text distinct and allow two title lines. */
+@media(max-width:760px){
+ .triggerMain {
+   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+   min-width:0;white-space:normal;overflow:hidden;
+   text-overflow:ellipsis;line-height:1.25;
+   font-size:12px;font-weight:750;
+ }
+ .triggerAction {
+   flex:0 0 auto;white-space:nowrap;
+   font-size:12px;font-weight:850;
+ }
+}

@@ -1489,3 +1489,52 @@
 }
 
 @media(max-width:760px){.creatorLocation{display:none}}
+
+
+/* UX016 — physical iPhone Safari visual acceptance, 28 Oct 2026.
+   Previous compact-actions rail inherited a GLASS PANEL (border, radius,
+   padding and blur) even after UX015 changed background to transparent.
+   Reset every decorative property for both available-space variants. */
+@media(max-width:760px){
+ .actionRail,.actionRail.railCompact,.actionRail:not(.railCompact) {
+   box-sizing:border-box;
+   border:0!important;border-radius:0!important;
+   padding:0!important;
+   background:transparent!important;background-image:none!important;
+   box-shadow:none!important;
+   -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+   display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+   gap:3px;overflow-y:auto;scrollbar-width:none;
+ }
+ .actionRail::-webkit-scrollbar{display:none}
+ .actionRail.railCompact a,.actionRail.railCompact button {
+   width:44px;min-width:44px;min-height:50px;max-width:44px;
+   padding:0;gap:1px;background:transparent!important;
+ }
+ .actionRail.railCompact .actionDisc,
+ .actionRail .actionDisc {
+   display:grid;place-items:center;width:42px;height:34px;
+   border:0!important;border-radius:0!important;
+   background:transparent!important;box-shadow:none!important;
+   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+   color:#fff;
+ }
+ .actionRail.railCompact .actionDisc svg{width:25px;height:25px}
+ .actionRail.railCompact .actionNumber{color:#fff;font-size:11px;line-height:1.2}
+ /* The share button is already labelled for screen readers. */
+ .actionRail button[aria-label="Share post"] .actionNumber {display:none}
+ .directOffer,.offerToggle {
+   min-height:48px;max-height:76px;
+   padding:8px 11px;gap:8px;
+   border-radius:15px;background:rgba(31,48,38,.92);
+   font-size:12px;font-weight:750;line-height:1.25;
+ }
+ .feedMore button {
+   top:39px;right:0;
+   min-width:112px;min-height:44px;
+   padding:8px 12px;
+   border:1px solid #405046;border-radius:12px;
+   background:#27372C;box-shadow:0 6px 16px rgba(0,0,0,.19);
+   font-size:13px;
+ }
+}

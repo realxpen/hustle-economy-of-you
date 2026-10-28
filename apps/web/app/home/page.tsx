@@ -529,12 +529,31 @@ export default function DiscoveryHomePage() {
   const [error, setError] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
   const feedRef = useRef<HTMLElement | null>(null);
+  const moreFeedsRef = useRef<HTMLDetailsElement | null>(null);
   const paginationTrigger = useRef<HTMLButtonElement | null>(null);
   const requestVersion = useRef(0);
   const paginationInFlight = useRef(false);
 
   useEffect(() => {
     setSessionId(createSessionId());
+  }, []);
+
+  // Figma's secondary feed menu is transient. It should not remain covering
+  // the actual work when a user taps the media, another tab, or presses Escape.
+  useEffect(() => {
+    const dismissOutside = (event: PointerEvent) => {
+      const menu = moreFeedsRef.current;
+      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+    };
+    const dismissEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && moreFeedsRef.current?.open) moreFeedsRef.current.open = false;
+    };
+    document.addEventListener("pointerdown", dismissOutside);
+    document.addEventListener("keydown", dismissEscape);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOutside);
+      document.removeEventListener("keydown", dismissEscape);
+    };
   }, []);
 
   const load = useCallback(async (nextTab: FeedTab, cursor?: string | null, append = false) => {
@@ -655,10 +674,10 @@ export default function DiscoveryHomePage() {
             <Link className={styles.tabLink} href="/live">LIVE</Link>
             {tabs.map((option) => <button key={option.id} type="button"
               className={[tab === option.id ? styles.activeTab : "", option.id === "connections" ? styles.extraTab : ""].filter(Boolean).join(" ")}
-              aria-pressed={tab === option.id} onClick={() => setTab(option.id)}>{option.label}</button>)}
-            <details className={styles.feedMore}>
+              aria-pressed={tab === option.id} onClick={() => { moreFeedsRef.current?.removeAttribute("open"); setTab(option.id); }}>{option.label}</button>)}
+            <details className={styles.feedMore} ref={moreFeedsRef}>
               <summary aria-label="More feed views">···</summary>
-              <button type="button" onClick={() => setTab("connections")}
+              <button type="button" onClick={() => { moreFeedsRef.current?.removeAttribute("open"); setTab("connections"); }}
                 aria-pressed={tab === "connections"}>Connections</button>
             </details>
           </nav>
