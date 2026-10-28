@@ -115,7 +115,7 @@ export function ExploreNearby({visible=true}: {visible?:boolean}){
     <div className={styles.sectionTitle}><h2>Explore nearby</h2>
       <button type="button" onClick={()=>setExpanded(x=>!x)}>{expanded?"Show less":"See all"} <span aria-hidden="true">↗</span></button>
     </div>
-    <div className={styles.mapPreview} role="img" aria-label="Decorative map illustration, not a live GPS map">
+    <div className={styles.mapPreview} aria-label="Decorative map-style background, not a live GPS map">
       <div className={styles.mapBlock} aria-hidden="true"/>
       <span className={styles.mapRoadOne} aria-hidden="true"/>
       <span className={styles.mapRoadTwo} aria-hidden="true"/>
