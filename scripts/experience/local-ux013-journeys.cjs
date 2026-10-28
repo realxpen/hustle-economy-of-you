@@ -255,7 +255,7 @@ function localOnly(url) {
          await page.screenshot({path:path.join(out,size.label+"__figma-explore-suggestions.png"),
            animations:"disabled",caret:"hide"});
          await page.keyboard.press("Escape");
-         assert.equal(await page.getByRole("region",{name:"Search suggestions"}).count(),0);
+         await page.getByRole("region",{name:"Search suggestions"}).waitFor({state:"detached",timeout:4000});
        }
        await page.goto(root+"/search?q=barber",{waitUntil:"domcontentloaded"});
        await page.getByRole("heading",{name:service.title}).waitFor({timeout:15000});
