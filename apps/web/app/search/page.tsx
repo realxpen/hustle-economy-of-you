@@ -242,9 +242,9 @@ export default function SearchPageScreen() {
       )}
     </nav>
     <ExploreNearby visible={!query.trim() && !searchedQuery && !loading && !error}/>
-    {(Boolean(query.trim()) || Boolean(searchedQuery) || loading) && <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>}
+    {(Boolean(searchedQuery) || loading) && <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>}
 
-    {(Boolean(query.trim()) || Boolean(searchedQuery) || loading) && <button type="button" className={styles.filterToggle} aria-expanded={filtersExpanded}
+    {(Boolean(searchedQuery) || loading) && <button type="button" className={styles.filterToggle} aria-expanded={filtersExpanded}
       aria-controls="hustle-explore-filters" onClick={() => setFiltersExpanded(open => !open)}>
       <span>Refine results{activeFilterCount ? ` · ${activeFilterCount} applied` : ""}</span>
       <span aria-hidden="true">{filtersExpanded ? "−" : "+"}</span>
@@ -264,7 +264,7 @@ export default function SearchPageScreen() {
       <button className={styles.resetButton} type="button" disabled={loading} onClick={() => { setFilters(emptyFilters); setError(null); if (query.trim()) void runSearch(tab, null, false, emptyFilters); }}>Clear filters</button>
     </section>
 
-    {(Boolean(query.trim()) || Boolean(searchedQuery) || loading || Boolean(error)) && <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
+    {(Boolean(searchedQuery) || loading || Boolean(error)) && <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
       <div className={styles.resultMeta} role="status" aria-live="polite"><strong>{resultLabel}</strong><span>{loading ? "Searching…" : `${items.length} loaded · ${tab}`}</span></div>
       {error && <ExperienceState kind="error"
         title={/sign in|authentication is not configured/i.test(error) ? "Sign in to search Hustle." : "Search isn't available right now."}

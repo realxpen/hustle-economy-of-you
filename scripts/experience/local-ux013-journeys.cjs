@@ -83,6 +83,11 @@ function localOnly(url) {
        });
        if(u.pathname==="/api/isolated/auth/get-session") return respond({session:null,user:null});
        if(/\/api\/v1\/guest\/feed\/for-you$/.test(u.pathname)) return respond(fixtureFeed);
+       if(/\/api\/v1\/guest\/marketplace$/.test(u.pathname)) {
+         return respond({mode:"marketplace",tab:"all",query:null,
+           filters:{location:"Lagos"},items:[searchItem],nextCursor:null,
+           hasMore:false,zeroResults:false});
+       }
        if(/\/api\/v1\/guest\/search(?:\/services)?$/.test(u.pathname)) {
          return respond(queryPage(u.pathname.endsWith("/services")?"services":"top"));
        }
@@ -232,6 +237,26 @@ function localOnly(url) {
        results.push({size:size.label,step:"Feed → product unavailable → Retry → cart intent",
          result:"PASS"});
        // Explore discovery is a separate real page, with a fake GET-only result.
+       // UX019: real Figma Explore landing, area filtering and autocomplete.
+       await page.goto(root+"/search",{waitUntil:"domcontentloaded"});
+       if(size.width<=760) {
+         await page.getByRole("heading",{name:"Explore",exact:true}).waitFor();
+         await page.getByRole("heading",{name:"Explore nearby"}).waitFor();
+         await page.getByRole("heading",{name:"Featured Hustlers"}).waitFor();
+         await page.getByRole("link",{name:/QA Hustler/}).waitFor({timeout:12000});
+         assert.equal(await page.getByText("No published Hustlers found").count(),0);
+         const area=page.getByRole("textbox",{name:"Area for published local work"});
+         assert.equal(await area.inputValue(),"Lagos");
+         const search=page.getByRole("searchbox",{name:"Search Hustle"});
+         await search.fill("a");
+         await page.getByRole("button",{name:/Artist/}).waitFor();
+         await search.fill("ba");
+         await page.getByRole("link",{name:/QA Barber Session/}).waitFor({timeout:15000});
+         await page.screenshot({path:path.join(out,size.label+"__figma-explore-suggestions.png"),
+           animations:"disabled",caret:"hide"});
+         await page.keyboard.press("Escape");
+         assert.equal(await page.getByRole("region",{name:"Search suggestions"}).count(),0);
+       }
        await page.goto(root+"/search?q=barber",{waitUntil:"domcontentloaded"});
        await page.getByRole("heading",{name:service.title}).waitFor({timeout:15000});
        if(size.width<=760) {
