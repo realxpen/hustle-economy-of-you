@@ -48,7 +48,7 @@ export function ExploreTypeahead({value,visible,onChoose,onDismiss}:{
     let cancelled=false;
     setLoading(true);
     const timer=window.setTimeout(()=>{
-      void getSearchPage("top",{q:term,limit:6})
+      void getSearchPage("top",{q:term,limit:24})
         .then(page=>{if(!cancelled)setMatches(page.items);})
         .catch(()=>{if(!cancelled)setMatches([]);})
         .finally(()=>{if(!cancelled)setLoading(false);});
@@ -60,6 +60,17 @@ export function ExploreTypeahead({value,visible,onChoose,onDismiss}:{
     ...promptTerms.filter(s=>s.toLowerCase().startsWith(prefix))]
     .filter((item,index,array)=>array.findIndex(x=>x.toLowerCase()===item.toLowerCase())===index).slice(0,5),
     [prefix,recent]);
+  // Keep the compact, TikTok-style preview diverse: avoid letting several
+  // matching profiles hide a published post, service or product behind them.
+  // The complete ranked results remain available in the full Search screen.
+  const previewMatches=useMemo(()=>{
+    const shown:{[kind:string]:number}={};
+    return matches.filter(item=>{
+      if((shown[item.kind]??0)>=2)return false;
+      shown[item.kind]=(shown[item.kind]??0)+1;
+      return true;
+    }).slice(0,8);
+  },[matches]);
   if(!visible)return null;
   function select(term:string){
     const history=[term,...recent.filter(s=>s.toLowerCase()!==term.toLowerCase())].slice(0,5);
@@ -80,8 +91,8 @@ export function ExploreTypeahead({value,visible,onChoose,onDismiss}:{
       </button>)}
     </div>}
     {prefix.length>=2 && <div className={styles.suggestionSection}>
-      <div className={styles.suggestionHeading}><strong>People, posts & offers</strong><span>{loading?"Searching…":"Published on Hustle"}</span></div>
-      {matches.map(item=><Link key={item.kind+"-"+item.id} className={styles.suggestionRow}
+      <div className={styles.suggestionHeading}><strong>People, posts, services & products</strong><span>{loading?"Searching…":"Published on Hustle"}</span></div>
+      {previewMatches.map(item=><Link key={item.kind+"-"+item.id} className={styles.suggestionRow}
         href={item.url??"/search"} onClick={onDismiss}>
         <span className={styles.suggestionKind}>{item.kind}</span>
         <span>{heading(item)}</span><span aria-hidden="true">↗</span>

@@ -44,8 +44,18 @@ const fixtureFeed={tab:"for-you",items:[fixturePost],nextCursor:null,hasMore:fal
   viewerLocation:null,coldStart:false,guest:true,reason:null};
 const searchItem={kind:"service",id:"qa-service",url:"/services/qa-service",
   service,owner,ranking:{score:98,reasons:["Beauty","Barber"]}};
-const queryPage=(tab)=>({mode:"search",tab,query:"barber",filters:{},
-  items:[searchItem],nextCursor:null,hasMore:false,zeroResults:false});
+const xpenResultKinds=[
+  {kind:"person",id:"qa-hustler",url:"/u/qa-hustler",person:owner,
+    ranking:{score:95,reasons:["username"]}},
+  {kind:"post",id:"qa-post-001",url:"/posts/qa-post-001",post:fixturePost.post,
+    owner,engagement:fixturePost.engagement,ranking:{score:88,reasons:["username"]}},
+  searchItem,
+  {kind:"product",id:"qa-product",url:"/products/qa-product",product,owner,
+    ranking:{score:85,reasons:["username"]}}
+];
+const queryPage=(tab,q)=>({mode:"search",tab,query:q||"barber",filters:{},
+  items:q==="xp"?xpenResultKinds:[searchItem],
+  nextCursor:null,hasMore:false,zeroResults:false});
 const sizes=[
   {width:320,height:640,label:"compact-320"},
   {width:390,height:844,label:"figma-390"},
@@ -89,7 +99,7 @@ function localOnly(url) {
            hasMore:false,zeroResults:false});
        }
        if(/\/api\/v1\/guest\/search(?:\/services)?$/.test(u.pathname)) {
-         return respond(queryPage(u.pathname.endsWith("/services")?"services":"top"));
+         return respond(queryPage(u.pathname.endsWith("/services")?"services":"top",u.searchParams.get("q")));
        }
        if(/\/api\/v1\/services\/qa-service$/.test(u.pathname)) {
          return respond({service,owner});
@@ -261,6 +271,22 @@ function localOnly(url) {
            animations:"disabled",caret:"hide"});
          await page.keyboard.press("Escape");
          await page.getByRole("region",{name:"Search suggestions"}).waitFor({state:"detached",timeout:4000});
+         // UX020: typing a handle must preview all four published result types,
+         // with canonical links and no invented profile/product URLs.
+         await search.fill("xp");
+         const panel=page.getByRole("region",{name:"Search suggestions"});
+         for(const [label,href] of [
+           ["QA Hustler","/u/qa-hustler"],["A synthetic barber project","/posts/qa-post-001"],
+           ["QA Barber Session","/services/qa-service"],["QA Hair Care Kit","/products/qa-product"]
+         ]){
+           const result=panel.getByRole("link",{name:new RegExp(label)});
+           await result.waitFor({state:"visible",timeout:12000});
+           assert.equal(await result.getAttribute("href"),href);
+         }
+         await page.screenshot({path:path.join(out,size.label+"__explore-four-type-suggestions.png"),
+           animations:"disabled",caret:"hide"});
+         await page.keyboard.press("Escape");
+         await panel.waitFor({state:"detached",timeout:4000});
        }
        await page.goto(root+"/search?q=barber",{waitUntil:"domcontentloaded"});
        await page.getByRole("heading",{name:service.title}).waitFor({timeout:15000});
