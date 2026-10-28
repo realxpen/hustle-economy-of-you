@@ -6,15 +6,18 @@ import { formatProductPrice } from "../../lib/product";
 import { formatServicePrice } from "../../lib/service";
 import styles from "./search.module.css";
 
-function Owner({ owner }: { owner: PublicOwner }) {
+function Avatar({ owner, large = false }: { owner: PublicOwner; large?: boolean }) {
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
-  return <div className={styles.owner}>
-    <div className={styles.avatar}>{owner.avatarUrl ? <img src={owner.avatarUrl} alt="" /> : initial}</div>
-    <div className={styles.ownerText}>
-      <strong>{owner.displayName ?? owner.username ?? "Hustler"}</strong>
-      <span>@{owner.username ?? "hustler"}{owner.verified ? " · Verified" : ""}</span>
-    </div>
-  </div>;
+  return <span className={large ? styles.discoveryAvatarLarge : styles.discoveryAvatar}>
+    {owner.avatarUrl ? <img src={owner.avatarUrl} alt="" loading="lazy" /> : initial}
+  </span>;
+}
+
+function Creator({ owner }: { owner: PublicOwner }) {
+  return <span className={styles.discoveryCreator}>
+    <Avatar owner={owner} />
+    <span className={styles.discoveryCreatorName}>{owner.displayName ?? owner.username ?? "Hustler"}</span>
+  </span>;
 }
 
 export function ResultCard({
@@ -31,80 +34,86 @@ export function ResultCard({
       void Promise.resolve(onOpen(item)).catch(() => undefined);
       return;
     }
-
     event.preventDefault();
     try {
       await Promise.resolve(onOpen(item));
     } catch {
       // Observation must never block canonical navigation.
     }
-
     if (href !== "#") window.location.assign(href);
   }
 
   if (item.kind === "person") {
-    const profile = item.person.professionalProfile;
-    return <a className={[styles.card, "h-experience-surface"].join(" ")} href={href} onClick={handleOpen}>
-      <div className={styles.media}><div className={styles.mediaFallback}>{(item.person.displayName ?? item.person.username ?? "H").charAt(0)}</div></div>
-      <div className={styles.cardBody}>
-        <span className={styles.kind}>PERSON · {Math.round(item.ranking.score)} RELEVANCE</span>
-        <h3>{item.person.displayName ?? item.person.username ?? "Hustler"}</h3>
-        <p>{profile.headline ?? profile.primarySkill ?? item.person.bio ?? "Professional identity on Hustle."}</p>
-        <Owner owner={item.person} />
-        <div className={styles.rank}>{item.ranking.reasons.slice(0, 4).map((reason) => <span key={reason}>{reason}</span>)}</div>
-      </div>
+    const person = item.person;
+    const summary = person.professionalProfile.headline ??
+      person.professionalProfile.primarySkill ?? person.bio ?? "Explore their work on Hustle";
+    return <a className={styles.discoveryPerson} href={href} onClick={handleOpen}>
+      <Avatar owner={person} large />
+      <span className={styles.discoveryPersonText}>
+        <strong>{person.displayName ?? person.username ?? "Hustler"}</strong>
+        <span className={styles.discoveryHandle}>@{person.username ?? "hustler"}{person.verified ? " · Contact verified" : ""}</span>
+        <span className={styles.discoverySummary}>{summary}</span>
+        {person.location && <span className={styles.discoveryLocation}>{person.location}</span>}
+      </span>
+      <span className={styles.discoveryAction} aria-hidden="true">↗</span>
     </a>;
   }
 
   if (item.kind === "post") {
     const first = item.post.media[0];
-    return <a className={[styles.card, "h-experience-surface"].join(" ")} href={href} onClick={handleOpen}>
-      <div className={styles.media}>
+    const isVideo = first?.type === "VIDEO";
+    return <a className={styles.discoveryPost} href={href} onClick={handleOpen}>
+      <span className={styles.discoveryPostVisual}>
         {first?.type === "IMAGE" && first.mediaUrl
-          ? <img src={first.mediaUrl} alt="Demonstrated capability" loading="lazy" />
-          : <div className={styles.mediaFallback}>{first?.type === "VIDEO" ? "▶" : "↗"}</div>}
-      </div>
-      <div className={styles.cardBody}>
-        <span className={styles.kind}>POST · {Math.round(item.ranking.score)} RELEVANCE</span>
-        <h3>{item.post.category ?? item.owner.professionalProfile.primarySkill ?? "Capability proof"}</h3>
-        <p>{item.post.caption ?? "Published capability proof."}</p>
-        <Owner owner={item.owner} />
-        <div className={styles.rank}>{item.ranking.reasons.slice(0, 4).map((reason) => <span key={reason}>{reason}</span>)}</div>
-      </div>
+          ? <img src={first.mediaUrl} alt="" loading="lazy" />
+          : isVideo && first.mediaUrl
+            ? <video src={first.mediaUrl} muted playsInline preload="metadata" aria-hidden="true" tabIndex={-1} />
+            : <span className={styles.discoveryMediaEmpty} aria-hidden="true">✦</span>}
+        <span className={styles.discoveryMediaTag}>{isVideo ? "Video" : first?.type === "IMAGE" ? "Photo" : "Post"}</span>
+        {isVideo && <span className={styles.discoveryPlay} aria-hidden="true">▶</span>}
+      </span>
+      <span className={styles.discoveryPostDetails}>
+        <span className={styles.discoveryPostCaption}>{item.post.caption ?? item.post.category ?? "Explore this work"}</span>
+        <Creator owner={item.owner} />
+        <span className={styles.discoveryPostFoot}>
+          <span>{item.post.category ?? "Work on Hustle"}</span>
+          {item.engagement.likes > 0 && <span>♡ {item.engagement.likes}</span>}
+        </span>
+      </span>
     </a>;
   }
 
   if (item.kind === "service") {
-    return <a className={[styles.card, "h-experience-surface"].join(" ")} href={href} onClick={handleOpen}>
-      <div className={styles.media}>
+    return <a className={styles.discoveryService} href={href} onClick={handleOpen}>
+      <span className={styles.discoveryOfferVisual}>
         {item.service.mediaUrls?.[0]
           ? <img src={item.service.mediaUrls[0]} alt="" loading="lazy" />
-          : <div className={styles.mediaFallback}>S</div>}
-      </div>
-      <div className={styles.cardBody}>
-        <span className={styles.kind}>SERVICE · {Math.round(item.ranking.score)} RELEVANCE</span>
-        <h3>{item.service.title ?? "Service"}</h3>
-        <div className={styles.price}>{formatServicePrice(item.service)}</div>
-        <p>{item.service.description ?? item.service.category ?? "Published Hustle service."}</p>
-        <Owner owner={item.owner} />
-        <div className={styles.rank}>{item.ranking.reasons.slice(0, 4).map((reason) => <span key={reason}>{reason}</span>)}</div>
-      </div>
+          : <span className={styles.discoveryMediaEmpty} aria-hidden="true">✦</span>}
+        <span className={styles.discoveryMediaTag}>Service</span>
+      </span>
+      <span className={styles.discoveryOfferInfo}>
+        <strong className={styles.discoveryOfferTitle}>{item.service.title ?? "Service"}</strong>
+        <strong className={styles.discoveryOfferPrice}>{formatServicePrice(item.service)}</strong>
+        <span className={styles.discoveryOfferDescription}>
+          {item.service.description ?? item.service.category ?? "Explore this service"}
+        </span>
+        <Creator owner={item.owner} />
+        <span className={styles.discoveryOfferAction}>View service <span aria-hidden="true">↗</span></span>
+      </span>
     </a>;
   }
 
-  return <a className={[styles.card, "h-experience-surface"].join(" ")} href={href} onClick={handleOpen}>
-    <div className={styles.media}>
+  return <a className={styles.discoveryProduct} href={href} onClick={handleOpen}>
+    <span className={styles.discoveryProductVisual}>
       {item.product.mediaUrls?.[0]
         ? <img src={item.product.mediaUrls[0]} alt="" loading="lazy" />
-        : <div className={styles.mediaFallback}>P</div>}
-    </div>
-    <div className={styles.cardBody}>
-      <span className={styles.kind}>PRODUCT · {Math.round(item.ranking.score)} RELEVANCE</span>
-      <h3>{item.product.title ?? "Product"}</h3>
-      <div className={styles.price}>{formatProductPrice(item.product)}</div>
-      <p>{item.product.description ?? item.product.category ?? "Published Hustle product."}</p>
-      <Owner owner={item.owner} />
-      <div className={styles.rank}>{item.ranking.reasons.slice(0, 4).map((reason) => <span key={reason}>{reason}</span>)}</div>
-    </div>
+        : <span className={styles.discoveryMediaEmpty} aria-hidden="true">◈</span>}
+      <span className={styles.discoveryMediaTag}>Product</span>
+    </span>
+    <span className={styles.discoveryProductInfo}>
+      <strong className={styles.discoveryOfferTitle}>{item.product.title ?? "Product"}</strong>
+      <strong className={styles.discoveryOfferPrice}>{formatProductPrice(item.product)}</strong>
+      <Creator owner={item.owner} />
+    </span>
   </a>;
 }
