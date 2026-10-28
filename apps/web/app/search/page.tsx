@@ -280,7 +280,7 @@ export default function SearchPageScreen() {
         }}>Clear filters</button>}
         {relatedResults.length>0 && <div className={styles.grid}>{relatedResults.map((item,index)=>
           <ResultCard key={item.kind+"-"+item.id} item={item} onOpen={()=>openResult(item,index)}/>)}</div>}
-      </div>
+      </div>}
       {!error && !loading && !meta.zeroResults && items.length === 0 && (Boolean(query.trim()) || Boolean(searchedQuery)) && <ExperienceState kind="empty" title="What do you need?" description="Search for a professional, service, product or work." />}
       {!loading && items.length > 0 && <div className={styles.grid}>{items.map((item, index) => <ResultCard key={`${item.kind}-${item.id}`} item={item} onOpen={() => openResult(item, index)} />)}</div>}
       {!loading && !error && meta.hasMore && <div className={styles.loadMore}><button className={styles.primaryButton} type="button" disabled={loadingMore} onClick={() => void runSearch(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more"}</button></div>}
