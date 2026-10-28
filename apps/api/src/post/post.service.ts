@@ -9,6 +9,7 @@ import {
 
 import { PrismaService } from "../database/prisma.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
+import { removeStoredObject, stagingMediaEnabled } from "./staging-s3";
 
 export interface SavePostInput {
   caption?: unknown;
@@ -133,7 +134,22 @@ export class PostService {
     await this.requireOwnedPost(profile.id, postId);
     const media = await this.prisma.postMedia.findFirst({ where: { id: mediaId, postId } });
     if (!media) throw new NotFoundException("Post media not found");
+    // Remove the database reference first, so the private object cannot be
+    // newly authorized for delivery. Cleanup is allowed only for this author's
+    // exact object key, never a caller-provided S3 URL or prefix.
     await this.prisma.postMedia.delete({ where: { id: media.id } });
+    const expectedKey = `media/${profile.userId}/${postId}/${mediaId}`;
+    if (stagingMediaEnabled() && media.storageKey === expectedKey) {
+      try {
+        await removeStoredObject(expectedKey);
+      } catch {
+        // DB deletion has already committed. Flag for the read-only orphan
+        // reconciliation; never retry a deletion by guessing object ownership.
+        console.warn("UX011 attached media cleanup deferred after PostMedia deletion", {
+          postId, mediaId
+        });
+      }
+    }
     return this.requireOwnedPost(profile.id, postId);
   }
 

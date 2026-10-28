@@ -103,6 +103,8 @@ jobs:
         run: node scripts/experience/check-ux010-creator-activation.cjs
       - name: UX011 local signed object store and private iPhone media lifecycle
         run: node scripts/experience/check-ux011-media-lifecycle.cjs
+      - name: UX011 read-only orphan inventory and fail-closed cleanup audit
+        run: node scripts/experience/check-ux011-orphan-audit.cjs
       - name: Exercise real Nest Client/Hustler alternate-time consent state machine
         run: node scripts/experience/check-ux009-time-consent-runtime.cjs
       - name: FlowTime adaptive scheduling and capacity safety regression

@@ -8,7 +8,7 @@ import { PrismaService } from "../database/prisma.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import {
   signedUploadForm, stagingMediaEnabled, stagingMediaOrigin,
-  objectMetadata, firstBytes, promoteObject, temporaryObjectRead
+  objectMetadata, firstBytes, promoteObject, removePendingObject, temporaryObjectRead
 } from "./staging-s3";
 
 type Mime = "image/jpeg" | "image/png" | "image/webp" | "video/mp4" | "video/quicktime";
@@ -150,6 +150,8 @@ export class StagingUploadService {
     const bytes = await firstBytes(pendingKey(claim));
     if (!contentMatchesMime(bytes, claim.mime))
       throw new BadRequestException("The uploaded file signature does not match its media type");
+    // Copy now, but preserve pending source until the DB commits. If the
+    // transaction fails, the same unexpired receipt can retry safely.
     await promoteObject(pendingKey(claim), permanentKey(claim));
 
     // Serializable transaction prevents overlapping confirms from bypassing
@@ -176,7 +178,20 @@ export class StagingUploadService {
         }
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-    return { mediaId: claim.mediaId, alreadyAttached: false };
+
+    // A leftover pending upload is private and expires after one day. Do not
+    // turn a successfully committed media attachment into a user-visible error
+    // if only this cleanup fails.
+    let cleanupDeferred = false;
+    try {
+      await removePendingObject(pendingKey(claim));
+    } catch {
+      cleanupDeferred = true;
+      console.warn("UX011 pending media cleanup deferred after committed attachment", {
+        postId, mediaId: claim.mediaId
+      });
+    }
+    return { mediaId: claim.mediaId, alreadyAttached: false, cleanupDeferred };
   }
 
   async publicMedia(postId: string, mediaId: string) {
