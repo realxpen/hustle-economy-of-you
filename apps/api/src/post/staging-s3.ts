@@ -122,16 +122,31 @@ export async function firstBytes(key: string) {
 }
 
 export async function promoteObject(pending: string, destination: string) {
-  // Same private bucket. Copy keeps original Content-Type, then removes pending.
+  // Copy first, but KEEP the pending object until the PostMedia DB transaction
+  // commits. A failed DB write must not destroy the only retryable source.
+  // The private pending/ lifecycle automatically expires unfinished transfers.
   const copied = await request("PUT", destination, {
     "x-amz-copy-source": `/${bucketName}/${encodedKey(pending)}`
   });
   // S3 CopyObject may return HTTP 200 containing an XML <Error>; never
-  // accept success solely from the status or drop the pending upload early.
+  // accept success solely from the status.
   const result = await copied.text();
   if (!result.includes("<CopyObjectResult") || result.includes("<Error"))
     throw new BadGatewayException("Private media object promotion was not confirmed");
-  await request("DELETE", pending);
+}
+
+/** Only call after DB attachment commit; failure is safe to defer to lifecycle. */
+export async function removePendingObject(key: string) {
+  if (!/^pending\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/[a-f0-9-]{36}$/.test(key))
+    throw new BadGatewayException("Unexpected private upload cleanup key");
+  await request("DELETE", key);
+}
+
+/** Deletion is restricted to an exact per-author/post/media-id object key. */
+export async function removeStoredObject(key: string) {
+  if (!/^media\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/[a-f0-9-]{36}$/.test(key))
+    throw new BadGatewayException("Unexpected attached media cleanup key");
+  await request("DELETE", key);
 }
 
 export function temporaryObjectRead(key: string, ttl = 60) {
