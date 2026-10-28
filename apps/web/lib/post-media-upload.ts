@@ -14,14 +14,28 @@ export type MediaUploadAuthorization = {
 };
 
 const supportedTypes = new Set([
-  "image/jpeg", "image/png", "image/webp", "video/mp4"
+  "image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime"
 ]);
+
+/**
+ * Safari sometimes reports .MOV as video/quicktime, video/x-quicktime,
+ * as MP4 or with an empty MIME. Canonicalize metadata only for a .mov file;
+ * the API independently verifies its QuickTime ftyp signature.
+ */
+export function stagingUploadContentType(file: Pick<File, "type" | "name">): string {
+  if (/\\.mov$/i.test(file.name) &&
+      ["", "video/x-quicktime", "application/octet-stream", "video/quicktime", "video/mp4"].includes(file.type)) {
+    return "video/quicktime";
+  }
+  return file.type;
+}
 
 export function validateStagingUploadFile(file: File): string | null {
   if (!isolatedWebMode) return "Direct uploads are only enabled on isolated Hustle staging.";
-  if (!supportedTypes.has(file.type))
-    return "Choose a JPEG, PNG, WebP or MP4. HEIC and MOV need conversion before upload.";
-  const max = file.type.startsWith("image/") ? 8_000_000 : 30_000_000;
+  const contentType = stagingUploadContentType(file);
+  if (!supportedTypes.has(contentType))
+    return "Choose JPEG, PNG, WebP, MP4 or a supported iPhone MOV. HEIC photos still require JPEG export.";
+  const max = contentType.startsWith("image/") ? 8_000_000 : 30_000_000;
   if (file.size < 1 || file.size > max)
     return `The file must be under ${max / 1_000_000} MB.`;
   return null;
@@ -34,7 +48,7 @@ export async function authorizeStagingPostMedia(postId: string, file: File) {
     `/posts/${encodeURIComponent(postId)}/media/uploads/authorize`,
     {
       method: "POST",
-      body: JSON.stringify({ contentType: file.type, size: file.size })
+      body: JSON.stringify({ contentType: stagingUploadContentType(file), size: file.size })
     }
   );
   return response.json() as Promise<MediaUploadAuthorization>;
@@ -57,7 +71,7 @@ export function transferFileToPrivateStaging(
         target.hostname !== "hustle-ux011-isolated-media-707859598737-eu-west-2.s3.eu-west-2.amazonaws.com" ||
         target.pathname !== "/" || target.username || target.password || target.port)
       return reject(new Error("Unexpected staging media upload destination"));
-    if (ticket.size !== file.size || ticket.contentType !== file.type)
+    if (ticket.size !== file.size || ticket.contentType !== stagingUploadContentType(file))
       return reject(new Error("The upload authorization does not match the selected file"));
     if (signal.aborted) return reject(new DOMException("Upload cancelled", "AbortError"));
 

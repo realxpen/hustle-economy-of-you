@@ -89,6 +89,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [draftMediaPreviews, setDraftMediaPreviews] = useState<Record<string,string>>({});
   const uploadAbort = useRef<AbortController | null>(null);
+  const fileInput = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
     if (!selectedFile) { setSelectedPreview(null); return; }
     const url = URL.createObjectURL(selectedFile);
@@ -288,6 +289,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
       setPost(updated);
       if (!currentId) router.replace(`/posts/${draft.id}/edit`);
       setSelectedFile(null);
+      if (fileInput.current) fileInput.current.value = "";
       setUploadProgress(null);
       setNotice("Private upload attached to your draft. Publish only when ready.");
     } catch (reason) {
@@ -414,20 +416,21 @@ export default function PostEditor({ postId }: { postId?: string }) {
         <div className={styles.sectionTitle}><span>02</span><div><strong>Media</strong><p>Use one video, one image, or multiple images for a carousel.</p></div></div>
         {isolatedWebMode && <div style={{border:"1px solid var(--h-border, #aaa)",borderRadius:18,padding:16,marginBottom:18,display:"grid",gap:12}}>
           <strong>Upload from your iPhone</strong>
-          <p className={styles.muted}>Choose a JPEG, PNG or WebP image (up to 8 MB), or an MP4 video (up to 30 MB). You can add up to 10 photos or one video. HEIC and MOV files need conversion first. Your file stays private until you publish.</p>
+          <p className={styles.muted}>Choose a JPEG, PNG or WebP image (up to 8 MB), or an MP4/iPhone MOV video (up to 30 MB). Add up to 10 photos or one video. MOV playback depends on the viewer’s device and codec; MP4 is recommended for widest reach. HEIC photos still need JPEG export. Files stay private until publishing.</p>
           <label>
             <span>Choose photo or video</span>
-            <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4"
+            <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,.mov"
               disabled={busy || published || mediaCount >= 10 || Boolean(post?.media.some(item => item.type === "VIDEO"))}
               onChange={event => {
                 const next = event.target.files?.[0] ?? null;
                 setSelectedFile(next);
                 setError(next ? validateStagingUploadFile(next) : null);
-                event.target.value = "";
               }} />
           </label>
           {selectedFile && <div style={{display:"grid",gap:10}}>
-            <p className={styles.muted}>{selectedFile.name} · {(selectedFile.size / 1_000_000).toFixed(2)} MB</p>
+            <p className={styles.muted} role="status">Selected: {selectedFile.name} · {(selectedFile.size / 1_000_000).toFixed(2)} MB</p>
+            {validateStagingUploadFile(selectedFile) && <p role="alert" style={{color:"#b44e38",fontWeight:700}}>{validateStagingUploadFile(selectedFile)}</p>}
+            {selectedFile.name.toLowerCase().endsWith(".mov") && <p className={styles.muted}>iPhone MOV is supported for this private upload, but other viewers may need an MP4 version for compatible playback.</p>}
             {selectedPreview && (selectedFile.type.startsWith("image/")
               ? <img src={selectedPreview} alt="Your selected photo preview" style={{maxWidth:"100%",maxHeight:230,objectFit:"contain",borderRadius:12}} />
               : <video src={selectedPreview} controls preload="metadata" style={{maxWidth:"100%",maxHeight:230,borderRadius:12}} />)}
@@ -439,7 +442,10 @@ export default function PostEditor({ postId }: { postId?: string }) {
               <button type="button" className={styles.primary} onClick={() => void uploadSelectedFile()} disabled={busy || Boolean(validateStagingUploadFile(selectedFile))}>Upload privately</button>
               <button type="button" className={styles.secondary} onClick={() => {
                 uploadAbort.current?.abort();
-                if (!busy) setSelectedFile(null);
+                if (!busy) {
+                  setSelectedFile(null);
+                  if (fileInput.current) fileInput.current.value = "";
+                }
               }}>{busy ? "Cancel upload" : "Remove selection"}</button>
             </div>
           </div>}

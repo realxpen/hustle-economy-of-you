@@ -1,10 +1,10 @@
 # UX011 — Private iPhone photo/video upload: staging release gate
 
-Status: **CODE IMPLEMENTATION IN REVIEW — NOT DEPLOYED**. Related issue #244.
+Status: **Isolated staging deployment active; iPhone photo acceptance passed. QuickTime MOV support is proposed in a follow-up PR, NOT deployed.** Related issue #244.
 
 ## Functional path
 
-Existing signed-in Client or Hustler → Post editor → select iPhone JPEG/PNG/WebP (up to 8MB) or MP4 (up to 30MB) → local preview → save/create a DRAFT → authenticated signed-upload authorization → browser uploads bytes **directly to isolated S3** → server confirms owner, size, content type and file magic bytes → server copies object out of one-day temporary prefix → idempotent PostMedia record → owner can preview draft through an authenticated read → deliberate Publish makes a stable same-origin media URL available from public Post/Feed. Post service offer attachments and original seller attribution stay intact.
+Existing signed-in Client or Hustler → Post editor → select iPhone JPEG/PNG/WebP (up to 8MB) or MP4/supported QuickTime MOV (up to 30MB) → local preview → save/create a DRAFT → authenticated signed-upload authorization → browser uploads bytes **directly to isolated S3** → server confirms owner, size, content type and file magic bytes → server copies object out of one-day temporary prefix → idempotent PostMedia record → owner can preview draft through an authenticated read → deliberate Publish makes a stable same-origin media URL available from public Post/Feed. Post service offer attachments and original seller attribution stay intact.
 
 No auto-posting, real payment, media-to-escrow connection or broad anonymous staging POST route. External public HTTPS media URLs are retained while camera roll uploads are validated.
 
@@ -32,7 +32,7 @@ No auto-posting, real payment, media-to-escrow connection or broad anonymous sta
 
 ## Limitations — not production-ready
 
-- HEIC and MOV are rejected with a clear explanation; iPhone may need JPEG/MP4 export. Universal iPhone format conversion/transcoding is a separate follow-up.
+- HEIC photos still require JPEG export. iPhone QuickTime MOV is accepted only with a verified `ftypqt  ` header (supported recent iPhone variant), 30 MB limit, and exact `video/quicktime` metadata. Not every older QuickTime MOV variant is supported. MOV codecs are not universally playable on non-Apple devices: recommend MP4 for publishing to mixed audiences. Automatic iPhone format conversion/transcoding remains a separate production gate.
 - Only file header signatures and limited content-type checks are implemented, not full antivirus/ML content moderation, image decompression bombs, video codec compatibility or public-scale user abuse prevention. These must be addressed before broad user launch.
 - One-day `pending/` expiry cleans incomplete transfers. A promoted object without a committed DB record, and a deleted media row whose object remains, can leave unreferenced objects requiring a monitored lifecycle cleanup job; not yet implemented.
 - S3 is pay-per-use and no hard automatic monetary cap is included. CloudFormation deployment requires cost/retention review and manual approval.

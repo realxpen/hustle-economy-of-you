@@ -11,16 +11,17 @@ import {
   objectMetadata, firstBytes, promoteObject, temporaryObjectRead
 } from "./staging-s3";
 
-type Mime = "image/jpeg" | "image/png" | "image/webp" | "video/mp4";
+type Mime = "image/jpeg" | "image/png" | "image/webp" | "video/mp4" | "video/quicktime";
 type UploadClaim = {
   v: 1; userId: string; postId: string; mediaId: string;
   type: PostMediaType; mime: Mime; size: number; expires: number;
 };
 const maxBytes: Record<Mime, number> = {
   "image/jpeg": 8_000_000, "image/png": 8_000_000,
-  "image/webp": 8_000_000, "video/mp4": 30_000_000
+  "image/webp": 8_000_000, "video/mp4": 30_000_000,
+  "video/quicktime": 30_000_000
 };
-const allowed: Mime[] = ["image/jpeg", "image/png", "image/webp", "video/mp4"];
+const allowed: Mime[] = ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime"];
 
 function contentMatchesMime(bytes: Buffer, mime: Mime) {
   if (mime === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
@@ -30,6 +31,12 @@ function contentMatchesMime(bytes: Buffer, mime: Mime) {
   if (mime === "video/mp4") {
     return bytes.toString("ascii",4,8) === "ftyp" &&
       ["isom","iso2","mp41","mp42","avc1","M4V ","MSNV"].includes(bytes.toString("ascii",8,12));
+  }
+  // Recent iPhone QuickTime .MOV files use the 'qt  ' ISO-BMFF
+  // major brand. Reject arbitrary video files with a renamed .mov suffix.
+  if (mime === "video/quicktime") {
+    return bytes.toString("ascii",4,8) === "ftyp" &&
+      bytes.toString("ascii",8,12) === "qt  ";
   }
   return false;
 }
@@ -101,7 +108,7 @@ export class StagingUploadService {
     if (post.status !== PostStatus.DRAFT) throw new ConflictException("Upload media only to a draft");
     const mime = input?.contentType;
     if (typeof mime !== "string" || !allowed.includes(mime as Mime))
-      throw new BadRequestException("Choose a JPEG, PNG, WebP or MP4 file");
+      throw new BadRequestException("Choose a JPEG, PNG, WebP, MP4, or supported iPhone MOV file");
     const size = input?.size;
     const contentType = mime as Mime;
     if (typeof size !== "number" || !Number.isInteger(size) || size < 1 || size > maxBytes[contentType])

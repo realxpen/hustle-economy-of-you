@@ -12,7 +12,8 @@ const { signedUploadForm, temporaryObjectRead } = require("../../apps/api/dist/p
 const files = {
   template: fs.readFileSync("infra/aws/lambda/staging-template.yaml","utf8"),
   proxy: fs.readFileSync("apps/web/lib/api/isolated-web-proxy.ts","utf8"),
-  editor: fs.readFileSync("apps/web/app/posts/post-editor.tsx","utf8")
+  editor: fs.readFileSync("apps/web/app/posts/post-editor.tsx","utf8"),
+  uploadClient: fs.readFileSync("apps/web/lib/post-media-upload.ts", "utf8")
 };
 for (const marker of [
   "hustle-ux011-isolated-media-707859598737-eu-west-2",
@@ -41,6 +42,12 @@ assert.match(files.editor, /editorMediaPreviewSource\(item, post\?\.status, draf
 assert.doesNotMatch(files.editor, /src=\{post\.media\[0\]\.mediaUrl\}/,
   "Never read a DRAFT via published-only /media/p in the large preview");
 assert.match(files.editor, /confirmStagingPostMedia/);
+assert.match(files.editor, /video\/quicktime,\.mov/, "iPhone file picker allows QuickTime MOV");
+assert.match(files.editor, /ref=\{fileInput\}/, "Keep selected native file control synchronized");
+assert.doesNotMatch(files.editor, /event\.target\.value = ""/, "Do not erase native selection immediately");
+assert.match(files.uploadClient, /function stagingUploadContentType\(/, "Normalize iOS MOV MIME");
+assert.match(files.uploadClient, /stagingUploadContentType\(file\)/, "Use canonical MIME for signed upload metadata");
+assert.match(files.uploadClient, /"video\/quicktime"/, "Recognize QuickTime upload");
 
 for (const path of [
   "/api/v1/posts/owned-post/media/uploads/authorize",
@@ -93,12 +100,15 @@ const prisma={
 const auth={subject:"valid-client", emailVerified:true,phoneVerified:false};
 const forged={subject:"other-client", emailVerified:true,phoneVerified:false};
 const call=[];
+let currentMime = "image/jpeg";
+let currentSize = 1234;
+let currentHeader = Buffer.from([0xff,0xd8,0xff,0xe0,0x12,0x34]);
 global.fetch=async (url,init)=>{
   const action=init.method;
   call.push({url,action,headers:init.headers});
   assert.ok(String(url).startsWith("https://hustle-ux011-isolated-media-707859598737-eu-west-2.s3.eu-west-2.amazonaws.com/"));
-  if(action==="HEAD")return new Response(null,{status:200,headers:{"content-length":"1234","content-type":"image/jpeg"}});
-  if(action==="GET")return new Response(Buffer.from([0xff,0xd8,0xff,0xe0,0x12,0x34]),{status:206});
+  if(action==="HEAD")return new Response(null,{status:200,headers:{"content-length":String(currentSize),"content-type":currentMime}});
+  if(action==="GET")return new Response(currentHeader,{status:206});
   if(action==="PUT")return new Response("<CopyObjectResult><ETag>mock</ETag></CopyObjectResult>",{status:200});
   if(action==="DELETE")return new Response(null,{status:204});
   throw Error("Unexpected S3 method: "+action);
@@ -130,6 +140,39 @@ global.fetch=async (url,init)=>{
   await assert.rejects(service.publicMedia("client-post",result.mediaId),e=>e.getStatus?.()===404);
   status="PUBLISHED";
   assert.match(await service.publicMedia("client-post",result.mediaId),/X-Amz-Expires=60/);
+
+  // A new disposable QuickTime-only draft: iOS MOV metadata is accepted, but
+  // server independently refuses an MP4 file merely renamed .mov.
+  status="DRAFT";
+  media=[];
+  currentMime="video/quicktime";
+  currentSize=2650;
+  currentHeader=Buffer.alloc(32);
+  currentHeader.write("ftyp",4,"ascii");
+  currentHeader.write("isom",8,"ascii");
+  await assert.rejects(service.authorize(auth,"client-post",{contentType:"video/avi",size:2650}),
+    e=>e.getStatus?.()===400);
+  await assert.rejects(service.authorize(auth,"client-post",{contentType:"video/quicktime",size:30_000_001}),
+    e=>e.getStatus?.()===400);
+  const mov=await service.authorize(auth,"client-post",{contentType:"video/quicktime",size:2650});
+  assert.equal(mov.contentType,"video/quicktime");
+  assert.equal(mov.maxBytes,30_000_000);
+  assert.equal(mov.fields["Content-Type"],"video/quicktime");
+  await assert.rejects(service.confirm(auth,"client-post",{receipt:mov.receipt}),
+    e=>e.getStatus?.()===400, "Reject renamed MP4 via ftyp major-brand mismatch");
+  assert.equal(media.length,0,"Spoofed MOV must not be attached");
+  currentHeader.write("qt  ",8,"ascii");
+  const movResult=await service.confirm(auth,"client-post",{receipt:mov.receipt});
+  assert.equal(movResult.alreadyAttached,false);
+  assert.equal(media.length,1);
+  assert.equal(media[0].type,"VIDEO");
+  assert.equal(media[0].position,0);
+  await assert.rejects(service.authorize(auth,"client-post",{contentType:"image/jpeg",size:1234}),
+    e=>e.getStatus?.()===409, "One-video draft must refuse carousel images");
+  await assert.rejects(service.publicMedia("client-post",movResult.mediaId),
+    e=>e.getStatus?.()===404, "Unpublished MOV must remain private");
+  assert.equal((await service.confirm(auth,"client-post",{receipt:mov.receipt})).alreadyAttached,true,
+    "QuickTime retry may not insert twice");
 
   process.env.HUSTLE_RUNTIME_SCOPE="production";
   await assert.rejects(service.authorize(auth,"client-post",{contentType:"image/jpeg",size:100}),e=>e.getStatus?.()===503);
