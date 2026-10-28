@@ -17,7 +17,7 @@ assert.match(page,/ref=\{searchGroup\}/);
 assert.match(component,/getSearchPage\("top",\{q:term,limit:6\}\)/);
 assert.match(component,/window\.setTimeout\(\(\)=>/);
 assert.match(component,/getMarketplacePage\("all",\{limit:12,filters:\{location:area\}\}\)/);
-assert.match(component,/Not live distance or a map/);
+assert.match(component,/Not GPS distance or a live map/);
 assert.match(component,/sessionStorage\.setItem\("hustle-search-recent"/);
 assert.match(component,/No published Hustlers found in/);
 assert.doesNotMatch(component,/navigator\.geolocation|getCurrentPosition\(|Math\.random\(\)/);
