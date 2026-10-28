@@ -38,10 +38,13 @@ assert.match(styles,/\.cardBody,.cardBodyOffersOpen/);
 assert.match(styles,/\.actionRail\.railCompactClosed\{display:flex\}/);
 assert.match(styles,/UX016 — physical iPhone Safari visual acceptance/);
 assert.match(feed,/className=\{styles\.standaloneStatusBarGuard\} aria-hidden="true"/);
-assert.match(styles,/UX017 — iOS 27 installed-PWA scroll-edge blur mitigation/);
+assert.match(styles,/UX018 — iOS 27 PWA status-bar blur experiment/);
 assert.match(styles,/\.standaloneStatusBarGuard \{ display:none; \}/);
 assert.match(styles,/@media \(max-width:760px\) and \(display-mode:standalone\) \{/);
-assert.match(styles,/position:fixed;\s*top:0;\s*left:0;\s*right:0;\s*width:100%;\s*height:8px;/);
+assert.match(styles,/position:fixed;\s*top:0;\s*left:0;\s*right:0;\s*width:100%;\s*height:11px;/);
+assert.match(styles,/-webkit-background-clip:text;/);
+assert.match(styles,/background-clip:text;/);
+assert.match(styles,/z-index:2147483647;/);
 assert.match(styles,/background-color:#0E1210;/);
 assert.match(styles,/pointer-events:none;/);
 
