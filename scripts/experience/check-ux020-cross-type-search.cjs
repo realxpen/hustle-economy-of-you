@@ -26,6 +26,15 @@ const profile={
   category:"Digital",professionalSummary:"Professional",yearsExperience:2,user:owner
 };
 const fields=[];
+const clientOwner={
+  ...owner,id:"fixture-client",username:"guestmaker",displayName:"Creative Client",
+  emailVerified:false,phoneVerified:false
+};
+const draftProfile={
+  ...profile,id:"fixture-client-profile",status:"DRAFT",publishedAt:null,
+  headline:"PRIVATE UNPUBLISHED OFFER",primarySkill:"Confidential profession",
+  professionalSummary:"PRIVATE DRAFT BIO",category:"Hidden category",user:clientOwner
+};
 const db={
   user:{findMany:async ({where})=>{
     fields.push({kind:"person",where});
@@ -37,6 +46,11 @@ const db={
       id:"fixture-post",status:"PUBLISHED",caption:"Hello from my studio",
       category:"Photography",tags:["photos"],location:"Lagos, Nigeria",
       createdAt:stamp,publishedAt:stamp,media:[],professionalProfile:profile,
+      _count:{likes:0,saves:0,comments:0}
+    },{
+      id:"fixture-client-post",status:"PUBLISHED",caption:"Hello from a creative client",
+      category:"Personal updates",tags:[],location:"Lagos, Nigeria",
+      createdAt:stamp,publishedAt:stamp,media:[],professionalProfile:draftProfile,
       _count:{likes:0,saves:0,comments:0}
     }];
   }},
@@ -77,15 +91,30 @@ const db={
     assert.equal(response.items.length,1,tab+" should find creator content");
     assert.equal(response.items[0].kind,kind);
   }
-  assert.equal((await search.search(null,"posts",{q:"hello"})).items[0].kind,"post");
+  const publicPosts=await search.search(null,"posts",{q:"hello"});
+  assert.equal(publicPosts.items.length,2,
+    "search must find published client posts even before Hustler activation");
+  const clientPost=publicPosts.items.find(item=>item.id==="fixture-client-post");
+  assert.ok(clientPost,"published client content must be searchable");
+  assert.equal(clientPost.owner.professionalProfile.headline,null,
+    "unpublished professional headline must never leak");
+  assert.equal(clientPost.owner.professionalProfile.primarySkill,null);
+  assert.equal(clientPost.owner.professionalProfile.professionalSummary,null);
+  assert.deepEqual(clientPost.owner.professionalProfile.secondarySkills,[]);
+  assert.equal((await search.search(null,"top",{q:"PRIVATE UNPUBLISHED OFFER"})).zeroResults,true,
+    "draft professional field must not match any public search");
   assert.equal((await search.search(null,"services",{q:"website"})).items[0].kind,"service");
   assert.equal((await search.search(null,"products",{q:"template"})).items[0].kind,"product");
   assert.equal((await search.search(null,"top",{q:"nonexistentzz"})).zeroResults,true);
   const whereByKind=Object.fromEntries(fields.map(x=>[x.kind,x.where]));
   for(const kind of ["post","service","product"]){
     assert.equal(whereByKind[kind].status,"PUBLISHED",kind+" must be publication-gated");
-    assert.equal(whereByKind[kind].professionalProfile.is.status,"PUBLISHED",
-      kind+" must require a published profile");
   }
-  console.log("PASS UX020: handle finds all four published kinds, tabs and canonical URLs, and content matching and publication gates are preserved.");
+  assert.equal(whereByKind.post.moderationState,"CLEAR",
+    "moderated post holds cannot appear in search");
+  for(const kind of ["service","product"]){
+    assert.equal(whereByKind[kind].professionalProfile.is.status,"PUBLISHED",
+      kind+" must require a published Hustler profile");
+  }
+  console.log("PASS UX020: handle matches all four kinds, public client posts are searchable without leaking draft profile data, and publication gates remain.");
 })().catch(err=>{console.error(err);process.exitCode=1;});
