@@ -147,6 +147,7 @@ try {
  assert.match(get("apps/api/src/hustler-application/hustler-review.service.ts"),/hasIsolatedStagingPortfolioEvidence\(application.businessInfo\)/);
  const s=get("apps/web/app/search/page.tsx");
  assert.match(s,/className=\{query.trim\(\).toLowerCase\(\) === term \? styles.selectedSkill/);
- assert.match(s,/action=\{activeFilterCount \?/);
+ assert.match(s,/activeFilterCount>0 && <button type="button" className=\{styles\.resetButton\}/);
+ assert.match(s,/setFilters\(emptyFilters\);void runSearch\(tab,null,false,emptyFilters\)/);
  console.log("PASS: isolated staging onboarding, approval and service publishing routes, production proof isolation, role boundaries and search UX.");
 }finally{if(original===undefined)delete process.env.HUSTLE_RUNTIME_SCOPE;else process.env.HUSTLE_RUNTIME_SCOPE=original;}
