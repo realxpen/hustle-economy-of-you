@@ -93,6 +93,8 @@ jobs:
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
       - run: npm run prisma:generate --workspace=@hustle/api
+      - name: UX020 all-four-type search and creator handle regression (in-memory only)
+        run: node scripts/experience/check-ux020-cross-type-search.cjs
       - run: npm run typecheck --workspace=@hustle/api
       - run: npm run build --workspace=@hustle/web
       - run: npm run build --workspace=@hustle/admin
