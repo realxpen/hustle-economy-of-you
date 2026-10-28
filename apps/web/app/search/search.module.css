@@ -552,3 +552,7 @@
 
 /* UX019: the reference Explore heading has no underlining divider. */
 @media(max-width:760px){.searchExperience .hero{border:0!important;box-shadow:none!important}}
+
+/* UX019 screenshot QA: drop inherited h-experience-shell horizontal inset.
+   Figma title/search/skill/map start at 20–24px, not 38–42px. */
+@media(max-width:760px){.searchExperience{padding-left:0!important;padding-right:0!important}}

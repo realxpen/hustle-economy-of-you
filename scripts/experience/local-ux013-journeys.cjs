@@ -241,6 +241,9 @@ function localOnly(url) {
        await page.goto(root+"/search",{waitUntil:"domcontentloaded"});
        if(size.width<=760) {
          await page.getByRole("heading",{name:"Explore",exact:true}).waitFor();
+         const exploreHeading=await page.getByRole("heading",{name:"Explore",exact:true}).boundingBox();
+         assert.ok(exploreHeading && exploreHeading.x>=10 && exploreHeading.x<=28,
+           "Figma Explore title must align to 20-24px mobile gutters, not old shell padding");
          await page.getByRole("heading",{name:"Explore nearby"}).waitFor();
          await page.getByRole("heading",{name:"Featured Hustlers"}).waitFor();
          await page.getByRole("link",{name:/QA Hustler/}).waitFor({timeout:12000});

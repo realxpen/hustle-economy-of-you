@@ -136,7 +136,7 @@ export function ExploreNearby({visible=true}: {visible?:boolean}){
         <button type="submit" aria-label="Browse this area">Browse ↗</button>
       </form>
     </div>
-    <p className={styles.nearbyCaveat}>Published work tagged “{area}” · Not live distance or a map</p>
+    <p className={styles.nearbyCaveat}>Area: {area} · Not GPS distance or a live map</p>
     <div className={styles.sectionTitle}><h2>Featured Hustlers</h2></div>
     {loading && <p className={styles.nearbyMessage} role="status">Finding published work in {area}…</p>}
     {!loading && error && <p className={styles.nearbyMessage}>Local discovery is temporarily unavailable. Search still works.</p>}
