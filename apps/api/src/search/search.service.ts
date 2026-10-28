@@ -405,6 +405,10 @@ export class SearchService {
         { label: "availability", value: service.availabilityNote, weight: 4 },
         { label: "delivery", value: service.deliveryMode, weight: 6 },
         { label: "creator", value: owner.displayName, weight: 7 },
+        // Search by a creator handle must also discover their published offers.
+        // Otherwise a handle query returns the profile and silently drops
+        // services/products even though the same owner is on the result.
+        { label: "username", value: owner.username, weight: 13 },
         { label: "headline", value: profile.headline, weight: 8 },
         { label: "primary-skill", value: profile.primarySkill, weight: 12 },
         ...profile.secondarySkills.map((value) => ({ label: "skill", value, weight: 8 })),
@@ -474,6 +478,10 @@ export class SearchService {
         { label: "type", value: product.type, weight: 6 },
         { label: "delivery", value: product.deliveryInformation, weight: 5 },
         { label: "creator", value: owner.displayName, weight: 7 },
+        // Search by a creator handle must also discover their published offers.
+        // Otherwise a handle query returns the profile and silently drops
+        // services/products even though the same owner is on the result.
+        { label: "username", value: owner.username, weight: 13 },
         { label: "headline", value: profile.headline, weight: 8 },
         { label: "primary-skill", value: profile.primarySkill, weight: 10 },
         ...profile.secondarySkills.map((value) => ({ label: "skill", value, weight: 7 })),
