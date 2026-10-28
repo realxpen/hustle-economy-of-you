@@ -1538,3 +1538,27 @@
    font-size:13px;
  }
 }
+
+
+/* UX017 — iOS 27 installed-PWA scroll-edge blur mitigation.
+   WebKit's scroll-edge effect may extend down across the Hustle wordmark and
+   Search icon (while regular Safari remains sharp). A REAL fixed solid-color
+   element spanning the first 8px (not a ::before pseudo-element) prevents
+   WebKit from applying the tall system blur in observed iOS 27 builds.
+   This deliberately does not change --safe-area-inset-top, the 48px Search
+   target, the feed geometry, or regular Safari. Must be verified on iPhone. */
+.standaloneStatusBarGuard { display:none; }
+@media (max-width:760px) and (display-mode:standalone) {
+  .standaloneStatusBarGuard {
+    display:block;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    width:100%;
+    height:8px;
+    background-color:#0E1210;
+    z-index:150;
+    pointer-events:none;
+  }
+}

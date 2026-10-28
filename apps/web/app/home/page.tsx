@@ -654,6 +654,7 @@ export default function DiscoveryHomePage() {
   }
 
   return <main className={[styles.shell, "h-experience-shell", "h-adaptive", "h-discover-immersive"].join(" ")}>
+    <div className={styles.standaloneStatusBarGuard} aria-hidden="true" />
     <ExperienceHeader section="Discover" />
 
     <section className={styles.discoverLayout} aria-label="Hustle Discovery">

@@ -37,6 +37,14 @@ assert.match(styles,/\.avatar\{display:none\}/);
 assert.match(styles,/\.cardBody,.cardBodyOffersOpen/);
 assert.match(styles,/\.actionRail\.railCompactClosed\{display:flex\}/);
 assert.match(styles,/UX016 — physical iPhone Safari visual acceptance/);
+assert.match(feed,/className=\{styles\.standaloneStatusBarGuard\} aria-hidden="true"/);
+assert.match(styles,/UX017 — iOS 27 installed-PWA scroll-edge blur mitigation/);
+assert.match(styles,/\.standaloneStatusBarGuard \{ display:none; \}/);
+assert.match(styles,/@media \(max-width:760px\) and \(display-mode:standalone\) \{/);
+assert.match(styles,/position:fixed;\s*top:0;\s*left:0;\s*right:0;\s*width:100%;\s*height:8px;/);
+assert.match(styles,/background-color:#0E1210;/);
+assert.match(styles,/pointer-events:none;/);
+
 assert.match(styles,/\.actionRail,\.actionRail\.railCompact,\.actionRail:not\(\.railCompact\) \{/);
 assert.match(styles,/border:0!important;border-radius:0!important/);
 assert.match(styles,/backdrop-filter:none!important/);
