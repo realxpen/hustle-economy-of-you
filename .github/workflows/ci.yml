@@ -87,6 +87,8 @@ jobs:
         run: node scripts/experience/check-ux013-journey-policy.cjs
       - name: UX015 Figma feed and Inbox visual hierarchy contract
         run: node scripts/experience/check-ux015-figma-fidelity.cjs
+      - name: UX019 Figma Explore, live suggestions and nearby truth contract
+        run: node scripts/experience/check-ux019-explore-discovery.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile

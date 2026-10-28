@@ -337,3 +337,222 @@
  .filters.filtersOpen,.tabs,.searchForm,.resultsWrap{padding-inline:12px}
  .searchBar button{min-width:74px}
 }
+
+
+/* UX019 — Figma frame 6:2 Explore. Search-only scope: Marketplace still has
+   its own independent filters and commerce layout. No glass or hero cards. */
+.searchExperience{--ex-paper:#F7F6F2;--ex-ink:#181918;--ex-muted:#666D66;background:var(--ex-paper)}
+.searchExperience .exploreTitleRow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.searchExperience .exploreAccount{display:none}
+.searchExperience .searchInputGroup{position:relative;max-width:1500px;margin:0 auto;z-index:35}
+.searchExperience .searchGlyph{display:none}
+.searchExperience .exploreTagline{display:none}
+.searchExperience .suggestionPanel{
+ position:absolute;top:calc(100% + 4px);left:20px;right:20px;z-index:60;
+ background:#FFFFFF;border:1px solid #E3E8DF;border-radius:18px;
+ box-shadow:0 15px 35px rgba(12,25,17,.13);overflow:auto;
+ max-height:min(54dvh,450px);padding:8px 0;
+ -webkit-backdrop-filter:none;backdrop-filter:none;
+}
+.searchExperience .suggestionSection{padding:6px 12px}
+.searchExperience .suggestionSection+.suggestionSection{border-top:1px solid #EEF0EA}
+.searchExperience .suggestionHeading{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 8px 9px}
+.searchExperience .suggestionHeading strong{color:#596759;font-size:12px}
+.searchExperience .suggestionHeading span,.searchExperience .suggestionHeading button{
+ font-size:11px;color:#596759;background:none;border:0;cursor:pointer;
+}
+.searchExperience .suggestionRow{
+ display:grid;grid-template-columns:44px minmax(0,1fr) 28px;
+ gap:9px;align-items:center;min-height:46px;padding:8px;
+ border:0;border-radius:12px;background:transparent;
+ color:#18281E;font-size:14px;font-weight:650;text-align:left;
+ text-decoration:none;width:100%;cursor:pointer;
+}
+.searchExperience .suggestionRow:hover,.searchExperience .suggestionRow:focus-visible{background:#F1F5E9}
+.searchExperience .suggestionRow span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.searchExperience .suggestionKind{font-size:10px;color:#596759;text-transform:capitalize}
+.searchExperience .suggestionHint{font-size:12px;color:#596759;padding:5px 9px 11px;margin:0}
+.searchExperience .suggestionAll{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;min-height:45px;padding:11px 20px;
+ background:#E4EFD7;color:#18281E;border:0;
+ font-size:13px;font-weight:800;cursor:pointer;
+}
+.searchExperience .discoverySections{max-width:1500px;margin:12px auto 30px;padding:0 clamp(20px,7vw,110px)}
+.searchExperience .sectionTitle{display:flex;justify-content:space-between;align-items:center;gap:9px;margin:18px 0 14px}
+.searchExperience .sectionTitle h2{font-size:21px;color:#181918;margin:0;letter-spacing:-.03em;line-height:1.22}
+.searchExperience .sectionTitle button{
+ padding:8px 5px;min-height:44px;border:0;background:transparent;color:#596759;
+ font-size:12px;font-weight:800;cursor:pointer;
+}
+.searchExperience .mapPreview{
+ height:195px;position:relative;isolation:isolate;
+ border-radius:18px;background:#F1F5E9;overflow:hidden;
+ background-image:linear-gradient(90deg,transparent 95%,#CBD8C5 95%),
+ linear-gradient(0deg,transparent 94%,#CBD8C5 94%);
+ background-size:61px 51px;background-position:-22px -5px;
+}
+.searchExperience .mapBlock{
+ position:absolute;left:-12%;bottom:-8%;width:69%;height:100%;
+ border-radius:24px;background:rgba(202,219,190,.36);z-index:-1;
+}
+.searchExperience .mapRoadOne,.searchExperience .mapRoadTwo,.searchExperience .mapRoadThree{
+ position:absolute;height:28px;border-radius:12px;background:#D4DBC6;pointer-events:none
+}
+.searchExperience .mapRoadOne{top:24px;left:19%;width:46%}
+.searchExperience .mapRoadTwo{top:92px;left:36%;width:40%;height:20px}
+.searchExperience .mapRoadThree{top:139px;left:10%;width:30%;height:23px}
+.searchExperience .mapAreaPicker{
+ position:absolute;left:12px;right:12px;bottom:12px;
+ display:flex;align-items:center;gap:7px;padding:4px 7px 4px 12px;
+ background:#FFF;border-radius:17px;min-height:43px;box-shadow:0 2px 6px rgba(10,30,10,.04)
+}
+.searchExperience .mapAreaPicker label{font-size:16px;color:#596759}
+.searchExperience .mapAreaPicker input{
+ width:100%;flex:1 1 0;min-width:0;min-height:32px;
+ background:#FFF;border:0!important;padding:6px 3px;
+ outline:0;color:#18281E;font-size:13px;font-weight:750;
+}
+.searchExperience .mapAreaPicker button{min-height:34px;flex:0 0 auto;border:0;border-radius:11px;
+ background:#E4EFD7;color:#18281E;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer}
+.searchExperience .nearbyCaveat{font-size:11px;color:#596759;margin:8px 2px 16px}
+.searchExperience .featuredList{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:10px}
+.searchExperience .featuredCard{
+ display:flex;gap:14px;align-items:center;min-height:96px;padding:14px;
+ border-radius:19px;background:#FFF;color:#181918;text-decoration:none;
+}
+.searchExperience .featuredAvatar{
+ display:grid;place-items:center;flex:0 0 72px;width:72px;height:72px;border-radius:13px;
+ background:#98A88E;color:#1E2820;font-weight:900;font-size:25px;overflow:hidden;
+}
+.searchExperience .featuredAvatar img{width:100%;height:100%;object-fit:cover}
+.searchExperience .featuredText{display:flex;flex:1 1 0;min-width:0;flex-direction:column;gap:6px}
+.searchExperience .featuredText strong{font-size:15px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.searchExperience .featuredText small{font-size:12px;color:#596759;line-height:1.4}
+.searchExperience .featuredText em{font-size:11px;font-style:normal;color:#466044;font-weight:800}
+.searchExperience .nearbyMessage{
+ border-radius:18px;background:#FFF;padding:18px;color:#596759;font-size:13px;line-height:1.5;
+}
+.searchExperience .noMatch{border-radius:20px;background:#FFF;padding:21px;color:#18281E}
+.searchExperience .noMatch h2{font-size:20px;margin:0 0 8px}
+.searchExperience .noMatch p{font-size:13px;color:#596759;line-height:1.45}
+.searchExperience .noMatchPrompts{display:flex;flex-wrap:wrap;gap:8px;margin:15px 0}
+.searchExperience .noMatchPrompts button{
+ border:1px solid #E3E8DF;border-radius:999px;background:#F7F6F2;color:#18281E;
+ padding:10px 13px;min-height:44px;font-size:12px;cursor:pointer;
+}
+.searchExperience .relatedHeader{margin:20px 0 10px}
+.searchExperience .relatedHeader h3{font-size:16px;margin:0}
+@media(max-width:760px){
+ .searchExperience{background:#F7F6F2!important;color:#181918!important;
+   padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))!important}
+ .searchExperience>header{display:none!important}
+ .searchExperience .hero{
+   margin:0;padding:calc(18px + env(safe-area-inset-top,0px)) 22px 0!important;
+   max-width:none;min-height:0;
+ }
+ .searchExperience .hero .pwaExploreTitle{
+   display:block!important;font-size:29px!important;letter-spacing:-.04em!important;
+   font-weight:900!important;line-height:1.2!important;margin:0!important;
+   color:#181918!important;
+ }
+ .searchExperience .exploreAccount{
+   display:grid;place-items:center;min-height:44px;min-width:44px;
+   border-radius:50%;text-decoration:none;color:#181918;
+   font-size:23px;font-weight:900;
+ }
+ .searchExperience .hero .pwaExploreSubtitle{display:none!important}
+ .searchExperience .hero .eyebrow,
+ .searchExperience .hero h1:not(.pwaExploreTitle),
+ .searchExperience .hero>p:not(.pwaExploreSubtitle){display:none!important}
+ .searchExperience .searchInputGroup{margin:9px 20px 0}
+ .searchExperience .searchForm{padding:0!important}
+ .searchExperience .searchBar{
+   display:flex!important;flex-direction:row!important;align-items:center!important;
+   border:0!important;border-radius:18px!important;box-shadow:none!important;
+   background:#FFF!important;padding:5px 10px!important;min-height:51px!important;
+   -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ }
+ .searchExperience .searchGlyph{display:block;font-size:24px;color:#596759;padding-inline:5px}
+ .searchExperience .searchBar input{
+   flex:1 1 0!important;min-width:0!important;width:auto!important;
+   min-height:43px!important;font-size:16px!important;padding:8px 5px!important;
+   color:#181918!important;background:transparent!important;
+ }
+ .searchExperience .searchSubmit{
+   display:none!important; /* keyboard Search and live suggestions stay functional */
+ }
+ .searchExperience .exploreTagline{
+   display:block;margin:17px 22px 19px;color:#666D66;font-size:14px;line-height:1.4
+ }
+ .searchExperience .pwaSkills{
+   display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+   gap:7px!important;margin:0 20px 21px!important;width:auto!important;
+ }
+ .searchExperience .pwaSkills button{
+   display:flex!important;flex-direction:column;justify-content:center;align-items:center;
+   min-width:0;min-height:73px;border:0!important;
+   background:#FFF!important;border-radius:17px;padding:7px 2px!important;
+   gap:5px;color:#343A32;
+   -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ }
+ .searchExperience .pwaSkills button.selectedSkill{background:#DDF0B8!important}
+ .searchExperience .pwaSkills button span{font-size:22px;line-height:1.2;color:#172019}
+ .searchExperience .pwaSkills button small{font-size:10px;font-weight:800}
+ .searchExperience .discoverySections{padding:0 22px!important;margin:6px 0 0!important}
+ .searchExperience .sectionTitle{margin:20px 0 12px}
+ .searchExperience .sectionTitle h2{font-size:21px}
+ .searchExperience .mapPreview{height:195px}
+ .searchExperience .featuredAvatar{flex-basis:78px;width:78px;height:78px}
+ .searchExperience .featuredCard{padding:14px;min-height:104px}
+ .searchExperience .tabs{margin-top:7px!important;padding:0 20px 11px!important}
+ .searchExperience .tab{min-height:44px!important;font-size:13px!important;padding:8px 13px!important}
+ .searchExperience .filterToggle{
+   width:calc(100% - 40px)!important;margin:0 20px 12px!important;
+   min-height:46px!important;border-radius:15px!important;
+   -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ }
+ .searchExperience .resultsWrap{padding:0 20px calc(88px + env(safe-area-inset-bottom,0px))!important}
+ .searchExperience .resultMeta{display:flex;flex-direction:row;justify-content:space-between;gap:8px;align-items:center;margin-bottom:11px}
+ .searchExperience .resultMeta strong{font-size:14px}
+ .searchExperience .resultMeta span{font-size:11px}
+ .searchExperience .grid{grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+ /* TikTok/X density, Figma colors: result rows instead of giant poster cards. */
+ .searchExperience .card{
+   display:grid!important;grid-template-columns:82px minmax(0,1fr);
+   min-height:102px;border:0!important;border-radius:17px!important;
+   background:#FFF!important;overflow:hidden;box-shadow:none!important;
+   -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ }
+ .searchExperience .media{width:82px;height:100%!important;min-height:102px;
+   background:#E4EFD7!important;border-radius:0}
+ .searchExperience .mediaFallback{font-size:24px}
+ .searchExperience .cardBody{padding:13px 11px!important;min-width:0}
+ .searchExperience .kind{font-size:10px;letter-spacing:.03em}
+ .searchExperience .card h3{font-size:15px;line-height:1.2;margin:5px 0}
+ .searchExperience .card p{font-size:12px;line-height:1.3;margin:3px 0 6px;
+   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+ .searchExperience .card .owner{padding-top:5px;gap:6px}
+ .searchExperience .card .avatar{width:25px;height:25px;flex:0 0 25px;font-size:11px}
+ .searchExperience .card .ownerText strong{font-size:11px}
+ .searchExperience .card .ownerText span{font-size:10px}
+ .searchExperience .card .price{font-size:13px;margin:4px 0}
+ .searchExperience .card .rank{display:none}
+ .searchExperience .suggestionPanel{left:0;right:0;top:calc(100% + 6px)}
+}
+@media(max-width:350px){
+ .searchExperience .hero{padding-inline:13px!important}
+ .searchExperience .searchInputGroup{margin-inline:12px}
+ .searchExperience .exploreTagline{margin-inline:13px}
+ .searchExperience .pwaSkills{margin-inline:12px!important;gap:3px!important}
+ .searchExperience .pwaSkills button small{font-size:9px}
+ .searchExperience .discoverySections{padding-inline:13px!important}
+ .searchExperience .tabs,.searchExperience .resultsWrap{padding-inline:13px!important}
+}
+
+/* UX019: the reference Explore heading has no underlining divider. */
+@media(max-width:760px){.searchExperience .hero{border:0!important;box-shadow:none!important}}
+
+/* UX019 screenshot QA: drop inherited h-experience-shell horizontal inset.
+   Figma title/search/skill/map start at 20–24px, not 38–42px. */
+@media(max-width:760px){.searchExperience{padding-left:0!important;padding-right:0!important}}
