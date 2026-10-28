@@ -665,7 +665,7 @@
  padding:12px;gap:6px;
 }
 .searchExperience .discoveryOfferTitle{
- font-size:14px;font-weight:830;line-height:1.27;letter-spacing:-.01em;
+ margin:0;font-size:14px;font-weight:830;line-height:1.27;letter-spacing:-.01em;
  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
 .searchExperience .discoveryOfferPrice{font-size:13px;line-height:1.2;font-weight:850;color:#243D28}
