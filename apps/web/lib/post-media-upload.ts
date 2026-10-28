@@ -19,12 +19,12 @@ const supportedTypes = new Set([
 
 /**
  * Safari sometimes reports .MOV as video/quicktime, video/x-quicktime,
- * or with an empty MIME. Canonicalize the metadata only for a .mov file;
+ * as MP4 or with an empty MIME. Canonicalize metadata only for a .mov file;
  * the API independently verifies its QuickTime ftyp signature.
  */
 export function stagingUploadContentType(file: Pick<File, "type" | "name">): string {
   if (/\\.mov$/i.test(file.name) &&
-      ["", "video/x-quicktime", "application/octet-stream", "video/quicktime"].includes(file.type)) {
+      ["", "video/x-quicktime", "application/octet-stream", "video/quicktime", "video/mp4"].includes(file.type)) {
     return "video/quicktime";
   }
   return file.type;
