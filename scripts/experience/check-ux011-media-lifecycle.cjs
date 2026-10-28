@@ -43,6 +43,9 @@ assert.match(files.editor, /editorMediaPreviewSource\(item, post\?\.status, draf
 assert.doesNotMatch(files.editor, /src=\{post\.media\[0\]\.mediaUrl\}/,
   "Never read a DRAFT via published-only /media/p in the large preview");
 assert.match(files.editor, /confirmStagingPostMedia/);
+assert.match(files.editor, /pendingConfirmation/, "Failed verification retains signed receipt");
+assert.match(files.editor, /Retry verification/, "Retry must be explicit to the author");
+assert.match(files.editor, /pendingConfirmation\?\.file === selectedFile \? pendingConfirmation : null/, "Receipt retry path must not restart upload");
 assert.match(files.editor, /video\/quicktime,\.mov/, "iPhone file picker allows QuickTime MOV");
 assert.match(files.editor, /ref=\{fileInput\}/, "Keep selected native file control synchronized");
 assert.doesNotMatch(files.editor, /event\.target\.value = ""/, "Do not erase native selection immediately");
