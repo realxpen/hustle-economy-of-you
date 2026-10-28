@@ -1,6 +1,8 @@
 "use client";
 
 import { ExperienceHeader } from "../../components/navigation/experience-header";
+import Link from "next/link";
+import { ExploreNearby, ExploreTypeahead, ExploreNoMatch } from "./explore-enhancements";
 import { ExperienceState } from "../../components/experience/experience-state";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -58,6 +60,24 @@ export default function SearchPageScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestVersion = useRef(0);
+  const searchGroup = useRef<HTMLDivElement|null>(null);
+  const [suggestOpen,setSuggestOpen]=useState(false);
+  const [relatedResults,setRelatedResults]=useState<SearchResult[]>([]);
+  useEffect(()=>{
+    const outside=(e:PointerEvent)=>{
+      if(e.target instanceof Node && searchGroup.current && !searchGroup.current.contains(e.target))setSuggestOpen(false);
+    };
+    const escape=(e:KeyboardEvent)=>{if(e.key==="Escape")setSuggestOpen(false);};
+    document.addEventListener("pointerdown",outside);
+    document.addEventListener("keydown",escape);
+    return ()=>{document.removeEventListener("pointerdown",outside);document.removeEventListener("keydown",escape);};
+  },[]);
+  function chooseSuggestion(term:string){
+    setQuery(term);setSuggestOpen(false);setTab("top");
+    setItems([]);setRelatedResults([]);
+    setMeta({nextCursor:null,hasMore:false,zeroResults:false});
+    void runSearch("top",null,false,emptyFilters,term);
+  }
 
   useEffect(() => {
     setSessionId(createSessionId());
@@ -83,6 +103,8 @@ export default function SearchPageScreen() {
     }
 
     const version = append ? requestVersion.current : ++requestVersion.current;
+    if(!append) {setRelatedResults([]);setSuggestOpen(false);}
+
     append ? setLoadingMore(true) : setLoading(true);
     setError(null);
     try {
@@ -91,6 +113,13 @@ export default function SearchPageScreen() {
       setItems((current) => append ? [...current, ...page.items] : page.items);
       setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore, zeroResults: page.zeroResults });
       setSearchedQuery(normalized);
+      if(!append && page.zeroResults && nextTab!=="top") {
+        // Show real cross-type matches for the SAME term only, with their true
+        // kind and publisher. Never invent "similar" people.
+        void getSearchPage("top",{q:normalized,limit:6,filters:appliedFilters})
+          .then(other=>{if(version===requestVersion.current)setRelatedResults(other.items);})
+          .catch(()=>undefined);
+      }
 
       if (!append) {
         const params = new URLSearchParams();
@@ -132,7 +161,7 @@ export default function SearchPageScreen() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    setItems([]);
+    setItems([]);setRelatedResults([]);
     setMeta({ nextCursor: null, hasMore: false, zeroResults: false });
     void runSearch(tab);
   }
@@ -140,7 +169,7 @@ export default function SearchPageScreen() {
   function switchTab(nextTab: SearchTab) {
     setTab(nextTab);
     if (!query.trim()) return;
-    setItems([]);
+    setItems([]);setRelatedResults([]);
     setMeta({ nextCursor: null, hasMore: false, zeroResults: false });
     void runSearch(nextTab);
   }
@@ -162,23 +191,38 @@ export default function SearchPageScreen() {
   const resultLabel = useMemo(() => searchedQuery ? `Results for “${searchedQuery}”` : "Search across Hustle", [searchedQuery]);
   const activeFilterCount = Object.values(filters).filter((value) => value !== "" && value !== false && value !== null && value !== undefined).length;
 
-  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+  return <main className={[styles.shell,styles.searchExperience,"h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Search" />
 
     <section className={[styles.hero, "h-experience-hero"].join(" ")}>
-      <h1 className={styles.pwaExploreTitle}>Explore</h1>
+      <div className={styles.exploreTitleRow}><h1 className={styles.pwaExploreTitle}>Explore</h1>
+        <Link className={styles.exploreAccount} href="/account" aria-label="Your Hustle account">◉</Link>
+      </div>
       <p className={styles.pwaExploreSubtitle}>Discover people who can get it done.</p>
       <p className={styles.eyebrow}>INTENTIONAL DISCOVERY</p>
       <h1 className="h-experience-heading">Find who or what can genuinely help.</h1>
       <p>Search people by capability, inspect proof, and move directly into a published Service, Product or professional identity.</p>
     </section>
 
-    <form className={[styles.searchForm, "h-experience-content"].join(" ")} onSubmit={submit}>
-      <div className={styles.searchBar} role="search">
-        <input type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(null); }} placeholder="Try: full stack developer Lagos" aria-label="Search Hustle" />
-        <button type="submit" disabled={loading || !query.trim()} aria-busy={loading}><span className={styles.searchButtonLabel}>{loading ? "Searching…" : "Search Hustle"}</span><span aria-hidden="true" className={styles.searchButtonShort}>{loading ? "…" : "Search"}</span></button>
-      </div>
-    </form>
+    <div className={styles.searchInputGroup} ref={searchGroup}>
+      <form className={[styles.searchForm, "h-experience-content"].join(" ")} onSubmit={submit}>
+        <div className={styles.searchBar} role="search">
+          <span className={styles.searchGlyph} aria-hidden="true">⌕</span>
+          <input type="search" autoComplete="off" enterKeyHint="search" value={query}
+            onFocus={()=>setSuggestOpen(true)} onChange={(event)=>{
+              setQuery(event.target.value);setSuggestOpen(true);if(error)setError(null);
+            }} placeholder="Search skills, people, services…" aria-label="Search Hustle"
+            aria-controls="hustle-explore-suggestions" aria-expanded={suggestOpen} aria-autocomplete="list"/>
+          <button type="submit" className={styles.searchSubmit} disabled={loading || !query.trim()} aria-busy={loading}>
+            <span className={styles.searchButtonLabel}>{loading ? "Searching…" : "Search Hustle"}</span>
+            <span aria-hidden="true" className={styles.searchButtonShort}>{loading ? "…" : "Search"}</span>
+          </button>
+        </div>
+      </form>
+      <ExploreTypeahead value={query} visible={suggestOpen} onChoose={chooseSuggestion}
+        onDismiss={()=>setSuggestOpen(false)}/>
+    </div>
+    <p className={styles.exploreTagline}>Discover people who can get it done.</p>
 
     <nav className={styles.pwaSkills} aria-label="Explore skills">
       {([
@@ -197,13 +241,14 @@ export default function SearchPageScreen() {
         </button>
       )}
     </nav>
-    <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>
+    <ExploreNearby visible={!query.trim() && !searchedQuery && !loading && !error}/>
+    {(Boolean(query.trim()) || Boolean(searchedQuery) || loading) && <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>}
 
-    <button type="button" className={styles.filterToggle} aria-expanded={filtersExpanded}
+    {(Boolean(query.trim()) || Boolean(searchedQuery) || loading) && <button type="button" className={styles.filterToggle} aria-expanded={filtersExpanded}
       aria-controls="hustle-explore-filters" onClick={() => setFiltersExpanded(open => !open)}>
       <span>Refine results{activeFilterCount ? ` · ${activeFilterCount} applied` : ""}</span>
       <span aria-hidden="true">{filtersExpanded ? "−" : "+"}</span>
-    </button>
+    </button>}
     <section id="hustle-explore-filters" className={`${styles.filters} ${filtersExpanded ? styles.filtersOpen : ""}`}
       aria-label="Search filters">
       <input aria-label="Filter by category" placeholder="Category" value={filters.category ?? ""} onChange={(event) => setFilters({ ...filters, category: event.target.value })} />
@@ -219,7 +264,7 @@ export default function SearchPageScreen() {
       <button className={styles.resetButton} type="button" disabled={loading} onClick={() => { setFilters(emptyFilters); setError(null); if (query.trim()) void runSearch(tab, null, false, emptyFilters); }}>Clear filters</button>
     </section>
 
-    <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
+    {(Boolean(query.trim()) || Boolean(searchedQuery) || loading || Boolean(error)) && <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
       <div className={styles.resultMeta} role="status" aria-live="polite"><strong>{resultLabel}</strong><span>{loading ? "Searching…" : `${items.length} loaded · ${tab}`}</span></div>
       {error && <ExperienceState kind="error"
         title={/sign in|authentication is not configured/i.test(error) ? "Sign in to search Hustle." : "Search isn't available right now."}
@@ -228,10 +273,17 @@ export default function SearchPageScreen() {
           ? { label: "Open test sign-in", href: "/auth" }
           : { label: "Retry search", onClick: () => void runSearch(tab), disabled: loading || !query.trim() }} />}
       {!error && loading && <ExperienceState kind="loading" title="Finding people, work and offers…" description="Checking currently published Hustle results." />}
-      {!error && !loading && meta.zeroResults && <ExperienceState kind="empty" title="No useful match yet." description="Try a broader skill, category or location. Hustle won't silently substitute unrelated results." action={activeFilterCount ? {label:"Clear filters",onClick:()=>{setFilters(emptyFilters);setError(null);if(query.trim())void runSearch(tab,null,false,emptyFilters);}} : undefined} />}
-      {!error && !loading && !meta.zeroResults && items.length === 0 && <ExperienceState kind="empty" title="What do you need?" description="Search for a professional, capability, Service, Product or demonstrated work." />}
+      {!error && !loading && meta.zeroResults && <div className={styles.noMatchWrap}>
+        <ExploreNoMatch term={searchedQuery} related={relatedResults} onSearch={chooseSuggestion}/>
+        {activeFilterCount>0 && <button type="button" className={styles.resetButton} onClick={()=>{
+          setFilters(emptyFilters);void runSearch(tab,null,false,emptyFilters);
+        }}>Clear filters</button>}
+        {relatedResults.length>0 && <div className={styles.grid}>{relatedResults.map((item,index)=>
+          <ResultCard key={item.kind+"-"+item.id} item={item} onOpen={()=>openResult(item,index)}/>)}</div>}
+      </div>
+      {!error && !loading && !meta.zeroResults && items.length === 0 && (Boolean(query.trim()) || Boolean(searchedQuery)) && <ExperienceState kind="empty" title="What do you need?" description="Search for a professional, service, product or work." />}
       {!loading && items.length > 0 && <div className={styles.grid}>{items.map((item, index) => <ResultCard key={`${item.kind}-${item.id}`} item={item} onOpen={() => openResult(item, index)} />)}</div>}
       {!loading && !error && meta.hasMore && <div className={styles.loadMore}><button className={styles.primaryButton} type="button" disabled={loadingMore} onClick={() => void runSearch(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more"}</button></div>}
-    </section>
+    </section>}
   </main>;
 }
