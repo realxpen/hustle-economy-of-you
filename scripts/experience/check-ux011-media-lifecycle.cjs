@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const assert = require("node:assert/strict");
 
 const { StagingUploadService } = require("../../apps/api/dist/post/staging-upload.service.js");
+const { PostService } = require("../../apps/api/dist/post/post.service.js");
 const { stagingRequestAllowed } = require("../../apps/api/dist/staging-request-policy.js");
 const { signedUploadForm, temporaryObjectRead } = require("../../apps/api/dist/post/staging-s3.js");
 
@@ -93,7 +94,12 @@ const prisma={
     findFirst: async ({where}) => status==="PUBLISHED" &&
       where.postId==="client-post" && media.some(m=>m.id===where.id)
       ? {storageKey:media.find(m=>m.id===where.id).storageKey}: null,
-    upsert: async ({create}) => { writes++; media.push(create); return create; }
+    upsert: async ({create}) => { writes++; media.push(create); return create; },
+    delete: async ({where}) => {
+      const removed = media.find(item => item.id === where.id);
+      media = media.filter(item => item.id !== where.id);
+      return removed;
+    }
   },
   $transaction: async fn=>fn(prisma)
 };
@@ -173,6 +179,51 @@ global.fetch=async (url,init)=>{
     e=>e.getStatus?.()===404, "Unpublished MOV must remain private");
   assert.equal((await service.confirm(auth,"client-post",{receipt:mov.receipt})).alreadyAttached,true,
     "QuickTime retry may not insert twice");
+
+  // A DB failure after S3 CopyObject must leave the temporary source intact.
+  // A valid retry may re-copy the object and attach it once.
+  media=[];
+  currentMime="image/jpeg";
+  currentSize=1234;
+  currentHeader=Buffer.from([0xff,0xd8,0xff,0xe0,0x12,0x34]);
+  const recover=await service.authorize(auth,"client-post",{contentType:"image/jpeg",size:1234});
+  const originalTransaction=prisma.$transaction;
+  let rejectOnce=true;
+  prisma.$transaction=async fn=>{
+    if (rejectOnce) { rejectOnce=false; throw new Error("Simulated database commit failure"); }
+    return originalTransaction(fn);
+  };
+  const beforeError=call.length;
+  await assert.rejects(service.confirm(auth,"client-post",{receipt:recover.receipt}), /Simulated database/);
+  assert.deepEqual(call.slice(beforeError).map(x=>x.action),["HEAD","GET","PUT"],
+    "When DB fails, copy leaves pending source for retry");
+  assert.equal(media.length,0);
+  const recovered=await service.confirm(auth,"client-post",{receipt:recover.receipt});
+  assert.equal(recovered.alreadyAttached,false);
+  assert.equal(recovered.cleanupDeferred,false);
+  assert.equal(media.length,1);
+  assert.deepEqual(call.slice(beforeError+3).map(x=>x.action),["HEAD","GET","PUT","DELETE"]);
+  assert.equal((await service.confirm(auth,"client-post",{receipt:recover.receipt})).alreadyAttached,true,
+    "Receipt recovery must not duplicate PostMedia");
+
+  // An owner deliberately removing attached media also removes only THEIR
+  // exact private S3 object, AFTER the DB reference is deleted.
+  status="PUBLISHED";
+  const postService=new PostService(prisma);
+  postService.requireContentProfile=async ()=>({id:"owner-profile",userId:"client-user"});
+  postService.requireOwnedPost=async ()=>({id:"client-post",status,media});
+  const target=media[0];
+  const beforeDelete=call.length;
+  await postService.removeMedia(auth,"client-post",target.id);
+  assert.equal(media.length,0,"Owner removal deletes the PostMedia record");
+  assert.deepEqual(call.slice(beforeDelete).map(x=>x.action),["DELETE"]);
+  assert.ok(call.at(-1).url.endsWith(target.storageKey),"Only exact owner key is deleted");
+
+  // A media row with an unexpected key never becomes an arbitrary S3 delete.
+  media=[{id:"legacy-row",postId:"client-post",storageKey:"media/someone-else/another-post/id",type:"IMAGE"}];
+  const beforeUnsafe=call.length;
+  await postService.removeMedia(auth,"client-post","legacy-row");
+  assert.equal(call.length,beforeUnsafe,"Never delete a non-matching object key");
 
   process.env.HUSTLE_RUNTIME_SCOPE="production";
   await assert.rejects(service.authorize(auth,"client-post",{contentType:"image/jpeg",size:100}),e=>e.getStatus?.()===503);
