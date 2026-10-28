@@ -247,6 +247,8 @@ function localOnly(url) {
          assert.equal(await page.getByText("No published Hustlers found").count(),0);
          const area=page.getByRole("textbox",{name:"Area for published local work"});
          assert.equal(await area.inputValue(),"Lagos");
+         await page.screenshot({path:path.join(out,size.label+"__figma-explore-landing.png"),
+           animations:"disabled",caret:"hide"});
          const search=page.getByRole("searchbox",{name:"Search Hustle"});
          await search.fill("a");
          await page.getByRole("button",{name:/Artist/}).waitFor();
