@@ -36,6 +36,13 @@ export function ExploreTypeahead({value,visible,onChoose,onDismiss}:{
     }catch{/* session storage may be disabled */}
   },[]);
   useEffect(()=>{
+    if(!visible)return;
+    try{
+      const saved=JSON.parse(sessionStorage.getItem("hustle-search-recent")??"[]") as unknown;
+      if(Array.isArray(saved))setRecent(saved.filter((x):x is string=>typeof x==="string").slice(0,5));
+    }catch{}
+  },[visible]);
+  useEffect(()=>{
     const term=value.trim();
     if(!visible || term.length<2){setMatches([]);setLoading(false);return;}
     let cancelled=false;

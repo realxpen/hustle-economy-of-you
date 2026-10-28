@@ -103,7 +103,16 @@ export default function SearchPageScreen() {
     }
 
     const version = append ? requestVersion.current : ++requestVersion.current;
-    if(!append) {setRelatedResults([]);setSuggestOpen(false);}
+    if(!append) {
+      setRelatedResults([]);setSuggestOpen(false);
+      // Typed submissions count as recent searches too, not only suggestion taps.
+      try {
+        const saved=JSON.parse(sessionStorage.getItem("hustle-search-recent")??"[]");
+        const values=Array.isArray(saved)?saved.filter((s:unknown):s is string=>typeof s==="string"):[];
+        const history=[normalized,...values.filter((s:string)=>s.toLowerCase()!==normalized.toLowerCase())].slice(0,5);
+        sessionStorage.setItem("hustle-search-recent",JSON.stringify(history));
+      }catch{/* private mode */}
+    }
 
     append ? setLoadingMore(true) : setLoading(true);
     setError(null);
@@ -190,6 +199,7 @@ export default function SearchPageScreen() {
 
   const resultLabel = useMemo(() => searchedQuery ? `Results for “${searchedQuery}”` : "Search across Hustle", [searchedQuery]);
   const activeFilterCount = Object.values(filters).filter((value) => value !== "" && value !== false && value !== null && value !== undefined).length;
+  const resultsVisible = (Boolean(searchedQuery) && searchedQuery===query.trim()) || loading || Boolean(error);
 
   return <main className={[styles.shell,styles.searchExperience,"h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Search" />
@@ -211,6 +221,8 @@ export default function SearchPageScreen() {
           <input type="search" autoComplete="off" enterKeyHint="search" value={query}
             onFocus={()=>setSuggestOpen(true)} onChange={(event)=>{
               setQuery(event.target.value);setSuggestOpen(true);if(error)setError(null);
+              if(!event.target.value.trim()){setSearchedQuery("");setItems([]);setRelatedResults([]);}
+
             }} placeholder="Search skills, people, services…" aria-label="Search Hustle"
             aria-controls="hustle-explore-suggestions" aria-expanded={suggestOpen} aria-autocomplete="list"/>
           <button type="submit" className={styles.searchSubmit} disabled={loading || !query.trim()} aria-busy={loading}>
@@ -242,9 +254,9 @@ export default function SearchPageScreen() {
       )}
     </nav>
     <ExploreNearby visible={!query.trim() && !searchedQuery && !loading && !error}/>
-    {(Boolean(searchedQuery) || loading) && <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>}
+    {resultsVisible && <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>}
 
-    {(Boolean(searchedQuery) || loading) && <button type="button" className={styles.filterToggle} aria-expanded={filtersExpanded}
+    {resultsVisible && <button type="button" className={styles.filterToggle} aria-expanded={filtersExpanded}
       aria-controls="hustle-explore-filters" onClick={() => setFiltersExpanded(open => !open)}>
       <span>Refine results{activeFilterCount ? ` · ${activeFilterCount} applied` : ""}</span>
       <span aria-hidden="true">{filtersExpanded ? "−" : "+"}</span>
@@ -264,7 +276,7 @@ export default function SearchPageScreen() {
       <button className={styles.resetButton} type="button" disabled={loading} onClick={() => { setFilters(emptyFilters); setError(null); if (query.trim()) void runSearch(tab, null, false, emptyFilters); }}>Clear filters</button>
     </section>
 
-    {(Boolean(searchedQuery) || loading || Boolean(error)) && <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
+    {resultsVisible && <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
       <div className={styles.resultMeta} role="status" aria-live="polite"><strong>{resultLabel}</strong><span>{loading ? "Searching…" : `${items.length} loaded · ${tab}`}</span></div>
       {error && <ExperienceState kind="error"
         title={/sign in|authentication is not configured/i.test(error) ? "Sign in to search Hustle." : "Search isn't available right now."}
