@@ -288,6 +288,26 @@ function localOnly(url) {
          await page.keyboard.press("Escape");
          await panel.waitFor({state:"detached",timeout:4000});
        }
+       // UX021: category grouping is rendered from the existing real-shaped
+       // four-type fixture. Each card keeps the canonical URL and no internal
+       // relevance score is shown to the end user.
+       await page.goto(root+"/search?q=xp",{waitUntil:"domcontentloaded"});
+       for(const heading of ["People","Posts","Services","Products"]){
+         await page.getByRole("region",{name:heading+" search results"}).waitFor({state:"visible",timeout:15000});
+       }
+       for(const [name,href] of [
+         ["QA Hustler","/u/qa-hustler"],["A synthetic barber project","/posts/qa-post-001"],
+         ["QA Barber Session","/services/qa-service"],["QA Hair Care Kit","/products/qa-product"]
+       ]){
+         const link=page.getByRole("link",{name:new RegExp(name)}).first();
+         assert.equal(await link.getAttribute("href"),href);
+       }
+       assert.equal(await page.getByText(/RELEVANCE/i).count(),0,
+         "UX021 must not expose internal search scores");
+       await page.screenshot({path:path.join(out,size.label+"__ux021-grouped-results.png"),
+         animations:"disabled",caret:"hide"});
+       results.push({size:size.label,step:"UX021 four-type search visual groups and canonical links",
+         result:"PASS"});
        await page.goto(root+"/search?q=barber",{waitUntil:"domcontentloaded"});
        await page.getByRole("heading",{name:service.title}).waitFor({timeout:15000});
        if(size.width<=760) {
