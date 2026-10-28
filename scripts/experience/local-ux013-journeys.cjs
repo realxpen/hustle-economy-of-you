@@ -124,15 +124,19 @@ function localOnly(url) {
          const railStyle=await rail.evaluate(el=>{
            const style=getComputedStyle(el);
            return {background:style.backgroundColor,border:style.borderTopWidth,
-             radius:style.borderTopLeftRadius,blur:style.backdropFilter,
-             webkitBlur:style.webkitBackdropFilter};
+             radius:style.borderTopLeftRadius,
+             blur:style.getPropertyValue("backdrop-filter").trim(),
+             // Chromium may not expose style.webkitBackdropFilter at all;
+             // querying the CSS property returns an empty string when unsupported.
+             webkitBlur:style.getPropertyValue("-webkit-backdrop-filter").trim()};
          });
          assert.ok(["transparent","rgba(0, 0, 0, 0)"].includes(railStyle.background),
            "Post action controls must have a transparent canvas");
          assert.equal(railStyle.border,"0px","Action rail cannot be a glass-bordered pill");
          assert.equal(railStyle.radius,"0px","Action rail cannot have a pill radius");
          assert.ok(["none",""].includes(railStyle.blur),"Action rail must not blur work");
-         assert.ok(["none",""].includes(railStyle.webkitBlur),"Safari rail must not blur work");
+         assert.ok(["none",""].includes(railStyle.webkitBlur),
+           `Safari rail must not blur work (computed: ${railStyle.webkitBlur})`);
          const summary=page.locator('summary[aria-label="More feed views"]');
          await summary.click();
          const details=page.locator('details').filter({has:summary});
