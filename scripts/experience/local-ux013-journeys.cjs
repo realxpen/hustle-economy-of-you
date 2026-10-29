@@ -93,10 +93,13 @@ function localOnly(url) {
        });
        if(u.pathname==="/api/isolated/auth/get-session") return respond({session:null,user:null});
        if(/\/api\/v1\/guest\/feed\/for-you$/.test(u.pathname)) return respond(fixtureFeed);
-       if(/\/api\/v1\/guest\/marketplace$/.test(u.pathname)) {
-         return respond({mode:"marketplace",tab:"all",query:null,
-           filters:{location:"Lagos"},items:[searchItem],nextCursor:null,
-           hasMore:false,zeroResults:false});
+       if(/\/api\/v1\/guest\/marketplace(?:\/(services|products))?$/.test(u.pathname)) {
+         const type=u.pathname.endsWith("/services") ? "services"
+           : u.pathname.endsWith("/products") ? "products" : "all";
+         return respond({mode:"marketplace",tab:type,query:u.searchParams.get("q"),
+           filters:{},items:type==="products"?[xpenResultKinds[3]]:type==="services"
+             ?[searchItem]:[searchItem,xpenResultKinds[3]],
+           nextCursor:null,hasMore:false,zeroResults:false});
        }
        if(/\/api\/v1\/guest\/search(?:\/services)?$/.test(u.pathname)) {
          return respond(queryPage(u.pathname.endsWith("/services")?"services":"top",u.searchParams.get("q")));
@@ -346,6 +349,37 @@ function localOnly(url) {
        assert.ok(over<=3,"Explore should not scroll horizontally");
        results.push({size:size.label,step:"Explore → Services results → canonical service",
          result:"PASS",overflowPx:over});
+       // UX025: the real Marketplace has separate published Service and
+       // Product sections, and focus is shareable without switching accounts.
+       await page.goto(root+"/marketplace",{waitUntil:"domcontentloaded"});
+       const svc=page.getByRole("region",{name:"Published services and skills"});
+       const prod=page.getByRole("region",{name:"Published products"});
+       await svc.waitFor({state:"visible",timeout:15000});
+       await prod.waitFor({state:"visible",timeout:15000});
+       assert.equal(await svc.getByRole("link",{name:/View service: QA Barber Session/})
+         .getAttribute("href"),"/services/qa-service");
+       assert.equal(await prod.getByRole("link",{name:/View product: QA Hair Care Kit/})
+         .getAttribute("href"),"/products/qa-product");
+       await page.screenshot({path:path.join(out,size.label+"__ux025-all-market.png"),
+         animations:"disabled",caret:"hide"});
+       const focus=page.getByRole("group",{name:"Marketplace modes"});
+       await focus.getByRole("button",{name:"Products",exact:true}).click();
+       await prod.waitFor({state:"visible",timeout:12000});
+       assert.equal(await svc.count(),0,"Product focus must exclude Service results");
+       assert.equal(new URL(page.url()).searchParams.get("view"),"products");
+       await page.goto(root+"/marketplace?view=skills",{waitUntil:"domcontentloaded"});
+       await svc.waitFor({state:"visible",timeout:15000});
+       assert.equal(await prod.count(),0,"Skills focus must exclude Product results");
+       assert.equal(await focus.getByRole("button",{name:"Services & Skills"}).getAttribute("aria-pressed"),"true");
+       const chip=page.getByRole("group",{name:"Categories from loaded offers"}).getByRole("button",{name:"Beauty"});
+       await chip.waitFor({state:"visible"});
+       await chip.click();
+       assert.equal(new URL(page.url()).searchParams.get("category"),"Beauty");
+       const marketOverflow=await page.evaluate(()=>Math.max(
+         document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth);
+       assert.ok(marketOverflow<=3,"Marketplace should not scroll horizontally");
+       results.push({size:size.label,step:"UX025 combined Marketplace, typed focus, real links and category",
+         result:"PASS",overflowPx:marketOverflow});
      }catch(error){
        faults.push({size:size.label,message:String(error?.message||error).slice(0,1300)});
      }finally{await page.close();await ctx.close()}
