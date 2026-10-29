@@ -51,4 +51,10 @@ assert.match(css,/\.productsGrid\{grid-template-columns:repeat\(2,minmax\(0,1fr\
 assert.match(css,/\.servicesGrid\{display:grid;grid-template-columns:minmax\(0,1fr\)/);
 assert.ok(sourceApi.includes('const route = tab === "all" ? "/marketplace" : `/marketplace/${tab}`;'));
 assert.match(explore,/href="\/marketplace" aria-label="Browse Services and Products marketplace"/);
+assert.match(page,/data-hustle-marketplace="true"/);
+assert.doesNotMatch(page,/\[styles\.shell, "h-experience-shell"\]/);
+assert.match(page,/No products published here yet/);
+assert.match(cards,/mediaUrls\.find\(\(url\) => !mediaIsVideo\(url\)\)/);
+assert.match(cards,/onError=\{\(\)=>setMediaFailed\(true\)\}/);
+assert.match(css,/background-color:#F7F6F2/);
 console.log("PASS UX025: combined real published services/products, focused views, shareable URL, accessible category filters, canonical offers.");
