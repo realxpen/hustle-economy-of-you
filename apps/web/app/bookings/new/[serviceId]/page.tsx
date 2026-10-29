@@ -254,9 +254,11 @@ export default function NewBookingPage() {
         Consult {owner.displayName ?? owner.username ?? "Hustler"} ↗
       </a>
     </div>
-    {isolatedWebMode && service.bookingMode === "CONSULTATION" && <section className={styles.consultationRequired} aria-label="Consultation required before booking">
-      <strong>Consultation required before booking</strong>
-      <p>Send a message about this Service using the linked Service in the conversation. Then return here to submit your request. Opening a chat without sending a Service-linked message is not enough.</p>
+    {service.bookingMode === "CONSULTATION" && <section className={styles.consultationRequired} aria-label="Consultation before booking">
+      <strong>{isolatedWebMode ? "Consultation required before booking" : "Consult with the Hustler before booking"}</strong>
+      <p>{isolatedWebMode
+        ? "Send a message about this Service using the linked Service in the conversation. Then return here to submit your request. Opening a chat without sending a Service-linked message is not enough."
+        : "Discuss the Service requirements with this Hustler first. Use the linked Service in your message, then come back to finish your Booking request."}</p>
       <a href={consultHref}>Message about this service ↗</a>
       <small>Your prepared Booking draft stays in this browser tab. No payment or booking is created by messaging.</small>
     </section>}
