@@ -127,7 +127,7 @@ function inputLocalDate(value) {
     service.bookingTimezone = "Africa/Lagos";
     service.turnaroundHours = 24;
     await page.goto(base + "/bookings/new/" + service.id, { waitUntil: "domcontentloaded" });
-    await page.getByRole("region", { name: "Consultation required before booking" })
+    await page.getByRole("region", { name: "Consultation before booking" })
       .waitFor({ state: "visible", timeout: 15000 });
     const requiredLink = page.getByRole("link", { name: /Message about this service/ }).last();
     const requiredUrl = new URL(await requiredLink.getAttribute("href"), base);
