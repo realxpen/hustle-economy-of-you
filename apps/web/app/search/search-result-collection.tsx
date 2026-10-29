@@ -39,7 +39,7 @@ export function SearchResultCollection({
         </div>
         <div className={
           kind === "person" ? styles.discoveryPeople :
-          kind === "post" ? styles.discoveryPosts :
+          kind === "post" ? [styles.discoveryPosts, matches.length === 1 ? styles.discoverySinglePost : ""].filter(Boolean).join(" ") :
           kind === "service" ? styles.discoveryServices : styles.discoveryProducts
         }>
           {matches.map(({ item, index }) =>
