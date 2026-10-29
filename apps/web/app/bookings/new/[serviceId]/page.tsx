@@ -9,6 +9,7 @@ import { useSourcePost, withSourcePost } from "../../../../lib/opportunity-sourc
 import { withTransactionReturnTo } from "../../../../lib/transaction-return";
 import { checkBookingAvailability, createBooking, listFlowTimeSlots, type FlowTimeSlotDay, type BookingAvailability } from "../../../../lib/booking";
 import { openDirectConversation } from "../../../../lib/messaging";
+import { shouldContinueBookingWithoutConversation } from "../../../../lib/booking-consultation-policy";
 import { authUrlFor } from "../../../../lib/auth/safe-auth-next";
 import { hasViewerSession } from "../../../../lib/api/public-browsing";
 import { isolatedWebMode } from "../../../../lib/auth/isolated-web-auth";
@@ -194,7 +195,17 @@ export default function NewBookingPage() {
         return;
       }
 
-      const direct = await openDirectConversation(data.owner.id);
+      // A direct thread helps coordination, but its ID is optional for ordinary
+      // Bookings. Only temporary Messaging gateway failure may degrade.
+      let conversationId: string | undefined;
+      try {
+        const direct = await openDirectConversation(data.owner.id);
+        conversationId = direct.conversation.id;
+      } catch (conversationError) {
+        if (!shouldContinueBookingWithoutConversation(data.service.bookingMode, conversationError)) {
+          throw conversationError;
+        }
+      }
       const booking = await createBooking({
         serviceId: data.service.id,
         requestedStartAt: start,
@@ -202,7 +213,7 @@ export default function NewBookingPage() {
         requirements,
         ...(location.trim() ? { location: location.trim() } : {}),
         ...(notes.trim() ? { notes: notes.trim() } : {}),
-        conversationId: direct.conversation.id
+        ...(conversationId ? { conversationId } : {})
       });
       clearBookingDraft(tabStorage(), data.service.id);
       setDraftPresent(false);
@@ -243,6 +254,14 @@ export default function NewBookingPage() {
         Consult {owner.displayName ?? owner.username ?? "Hustler"} ↗
       </a>
     </div>
+    {service.bookingMode === "CONSULTATION" && <section className={styles.consultationRequired} aria-label="Consultation before booking">
+      <strong>{isolatedWebMode ? "Consultation required before booking" : "Consult with the Hustler before booking"}</strong>
+      <p>{isolatedWebMode
+        ? "Send a message about this Service using the linked Service in the conversation. Then return here to submit your request. Opening a chat without sending a Service-linked message is not enough."
+        : "Discuss the Service requirements with this Hustler first. Use the linked Service in your message, then come back to finish your Booking request."}</p>
+      <a href={consultHref}>Message about this service ↗</a>
+      <small>Your prepared Booking draft stays in this browser tab. No payment or booking is created by messaging.</small>
+    </section>}
     <div className={styles.formWrap}>
       <section className={styles.formHero}>
         <article className={styles.offerCard}>
@@ -340,8 +359,11 @@ export default function NewBookingPage() {
           </div>
         </div>
 
-        {error && <div className={styles.error} role="alert" id="booking-form-error">{error}</div>}
-        <button className={styles.primary} type="submit" aria-busy={submitting} disabled={submitting || !requirements.trim()}>{submitting ? "Checking schedule…" : isolatedWebMode ? "Send test scheduling request →" : "Submit booking request →"}</button>
+        {error && <div className={styles.error} role="alert" id="booking-form-error">
+          {error}
+          {/consult this hustler|discuss this service in messages first/i.test(error) && <a className={styles.consultationRecovery} href={consultHref}>Open the required Service consultation ↗</a>}
+        </div>}
+        <button className={styles.primary} type="submit" aria-busy={submitting} disabled={submitting || !requirements.trim()}>{submitting ? "Checking schedule…" : isolatedWebMode && service.bookingMode === "CONSULTATION" ? "Request after consultation (test) →" : isolatedWebMode ? "Send test scheduling request →" : "Submit booking request →"}</button>
       </form>
     </div>
   </main>;

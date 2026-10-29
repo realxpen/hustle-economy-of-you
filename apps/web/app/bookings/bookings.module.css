@@ -159,3 +159,16 @@
  .flowTimeGrid{min-width:0}
  .formCard .primary{width:100%}
 }
+
+/* UX023: consultation-mode requirements are explicit; no redesign. */
+.consultationRequired{display:grid;gap:8px;max-width:980px;margin:12px auto 0;padding:16px 18px;
+ background:var(--hf-raised,#E4EFD7);color:var(--hf-ink,#18281E);
+ border:1px solid var(--h-border,#D8E0D4);border-radius:18px}
+.consultationRequired strong{font-size:15px}
+.consultationRequired p{font-size:13px;line-height:1.5;margin:0}
+.consultationRequired a,.consultationRecovery{display:inline-flex;align-items:center;min-height:44px;
+ justify-self:start;text-decoration:underline;text-underline-offset:3px;font-weight:800;
+ color:var(--hf-ink,#18281E);font-size:13px}
+.consultationRequired small{font-size:11px;line-height:1.4;color:var(--h-muted,#596759)}
+.consultationRecovery{display:flex;color:inherit;margin-top:5px}
+@media(max-width:600px){.consultationRequired{padding:15px;margin-block:10px 0}}

@@ -121,6 +121,22 @@ function inputLocalDate(value) {
     assert.equal(savedDraftCount, 0, "Clear draft removes the private tab copy");
     steps.push("Clear draft removes local copy and form values without backend mutation");
 
+    // UX023: the genuine mode field controls the consultation requirement;
+    // navigating to Messaging must retain exact Service context and draft route.
+    service.bookingMode = "CONSULTATION";
+    service.bookingTimezone = "Africa/Lagos";
+    service.turnaroundHours = 24;
+    await page.goto(base + "/bookings/new/" + service.id, { waitUntil: "domcontentloaded" });
+    await page.getByRole("region", { name: "Consultation before booking" })
+      .waitFor({ state: "visible", timeout: 15000 });
+    const requiredLink = page.getByRole("link", { name: /Message about this service/ }).last();
+    const requiredUrl = new URL(await requiredLink.getAttribute("href"), base);
+    assert.equal(requiredUrl.searchParams.get("contextType"), "SERVICE");
+    assert.equal(requiredUrl.searchParams.get("contextId"), service.id);
+    assert.equal(requiredUrl.searchParams.get("returnTo"), "/bookings/new/" + service.id);
+    assert.equal(bookingApiWrites, 0, "Instruction/consultation must not create a Booking");
+    steps.push("CONSULTATION service requires a Service-linked message, with safe Booking draft return");
+    service.bookingMode = "APPOINTMENT";
     await page.close();
     const retryPage = await browser.newPage({ viewport: { width: 320, height: 640 }, reducedMotion: "reduce" });
     await retryPage.route("**/api/v1/services/qa-service", async (route) => route.fulfill({
