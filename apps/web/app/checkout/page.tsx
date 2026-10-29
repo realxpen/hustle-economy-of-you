@@ -58,7 +58,7 @@ export default function CheckoutPage() {
     } finally { setSubmitting(false); }
   }
 
-  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+  return <main className={[styles.shell, styles.shoppingExperience].join(" ")} data-hustle-shopping="checkout">
     <ExperienceHeader section="Checkout"
       trail={[{ href: "/marketplace", label: "Marketplace" }, { href: "/cart", label: "Cart" }]}
       secondaryLinks={[{ href: "/orders", label: "Orders" }]} />
@@ -68,7 +68,7 @@ export default function CheckoutPage() {
       <strong aria-current="step">3. Check Order</strong><span>4. Track Order</span>
     </nav>
     <section className={[styles.hero, "h-experience-hero"].join(" ")}>
-      <div><p className={styles.eyebrow}>SECURE ORDER REVIEW</p><h1 className="h-experience-heading">Review before creating an Order.</h1></div>
+      <div><p className={styles.eyebrow}>SECURE ORDER REVIEW</p><h1 className="h-experience-heading">Review your order.</h1></div>
       <p>Checkout creates a durable PENDING Order. It does not charge you, reserve stock, or claim payment success.</p>
     </section>
 

@@ -59,7 +59,7 @@ export default function CartPage() {
 
   const unavailableItems = cart?.items.filter((item) => !item.available) ?? [];
   const changing = Boolean(busyId) || clearing;
-  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+  return <main className={[styles.shell, styles.shoppingExperience].join(" ")} data-hustle-shopping="cart">
     <ExperienceHeader section="Cart" trail={[{href:"/marketplace",label:"Marketplace"}]}
       secondaryLinks={[{href:"/orders",label:"Orders"},{href:"/messages",label:"Messages"}]} />
     <nav className={styles.purchaseFlow} aria-label="Buying journey">
@@ -68,7 +68,7 @@ export default function CartPage() {
     </nav>
 
     <section className={styles.hero}>
-      <div><p className={styles.eyebrow}>YOUR CART</p><h1>Your buying intent.</h1></div>
+      <div><p className={styles.eyebrow}>YOUR CART</p><h1>Your cart.</h1></div>
       <p>Review your products, quantities and sellers here. Checkout checks price and stock again; creating an Order never means it has been paid.</p>
     </section>
 
