@@ -94,6 +94,14 @@ function inputLocalDate(value) {
     const submit = page.getByRole("button", { name: /Submit booking request/ });
     assert.equal(await submit.isDisabled(), true, "Booking cannot submit without requirements");
     steps.push("Service CTA opens actual Booking UI and required description is gated");
+    // UX024 visual hierarchy: real booking structure is readable on 390px.
+    await page.getByRole("heading", { name: "Plan the booking" }).waitFor({ timeout: 15000 });
+    await page.getByRole("heading", { name: "When do you need this?" }).waitFor();
+    await page.getByRole("heading", { name: "Tell them about the job" }).waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= window.innerWidth+1),
+      true, "UX024 booking may not overflow the iPhone viewport");
+    steps.push("UX024 booking design groups schedule and brief without mobile overflow");
+
 
     const start = new Date(Date.now() + 9 * 86_400_000);
     await page.locator("#start").fill(inputLocalDate(start));

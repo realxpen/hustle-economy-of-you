@@ -172,3 +172,80 @@
 .consultationRequired small{font-size:11px;line-height:1.4;color:var(--h-muted,#596759)}
 .consultationRecovery{display:flex;color:inherit;margin-top:5px}
 @media(max-width:600px){.consultationRequired{padding:15px;margin-block:10px 0}}
+
+/* UX024 — One readable iPhone service request → booking system. */
+.formLead{display:grid;gap:5px;padding:2px 0 10px}
+.formLead h2{font-size:clamp(23px,3vw,32px);letter-spacing:-.045em;line-height:1.1;margin:0}
+.formLead p{font-size:13px;line-height:1.45;margin:0;color:#607163}
+.formStep{display:inline-block;color:#4D6952;font-size:11px;
+ letter-spacing:.035em;font-weight:850;line-height:1.4}
+.formSectionHeading{display:grid;gap:4px;padding-top:18px;
+ border-top:1px solid #E3E8DF}
+.formSectionHeading h3{margin:0;color:#18281E;font-size:19px;line-height:1.25;letter-spacing:-.035em}
+.bookingRequestNotice{display:grid;gap:5px;background:#E4EFD7;
+ border:1px solid #D4E2C9;border-radius:14px;padding:13px 14px}
+.bookingRequestNotice strong{font-size:13px;color:#243D28}
+.bookingRequestNotice span{font-size:12px;color:#52634F;line-height:1.5}
+@media (max-width:760px){
+ .shell{background:#F7F6F2;color:#18281E}
+ .formWrap{margin:18px auto 0}
+ .formHero{display:flex;flex-direction:column;gap:9px;margin-bottom:12px}
+ .offerCard{padding:18px;border-radius:18px}
+ .offerCard:first-child{background:#18281E;border-color:#18281E;color:#FFF}
+ .offerCard:first-child .eyebrow{color:#C7DFBA}
+ .offerCard:first-child h1{font-size:clamp(23px,6.2vw,32px);
+   line-height:1.15;margin:10px 0 8px;letter-spacing:-.035em}
+ .offerCard:first-child .price{color:#C9F26B;font-size:23px;margin:0 0 8px}
+ .offerCard:first-child>p:not(.eyebrow):not(.price){
+   color:#D9E6D8;line-height:1.45;font-size:12px;margin:8px 0 0}
+ .offerCard:nth-child(2){background:#F1F5EC;border-color:#E3E8DF;padding:13px 16px}
+ .offerCard:nth-child(2) p:not(.eyebrow){font-size:12px;line-height:1.45;color:#536556;margin:7px 0}
+ .offerCard:nth-child(2) p:last-child{margin-bottom:0}
+ .bookingConsult{margin-top:14px;border-radius:17px;padding:13px;
+   background:#FFF;align-items:center}
+ .bookingConsult>a{border-radius:13px;background:#C9F26B;color:#18281E}
+ .consultationRequired{border-radius:16px}
+ .formCard{padding:17px;border-radius:18px;gap:13px;background:#FFF}
+ .formCard :global(.h-ui-subtitle){font-size:12px;line-height:1.5;margin:0;color:#607163}
+ .formCard .draftStatus{padding:11px 12px;border:1px solid #E3E8DF;background:#F5F8F2;
+   color:#536755;border-radius:12px;font-size:11px;line-height:1.45}
+ .flowTimeSlots{background:#F8FAF6;border-color:#E3E8DF;padding:12px;border-radius:15px;gap:10px}
+ .flowTimeHead strong{font-size:15px;color:#18281E}
+ .flowTimeHead p{font-size:11px;color:#536755}
+ .flowTimeHead span{color:#607163}
+ .flowTimeGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .flowTimeGrid button{min-height:66px;border-color:#DDE5D7;border-radius:13px;text-align:left;padding:10px 11px}
+ .flowTimeGrid button:not(:disabled):focus-visible,.flowTimeGrid button:not(:disabled):hover{
+   border-color:#476C41;outline:2px solid #476C41;outline-offset:1px}
+ .field label{color:#536755;font-size:11px;letter-spacing:.05em}
+ .field input,.field textarea{font-size:16px;line-height:1.45}
+ .field textarea{min-height:128px}
+ .formCard .primary{min-height:53px;background:#C9F26B;color:#18281E;
+   font-size:14px;font-weight:850;border-radius:14px}
+ .handoff{background:#FFF;border:1px solid #E3E8DF;border-radius:18px;gap:12px;padding:16px}
+ .handoff strong{font-size:17px;letter-spacing:-.025em}
+ .handoff p{font-size:13px;color:#536755}
+ .handoffLinks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .handoffLinks a{min-height:46px;border-radius:13px;padding:8px 10px;
+   font-size:11px;line-height:1.3;text-align:center;white-space:normal;overflow-wrap:anywhere}
+ .handoffLinks a:first-child{grid-column:1 / -1;background:#C9F26B;
+   border-color:#C9F26B;color:#18281E;font-size:13px}
+ .detailGrid{gap:12px;margin-top:16px}
+ .detailMain,.detailSide{gap:12px}
+ .summaryCard{border-radius:18px;padding:18px;background:#FFF}
+ .summaryCard h1{font-size:clamp(25px,7vw,39px);line-height:1.13;
+   letter-spacing:-.045em;margin:8px 0 13px;overflow-wrap:anywhere}
+ .summaryCard .meta{gap:8px 12px;line-height:1.4}
+ .summaryCard .next{font-size:13px;line-height:1.5;color:#49604E}
+ .facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px}
+ .fact{min-width:0;overflow-wrap:anywhere}
+ .fact small{font-size:10px;line-height:1.3;color:#687968}
+ .fact strong{font-size:12px;line-height:1.45;color:#18281E}
+ .timeProposalPanel{border-radius:18px}
+ .timeProposalPanel h2{font-size:22px;line-height:1.2;letter-spacing:-.035em}
+ .proposalActions{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:365px){
+ .facts{grid-template-columns:minmax(0,1fr)}
+ .handoffLinks{grid-template-columns:minmax(0,1fr)}
+}

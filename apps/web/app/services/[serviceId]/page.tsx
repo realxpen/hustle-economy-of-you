@@ -70,7 +70,7 @@ export default function PublicServicePage() {
 
     <section className={styles.hero}>
       <div className={styles.offer}>
-        <p>{service.category} · {service.deliveryMode}</p>
+        <p>{service.category} · {service.deliveryMode.replaceAll("_"," ")}</p>
         <h1 className="h-experience-heading">{service.title}</h1>
         <strong>{formatServicePrice(service)}</strong>
         <div className={styles.offerActions}>

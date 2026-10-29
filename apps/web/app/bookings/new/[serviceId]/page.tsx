@@ -281,6 +281,11 @@ export default function NewBookingPage() {
       </section>
 
       <form className={styles.formCard} onSubmit={submit} aria-busy={submitting} aria-describedby="booking-form-help">
+        <div className={styles.formLead}>
+          <span className={styles.formStep}>Your request · Step 1 of 2</span>
+          <h2>Plan the booking</h2>
+          <p>Choose a time that works for you, then share the job details.</p>
+        </div>
         <p id="booking-form-help" className="h-ui-subtitle">Only the requested start and project description are required. We check availability before sending the request. If you need to sign in, your draft will still be here when you return.</p>
         <div className={styles.draftStatus} role="status">
           <span>{draftRestored
@@ -289,6 +294,10 @@ export default function NewBookingPage() {
               ? "Draft saved in this tab. Nothing has been sent or charged."
               : "Your draft is stored only in this browser tab for up to 2 hours as you type."}</span>
           {draftPresent && <button type="button" onClick={discardDraft} disabled={submitting}>Clear draft</button>}
+        </div>
+        <div className={styles.formSectionHeading}>
+          <span className={styles.formStep}>01 · Timing</span>
+          <h3>When do you need this?</h3>
         </div>
         <section className={styles.flowTimeSlots} aria-label="FlowTime availability">
           <div className={styles.flowTimeHead}><div><strong>Available booking times</strong><p>
@@ -342,6 +351,10 @@ export default function NewBookingPage() {
               : "Request can be sent for Hustler review. No appointment is reserved."
             : checkedTime.reason ?? "Not available. Choose another time."}
         </p>}
+        <div className={styles.formSectionHeading}>
+          <span className={styles.formStep}>02 · Details</span>
+          <h3>Tell them about the job</h3>
+        </div>
         <div className={styles.field}>
           <label htmlFor="requirements">WHAT DO YOU NEED?</label>
           <textarea id="requirements" required maxLength={4000} aria-describedby="requirements-hint" value={requirements} onChange={(event) => { setRequirements(event.target.value); updateDraft({ requirements: event.target.value }); if (error) setError(null); }} placeholder="Describe the project, expected outcome, important features, constraints and deadline." />
@@ -359,6 +372,10 @@ export default function NewBookingPage() {
           </div>
         </div>
 
+        <div className={styles.bookingRequestNotice}>
+          <strong>Ready to request?</strong>
+          <span>The Hustler reviews your time and requirements before accepting. This request does not make a payment.</span>
+        </div>
         {error && <div className={styles.error} role="alert" id="booking-form-error">
           {error}
           {/consult this hustler|discuss this service in messages first/i.test(error) && <a className={styles.consultationRecovery} href={consultHref}>Open the required Service consultation ↗</a>}

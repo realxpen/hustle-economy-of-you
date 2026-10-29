@@ -41,6 +41,8 @@ jobs:
         run: node scripts/experience/check-consultation-booking-return.cjs
       - name: UX023 consultation proof and optional messaging outage policy
         run: node scripts/experience/check-ux023-consultation-booking.cjs
+      - name: UX024 unified iPhone Service, Booking and consultation presentation
+        run: node scripts/experience/check-ux024-service-experience.cjs
       - name: Hustler response queue and explicit booking decisions
         run: node scripts/experience/check-hustler-booking-response.cjs
       - name: Staging QA safety policy regression (no credentials or external calls)

@@ -235,3 +235,62 @@
  .button{background:#18281E;color:#fff;border-radius:14px;min-height:44px}
  .empty,.error,.loading{background:#FFFFFF!important;border:1px solid #E3E8DF;color:#18281E}
 }
+
+/* UX024 — Conversation is part of the same Search → Hire experience. */
+@media (max-width:760px){
+ .threadShell{background:#F7F6F2;color:#18281E;
+   grid-template-rows:auto 1fr;padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))}
+ .threadHeader{position:sticky;top:0;z-index:12;padding:10px 14px;
+   gap:9px;flex-wrap:nowrap;background:#FFF;border-color:#E3E8DF;min-height:66px}
+ .back{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;
+   background:#F1F5EC;border:1px solid #E3E8DF;border-radius:50%;font-size:19px}
+ .threadIdentity{flex:1 1 0;gap:8px;min-width:0}
+ .threadIdentity .avatar{width:43px;height:43px;flex:0 0 43px;border-radius:50%}
+ .identityText strong{font-size:14px;line-height:1.3}
+ .identityText span{font-size:11px;line-height:1.3;color:#607163}
+ .refresh{padding:9px 10px;min-height:42px;border:1px solid #E3E8DF;
+   background:#FFF;border-radius:13px;font-size:11px;margin-left:0;flex:0 0 auto}
+ .transactionHandoff{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;
+   background:#EDF6E3;border:0;border-bottom:1px solid #D5E3CB;padding:11px 16px}
+ .transactionHandoff a{order:2;justify-self:start;min-height:42px;
+   padding:9px 13px;border:0;border-radius:12px;background:#C9F26B;
+   color:#18281E;font-size:12px;font-weight:850}
+ .transactionHandoff span{order:1;font-size:11px;line-height:1.5;color:#415E44}
+ .threadBody{display:grid;grid-template-rows:minmax(0,1fr) auto;min-height:0}
+ .messages{padding:16px 12px 12px;gap:10px}
+ .bubble{max-width:min(86%,480px);padding:11px 13px;border-radius:17px;
+   background:#FFF;border-color:#DFE6D9;box-shadow:none}
+ .mine .bubble{background:#E4EFD7;color:#18281E;border-color:#C7DCB7;border-bottom-right-radius:6px}
+ .theirs .bubble{border-bottom-left-radius:6px}
+ .text{font-size:14px;line-height:1.5}
+ .sender{font-size:10px;letter-spacing:0;color:#536755}
+ .time{font-size:10px;opacity:.72}
+ .context{border-radius:12px;background:#F0F5EA;padding:10px;font-size:11px;line-height:1.5}
+ .mine .context{background:#D5E6C7}
+ .composerWrap{position:sticky;bottom:0;background:#FFF;
+   border-top:1px solid #E3E8DF;padding:10px 12px max(10px,env(safe-area-inset-bottom,0px))}
+ .composeRow{display:flex;flex-wrap:nowrap;align-items:flex-end;gap:8px}
+ .composeRow textarea{flex:1 1 0;min-width:0;width:auto;min-height:48px;max-height:136px;
+   padding:12px 13px;border-radius:16px;background:#F7F9F5;
+   border:1px solid #DCE5D7;font-size:16px}
+ .composeRow>button{flex:0 0 auto;grid-column:auto;width:auto;min-width:66px;
+   min-height:48px;padding:10px 12px;background:#C9F26B;color:#18281E;
+   border:0;border-radius:14px;font-size:13px;font-weight:850}
+ .composeRow>button:disabled{opacity:.45}
+ .attachButton{flex:0 0 auto;min-height:48px;min-width:58px;padding:9px 10px;
+   border-radius:14px;background:#F1F5EC;border:1px solid #DCE5D7;
+   font-size:11px}
+ .pendingContext,.pendingFile{border-radius:12px;background:#EDF6E3;color:#34543A;
+   font-size:11px;line-height:1.4;padding:9px 11px}
+ .notice{font-size:10px;line-height:1.4;color:#69796A;margin:8px 0 0}
+}
+@media (max-width:360px){
+ .composeRow{gap:5px}
+ .attachButton{min-width:50px;padding-inline:7px}
+ .composeRow>button{min-width:58px;padding-inline:8px}
+ .threadHeader{gap:6px}
+ .refresh{padding-inline:7px}
+}
+@media (prefers-reduced-motion:reduce){
+ .conversation,.bubble{transition:none}
+}
