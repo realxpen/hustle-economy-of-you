@@ -28,9 +28,14 @@ const service={id:"qa-service",title:"QA Barber Session",category:"Beauty",descr
   mediaUrls:[],priceMinor:45000,pricingType:"FIXED",currency:"NGN",
   deliveryMode:"IN_PERSON",deliveryTime:"One hour",availabilityNote:"By appointment",
   location:"Lagos, Nigeria"};
+const qaMedia=[
+  "data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27200%27%20height%3D%27200%27%3E%3Crect%20width%3D%27200%27%20height%3D%27200%27%20fill%3D%27%23DCE9CE%27%2F%3E%3C%2Fsvg%3E",
+  "data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27200%27%20height%3D%27200%27%3E%3Crect%20width%3D%27200%27%20height%3D%27200%27%20fill%3D%27%2399BEAD%27%2F%3E%3C%2Fsvg%3E"
+];
 const product={id:"qa-product",title:"QA Hair Care Kit",description:
   "Synthetic product. Never a live listing.",
-  priceMinor:250000,currency:"NGN",mediaUrls:[],inStock:true,
+  priceMinor:250000,currency:"NGN",mediaUrls:qaMedia,inStock:true,
+  trackInventory:false,inventoryQuantity:null,variants:[],
   type:"PHYSICAL",category:"Beauty",deliveryInformation:"Local delivery"};
 const fixturePost = {
   post:{id:"qa-post-001",caption:"A synthetic barber project for safe UI testing",
@@ -393,6 +398,28 @@ function localOnly(url) {
          assert.ok(box && box.y<950,
            "UX026 real content must start above the fold-adjacent region on iPhone");
        }
+       // UX029: the canonical Product uses the original live Product detail
+       // component; QA fixtures are local, read-only, and cannot create Orders.
+       await page.goto(root+"/products/qa-product",{waitUntil:"domcontentloaded"});
+       await page.getByRole("heading",{name:"QA Hair Care Kit"}).waitFor({state:"visible",timeout:12000});
+       const productGallery=page.getByRole("group",{name:"Choose product photo or video"});
+       await productGallery.getByRole("button",{name:"View product media 2"}).click();
+       assert.equal(await productGallery.getByRole("button",{name:"View product media 2"}).getAttribute("aria-pressed"),"true");
+       const heroMedia=page.locator('img[class*="heroImage"]');
+       assert.equal(await heroMedia.getAttribute("src"),qaMedia[1],"Second authentic fixture photo must be selected");
+       assert.equal(await page.getByRole("link",{name:/Choose options/}).getAttribute("href"),"#add-to-cart");
+       if(size.width<=760){
+         const sticky=page.getByRole("region",{name:"Product purchase action"});
+         await sticky.waitFor({state:"visible"});
+         const px=await page.evaluate(()=>Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth);
+         assert.ok(px<=3,"UX029 Product detail must not horizontally overflow the iPhone");
+       }
+       await page.screenshot({path:path.join(out,size.label+"__ux029-product-detail.png"),
+         animations:"disabled",caret:"hide"});
+       results.push({size:size.label,step:"UX029 Product detail real-media gallery, seller and genuine cart anchor",
+         result:"PASS"});
+       await page.goto(root+"/marketplace",{waitUntil:"domcontentloaded"});
+       await svc.waitFor({state:"visible",timeout:12000});
        await page.screenshot({path:path.join(out,size.label+"__ux025-all-market.png"),
          animations:"disabled",caret:"hide"});
        const focus=page.getByRole("group",{name:"Marketplace modes"});
