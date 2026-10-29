@@ -407,12 +407,17 @@ function localOnly(url) {
        assert.equal(await productGallery.getByRole("button",{name:"View product media 2"}).getAttribute("aria-pressed"),"true");
        const heroMedia=page.locator('img[class*="heroImage"]');
        assert.equal(await heroMedia.getAttribute("src"),qaMedia[1],"Second authentic fixture photo must be selected");
-       assert.equal(await page.getByRole("link",{name:/Choose options/}).getAttribute("href"),"#add-to-cart");
        if(size.width<=760){
+         assert.equal(await page.getByRole("link",{name:/Choose options/}).getAttribute("href"),"#add-to-cart",
+           "Mobile purchase bar must link to the existing variant and Cart form");
          const sticky=page.getByRole("region",{name:"Product purchase action"});
          await sticky.waitFor({state:"visible"});
          const px=await page.evaluate(()=>Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth);
          assert.ok(px<=3,"UX029 Product detail must not horizontally overflow the iPhone");
+       }
+       else {
+         await page.getByRole("button",{name:/Add to Cart/}).waitFor({state:"visible"},
+           "Desktop and tablet use the original functional Add to Cart control");
        }
        await page.screenshot({path:path.join(out,size.label+"__ux029-product-detail.png"),
          animations:"disabled",caret:"hide"});
