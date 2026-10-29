@@ -39,6 +39,8 @@ jobs:
         run: node scripts/experience/check-booking-draft.cjs
       - name: Consult-first to prepared Booking return contracts
         run: node scripts/experience/check-consultation-booking-return.cjs
+      - name: UX023 consultation proof and optional messaging outage policy
+        run: node scripts/experience/check-ux023-consultation-booking.cjs
       - name: Hustler response queue and explicit booking decisions
         run: node scripts/experience/check-hustler-booking-response.cjs
       - name: Staging QA safety policy regression (no credentials or external calls)
