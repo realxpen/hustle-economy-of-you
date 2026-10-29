@@ -113,7 +113,7 @@ export default function PublicProductPage() {
       <div className={styles.sectionHeading}><small>VARIANTS</small><h2>Available choices</h2></div>
       <div className={styles.variantGrid}>{product.variants.map((variant) => <article key={variant.id}><span>{variant.name}</span><strong>{formatProductPrice(product, variant)}</strong><p>{Object.entries(variant.optionValues ?? {}).map(([key,value]) => `${key}: ${value}`).join(" · ") || "Standard option"}</p>{product.trackInventory && <small>{(variant.inventoryQuantity ?? 0) > 0 ? `${variant.inventoryQuantity} in stock` : "Stock follows product availability"}</small>}</article>)}</div>
     </section>}
-    <div className={styles.stickyPurchase} aria-label="Product purchase action">
+    <div className={styles.stickyPurchase} role="region" aria-label="Product purchase action">
       <div><small>{product.inStock ? "Price" : "Currently unavailable"}</small><strong>{formatProductPrice(product)}</strong></div>
       {product.inStock ? <a href="#add-to-cart">Choose options <span aria-hidden="true">↗</span></a> :
         <span className={styles.unavailableSticky}>Out of stock</span>}
