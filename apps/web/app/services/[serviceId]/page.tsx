@@ -25,6 +25,7 @@ export default function PublicServicePage() {
   const [trust, setTrust] = useState<PublicTrustSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const sourcePostId = useSourcePost();
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function PublicServicePage() {
     let active = true;
     setData(null);
     setError(null);
+    setActiveMediaIndex(0);
     void getPublicService(serviceId)
       .then((next) => { if (active) setData(next); })
       .catch((reason: Error) => { if (active) setError(reason.message); });
@@ -54,6 +56,7 @@ export default function PublicServicePage() {
   if (!currentData) return <main className={styles.shell}><ExperienceState kind="loading" title="Loading Service details…" /></main>;
 
   const { service, owner } = currentData;
+  const selectedMedia = service.mediaUrls[Math.min(activeMediaIndex, service.mediaUrls.length - 1)];
   const initial = (owner.displayName ?? owner.username ?? "H").charAt(0).toUpperCase();
   const preparedBookingHref = withSourcePost(`/bookings/new/${encodeURIComponent(service.id)}`, sourcePostId);
   const consultHref = withTransactionReturnTo(`/messages/start?userId=${encodeURIComponent(owner.id)}&contextType=SERVICE&contextId=${encodeURIComponent(service.id)}`, preparedBookingHref);
@@ -67,6 +70,39 @@ export default function PublicServicePage() {
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Service" trail={[{ href: "/marketplace", label: "Marketplace" }]} />
     <OpportunityContext sourcePostId={sourcePostId} ownerUsername={owner.username} />
+
+    <section className={styles.mediaGallery} aria-label="Published service work gallery">
+      {selectedMedia ? <>
+        <div className={styles.galleryStage}>
+          {isVideo(selectedMedia)
+            ? <video key={selectedMedia} src={selectedMedia} controls playsInline preload="metadata" aria-label="Service work video" />
+            : <img key={selectedMedia} src={selectedMedia} alt={`${service.title} — published work example`} />}
+          {service.mediaUrls.length > 1 &&
+            <span className={styles.galleryCounter}>{activeMediaIndex + 1} / {service.mediaUrls.length}</span>}
+        </div>
+        {service.mediaUrls.length > 1 && <div className={styles.galleryThumbnails} aria-label="Choose a service photo or video">
+          {service.mediaUrls.map((url, index) =>
+            <button key={url + index} type="button"
+              className={index === activeMediaIndex ? styles.galleryActive : ""}
+              aria-label={`View work example ${index + 1}`}
+              aria-pressed={index === activeMediaIndex}
+              onClick={() => setActiveMediaIndex(index)}>
+              {isVideo(url) ? <span className={styles.videoThumbnail} aria-hidden="true">▶ Video</span>
+                : <img src={url} alt="" loading="lazy"/>}
+            </button>)}
+        </div>}
+      </> : <div className={styles.noPortfolioMedia}>
+        <span aria-hidden="true">✳</span>
+        <strong>Explore this service</strong>
+        <small>This Hustler hasn't added work photos yet.</small>
+      </div>}
+    </section>
+
+    <nav className={styles.detailTabs} aria-label="Service information">
+      <a href="#service-overview">Overview</a>
+      <a href="#service-details">Details</a>
+      {trust && trust.reviews.items.length > 0 && <a href="#service-reviews">Reviews</a>}
+    </nav>
 
     <section className={styles.hero}>
       <div className={styles.offer}>
@@ -96,15 +132,13 @@ export default function PublicServicePage() {
       </aside>
     </section>
 
-    {service.mediaUrls.length > 0 && <section className={styles.mediaGrid}>{service.mediaUrls.map((url) => isVideo(url) ? <video key={url} controls src={url} /> : <img key={url} src={url} alt="Service media" />)}</section>}
-
-    <section className={styles.contentGrid}>
+    <section className={styles.contentGrid} id="service-overview">
       <article className={[styles.description, "h-experience-surface"].join(" ")}>
         <p className={styles.kicker}>THE OFFER</p>
         <p>{service.description}</p>
         {service.requirements && <><h3>What I need from you</h3><p>{service.requirements}</p></>}
       </article>
-      <aside className={styles.details}>
+      <aside className={styles.details} id="service-details">
         <div><small>PRICE</small><strong>{formatServicePrice(service)}</strong></div>
         <div><small>DELIVERY</small><strong>{service.deliveryTime}</strong></div>
         <div><small>MODE</small><strong>{service.deliveryMode}</strong></div>
@@ -114,6 +148,19 @@ export default function PublicServicePage() {
       </aside>
     </section>
 
+    {trust && trust.reviews.items.length > 0 && <section className={styles.reviewsSection} id="service-reviews" aria-label="Verified service reviews">
+      <h2>What clients say</h2>
+      <p>{trust.reputation.reviewCount} verified client review{trust.reputation.reviewCount === 1 ? "" : "s"}</p>
+      {trust.reviews.items.map((review, index) =>
+        <blockquote key={index}>“{review.body}”</blockquote>)}
+    </section>}
     <footer className={styles.footer}><span>Published offer · same Hustle identity</span>{owner.professionalProfile.headline && <strong>{owner.professionalProfile.headline}</strong>}</footer>
+    <div className={styles.stickyBooking} aria-label="Service booking action">
+      <div className={styles.stickyPrice}><small>Starting from</small><strong>{formatServicePrice(service)}</strong></div>
+      <a href={preparedBookingHref}
+        onClick={isolatedWebMode ? undefined : (event) => requireAuthForAction(event, preparedBookingHref)}>
+        {isolatedWebMode ? "Request time (test)" : "Book now"} <span aria-hidden="true">↗</span>
+      </a>
+    </div>
   </main>;
 }
