@@ -416,8 +416,7 @@ function localOnly(url) {
          assert.ok(px<=3,"UX029 Product detail must not horizontally overflow the iPhone");
        }
        else {
-         await page.getByRole("button",{name:/Add to Cart/}).waitFor({state:"visible"},
-           "Desktop and tablet use the original functional Add to Cart control");
+         await page.getByRole("button",{name:/Add to Cart/}).waitFor({state:"visible"});
        }
        await page.screenshot({path:path.join(out,size.label+"__ux029-product-detail.png"),
          animations:"disabled",caret:"hide"});
