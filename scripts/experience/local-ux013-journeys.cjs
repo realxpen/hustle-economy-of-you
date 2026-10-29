@@ -404,7 +404,7 @@ function localOnly(url) {
        await svc.waitFor({state:"visible",timeout:15000});
        assert.equal(await prod.count(),0,"Skills focus must exclude Product results");
        assert.equal(await focus.getByRole("button",{name:"Services & Skills"}).getAttribute("aria-pressed"),"true");
-       const chip=page.getByRole("group",{name:"Categories from loaded offers"}).getByRole("button",{name:"Beauty"});
+       const chip=page.getByRole("group",{name:"Marketplace category shortcuts"}).getByRole("button",{name:"Beauty"});
        await chip.waitFor({state:"visible"});
        await chip.click();
        assert.equal(new URL(page.url()).searchParams.get("category"),"Beauty");
