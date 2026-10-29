@@ -700,3 +700,23 @@
  .searchExperience .discoveryResults a{transition:background-color .15s ease,transform .15s ease}
  .searchExperience .discoveryResults a:active{transform:scale(.99)}
 }
+
+/* UX022 — sparse mobile search results. A lone post should use the available
+   screen width instead of looking like an empty two-column gallery.
+   Multiple post results keep the existing TikTok-style discovery grid. */
+@media(max-width:760px){
+ .searchExperience .discoverySinglePost{
+   grid-template-columns:minmax(0,1fr);
+ }
+ .searchExperience .discoverySinglePost .discoveryPostVisual{
+   aspect-ratio:16/10;
+ }
+ .searchExperience .discoverySinglePost .discoveryPostDetails{
+   padding:13px 15px;
+ }
+ /* Root shell already reserves space for the fixed navigation; avoid
+    allocating a second almost-full dock-height after the final card. */
+ .searchExperience .resultsWrap{
+   padding-bottom:calc(30px + env(safe-area-inset-bottom,0px))!important;
+ }
+}
