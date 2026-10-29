@@ -374,13 +374,19 @@ function localOnly(url) {
        assert.equal(await prod.getByRole("link",{name:/View product: QA Hair Care Kit/})
          .getAttribute("href"),"/products/qa-product");
        if(size.width<=760){
-         const hero=page.getByRole("heading",{name:/Turn your talent into opportunity/i});
+         const hero=page.getByRole("heading",{name:/Great work\. Real people\./i});
          await hero.waitFor({state:"visible"});
          const serviceGrid=svc.locator("[class*='servicesGrid']");
          const columns=await serviceGrid.evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(" ").length);
          const cardCount=await serviceGrid.locator("a[class*='offerCard']").count();
-         if(size.width>=370 && size.width<=760) assert.equal(columns,cardCount===1?1:2,
-           "UX027 iPhone: a single published Service fills the row; multiple Services use two columns");
+         if(size.width<=760) {
+           assert.equal(columns,2,
+             "UX028 iPhone: both a single Service and multiple Services keep the compact two-column marketplace grid");
+           const firstCard=serviceGrid.locator("a[class*='offerCard']").first();
+           const cardRect=await firstCard.boundingBox();
+           assert.ok(cardRect && cardRect.width<=page.viewportSize().width*0.52,
+             "UX028 iPhone: a lone service must not expand into an oversized full-width card");
+         }
 
          const firstOffer=svc.getByRole("link",{name:/View service: QA Barber Session/});
          const box=await firstOffer.boundingBox();
@@ -398,7 +404,7 @@ function localOnly(url) {
        await svc.waitFor({state:"visible",timeout:15000});
        assert.equal(await prod.count(),0,"Skills focus must exclude Product results");
        assert.equal(await focus.getByRole("button",{name:"Services & Skills"}).getAttribute("aria-pressed"),"true");
-       const chip=page.getByRole("group",{name:"Categories from loaded offers"}).getByRole("button",{name:"Beauty"});
+       const chip=page.getByRole("group",{name:"Marketplace category shortcuts"}).getByRole("button",{name:"Beauty"});
        await chip.waitFor({state:"visible"});
        await chip.click();
        assert.equal(new URL(page.url()).searchParams.get("category"),"Beauty");

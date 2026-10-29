@@ -416,3 +416,99 @@
  .bannerVisual>span{font-size:70px}
  .servicesGrid,.productsGrid{gap:7px}
 }
+
+
+/* UX028 — tightened live-iPhone visual review after UX027 deployment.
+   Preserve the same catalog/grid semantics on scarce and populated inventory. */
+.filterIconButton{flex:0 0 46px;width:46px;min-height:46px;
+ display:grid;place-items:center;background:#F4F7F0;color:#29543B;
+ border:1px solid #E0E8D9;border-radius:12px;font-size:27px;
+ font-weight:600;cursor:pointer}
+.filterIconButton[aria-expanded="true"]{background:#E0EFCB;border-color:#91B984}
+.searchIcon{display:none}
+.searchLabel{display:block}
+.bannerHalo{position:absolute;inset:14% 0 14% 10%;width:76%;height:72%;
+ border:1px solid rgba(33,95,48,.17);border-radius:50%;
+ transform:rotate(-22deg)}
+.bannerGlyph{position:relative;display:grid;place-items:center;
+ width:122px;height:122px;border-radius:35px;background:#FFF8;
+ box-shadow:0 16px 40px rgba(20,80,40,.11);color:#27613E;
+ transform:rotate(-11deg);font-size:94px;line-height:1}
+.bannerMiniGlyph{position:absolute;right:12%;top:10%;display:grid;
+ place-items:center;width:44px;height:44px;border-radius:50%;
+ background:#FFF9;color:#5B9E4B;font-size:28px}
+@media(max-width:760px){
+ .marketHero{padding:10px 14px 0}
+ .mobileTopbar{margin-bottom:7px}
+ .mobileTopbar>a:first-child{font-size:23px}
+ .accountShortcut{width:38px;height:38px;font-size:19px}
+ .marketIdentity{margin-bottom:3px}
+ .marketIdentity p{font-size:11px;line-height:1.35}
+ .marketHero .findForm{margin-top:8px;min-height:45px;padding:4px;gap:4px;
+   border-radius:14px;border-color:#DDE6D8}
+ .searchInput{padding:0 3px 0 9px;gap:0}
+ .searchInput>span{display:none}
+ .searchInput input{min-height:38px;font-size:16px;line-height:1.3}
+ .searchSubmit{flex:0 0 40px;width:40px;min-height:40px;border-radius:11px;
+   padding:0;background:#C9F26B;color:#193D29}
+ .searchLabel{display:none}
+ .searchIcon{display:block;font-size:30px;line-height:1;transform:rotate(-15deg)}
+ .filterIconButton{flex:0 0 40px;width:40px;min-height:40px;border-radius:11px;font-size:23px}
+ .marketHero .modeTabs{margin-top:6px;padding:5px 0 6px;gap:6px}
+ .marketHero .modeTabs button{min-height:39px;padding:8px 6px;
+   border-radius:12px;font-size:11px;letter-spacing:-.012em}
+ .browseBar,.marketResults{padding-inline:14px}
+ .categoryRail{gap:6px;padding:7px 0 9px}
+ .categoryRail button{flex:0 0 52px;min-width:52px;min-height:59px;
+   max-width:70px;font-size:10px;gap:4px;padding:1px 0}
+ .categoryIcon{width:37px;height:37px;flex-basis:37px;font-size:17px}
+ .categoryRail button>span:last-child{max-width:62px;font-size:9px}
+ .featureBanner{grid-template-columns:minmax(0,1.7fr) minmax(0,.65fr);
+   min-height:0;margin-bottom:16px;border-radius:17px}
+ .bannerCopy{padding:13px 6px 13px 15px}
+ .bannerCopy>span{font-size:7px}
+ .bannerCopy h1{font-size:clamp(19px,5.2vw,24px);line-height:1.08;
+   margin:6px 0 5px}
+ .bannerCopy p{font-size:10px;line-height:1.35;margin:0 0 9px;
+   -webkit-line-clamp:2}
+ .bannerCopy button{min-height:36px;font-size:10px;padding:8px 10px}
+ .bannerGlyph{width:71px;height:71px;border-radius:21px;font-size:58px}
+ .bannerMiniGlyph{height:29px;width:29px;font-size:20px;right:8%;top:15%}
+ .bannerHalo{inset:15% -5% 10% 0}
+ .resultsMeta{margin:1px 0 10px}
+ .resultsMeta strong{font-size:12px}
+ .marketSection{margin-bottom:19px}
+ .sectionHeading{margin:0 0 9px}
+ .sectionHeading h2{font-size:19px;letter-spacing:-.035em}
+ .sectionKicker{font-size:8px;letter-spacing:.06em}
+ .servicesGrid,.productsGrid,.singleOfferGrid,.singleProductGrid{
+   grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .singleOfferGrid .offerCard,.singleProductGrid .offerCard{width:auto;max-width:none}
+ .singleOfferGrid .serviceCard .offerMedia{aspect-ratio:1 / 1}
+ .offerCard{border-radius:14px;box-shadow:0 1px 8px rgba(25,50,30,.04)}
+ .serviceCard .offerMedia,.productCard .offerMedia{aspect-ratio:1 / 1}
+ .offerContent,.productCard .offerContent{padding:9px;gap:5px}
+ .offerName,.productCard .offerName{font-size:12px;min-height:31px;line-height:1.28}
+ .offerCategory{font-size:9px}
+ .offerPrice,.productCard .offerPrice{font-size:13px}
+ .seller,.productCard .seller{font-size:10px}
+ .offerAction,.productCard .offerAction{min-height:40px;
+   font-size:10px;border-radius:10px;padding:8px 4px}
+ .emptyProductNote{display:grid;grid-template-columns:36px minmax(0,1fr);
+   column-gap:11px;row-gap:7px;min-height:0;padding:11px 12px;border-radius:15px}
+ .emptyProductNote>span{width:36px;height:36px;flex-basis:36px;
+   border-radius:11px;font-size:19px}
+ .emptyProductNote>div{display:grid;gap:3px}
+ .emptyProductNote strong{font-size:12px}
+ .emptyProductNote p{font-size:10px;line-height:1.4}
+ .emptyProductNote button{grid-column:2;justify-self:start;
+   min-height:36px;border-radius:10px;padding:8px 11px;font-size:10px}
+}
+@media(max-width:365px){
+ .marketHero,.browseBar,.marketResults{padding-inline:11px}
+ .marketHero .modeTabs button{font-size:10px;padding-inline:3px}
+ .bannerCopy h1{font-size:19px}
+ .bannerGlyph{width:61px;height:61px;font-size:51px}
+ .categoryRail button{flex-basis:49px;min-width:49px}
+ .servicesGrid,.productsGrid,.singleOfferGrid,.singleProductGrid{gap:7px}
+}

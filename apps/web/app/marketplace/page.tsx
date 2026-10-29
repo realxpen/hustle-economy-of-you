@@ -21,14 +21,8 @@ const modes: ReadonlyArray<{ id: MarketplaceTab; label: string; short: string }>
   { id: "services", label: "Services & Skills", short: "Hire" },
   { id: "products", label: "Products", short: "Shop" }
 ];
-function firstPublishedServicePhoto(items: Offer[]): string | null {
-  for (const item of items) {
-    if (item.kind !== "service") continue;
-    const image = item.service.mediaUrls?.find((url) => !/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url));
-    if (image) return image;
-  }
-  return null;
-}
+// Browse topics are navigation shortcuts, not claims that inventory exists.
+const browsingTopics = ["Beauty", "Home", "Technology", "Fashion", "Food", "Creative"] as const;
 
 function categorySymbol(category: string) {
   const value = category.toLowerCase();
@@ -208,7 +202,7 @@ export default function MarketplacePage() {
       .filter((value): value is string => Boolean(value?.trim()));
     return Array.from(new Set([activeFilters.category?.trim() ?? "", ...live].filter(Boolean))).slice(0,8);
   }, [visibleItems, activeFilters.category]);
-  const bannerPhoto = useMemo(() => firstPublishedServicePhoto(slices.services.items), [slices.services.items]);
+  const browseCategories = useMemo(() => Array.from(new Set([...(activeFilters.category ? [activeFilters.category] : []), ...browsingTopics, ...categories])).slice(0,8), [activeFilters.category, categories]);
   const count = visibleItems.length;
   const noResults = !loading && !error && count === 0;
 
@@ -229,10 +223,13 @@ export default function MarketplacePage() {
         <label className={styles.searchInput}>
           <span aria-hidden="true">⌕</span>
           <input type="search" value={query} onChange={e => setQuery(e.target.value)}
-            placeholder={view === "services" ? "Search skills or services" : view === "products" ? "Search products" : "Search services and products"}
+            placeholder={view === "services" ? "Find a service" : view === "products" ? "Find a product" : "Search skills and products"}
             aria-label="Search marketplace" enterKeyHint="search" />
         </label>
-        <button className={styles.searchSubmit} type="submit">Search</button>
+        <button className={styles.searchSubmit} type="submit" aria-label="Search marketplace"><span className={styles.searchLabel}>Search</span><span className={styles.searchIcon} aria-hidden="true">⌕</span></button>
+        <button type="button" className={styles.filterIconButton}
+          aria-label="Refine marketplace results" aria-expanded={filterOpen} aria-controls="marketplace-refine"
+          onClick={() => setFilterOpen(open => !open)}><span aria-hidden="true">☷</span></button>
       </form>
       <div className={styles.modeTabs} role="group" aria-label="Marketplace modes">
         {modes.map(mode => <button key={mode.id} type="button"
@@ -245,16 +242,6 @@ export default function MarketplacePage() {
     </header>
 
     <section className={styles.browseBar} aria-label="Choose marketplace browsing focus">
-      <div className={styles.refinementRow}>
-        <div className={styles.currentFocus}>
-          <span>{view === "all" ? "Discover everything" : view === "services" ? "Hiring & services" : "Shopping & products"}</span>
-          {activeQuery && <small>for “{activeQuery}”</small>}
-        </div>
-        <button type="button" className={styles.filterToggle}
-          aria-expanded={filterOpen} aria-controls="marketplace-refine"
-          onClick={() => setFilterOpen(open => !open)}>Refine results <span aria-hidden="true">{filterOpen ? "−" : "+"}</span></button>
-      </div>
-
       {filterOpen && <form id="marketplace-refine" className={styles.filterPanel} onSubmit={applyFilters}>
         <label>Category<input value={filters.category ?? ""} onChange={e=>setFilters({...filters,category:e.target.value})} placeholder="e.g. Beauty, Technology" maxLength={100}/></label>
         {view === "services" && <label>Skill<input value={filters.skill ?? ""} onChange={e=>setFilters({...filters,skill:e.target.value})} placeholder="e.g. Hair styling" maxLength={100}/></label>}
@@ -271,31 +258,32 @@ export default function MarketplacePage() {
         </div>
       </form>}
 
-      {!loading && categories.length > 0 && <div className={styles.categoryRail} role="group" aria-label="Categories from loaded offers">
+      <div className={styles.categoryRail} role="group" aria-label="Marketplace category shortcuts">
         <button type="button" aria-pressed={!activeFilters.category} onClick={()=>chooseCategory("")}>
           <span className={styles.categoryIcon} aria-hidden="true">✳</span><span>All</span>
         </button>
-        {categories.map(category => <button type="button" key={category} aria-pressed={activeFilters.category === category}
+        {browseCategories.map(category => <button type="button" key={category} aria-pressed={activeFilters.category === category}
           onClick={()=>chooseCategory(category)}>
           <span className={styles.categoryIcon} aria-hidden="true">{categorySymbol(category)}</span><span>{category}</span>
         </button>)}
         <button type="button" onClick={()=>setFilterOpen(true)} aria-label="More marketplace filters">
           <span className={styles.categoryIcon} aria-hidden="true">•••</span><span>More</span>
         </button>
-      </div>}
+      </div>
     </section>
 
     <section className={styles.marketResults} aria-label="Published marketplace offers">
       {view === "all" && !loading && !error && !activeQuery && !activeFilters.category && <section className={styles.featureBanner} aria-label="Hustle marketplace introduction">
         <div className={styles.bannerCopy}>
           <span>SKILLS · PRODUCTS · REAL PEOPLE</span>
-          <h1>Turn your talent into <em>opportunity.</em></h1>
-          <p>Find people who can do the work, discover what they make, and support their hustle.</p>
+          <h1>Great work. <em>Real people.</em></h1>
+          <p>Hire a skill or discover what Hustlers make.</p>
           <button type="button" onClick={()=>updateView("services")}>Explore services <span aria-hidden="true">↗</span></button>
         </div>
         <div className={styles.bannerVisual} aria-hidden="true">
-          {bannerPhoto ? <img src={bannerPhoto} alt="" loading="lazy" />
-            : <span>H<span>✳</span></span>}
+          <span className={styles.bannerHalo}></span>
+          <span className={styles.bannerGlyph}>✳</span>
+          <span className={styles.bannerMiniGlyph}>✦</span>
         </div>
       </section>}
       <div className={styles.resultsMeta} role="status" aria-live="polite">
@@ -336,8 +324,8 @@ export default function MarketplacePage() {
           </div>
           <div className={styles.emptyProductNote}>
             <span aria-hidden="true">◈</span>
-            <div><strong>No products published here yet</strong>
-              <p>Products will appear as Hustlers publish them. There are no placeholder listings.</p></div>
+            <div><strong>No products listed yet</strong>
+              <p>Products will appear here as Hustlers publish them.</p></div>
             <button type="button" onClick={()=>updateView("products")}>Browse products ↗</button>
           </div>
         </section>}
