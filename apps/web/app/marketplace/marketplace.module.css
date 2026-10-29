@@ -278,3 +278,141 @@
  .marketHero h1{font-size:29px}
  .mobileTopbar{margin-bottom:13px}
 }
+
+
+/* UX027 — Implement the founder-selected 4-phone Marketplace reference.
+   The live economy supplies all photos, listings, sellers, categories and prices.
+   No synthetic photography, stars, product stock, or Follow/Buy controls. */
+.marketIdentity{margin:0 0 11px}
+.marketIdentity p{font-size:13px;line-height:1.4;color:#617366;margin:0}
+.marketIdentity .focusHeading{font-size:25px;font-weight:900;line-height:1.12;
+  letter-spacing:-.035em;margin:0;color:#183927}
+.marketHero{padding-bottom:8px}
+.marketHero .findForm{margin-top:10px;min-height:53px;border-radius:17px}
+.marketHero .modeTabs{margin-top:9px;padding-block:5px}
+.marketHero .modeTabs button{border-radius:13px}
+.marketResults{padding-top:0}
+.featureBanner{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);
+  overflow:hidden;margin-bottom:24px;min-height:210px;border-radius:22px;
+  background:linear-gradient(118deg,#E3F1CD 8%,#CDE9BA 90%);
+  box-shadow:0 5px 18px rgba(25,56,29,.055)}
+.bannerCopy{position:relative;z-index:1;min-width:0;padding:25px 24px 23px}
+.bannerCopy>span{font-size:9px;letter-spacing:.09em;font-weight:900;color:#3C6841}
+.bannerCopy h1{font-size:clamp(28px,4.1vw,45px);line-height:1.03;
+  letter-spacing:-.055em;margin:10px 0 10px;max-width:490px;color:#193C2A}
+.bannerCopy h1 em{font-weight:800;font-style:normal;color:#416E38}
+.bannerCopy p{font-size:12px;line-height:1.45;color:#365D41;
+  max-width:375px;margin:0 0 17px}
+.bannerCopy button{display:inline-flex;align-items:center;gap:14px;
+  border:0;border-radius:12px;padding:11px 14px;min-height:43px;
+  font-size:12px;font-weight:850;color:#FFF;background:#164A32;cursor:pointer}
+.bannerVisual{min-width:0;position:relative;display:grid;place-items:center;
+  background:radial-gradient(circle at 15% 80%,#B2DC91,transparent 62%),
+  radial-gradient(circle at 90% 15%,#AEDC85,transparent 56%)}
+.bannerVisual:before{content:"";position:absolute;width:190px;height:190px;
+  right:-44px;top:-25px;border-radius:50%;border:24px solid rgba(254,255,239,.25)}
+.bannerVisual>img{width:100%;height:100%;position:absolute;inset:0;
+  object-fit:cover;object-position:center}
+.bannerVisual>span{font-size:clamp(90px,13vw,180px);font-weight:950;
+  font-family:Inter,system-ui,sans-serif;line-height:1;color:#255D36;letter-spacing:-.09em}
+.bannerVisual>span span{font-size:.25em;color:#8EBD5C;vertical-align:top}
+.browseBar .refinementRow{margin:5px 0 8px}
+.categoryRail{display:flex;gap:10px;align-items:start;padding:5px 1px 15px}
+.categoryRail button{display:flex;flex-direction:column;align-items:center;
+  justify-content:start;gap:6px;min-width:60px;max-width:92px;min-height:69px;
+  padding:2px 0 4px;background:transparent;border:0;border-radius:12px;
+  color:#536956;font-weight:750;font-size:11px;text-align:center}
+.categoryRail button[aria-pressed="true"]{background:transparent;color:#183927}
+.categoryRail button>span:last-child{max-width:88px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.categoryIcon{display:grid;place-items:center!important;width:45px;height:45px;
+  flex:0 0 45px;border-radius:50%;border:1px solid #E3E9DF;
+  background:#ECF5E6;font-size:19px;line-height:1;color:#376242;font-weight:800}
+.categoryRail button:nth-child(3n+2) .categoryIcon{background:#FDEADA;color:#BA6A31}
+.categoryRail button:nth-child(3n+3) .categoryIcon{background:#EAF0FC;color:#4B69A1}
+.categoryRail button[aria-pressed="true"] .categoryIcon{
+  border-color:#3E7651;outline:2px solid #87B777;outline-offset:1px}
+.servicesGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.productsGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.offerCard{box-shadow:0 2px 12px rgba(21,40,25,.055);
+  border-color:#E8EDE5;transition:border-color .15s ease,transform .15s ease}
+.serviceCard,.productCard{display:flex;flex-direction:column}
+.serviceCard .offerMedia,.productCard .offerMedia{width:100%;flex:0 0 auto;
+  aspect-ratio:1.16 / 1;min-height:0}
+.productCard .offerMedia{aspect-ratio:1 / 1}
+.offerContent{padding:11px;gap:5px;align-items:stretch}
+.serviceCard .offerDescription{display:none}
+.offerCategory{font-size:10px;letter-spacing:.02em;color:#657C67}
+.offerName{font-size:13px;line-height:1.32;min-height:0}
+.offerPrice{font-size:14px;font-weight:900}
+.seller{margin-top:1px;font-size:11px;gap:5px}
+.sellerAvatar{width:21px;height:21px;flex-basis:21px}
+.offerAction{display:flex;align-items:center;justify-content:center;
+  gap:8px;min-height:35px;padding:8px 11px;text-align:center;border-radius:10px;
+  background:#E5F8C7;color:#19452C;font-size:11px;font-weight:850;margin-top:auto}
+.productCard .offerAction{margin-top:auto;background:#F0F5E8}
+.sectionHeading{margin-bottom:13px}
+.sectionHeading h2{font-size:clamp(22px,2.6vw,29px)}
+.sectionKicker{font-size:9px}
+.resultsMeta{margin-bottom:14px}
+.singleOfferGrid,.singleProductGrid{grid-template-columns:minmax(0,280px)}
+@media(max-width:900px){
+ .servicesGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .productsGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ .marketHero{padding:14px 16px 1px}
+ .mobileTopbar{margin-bottom:8px}
+ .marketHero .findForm{min-height:47px;margin-top:9px}
+ .marketHero .modeTabs{margin-top:8px}
+ .marketHero .modeTabs button{min-height:38px;padding:8px 11px;
+   font-size:11px;border-radius:11px;flex:1 1 0;text-align:center}
+ .marketIdentity{margin-bottom:5px}
+ .marketIdentity p{font-size:11px}
+ .marketIdentity .focusHeading{font-size:20px;text-align:center}
+ .browseBar,.marketResults{padding-inline:16px}
+ .browseBar .refinementRow{margin:1px 0 7px}
+ .refinementRow .currentFocus{font-size:11px}
+ .categoryRail{gap:8px;padding:5px 0 12px}
+ .categoryRail button{flex:0 0 59px;min-width:59px;min-height:64px;font-size:10px}
+ .categoryIcon{height:39px;width:39px;flex-basis:39px;font-size:16px}
+ .featureBanner{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);
+   min-height:161px;border-radius:17px;margin-bottom:19px}
+ .bannerCopy{padding:16px 12px 15px 15px}
+ .bannerCopy>span{font-size:7px;letter-spacing:.07em}
+ .bannerCopy h1{font-size:clamp(21px,5vw,27px);line-height:1.03;
+   margin:7px 0 7px;max-width:245px}
+ .bannerCopy p{font-size:10px;line-height:1.35;margin:0 0 11px;
+   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+ .bannerCopy button{font-size:10px;min-height:35px;padding:8px 10px;border-radius:10px}
+ .bannerVisual>span{font-size:90px}
+ .bannerVisual>img{object-position:center}
+ .resultsMeta{margin-bottom:11px}
+ .resultsMeta strong{font-size:12px}
+ .resultsMeta span{font-size:11px}
+ .sectionHeading h2{font-size:19px;margin:2px 0 0}
+ .sectionHeading button{font-size:11px}
+ .sectionKicker{font-size:8px}
+ .servicesGrid,.productsGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .serviceCard .offerMedia,.productCard .offerMedia{
+   width:100%;min-height:0;flex-basis:auto;aspect-ratio:1.12 / 1}
+ .productCard .offerMedia{aspect-ratio:1 / 1}
+ .offerContent,.productCard .offerContent{padding:9px;gap:5px}
+ .offerName,.productCard .offerName{font-size:11px;line-height:1.3;
+   min-height:29px;-webkit-line-clamp:2}
+ .offerPrice,.productCard .offerPrice{font-size:12px}
+ .seller,.productCard .seller{font-size:10px}
+ .sellerAvatar{width:18px;height:18px;flex-basis:18px}
+ .offerAction,.productCard .offerAction{min-height:32px;font-size:10px;padding:7px}
+ .singleOfferGrid,.singleProductGrid{grid-template-columns:minmax(0,1fr)}
+ .singleOfferGrid .offerCard,.singleProductGrid .offerCard{width:100%;max-width:440px}
+ .singleOfferGrid .serviceCard .offerMedia{aspect-ratio:1.75/1}
+}
+@media(max-width:365px){
+ .marketHero,.browseBar,.marketResults{padding-inline:12px}
+ .modeTabs{gap:3px}
+ .marketHero .modeTabs button{padding-inline:7px;font-size:10px}
+ .bannerCopy h1{font-size:20px}
+ .bannerVisual>span{font-size:70px}
+ .servicesGrid,.productsGrid{gap:7px}
+}
