@@ -1,0 +1,220 @@
+/* UX025: user-supplied marketplace moodboard translated into Hustle's
+ * approved forest/lime/cream language. This module never restyles Search. */
+.shell{
+ --mp-ink:#18281E;--mp-muted:#627366;--mp-paper:#F7F6F2;--mp-card:#FFFFFF;
+ --mp-line:#DFE7DA;--mp-lime:#C9F26B;--mp-wash:#E4EFD7;
+ min-height:100dvh;min-width:0;max-width:100%;overflow-x:clip;
+ padding:0 0 calc(112px + env(safe-area-inset-bottom,0px));
+ background:var(--mp-paper);color:var(--mp-ink);
+ font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;
+}
+.marketHero,.browseBar,.marketResults{max-width:1200px;margin-inline:auto;min-width:0;}
+.marketHero{padding:clamp(24px,5vw,60px) clamp(16px,5vw,54px) 16px}
+.heroEyebrow{color:#537354;font-size:10px;font-weight:900;letter-spacing:.12em;
+ display:flex;align-items:center;gap:8px}
+.heroEyebrow span{font-size:18px;color:#6B923B}
+.marketHero h1{font-size:clamp(39px,5.5vw,75px);letter-spacing:-.065em;
+ line-height:1.04;font-weight:900;margin:14px 0 13px;max-width:750px;}
+.marketHero h1 em{font-family:Georgia,"Times New Roman",serif;font-weight:500;
+ letter-spacing:-.045em;color:#3E6147}
+.marketHero p{font-size:clamp(13px,1.5vw,17px);line-height:1.55;
+ max-width:590px;color:var(--mp-muted);margin:0}
+.quickFocus{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:12px;margin-top:25px;max-width:780px}
+.quickFocus button{display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer;
+ min-width:0;min-height:90px;border:1px solid var(--mp-line);border-radius:20px;
+ padding:15px 16px;background:#FFF;color:var(--mp-ink)}
+.quickFocus button:first-child{background:#E4EFD7;border-color:#D4E1C9}
+.quickFocus button>span:nth-child(2){display:grid;gap:5px;flex:1 1 0;min-width:0}
+.quickFocus strong{font-size:15px;line-height:1.3;letter-spacing:-.02em}
+.quickFocus small{font-size:11px;color:#57705B;line-height:1.3}
+.quickFocus button>span:last-child{font-size:18px;color:#3E6047;font-weight:900}
+.focusGlyph{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;
+ border-radius:14px;background:#FFF;color:#203C2A;font-size:25px}
+.quickFocus button:nth-child(2) .focusGlyph{background:#F0F5EA}
+.browseBar{padding:8px clamp(16px,5vw,54px) 0}
+.modeTabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;
+ padding:5px 0 13px;scroll-snap-type:x proximity}
+.modeTabs::-webkit-scrollbar{display:none}
+.modeTabs button{flex:0 0 auto;min-height:45px;white-space:nowrap;
+ border:1px solid transparent;border-radius:999px;padding:10px 18px;
+ background:#ECEFE8;color:#475C4D;font-size:13px;font-weight:850;
+ cursor:pointer;scroll-snap-align:start}
+.modeTabs button.modeSelected{background:var(--mp-ink);color:var(--mp-lime)}
+.findForm{display:flex;align-items:center;gap:9px;border:1px solid var(--mp-line);
+ padding:6px;background:var(--mp-card);border-radius:17px}
+.searchInput{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 0;
+ padding:0 12px;color:#627366}
+.searchInput>span{font-size:27px;line-height:1;color:#536A54;font-weight:700}
+.searchInput input{font-family:inherit;flex:1 1 0;min-width:0;
+ width:100%;min-height:43px;border:0;outline:0;background:transparent;
+ font-size:15px;color:var(--mp-ink)}
+.searchInput input::placeholder{color:#7F8D7E}
+.searchSubmit,.applyFilter{display:inline-flex;align-items:center;justify-content:center;
+ flex:0 0 auto;min-height:46px;border:0;border-radius:12px;
+ background:var(--mp-lime);color:var(--mp-ink);font-weight:900;
+ padding:10px 17px;cursor:pointer;font-size:13px}
+.refinementRow{display:flex;justify-content:space-between;align-items:center;
+ gap:12px;margin:13px 0 10px}
+.currentFocus{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;min-width:0}
+.currentFocus span{font-size:12px;font-weight:850;color:#47624C}
+.currentFocus small{font-size:11px;color:#7A8A77;min-width:0;overflow-wrap:anywhere}
+.filterToggle{display:flex;align-items:center;justify-content:space-between;gap:13px;
+ background:transparent;border:1px solid var(--mp-line);color:var(--mp-ink);
+ font-size:12px;font-weight:800;padding:9px 12px;min-height:42px;
+ border-radius:12px;cursor:pointer;flex:0 0 auto}
+.filterToggle span{font-size:19px;line-height:1}
+.filterPanel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;
+ border:1px solid var(--mp-line);background:#FFF;border-radius:20px;
+ padding:16px;margin:7px 0 15px}
+.filterPanel>label{display:grid;gap:7px;min-width:0;color:#5E705F;
+ font-size:11px;font-weight:800}
+.filterPanel input:not([type="checkbox"]),.filterPanel select{width:100%;min-width:0;
+ min-height:45px;border:1px solid #D8E3D4;border-radius:12px;background:#FBFCFA;
+ padding:10px 12px;color:var(--mp-ink);font-size:14px}
+.filterPanel .nearby{display:flex;align-items:center;flex-wrap:wrap;
+ gap:7px 9px;align-self:center;min-height:45px;font-size:13px}
+.nearby input{width:20px;height:20px;accent-color:#385B3C}
+.nearby small{width:100%;font-weight:450;font-size:10px;line-height:1.35;color:#718271}
+.filterActions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;grid-column:1/-1}
+.clearFilter{min-height:45px;padding:10px 16px;border:1px solid #D8E3D4;
+ border-radius:12px;background:#FFF;color:#385B3C;font-size:12px;font-weight:800;cursor:pointer}
+.categoryRail{display:flex;align-items:center;gap:8px;overflow-x:auto;
+ scrollbar-width:none;padding:8px 1px 14px;scroll-snap-type:x proximity}
+.categoryRail::-webkit-scrollbar{display:none}
+.categoryRail button{flex:0 0 auto;min-height:39px;padding:9px 13px;
+ border-radius:999px;border:1px solid #DDE5D9;background:#FFF;
+ color:#536755;font-size:12px;font-weight:750;cursor:pointer;scroll-snap-align:start}
+.categoryRail button[aria-pressed="true"]{background:var(--mp-wash);
+ border-color:#ADCC9B;color:#25442D}
+.marketResults{padding:8px clamp(16px,5vw,54px) 42px}
+.resultsMeta{display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:7px;margin:5px 0 18px}
+.resultsMeta strong{font-size:14px;font-weight:900}
+.resultsMeta span{font-size:12px;color:#748575}
+.marketSection{margin:0 0 31px;min-width:0}
+.sectionHeading{display:flex;align-items:flex-end;justify-content:space-between;
+ flex-wrap:wrap;gap:12px;margin:0 0 14px}
+.sectionHeading>div{min-width:0}
+.sectionKicker{font-size:10px;font-weight:900;letter-spacing:.08em;color:#68846A}
+.sectionHeading h2{font-size:clamp(24px,3vw,36px);font-weight:900;
+ letter-spacing:-.05em;margin:3px 0 4px;line-height:1.16}
+.sectionHeading p{color:#677869;font-size:12px;line-height:1.45;margin:0}
+.sectionHeading button{flex:0 0 auto;border:0;background:transparent;color:#35583C;
+ font-size:12px;font-weight:850;min-height:40px;padding:9px 2px;cursor:pointer}
+.sectionHeading button>span{font-size:16px}
+.servicesGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.productsGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.offerCard{display:flex;min-width:0;overflow:hidden;
+ text-decoration:none;color:var(--mp-ink);border:1px solid #E7ECE3;
+ border-radius:19px;background:#FFF}
+.offerMedia{display:block;position:relative;min-width:0;overflow:hidden;
+ background:var(--mp-wash);isolation:isolate}
+.offerMedia img,.offerMedia video{display:block;position:absolute;inset:0;
+ width:100%;height:100%;object-fit:cover}
+.emptyMedia{position:absolute;inset:0;display:grid;place-items:center;
+ background:linear-gradient(145deg,#DDEBD0,#EEF4E8);font-size:46px;color:#8AA785}
+.offerKind{position:absolute;z-index:2;left:9px;top:9px;padding:6px 9px;
+ border-radius:99px;background:rgba(22,42,28,.84);color:#FFF;
+ font-size:10px;font-weight:850;line-height:1}
+.mediaPlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+ display:grid;place-items:center;width:45px;height:45px;border-radius:50%;
+ background:rgba(19,35,24,.67);color:#FFF;padding-left:3px}
+.offerContent{display:flex;flex-direction:column;align-items:flex-start;
+ flex:1 1 0;min-width:0;padding:14px;gap:7px}
+.offerCategory{font-size:10px;color:#658165;line-height:1.2;font-weight:800;
+ white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:100%}
+.offerName{font-size:15px;line-height:1.33;letter-spacing:-.018em;font-weight:900;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.offerPrice{font-size:15px;font-weight:900;color:#24492C;letter-spacing:-.01em}
+.offerDescription{font-size:11px;color:#657766;line-height:1.4;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.seller{display:flex;align-items:center;gap:7px;min-width:0;max-width:100%;
+ font-size:11px;color:#647566;margin-top:auto}
+.sellerAvatar{display:grid;place-items:center;flex:0 0 25px;width:25px;height:25px;
+ overflow:hidden;background:#E4EFD7;color:#284A31;border-radius:50%;font-size:11px;font-weight:900}
+.sellerAvatar img{width:100%;height:100%;object-fit:cover}
+.sellerName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.verified{display:grid;place-items:center;flex:0 0 18px;width:18px;height:18px;
+ border-radius:50%;background:#CBEBB5;color:#24472F;font-size:12px;font-weight:900}
+.offerAction{display:flex;align-items:center;gap:6px;
+ color:#355F3D;font-size:11px;font-weight:850;margin-top:5px}
+.offerAction span{font-size:15px}
+.serviceCard .offerMedia{width:40%;flex:0 0 40%;min-height:185px}
+.productCard{flex-direction:column}
+.productCard .offerMedia{width:100%;aspect-ratio:1 / 1}
+.productCard .offerContent{padding:12px;gap:6px;width:100%}
+.productCard .offerName{font-size:13px}
+.productCard .offerPrice{font-size:14px}
+.productCard .offerAction{margin-top:4px}
+.moreRow{display:flex;justify-content:center;margin:20px 0 28px}
+.moreRow button{min-height:48px;border-radius:14px;border:1px solid #BDD2B7;
+ padding:12px 23px;background:#E4EFD7;color:var(--mp-ink);
+ font-size:13px;font-weight:850;cursor:pointer}
+.moreRow button:disabled{opacity:.55;cursor:wait}
+.endNote{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+ background:#EAF2E2;border-radius:17px;padding:13px 15px;margin-top:10px}
+.endNote span{flex:1 1 160px;font-size:12px;font-weight:800}
+.endNote button{border:1px solid #BBD4AC;background:#FFF;
+ border-radius:12px;padding:10px 12px;min-height:43px;
+ font-size:11px;font-weight:800;color:#35583C;cursor:pointer}
+.shell button:focus-visible,.shell a:focus-visible,.shell input:focus-visible,
+.shell select:focus-visible{outline:3px solid #597D36;outline-offset:3px}
+@media(max-width:900px){
+ .servicesGrid{grid-template-columns:minmax(0,1fr)}
+ .productsGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ .shell{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))}
+ .shell>header:first-child{display:none}
+ .marketHero{padding:calc(23px + env(safe-area-inset-top,0px)) 18px 15px}
+ .marketHero h1{font-size:clamp(35px,9.1vw,51px);margin:11px 0 10px}
+ .marketHero p{font-size:13px;line-height:1.5}
+ .quickFocus{gap:9px;margin-top:19px}
+ .quickFocus button{min-height:84px;padding:11px;gap:8px;border-radius:17px}
+ .quickFocus strong{font-size:13px}
+ .quickFocus small{font-size:10px}
+ .focusGlyph{flex-basis:35px;width:35px;height:35px;border-radius:11px;font-size:19px}
+ .quickFocus button>span:last-child{font-size:16px}
+ .browseBar,.marketResults{padding-inline:18px}
+ .modeTabs{gap:5px;padding:8px 0 12px}
+ .modeTabs button{font-size:12px;min-height:44px;padding:10px 13px}
+ .findForm{border-radius:15px}
+ .searchInput{padding-inline:7px}
+ .searchInput input{font-size:16px}
+ .searchSubmit{padding-inline:13px}
+ .filterPanel{grid-template-columns:repeat(2,minmax(0,1fr));padding:13px;gap:12px}
+ .marketResults{padding-top:5px}
+ .marketSection{margin-bottom:25px}
+ .sectionHeading h2{font-size:25px}
+ .sectionHeading p{font-size:11px}
+ .servicesGrid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+ .serviceCard .offerMedia{flex-basis:39%;width:39%;min-height:184px}
+ .offerContent{padding:13px}
+ .productsGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .offerCard{border-radius:17px}
+ .productCard .offerContent{padding:11px}
+ .productCard .offerName{font-size:12px}
+ .productCard .offerPrice{font-size:13px}
+ .productCard .seller{font-size:10px}
+ .productCard .offerAction{font-size:10px}
+}
+@media(max-width:365px){
+ .marketHero,.browseBar,.marketResults{padding-inline:13px}
+ .heroEyebrow{font-size:9px}
+ .marketHero h1{font-size:34px}
+ .quickFocus{grid-template-columns:minmax(0,1fr)}
+ .quickFocus button{min-height:70px}
+ .filterPanel{grid-template-columns:minmax(0,1fr)}
+ .serviceCard .offerMedia{flex-basis:38%;width:38%;min-height:175px}
+ .offerContent{padding:10px;gap:5px}
+ .offerName{font-size:13px}
+ .offerPrice{font-size:13px}
+ .sellerAvatar{flex-basis:22px;width:22px;height:22px}
+}
+@media(prefers-reduced-motion:no-preference){
+ .offerCard,.quickFocus button{transition:transform .15s ease,border-color .15s ease}
+ .offerCard:active,.quickFocus button:active{transform:scale(.99)}
+ .offerCard:hover{border-color:#BACDB3}
+}
+@media(prefers-reduced-motion:reduce){.offerCard,.quickFocus button{transition:none}}

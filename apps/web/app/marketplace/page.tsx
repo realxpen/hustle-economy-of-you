@@ -1,8 +1,8 @@
 "use client";
 
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { ExperienceState } from "../../components/experience/experience-state";
-import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   captureMarketplaceObservation,
   getMarketplacePage,
@@ -11,162 +11,301 @@ import {
   type SearchPage,
   type SearchResult
 } from "../../lib/search";
-import { ResultCard } from "../search/result-card";
-import styles from "../search/search.module.css";
+import { marketplaceModeFilters, marketplaceRoute, marketplaceView } from "../../lib/marketplace-focus";
+import { MarketplaceOfferCard, type Offer } from "./marketplace-offer-card";
+import styles from "./marketplace.module.css";
 
-const tabs: Array<{ id: MarketplaceTab; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "services", label: "Services" },
-  { id: "products", label: "Products" }
+const modes: ReadonlyArray<{ id: MarketplaceTab; label: string; short: string }> = [
+  { id: "all", label: "Everything", short: "All" },
+  { id: "services", label: "Services & Skills", short: "Hire" },
+  { id: "products", label: "Products", short: "Shop" }
 ];
+const clearFilters: SearchFilters = {
+  category: "", skill: "", location: "", nearby: false, minPrice: "", maxPrice: "",
+  verified: "", deliveryMode: "", productType: ""
+};
 
-function createSessionId() {
+type Slice = { items: Offer[]; nextCursor: string | null; hasMore: boolean };
+type OfferSlices = { services: Slice; products: Slice };
+const emptySlice = (): Slice => ({ items: [], nextCursor: null, hasMore: false });
+const emptySlices = (): OfferSlices => ({ services: emptySlice(), products: emptySlice() });
+
+function offersOf(page: SearchPage, kind: Offer["kind"]): Offer[] {
+  return page.items.filter((item): item is Offer =>
+    item.kind === kind
+  );
+}
+function getSessionId() {
   const key = "hustle-marketplace-session";
   const existing = window.sessionStorage.getItem(key);
   if (existing) return existing;
   const next = typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `marketplace-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    ? crypto.randomUUID() : `marketplace-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   window.sessionStorage.setItem(key, next);
   return next;
 }
 
-const emptyFilters: SearchFilters = {
-  category: "",
-  skill: "",
-  location: "",
-  nearby: false,
-  minPrice: "",
-  maxPrice: "",
-  verified: "",
-  deliveryMode: "",
-  productType: ""
-};
-
 export default function MarketplacePage() {
-  const [tab, setTab] = useState<MarketplaceTab>("all");
+  const [view, setView] = useState<MarketplaceTab>("all");
   const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState<SearchFilters>(emptyFilters);
-  const [items, setItems] = useState<SearchResult[]>([]);
-  const [meta, setMeta] = useState<Pick<SearchPage, "nextCursor" | "hasMore" | "zeroResults">>({ nextCursor: null, hasMore: false, zeroResults: false });
-  const [sessionId, setSessionId] = useState("");
+  const [filters, setFilters] = useState<SearchFilters>(clearFilters);
+  const [activeQuery, setActiveQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState<SearchFilters>(clearFilters);
+  const [slices, setSlices] = useState<OfferSlices>(emptySlices);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState("");
   const requestVersion = useRef(0);
 
-  useEffect(() => {
-    setSessionId(createSessionId());
-  }, []);
-
-  async function browse(nextTab: MarketplaceTab, cursor: string | null = null, append = false, appliedFilters: SearchFilters = filters, appliedQuery = query) {
+  async function browse(
+    nextView: MarketplaceTab,
+    nextFilters: SearchFilters,
+    nextQuery: string,
+    session: string,
+    cursor: string | null = null,
+    append = false
+  ) {
     const version = append ? requestVersion.current : ++requestVersion.current;
-    append ? setLoadingMore(true) : setLoading(true);
+    if (append) setLoadingMore(true);
+    else { setLoading(true); setSlices(emptySlices()); }
     setError(null);
-    try {
-      const page = await getMarketplacePage(nextTab, { q: appliedQuery, cursor, limit: 12, filters: appliedFilters });
-      if (version !== requestVersion.current) return;
-      setItems((current) => append ? [...current, ...page.items] : page.items);
-      setMeta({ nextCursor: page.nextCursor, hasMore: page.hasMore, zeroResults: page.zeroResults });
 
-      if (sessionId) {
+    try {
+      let next: OfferSlices;
+      if (nextView === "all") {
+        // A ranked mixed page may contain only one type. Fetch each actual
+        // publication endpoint to guarantee honest representation of BOTH.
+        const [services, products] = await Promise.all([
+          getMarketplacePage("services", { q: nextQuery, filters: nextFilters, limit: 6 }),
+          getMarketplacePage("products", { q: nextQuery, filters: nextFilters, limit: 6 })
+        ]);
+        next = {
+          services: { items: offersOf(services, "service"), nextCursor: services.nextCursor, hasMore: services.hasMore },
+          products: { items: offersOf(products, "product"), nextCursor: products.nextCursor, hasMore: products.hasMore }
+        };
+      } else {
+        const result = await getMarketplacePage(nextView, {
+          q: nextQuery, filters: nextFilters, limit: 12, cursor
+        });
+        const selected: Slice = {
+          items: offersOf(result, nextView === "services" ? "service" : "product"),
+          nextCursor: result.nextCursor,
+          hasMore: result.hasMore
+        };
+        next = nextView === "services"
+          ? { services: selected, products: emptySlice() }
+          : { services: emptySlice(), products: selected };
+      }
+      if (version !== requestVersion.current) return;
+      setSlices((previous) => append && nextView !== "all" ? {
+        ...previous,
+        [nextView]: {
+          ...next[nextView],
+          items: [...previous[nextView].items, ...next[nextView].items]
+        }
+      } : next);
+      setActiveQuery(nextQuery.trim());
+      setActiveFilters(nextFilters);
+      if (!append && session) {
         void captureMarketplaceObservation("marketplace.viewed", {
-          query: page.query,
-          tab: nextTab,
-          filters: page.filters,
-          resultCount: page.items.length,
-          sessionId
+          query: nextQuery.trim() || null, tab: nextView, filters: nextFilters as Record<string, unknown>,
+          resultCount: next.services.items.length + next.products.items.length, sessionId: session
         }).catch(() => undefined);
       }
     } catch (reason) {
-      if (version !== requestVersion.current) return;
-      const message = reason instanceof Error ? reason.message : "Marketplace failed to load";
-      setError(message);
-      // Do not force sign-in when a public browse read fails.
+      if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : "Marketplace failed to load");
     } finally {
-      if (version === requestVersion.current) {
-        setLoading(false);
-        setLoadingMore(false);
-      }
+      if (version === requestVersion.current) { setLoading(false); setLoadingMore(false); }
     }
   }
 
   useEffect(() => {
-    if (!sessionId) return;
-    void browse("all");
-    // Initial browse should run once for the marketplace session.
+    const params = new URLSearchParams(window.location.search);
+    const initialView = marketplaceView(window.location.search);
+    const initialQuery = params.get("q")?.trim() ?? "";
+    const initialCategory = params.get("category")?.trim().slice(0,100) ?? "";
+    const initialFilters = { ...clearFilters, category: initialCategory };
+    const id = getSessionId();
+    setSessionId(id);
+    setView(initialView);
+    setQuery(initialQuery);
+    setFilters(initialFilters);
+    void browse(initialView, initialFilters, initialQuery, id);
+    // Hydrate shared marketplace links just once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, []);
 
-  function switchTab(nextTab: MarketplaceTab) {
-    setTab(nextTab);
-    setItems([]);
-    setMeta({ nextCursor: null, hasMore: false, zeroResults: false });
-    void browse(nextTab);
+  function updateView(nextView: MarketplaceTab) {
+    if (nextView === view) return;
+    const nextFilters = marketplaceModeFilters(nextView, activeFilters);
+    setView(nextView);
+    setFilters(nextFilters);
+    window.history.replaceState(null, "", marketplaceRoute(nextView, activeQuery, nextFilters.category ?? ""));
+    void browse(nextView, nextFilters, activeQuery, sessionId);
   }
 
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    setItems([]);
-    setMeta({ nextCursor: null, hasMore: false, zeroResults: false });
-    void browse(tab);
+  function applyFilters(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    const next = marketplaceModeFilters(view, filters);
+    window.history.replaceState(null, "", marketplaceRoute(view, query, next.category ?? ""));
+    void browse(view, next, query, sessionId);
+    setFilterOpen(false);
   }
 
-  function openResult(item: SearchResult, position: number) {
-    if (!sessionId) return Promise.resolve();
-    return captureMarketplaceObservation("marketplace.result_clicked", {
-      query: query.trim() || null,
-      tab,
-      filters: filters as Record<string, unknown>,
-      resultType: item.kind,
-      resultId: item.id,
-      resultUrl: item.url,
-      position,
-      sessionId
+  function chooseCategory(category: string) {
+    const next = marketplaceModeFilters(view, { ...activeFilters, category });
+    setFilters(next);
+    window.history.replaceState(null, "", marketplaceRoute(view, activeQuery, category));
+    void browse(view, next, activeQuery, sessionId);
+  }
+
+  function reset() {
+    const next = { ...clearFilters };
+    setFilters(next); setQuery("");
+    window.history.replaceState(null, "", marketplaceRoute(view, "", ""));
+    void browse(view, next, "", sessionId);
+    setFilterOpen(false);
+  }
+
+  function recordOpen(item: Offer, position: number) {
+    if (!sessionId) return;
+    void captureMarketplaceObservation("marketplace.result_clicked", {
+      query: activeQuery || null, tab: view, filters: activeFilters as Record<string, unknown>,
+      resultType: item.kind, resultId: item.id, resultUrl: item.url, position, sessionId
     }).catch(() => undefined);
   }
 
+  const visibleItems = useMemo(() => [
+    ...slices.services.items, ...slices.products.items
+  ], [slices]);
+  const categories = useMemo(() => {
+    // Only categories belonging to actual published results currently loaded.
+    const live = visibleItems.map(item => item.kind === "service" ? item.service.category : item.product.category)
+      .filter((value): value is string => Boolean(value?.trim()));
+    return Array.from(new Set([activeFilters.category?.trim() ?? "", ...live].filter(Boolean))).slice(0,8);
+  }, [visibleItems, activeFilters.category]);
+  const count = visibleItems.length;
+  const noResults = !loading && !error && count === 0;
+
   return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
     <ExperienceHeader section="Marketplace" />
-
-    <section className={[styles.hero, "h-experience-hero"].join(" ")}>
-      <div className={styles.browseIntro}>
-        <div><p className={styles.eyebrow}>MARKETPLACE</p><h1 className="h-experience-heading">Browse current economic opportunities.</h1></div>
-        <a href="/search">Need something specific? Search →</a>
+    <header className={styles.marketHero}>
+      <div className={styles.heroEyebrow}>THE ECONOMY OF YOU <span aria-hidden="true">✳</span> MARKETPLACE</div>
+      <h1>Find the work.<br/><em>Find the things.</em></h1>
+      <p>Explore skills and services you can hire, alongside products you can buy. All from real Hustle profiles.</p>
+      <div className={styles.quickFocus} aria-label="Marketplace quick browse">
+        <button type="button" onClick={() => updateView("services")} aria-label="Browse skills and services">
+          <span className={styles.focusGlyph} aria-hidden="true">✦</span>
+          <span><strong>Hire a skill</strong><small>Services & professionals</small></span>
+          <span aria-hidden="true">↗</span>
+        </button>
+        <button type="button" onClick={() => updateView("products")} aria-label="Browse products">
+          <span className={styles.focusGlyph} aria-hidden="true">◈</span>
+          <span><strong>Shop products</strong><small>Made or sold by Hustlers</small></span>
+          <span aria-hidden="true">↗</span>
+        </button>
       </div>
-      <p>Services and Products stay attached to the same professional identities and proof that created them.</p>
+    </header>
+
+    <section className={styles.browseBar} aria-label="Choose marketplace browsing focus">
+      <div className={styles.modeTabs} role="group" aria-label="Marketplace modes">
+        {modes.map(mode => <button key={mode.id} type="button"
+          aria-pressed={view === mode.id}
+          className={view === mode.id ? styles.modeSelected : ""}
+          onClick={() => updateView(mode.id)}>
+          {mode.label}
+        </button>)}
+      </div>
+      <form className={styles.findForm} role="search" onSubmit={applyFilters}>
+        <label className={styles.searchInput}>
+          <span aria-hidden="true">⌕</span>
+          <input type="search" value={query} onChange={e => setQuery(e.target.value)}
+            placeholder={view === "services" ? "Search skills or services" : view === "products" ? "Search products" : "Search services and products"}
+            aria-label="Search marketplace" enterKeyHint="search"/>
+        </label>
+        <button className={styles.searchSubmit} type="submit">Search</button>
+      </form>
+
+      <div className={styles.refinementRow}>
+        <div className={styles.currentFocus}>
+          <span>{view === "all" ? "Discover everything" : view === "services" ? "Hiring & services" : "Shopping & products"}</span>
+          {activeQuery && <small>for “{activeQuery}”</small>}
+        </div>
+        <button type="button" className={styles.filterToggle}
+          aria-expanded={filterOpen} aria-controls="marketplace-refine"
+          onClick={() => setFilterOpen(open => !open)}>Refine results <span aria-hidden="true">{filterOpen ? "−" : "+"}</span></button>
+      </div>
+
+      {filterOpen && <form id="marketplace-refine" className={styles.filterPanel} onSubmit={applyFilters}>
+        <label>Category<input value={filters.category ?? ""} onChange={e=>setFilters({...filters,category:e.target.value})} placeholder="e.g. Beauty, Technology" maxLength={100}/></label>
+        {view === "services" && <label>Skill<input value={filters.skill ?? ""} onChange={e=>setFilters({...filters,skill:e.target.value})} placeholder="e.g. Hair styling" maxLength={100}/></label>}
+        <label>Location<input value={filters.location ?? ""} onChange={e=>setFilters({...filters,location:e.target.value})} placeholder="e.g. Lagos" maxLength={120}/></label>
+        <label>Min price (₦)<input type="number" min="0" inputMode="numeric" value={filters.minPrice ?? ""} onChange={e=>setFilters({...filters,minPrice:e.target.value})} placeholder="0"/></label>
+        <label>Max price (₦)<input type="number" min="0" inputMode="numeric" value={filters.maxPrice ?? ""} onChange={e=>setFilters({...filters,maxPrice:e.target.value})} placeholder="Any"/></label>
+        <label>Verification<select value={filters.verified ?? ""} onChange={e=>setFilters({...filters,verified:e.target.value})}><option value="">All sellers</option><option value="true">Contact verified</option><option value="false">Not contact verified</option></select></label>
+        {view === "services" && <label>Delivery<select value={filters.deliveryMode ?? ""} onChange={e=>setFilters({...filters,deliveryMode:e.target.value})}><option value="">All delivery modes</option><option value="REMOTE">Remote</option><option value="PHYSICAL">In person</option><option value="BOTH">Both</option></select></label>}
+        {view === "products" && <label>Product type<select value={filters.productType ?? ""} onChange={e=>setFilters({...filters,productType:e.target.value})}><option value="">All products</option><option value="PHYSICAL">Physical</option><option value="DIGITAL">Digital</option></select></label>}
+        <label className={styles.nearby}><input type="checkbox" checked={Boolean(filters.nearby)} onChange={e=>setFilters({...filters,nearby:e.target.checked})} /> Nearby me <small>Requires an available account location or location filter</small></label>
+        <div className={styles.filterActions}>
+          <button className={styles.applyFilter} type="submit">Apply filters</button>
+          <button className={styles.clearFilter} type="button" onClick={reset}>Clear everything</button>
+        </div>
+      </form>}
+
+      {!loading && categories.length > 0 && <div className={styles.categoryRail} role="group" aria-label="Categories from loaded offers">
+        <button type="button" aria-pressed={!activeFilters.category} onClick={()=>chooseCategory("")}>All categories</button>
+        {categories.map(category => <button type="button" key={category} aria-pressed={activeFilters.category === category}
+          onClick={()=>chooseCategory(category)}>{category}</button>)}
+      </div>}
     </section>
 
-    <form className={[styles.searchForm, "h-experience-content"].join(" ")} onSubmit={submit}>
-      <div className={styles.searchBar} role="search">
-        <input type="search" enterKeyHint="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Optional: narrow marketplace by keyword" aria-label="Narrow marketplace" />
-        <button type="submit" disabled={loading}>{loading ? "Loading…" : "Browse"}</button>
+    <section className={styles.marketResults} aria-label="Published marketplace offers">
+      <div className={styles.resultsMeta} role="status" aria-live="polite">
+        <strong>{view === "all" ? "Explore the marketplace" : view === "services" ? "Skills & services" : "Products"}</strong>
+        <span>{loading ? "Loading published offers…" : `${count} loaded`}</span>
       </div>
-    </form>
+      {loading && <ExperienceState kind="loading" title="Finding published offers…" description="Loading live Hustle listings." />}
+      {error && <ExperienceState kind="error" title="Couldn't load the marketplace." description={error}
+        action={{ label:"Try again", onClick:()=>void browse(view,activeFilters,activeQuery,sessionId) }}/>}
+      {noResults && <ExperienceState kind="empty" title="No matching offers yet."
+        description="Try a broader category or location, or switch between services and products."
+        action={{label:"Clear search and filters",onClick:reset}} />}
 
-    <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>
+      {!loading && !error && view !== "products" && slices.services.items.length > 0 &&
+        <section className={styles.marketSection} aria-label="Published services and skills">
+          <div className={styles.sectionHeading}>
+            <div><span className={styles.sectionKicker}>THE PEOPLE BEHIND THE WORK</span><h2>Services & skills</h2>
+              <p>Find professionals and explore what they offer.</p></div>
+            {view === "all" && <button type="button" onClick={()=>updateView("services")}>See all <span aria-hidden="true">↗</span></button>}
+          </div>
+          <div className={styles.servicesGrid}>{slices.services.items.map((item,index)=>
+            <MarketplaceOfferCard key={item.kind+"-"+item.id} item={item} onOpen={offer=>recordOpen(offer,index)}/>)}</div>
+        </section>}
+      {!loading && !error && view !== "services" && slices.products.items.length > 0 &&
+        <section className={styles.marketSection} aria-label="Published products">
+          <div className={styles.sectionHeading}>
+            <div><span className={styles.sectionKicker}>MADE, FOUND & SOLD ON HUSTLE</span><h2>Products</h2>
+              <p>Discover items sold by creators and skilled professionals.</p></div>
+            {view === "all" && <button type="button" onClick={()=>updateView("products")}>See all <span aria-hidden="true">↗</span></button>}
+          </div>
+          <div className={styles.productsGrid}>{slices.products.items.map((item,index)=>
+            <MarketplaceOfferCard key={item.kind+"-"+item.id} item={item} onOpen={offer=>recordOpen(offer,index)}/>)}</div>
+        </section>}
 
-    <section className={styles.filters} aria-label="Marketplace filters">
-      <input aria-label="Filter by category" placeholder="Category" value={filters.category ?? ""} onChange={(event) => setFilters({ ...filters, category: event.target.value })} />
-      <input aria-label="Filter by skill" placeholder="Skill" value={filters.skill ?? ""} onChange={(event) => setFilters({ ...filters, skill: event.target.value })} />
-      <input aria-label="Filter by location" placeholder="Location" value={filters.location ?? ""} onChange={(event) => setFilters({ ...filters, location: event.target.value })} />
-      <input aria-label="Minimum price in naira" placeholder="Min price ₦" inputMode="numeric" value={filters.minPrice ?? ""} onChange={(event) => setFilters({ ...filters, minPrice: event.target.value })} />
-      <input aria-label="Maximum price in naira" placeholder="Max price ₦" inputMode="numeric" value={filters.maxPrice ?? ""} onChange={(event) => setFilters({ ...filters, maxPrice: event.target.value })} />
-      <select aria-label="Filter by verification" value={filters.verified ?? ""} onChange={(event) => setFilters({ ...filters, verified: event.target.value })}><option value="">Any verification</option><option value="true">Verified sellers</option><option value="false">Unverified sellers</option></select>
-      <select aria-label="Filter by service delivery" value={filters.deliveryMode ?? ""} onChange={(event) => setFilters({ ...filters, deliveryMode: event.target.value })}><option value="">Any service delivery</option><option value="REMOTE">Remote</option><option value="PHYSICAL">Physical</option><option value="BOTH">Both</option></select>
-      <select aria-label="Filter by product type" value={filters.productType ?? ""} onChange={(event) => setFilters({ ...filters, productType: event.target.value })}><option value="">Any product type</option><option value="PHYSICAL">Physical product</option><option value="DIGITAL">Digital product</option></select>
-      <label className={styles.checkField}><input type="checkbox" checked={Boolean(filters.nearby)} onChange={(event) => setFilters({ ...filters, nearby: event.target.checked })} /> Nearby me</label>
-      <button className={styles.primaryButton} type="button" disabled={loading} onClick={() => void browse(tab)}>Apply filters</button>
-      <button className={styles.resetButton} type="button" disabled={loading} onClick={() => { setFilters(emptyFilters); setError(null); void browse(tab, null, false, emptyFilters); }}>Clear filters</button>
-    </section>
-
-    <section className={[styles.resultsWrap, "h-experience-content"].join(" ")}>
-      <div className={styles.resultMeta} role="status" aria-live="polite"><strong>{tab === "all" ? "Marketplace" : tab === "services" ? "Services" : "Products"}</strong><span>{loading ? "Loading offers…" : `${items.length} loaded`}</span></div>
-      {error && <ExperienceState kind="error" title="Marketplace isn't available right now." description={error} action={{label:"Try again",onClick:()=>void browse(tab)}} />}
-      {!error && loading && <ExperienceState kind="loading" title="Loading currently published offers…" description="Checking availability and matching your filters." />}
-      {!error && !loading && items.length === 0 && <ExperienceState kind="empty" title={meta.zeroResults ? "No matching offers." : "Nothing published here yet."} description={meta.zeroResults ? "Clear a filter or broaden the category or location." : "Explore another category, or come back as Hustlers add work and products."} action={{label:"Reset filters",onClick:()=>{setFilters(emptyFilters);setQuery("");setError(null);void browse(tab,null,false,emptyFilters,"");}}} />}
-      {!loading && items.length > 0 && <div className={styles.grid}>{items.map((item, index) => <ResultCard key={`${item.kind}-${item.id}`} item={item} onOpen={() => openResult(item, index)} />)}</div>}
-      {!loading && !error && meta.hasMore && <div className={styles.loadMore}><button className={styles.primaryButton} type="button" disabled={loadingMore} onClick={() => void browse(tab, meta.nextCursor, true)}>{loadingMore ? "Loading…" : "Load more"}</button></div>}
+      {!loading && !error && view !== "all" && slices[view].hasMore &&
+        <div className={styles.moreRow}>
+          <button type="button" disabled={loadingMore} onClick={() =>
+            void browse(view,activeFilters,activeQuery,sessionId,slices[view].nextCursor,true)}>
+            {loadingMore ? "Loading more…" : `Load more ${view}`}
+          </button>
+        </div>}
+      {!loading && !error && view === "all" && count > 0 && <div className={styles.endNote}>
+        <span>Want a closer look?</span>
+        <button type="button" onClick={()=>updateView("services")}>Browse only services ↗</button>
+        <button type="button" onClick={()=>updateView("products")}>Browse only products ↗</button>
+      </div>}
     </section>
   </main>;
 }

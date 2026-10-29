@@ -262,6 +262,12 @@ export default function SearchPageScreen() {
         </button>
       )}
     </nav>
+    {!query.trim() && !searchedQuery && <nav className={styles.marketplaceEntry} aria-label="Marketplace shortcuts">
+      <Link href="/marketplace" aria-label="Browse Services and Products marketplace">
+        <span><strong>Explore the Marketplace</strong><small>Hire skills or shop products, all in one place.</small></span>
+        <span aria-hidden="true">↗</span>
+      </Link>
+    </nav>}
     <ExploreNearby visible={!query.trim() && !searchedQuery && !loading && !error}/>
     {resultsVisible && <div className={[styles.tabs, "h-experience-content"].join(" ")}>{tabs.map((item) => <button key={item.id} type="button" className={`${styles.tab} ${tab === item.id ? styles.tabActive : ""}`} aria-pressed={tab === item.id} onClick={() => switchTab(item.id)}>{item.label}</button>)}</div>}
 
