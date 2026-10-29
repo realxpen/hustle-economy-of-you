@@ -11,8 +11,13 @@ const thread=read("apps/web/app/messages/[conversationId]/page.tsx");
 const threadCss=read("apps/web/app/messages/messages.module.css");
 const detail=read("apps/web/app/bookings/[bookingId]/page.tsx");
 // The actual published photo/video remain mounted, simply placed first on mobile.
-assert.match(service,/service\.mediaUrls\.map\(\(url\) => isVideo\(url\)/);
-assert.match(serviceCss,/\.mediaGrid\{order:0;display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory/);
+assert.match(service,/service\.mediaUrls\.map\(\(url, index\) =>/);
+assert.match(service,/aria-pressed=\{index === activeMediaIndex\}/);
+assert.match(service,/key=\{selectedMedia\}/);
+assert.match(serviceCss,/\.mediaGallery\{width:100%;margin:7px 0 0\}/);
+assert.match(serviceCss,/\.galleryStage\{aspect-ratio:1\.33 \/ 1/);
+assert.match(service,/const preparedBookingHref = withSourcePost/);
+assert.match(service,/className=\{styles\.stickyBooking\}/);
 assert.match(serviceCss,/\.hero\{order:1/);
 assert.match(serviceCss,/\.offerActions\{margin-top:18px/);
 assert.match(service,/const preparedBookingHref = withSourcePost/);

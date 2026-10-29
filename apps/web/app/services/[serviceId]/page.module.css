@@ -118,3 +118,120 @@
 @media (prefers-reduced-transparency:reduce){
  .offer,.ownerCard,.description,.details{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+
+
+/* UX027 — Founder-selected service detail reference. Keep server-authoritative
+   price, trust, work media, booking/consultation links and payment restrictions. */
+.mediaGallery{max-width:100%;min-width:0;order:0}
+.galleryStage{position:relative;overflow:hidden;border-radius:22px;
+  aspect-ratio:16 / 9;background:#E4EFD7;isolation:isolate}
+.galleryStage>img,.galleryStage>video{width:100%;height:100%;object-fit:cover;
+  display:block}
+.galleryCounter{position:absolute;bottom:13px;right:13px;
+  font-size:11px;font-weight:850;color:#FFF;background:rgba(16,35,24,.82);
+  border-radius:999px;padding:6px 10px}
+.galleryThumbnails{display:flex;gap:9px;overflow-x:auto;padding:10px 0 5px;
+  scrollbar-width:thin;scroll-snap-type:x proximity}
+.galleryThumbnails>button{display:block;flex:0 0 106px;height:69px;
+  border:2px solid transparent;background:#E6EEDB;border-radius:12px;
+  overflow:hidden;padding:0;cursor:pointer;scroll-snap-align:start}
+.galleryThumbnails>button.galleryActive{border-color:#356443;
+  box-shadow:0 0 0 2px #CCE6B6}
+.galleryThumbnails img{width:100%;height:100%;display:block;object-fit:cover}
+.videoThumbnail{display:grid;place-items:center;width:100%;height:100%;
+  color:#315A3B;background:#DDEED3;font-size:12px;font-weight:800}
+.noPortfolioMedia{min-height:230px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;border-radius:21px;
+  background:linear-gradient(135deg,#DDEECF,#F1F5EB);
+  color:#30513A;text-align:center;padding:18px}
+.noPortfolioMedia>span{font-size:72px;line-height:1;color:#A2C783}
+.noPortfolioMedia strong{font-size:19px;letter-spacing:-.025em}
+.noPortfolioMedia small{font-size:11px;color:#5C725E}
+.detailTabs{display:flex;gap:6px;overflow-x:auto;align-items:center;
+  border-bottom:1px solid #E1E9DA;scrollbar-width:none;padding:8px 1px 2px;
+  margin-top:10px;order:0}
+.detailTabs a{display:grid;place-items:center;min-width:80px;min-height:43px;
+  padding:10px 17px;border-radius:9px 9px 0 0;color:#5B705D;
+  border-bottom:3px solid transparent;font-size:13px;font-weight:800}
+.detailTabs a:first-child{border-bottom-color:#1D5A38;color:#193F2C}
+.detailTabs a:focus-visible,.galleryThumbnails button:focus-visible{
+  outline:3px solid #8BB76E;outline-offset:2px}
+.reviewsSection{max-width:100%;order:3;padding:19px 0;display:grid;gap:10px}
+.reviewsSection h2{font-size:21px;margin:0;letter-spacing:-.03em}
+.reviewsSection>p{font-size:12px;color:#5D725D;margin:0}
+.reviewsSection blockquote{margin:0;border:1px solid #E0E8DA;
+  border-radius:15px;background:#FFF;padding:15px 17px;font-size:13px;
+  line-height:1.5;color:#38533D}
+.stickyBooking{display:none}
+@media(max-width:760px){
+ .shell{display:flex;flex-direction:column;gap:0;
+   padding:12px 12px calc(190px + env(safe-area-inset-bottom,0px));
+   background:#F7F6F2;color:#18281E}
+ .mediaGallery{width:100%;margin:7px 0 0}
+ .galleryStage{aspect-ratio:1.33 / 1;border-radius:17px}
+ .galleryThumbnails{gap:7px;padding:8px 0 3px}
+ .galleryThumbnails>button{flex-basis:69px;height:58px;border-radius:9px}
+ .noPortfolioMedia{min-height:215px;border-radius:17px}
+ .detailTabs{margin:6px 0 2px;padding-bottom:1px}
+ .detailTabs a{min-height:40px;font-size:12px}
+ .hero{order:1;padding:8px 0 9px;gap:11px}
+ .offer{border:0;background:transparent;box-shadow:none;backdrop-filter:none;
+   padding:12px 3px 6px;border-radius:0}
+ .offer>p{font-size:11px;font-weight:800;text-transform:capitalize;
+   letter-spacing:.04em;color:#5E775F}
+ .offer h1{font-size:clamp(24px,6.8vw,36px);line-height:1.1;
+   margin:9px 0 7px;color:#172E21;letter-spacing:-.045em}
+ .offer>strong{font-size:22px;font-weight:900;color:#174D32}
+ .offerActions{display:flex;flex-wrap:wrap;margin-top:13px;gap:8px}
+ .bookButton,.messageButton{flex:1 1 0;min-width:0;min-height:45px;
+   border-radius:12px;font-size:12px;padding:10px 8px}
+ .bookButton{background:#E5F6CC;color:#214B2E}
+ .messageButton{background:#FFF;border:1px solid #DDE6DA;color:#31553A}
+ .ownerCard{display:grid;grid-template-columns:48px minmax(0,1fr);
+   background:#FFF;color:#18281E;border:1px solid #E2E9DF;
+   padding:13px;border-radius:17px;min-height:0;gap:4px 10px}
+ .ownerCard .avatar{height:48px;width:48px;border-radius:50%;font-size:21px;
+   background:#E4EFD7;color:#214F31}
+ .ownerCard>small{font-size:9px;color:#617663;grid-column:2}
+ .ownerCard h2{font-size:16px;grid-column:2;color:#213928}
+ .ownerCard>p{color:#627465;font-size:11px;grid-column:2}
+ .ownerCard .badges{grid-column:1/-1;margin-top:9px}
+ .badges span{border-color:#BFD1BB;color:#3A6442}
+ .ownerCard .reputation{grid-column:1/-1;border-top-color:#DEE8D9;margin-top:8px}
+ .reputation strong{color:#224A2D}
+ .reputation small,.reputation p{color:#59715D}
+ .ownerCard>a{grid-column:1/-1;border-top:1px solid #E4EBE2;
+   padding:10px 0 0;color:#2D5B39;font-size:12px;min-height:40px}
+ .contentGrid{order:2;gap:11px}
+ .description,.details{background:#FFF;padding:16px;border-radius:17px;
+   border:1px solid #E2E9DF}
+ .description .kicker{font-size:11px;color:#45694B}
+ .description>p:not(.kicker){font-size:13px;line-height:1.55;color:#435B48}
+ .details>div{padding:9px 0}
+ .details small{font-size:10px;color:#627865}
+ .details strong{font-size:12px;color:#25442C}
+ .details>p{font-size:11px;line-height:1.55;color:#607360;margin-top:10px}
+ .reviewsSection{order:3;padding:17px 0}
+ .footer{order:4;margin-top:8px}
+ .stickyBooking{position:fixed;z-index:50;display:flex;
+   align-items:center;justify-content:space-between;gap:13px;
+   bottom:calc(73px + env(safe-area-inset-bottom,0px));
+   left:0;right:0;background:#FFF;
+   box-shadow:0 -6px 22px rgba(12,31,18,.08);
+   border-top:1px solid #E5E9E3;
+   padding:12px 14px}
+ .stickyPrice{display:grid;gap:2px;flex:0 1 42%;min-width:0}
+ .stickyPrice small{font-size:10px;color:#637865}
+ .stickyPrice strong{font-size:clamp(17px,5vw,24px);font-weight:950;
+   line-height:1.2;letter-spacing:-.04em;color:#174D32;overflow-wrap:anywhere}
+ .stickyBooking>a{display:flex;align-items:center;justify-content:center;
+   flex:1 1 0;gap:9px;min-height:49px;
+   padding:11px 13px;border-radius:13px;background:#174B34;color:#FFF;
+   font-weight:900;font-size:13px;text-align:center}
+ .stickyBooking>a span{font-size:17px}
+}
+@media(max-width:365px){
+ .shell{padding-inline:10px}
+ .stickyBooking{padding:9px 10px}
+ .stickyBooking>a{font-size:12px}
+}

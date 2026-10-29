@@ -374,8 +374,14 @@ function localOnly(url) {
        assert.equal(await prod.getByRole("link",{name:/View product: QA Hair Care Kit/})
          .getAttribute("href"),"/products/qa-product");
        if(size.width<=760){
-         const hero=page.getByRole("heading",{name:"Explore the Marketplace."});
+         const hero=page.getByRole("heading",{name:/Turn your talent into opportunity/i});
          await hero.waitFor({state:"visible"});
+         const serviceGrid=svc.locator("[class*='servicesGrid']");
+         const columns=await serviceGrid.evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(" ").length);
+         const cardCount=await serviceGrid.locator("a[class*='offerCard']").count();
+         if(size.width>=370 && size.width<=760) assert.equal(columns,cardCount===1?1:2,
+           "UX027 iPhone: a single published Service fills the row; multiple Services use two columns");
+
          const firstOffer=svc.getByRole("link",{name:/View service: QA Barber Session/});
          const box=await firstOffer.boundingBox();
          assert.ok(box && box.y<950,
