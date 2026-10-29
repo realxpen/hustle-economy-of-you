@@ -13,6 +13,23 @@ export type MediaUploadAuthorization = {
   maxBytes: number;
 };
 
+/** The signed S3 POST policy expires in five minutes; refresh before its deadline. */
+export function isStagingTransferTicketFresh(
+  ticket: MediaUploadAuthorization, authorizedAtMs: number, nowMs = Date.now()
+) {
+  return Number.isFinite(authorizedAtMs) && authorizedAtMs <= nowMs &&
+    ticket.expiresInSeconds > 30 &&
+    nowMs - authorizedAtMs < (Math.min(ticket.expiresInSeconds, 300) - 30) * 1000;
+}
+
+/** Never expose the S3 response body, credentials, bucket policy or receipt in UI errors. */
+export class PrivateMediaTransferError extends Error {
+  constructor(readonly code: "network" | "timeout" | "refused", message: string) {
+    super(message);
+    this.name = "PrivateMediaTransferError";
+  }
+}
+
 const supportedTypes = new Set([
   "image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime"
 ]);
@@ -93,13 +110,28 @@ export function transferFileToPrivateStaging(
     xhr.upload.onprogress = event => {
       if (event.lengthComputable) progress(Math.min(99, Math.round(event.loaded / event.total * 100)));
     };
-    xhr.onerror = () => finish(new Error("Direct media transfer failed. Check your connection."));
-    xhr.ontimeout = () => finish(new Error("Media upload timed out."));
+    // Browsers intentionally conceal the underlying S3 status when a
+    // connection is lost or CORS blocks its response. The object might STILL
+    // have arrived, so the owner should verify the same receipt before retry.
+    xhr.onerror = () => finish(new PrivateMediaTransferError("network",
+      "Safari could not complete or read the private upload response (network or browser restriction). Check the upload before retrying; your draft remains private."));
+    xhr.ontimeout = () => finish(new PrivateMediaTransferError("timeout",
+      "Private upload timed out on this connection. Check the upload before retrying; your draft remains private."));
     xhr.onabort = () => finish(new DOMException("Upload cancelled", "AbortError"));
-    xhr.onload = () => xhr.status === 204
-      ? finish()
-      : finish(new Error(`Private media storage refused the upload (HTTP ${xhr.status}).`));
-    xhr.timeout = 120_000;
+    xhr.onload = () => {
+      if (xhr.status === 204) return finish();
+      if (xhr.status === 0) return finish(new PrivateMediaTransferError("network",
+        "The browser could not read the private upload response. Check the upload before retrying."));
+      const detail = xhr.status === 403
+        ? "Storage rejected the signed upload (HTTP 403). The temporary authorization may have expired."
+        : xhr.status === 413
+          ? "Storage rejected the upload size (HTTP 413). Choose a smaller file."
+          : `Private storage refused the upload (HTTP ${xhr.status}).`;
+      finish(new PrivateMediaTransferError("refused", detail));
+    };
+    // 30 MB on a weak mobile connection can exceed 120 seconds. Stay below
+    // the five-minute S3 signed policy expiry so recovery remains possible.
+    xhr.timeout = 270_000;
     const form = new FormData();
     for (const [field, value] of Object.entries(ticket.fields)) form.append(field, value);
     form.append("file", file, file.name);
