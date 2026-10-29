@@ -21,6 +21,18 @@ const modes: ReadonlyArray<{ id: MarketplaceTab; label: string; short: string }>
   { id: "services", label: "Services & Skills", short: "Hire" },
   { id: "products", label: "Products", short: "Shop" }
 ];
+function categorySymbol(category: string) {
+  const value = category.toLowerCase();
+  if (/beauty|hair|makeup|barb|salon/.test(value)) return "✂";
+  if (/home|clean|repair|furniture|plumb/.test(value)) return "⌂";
+  if (/tech|digital|software|website|computer/.test(value)) return "▣";
+  if (/fashion|style|tailor|cloth/.test(value)) return "♧";
+  if (/wellness|fitness|health|yoga/.test(value)) return "♡";
+  if (/food|cook|bake/.test(value)) return "◒";
+  if (/art|creative|photo|video/.test(value)) return "✦";
+  return "◇";
+}
+
 const clearFilters: SearchFilters = {
   category: "", skill: "", location: "", nearby: false, minPrice: "", maxPrice: "",
   verified: "", deliveryMode: "", productType: ""
@@ -195,44 +207,34 @@ export default function MarketplacePage() {
     <header className={styles.marketHero}>
       <div className={styles.mobileTopbar}>
         <Link href="/home" aria-label="Hustle home">Hustle<span aria-hidden="true">✳</span></Link>
-        <Link className={styles.accountShortcut} href="/account" aria-label="Your Hustle account">◉</Link>
+        <Link className={styles.accountShortcut} href="/account" aria-label="Your Hustle account">
+          <span aria-hidden="true">◉</span>
+        </Link>
       </div>
-      <div className={styles.heroEyebrow}>THE ECONOMY OF YOU <span aria-hidden="true">✳</span> MARKETPLACE</div>
-      <h1>Explore the <em>Marketplace.</em></h1>
-      <p>Hire a skill. Book a service. Shop a product. All from real people.</p>
-      <div className={styles.quickFocus} aria-label="Marketplace quick browse">
-        <button type="button" onClick={() => updateView("services")} aria-label="Browse skills and services">
-          <span className={styles.focusGlyph} aria-hidden="true">✦</span>
-          <span><strong>Hire a skill</strong><small>Services & professionals</small></span>
-          <span aria-hidden="true">↗</span>
-        </button>
-        <button type="button" onClick={() => updateView("products")} aria-label="Browse products">
-          <span className={styles.focusGlyph} aria-hidden="true">◈</span>
-          <span><strong>Shop products</strong><small>Made or sold by Hustlers</small></span>
-          <span aria-hidden="true">↗</span>
-        </button>
-      </div>
-    </header>
-
-    <section className={styles.browseBar} aria-label="Choose marketplace browsing focus">
-      <div className={styles.modeTabs} role="group" aria-label="Marketplace modes">
-        {modes.map(mode => <button key={mode.id} type="button"
-          aria-pressed={view === mode.id}
-          className={view === mode.id ? styles.modeSelected : ""}
-          onClick={() => updateView(mode.id)}>
-          {mode.label}
-        </button>)}
+      <div className={styles.marketIdentity}>
+        {view === "all" ? <p>Find local talent, services and unique products.</p> :
+          <h1 className={styles.focusHeading}>{view === "services" ? "Services & Skills" : "Products"}</h1>}
       </div>
       <form className={styles.findForm} role="search" onSubmit={applyFilters}>
         <label className={styles.searchInput}>
           <span aria-hidden="true">⌕</span>
           <input type="search" value={query} onChange={e => setQuery(e.target.value)}
             placeholder={view === "services" ? "Search skills or services" : view === "products" ? "Search products" : "Search services and products"}
-            aria-label="Search marketplace" enterKeyHint="search"/>
+            aria-label="Search marketplace" enterKeyHint="search" />
         </label>
         <button className={styles.searchSubmit} type="submit">Search</button>
       </form>
+      <nav className={styles.modeTabs} aria-label="Marketplace modes">
+        {modes.map(mode => <button key={mode.id} type="button"
+          aria-pressed={view === mode.id}
+          className={view === mode.id ? styles.modeSelected : ""}
+          onClick={() => updateView(mode.id)}>
+          {mode.label}
+        </button>)}
+      </nav>
+    </header>
 
+    <section className={styles.browseBar} aria-label="Choose marketplace browsing focus">
       <div className={styles.refinementRow}>
         <div className={styles.currentFocus}>
           <span>{view === "all" ? "Discover everything" : view === "services" ? "Hiring & services" : "Shopping & products"}</span>
@@ -260,15 +262,36 @@ export default function MarketplacePage() {
       </form>}
 
       {!loading && categories.length > 0 && <div className={styles.categoryRail} role="group" aria-label="Categories from loaded offers">
-        <button type="button" aria-pressed={!activeFilters.category} onClick={()=>chooseCategory("")}>All categories</button>
+        <button type="button" aria-pressed={!activeFilters.category} onClick={()=>chooseCategory("")}>
+          <span className={styles.categoryIcon} aria-hidden="true">✳</span><span>All</span>
+        </button>
         {categories.map(category => <button type="button" key={category} aria-pressed={activeFilters.category === category}
-          onClick={()=>chooseCategory(category)}>{category}</button>)}
+          onClick={()=>chooseCategory(category)}>
+          <span className={styles.categoryIcon} aria-hidden="true">{categorySymbol(category)}</span><span>{category}</span>
+        </button>)}
+        <button type="button" onClick={()=>setFilterOpen(true)} aria-label="More marketplace filters">
+          <span className={styles.categoryIcon} aria-hidden="true">•••</span><span>More</span>
+        </button>
       </div>}
     </section>
 
     <section className={styles.marketResults} aria-label="Published marketplace offers">
+      {view === "all" && !loading && !error && !activeQuery && !activeFilters.category && <section className={styles.featureBanner} aria-label="Hustle marketplace introduction">
+        <div className={styles.bannerCopy}>
+          <span>SKILLS · PRODUCTS · REAL PEOPLE</span>
+          <h1>Turn your talent into <em>opportunity.</em></h1>
+          <p>Find people who can do the work, discover what they make, and support their hustle.</p>
+          <button type="button" onClick={()=>updateView("services")}>Explore services <span aria-hidden="true">↗</span></button>
+        </div>
+        <div className={styles.bannerVisual} aria-hidden="true">
+          {slices.services.items[0]?.kind === "service" &&
+            slices.services.items[0].service.mediaUrls?.find((url)=>! /\\.(mp4|webm|mov|m4v)(\\?|#|$)/i.test(url))
+            ? <img src={slices.services.items[0].service.mediaUrls.find((url)=>! /\\.(mp4|webm|mov|m4v)(\\?|#|$)/i.test(url))} alt="" loading="lazy" />
+            : <span>H<span>✳</span></span>}
+        </div>
+      </section>}
       <div className={styles.resultsMeta} role="status" aria-live="polite">
-        <strong>{view === "all" ? "Explore the marketplace" : view === "services" ? "Skills & services" : "Products"}</strong>
+        <strong>{view === "all" ? "Discover on Hustle" : view === "services" ? "Find your professional" : "Shop from Hustlers"}</strong>
         <span>{loading ? "Loading published offers…" : `${count} loaded`}</span>
       </div>
       {loading && <ExperienceState kind="loading" title="Finding published offers…" description="Loading live Hustle listings." />}
@@ -281,21 +304,19 @@ export default function MarketplacePage() {
       {!loading && !error && view !== "products" && slices.services.items.length > 0 &&
         <section className={styles.marketSection} aria-label="Published services and skills">
           <div className={styles.sectionHeading}>
-            <div><span className={styles.sectionKicker}>THE PEOPLE BEHIND THE WORK</span><h2>Services & skills</h2>
-              <p>Find professionals and explore what they offer.</p></div>
+            <div><span className={styles.sectionKicker}>{view === "all" ? "SKILLS & PEOPLE" : "FIND THE RIGHT PROFESSIONAL"}</span><h2>{view === "all" ? "Featured Services" : "Services & Skills"}</h2></div>
             {view === "all" && <button type="button" onClick={()=>updateView("services")}>See all <span aria-hidden="true">↗</span></button>}
           </div>
-          <div className={styles.servicesGrid}>{slices.services.items.map((item,index)=>
+          <div className={[styles.servicesGrid, slices.services.items.length === 1 ? styles.singleOfferGrid : ""].filter(Boolean).join(" ")}>{slices.services.items.map((item,index)=>
             <MarketplaceOfferCard key={item.kind+"-"+item.id} item={item} onOpen={offer=>recordOpen(offer,index)}/>)}</div>
         </section>}
       {!loading && !error && view !== "services" && slices.products.items.length > 0 &&
         <section className={styles.marketSection} aria-label="Published products">
           <div className={styles.sectionHeading}>
-            <div><span className={styles.sectionKicker}>MADE, FOUND & SOLD ON HUSTLE</span><h2>Products</h2>
-              <p>Discover items sold by creators and skilled professionals.</p></div>
+            <div><span className={styles.sectionKicker}>{view === "all" ? "SHOP LOCAL & CREATIVE" : "CURATED BY HUSTLERS"}</span><h2>{view === "all" ? "Featured Products" : "Products"}</h2></div>
             {view === "all" && <button type="button" onClick={()=>updateView("products")}>See all <span aria-hidden="true">↗</span></button>}
           </div>
-          <div className={styles.productsGrid}>{slices.products.items.map((item,index)=>
+          <div className={[styles.productsGrid, slices.products.items.length === 1 ? styles.singleProductGrid : ""].filter(Boolean).join(" ")}>{slices.products.items.map((item,index)=>
             <MarketplaceOfferCard key={item.kind+"-"+item.id} item={item} onOpen={offer=>recordOpen(offer,index)}/>)}</div>
         </section>}
 
@@ -320,11 +341,7 @@ export default function MarketplacePage() {
             {loadingMore ? "Loading more…" : `Load more ${view}`}
           </button>
         </div>}
-      {!loading && !error && view === "all" && count > 0 && <div className={styles.endNote}>
-        <span>Want a closer look?</span>
-        <button type="button" onClick={()=>updateView("services")}>Browse only services ↗</button>
-        <button type="button" onClick={()=>updateView("products")}>Browse only products ↗</button>
-      </div>}
+
     </section>
   </main>;
 }
