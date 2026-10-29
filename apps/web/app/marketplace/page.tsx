@@ -21,6 +21,15 @@ const modes: ReadonlyArray<{ id: MarketplaceTab; label: string; short: string }>
   { id: "services", label: "Services & Skills", short: "Hire" },
   { id: "products", label: "Products", short: "Shop" }
 ];
+function firstPublishedServicePhoto(items: Offer[]): string | null {
+  for (const item of items) {
+    if (item.kind !== "service") continue;
+    const image = item.service.mediaUrls?.find((url) => !/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url));
+    if (image) return image;
+  }
+  return null;
+}
+
 function categorySymbol(category: string) {
   const value = category.toLowerCase();
   if (/beauty|hair|makeup|barb|salon/.test(value)) return "✂";
@@ -199,6 +208,7 @@ export default function MarketplacePage() {
       .filter((value): value is string => Boolean(value?.trim()));
     return Array.from(new Set([activeFilters.category?.trim() ?? "", ...live].filter(Boolean))).slice(0,8);
   }, [visibleItems, activeFilters.category]);
+  const bannerPhoto = useMemo(() => firstPublishedServicePhoto(slices.services.items), [slices.services.items]);
   const count = visibleItems.length;
   const noResults = !loading && !error && count === 0;
 
@@ -224,14 +234,14 @@ export default function MarketplacePage() {
         </label>
         <button className={styles.searchSubmit} type="submit">Search</button>
       </form>
-      <nav className={styles.modeTabs} aria-label="Marketplace modes">
+      <div className={styles.modeTabs} role="group" aria-label="Marketplace modes">
         {modes.map(mode => <button key={mode.id} type="button"
           aria-pressed={view === mode.id}
           className={view === mode.id ? styles.modeSelected : ""}
           onClick={() => updateView(mode.id)}>
           {mode.label}
         </button>)}
-      </nav>
+      </div>
     </header>
 
     <section className={styles.browseBar} aria-label="Choose marketplace browsing focus">
@@ -284,9 +294,7 @@ export default function MarketplacePage() {
           <button type="button" onClick={()=>updateView("services")}>Explore services <span aria-hidden="true">↗</span></button>
         </div>
         <div className={styles.bannerVisual} aria-hidden="true">
-          {slices.services.items[0]?.kind === "service" &&
-            slices.services.items[0].service.mediaUrls?.find((url)=>! /\\.(mp4|webm|mov|m4v)(\\?|#|$)/i.test(url))
-            ? <img src={slices.services.items[0].service.mediaUrls.find((url)=>! /\\.(mp4|webm|mov|m4v)(\\?|#|$)/i.test(url))} alt="" loading="lazy" />
+          {bannerPhoto ? <img src={bannerPhoto} alt="" loading="lazy" />
             : <span>H<span>✳</span></span>}
         </div>
       </section>}
