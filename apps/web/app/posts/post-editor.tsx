@@ -23,7 +23,8 @@ import {
 import styles from "../products/product-editor.module.css";
 import {
   authorizeStagingPostMedia, confirmStagingPostMedia,
-  transferFileToPrivateStaging, validateStagingUploadFile
+  isStagingTransferTicketFresh, transferFileToPrivateStaging,
+  validateStagingUploadFile, type MediaUploadAuthorization
 } from "../../lib/post-media-upload";
 import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
 import { authenticatedFetch } from "../../lib/api/authenticated-fetch";
@@ -91,6 +92,11 @@ export default function PostEditor({ postId }: { postId?: string }) {
   // Retrying verification must NOT upload a second object.
   const [pendingConfirmation, setPendingConfirmation] = useState<{
     file: File; postId: string; receipt: string;
+  } | null>(null);
+  // An opaque iPhone/S3 network error does not prove storage rejected the file.
+  // Keep the SAME signed key and receipt so the owner can verify or retry safely.
+  const [pendingTransfer, setPendingTransfer] = useState<{
+    file: File; postId: string; ticket: MediaUploadAuthorization; authorizedAtMs: number;
   } | null>(null);
   const [verifyingUpload, setVerifyingUpload] = useState(false);
   const [draftMediaPreviews, setDraftMediaPreviews] = useState<Record<string,string>>({});
@@ -268,13 +274,52 @@ export default function PostEditor({ postId }: { postId?: string }) {
     }
   }
 
+  async function commitUploadedFile(draftId: string, receipt: string) {
+    // Confirmation is owner-scoped and idempotent. A successful POST may have
+    // committed even if Safari failed to receive the HTTP response.
+    await confirmStagingPostMedia(draftId, receipt);
+    const updated = await getMyPost(draftId);
+    setPost(updated);
+    if (!currentId) router.replace(`/posts/${draftId}/edit`);
+    setPendingConfirmation(null);
+    setPendingTransfer(null);
+    setSelectedFile(null);
+    if (fileInput.current) fileInput.current.value = "";
+    setNotice("Private upload attached to your draft. Publish only when ready.");
+  }
+
+  async function checkPreviousTransfer() {
+    const attempt = pendingTransfer;
+    if (busy || !selectedFile || !attempt || attempt.file !== selectedFile) return;
+    setBusy(true);
+    setVerifyingUpload(true);
+    setError(null);
+    setNotice(null);
+    try {
+      // This explicit owner action checks for the signed pending object and
+      // attaches it to the DRAFT only if the object exists and passes server
+      // signature, MIME, size, ownership and receipt verification.
+      await commitUploadedFile(attempt.postId, attempt.ticket.receipt);
+    } catch (reason) {
+      setError("The earlier transfer could not be verified. No publication occurred. " +
+        (reason instanceof Error ? reason.message : "Try again on a stable connection."));
+    } finally {
+      setVerifyingUpload(false);
+      setBusy(false);
+    }
+  }
+
   async function uploadSelectedFile() {
     if (!selectedFile || busy) return;
     const problem = validateStagingUploadFile(selectedFile);
     if (problem) { setError(problem); return; }
     const existingReceipt = pendingConfirmation?.file === selectedFile ? pendingConfirmation : null;
+    const recoverable = pendingTransfer?.file === selectedFile && 
+      isStagingTransferTicketFresh(pendingTransfer.ticket, pendingTransfer.authorizedAtMs)
+      ? pendingTransfer : null;
     const controller = new AbortController();
     uploadAbort.current = controller;
+    let confirmationStarted = false;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -283,41 +328,43 @@ export default function PostEditor({ postId }: { postId?: string }) {
       let draftId: string;
       let receipt: string;
       if (existingReceipt) {
-        // A network timeout may occur AFTER S3 succeeded. Recover the same
-        // signed receipt and idempotent media ID rather than duplicating bytes.
         draftId = existingReceipt.postId;
         receipt = existingReceipt.receipt;
       } else {
-        // Stay on this screen until transfer finishes; navigating during
-        // transfer would unmount the component and abort the upload.
-        const draft = await ensurePost(false);
+        // Retrying uses the SAME pending key if the signed POST policy is still
+        // fresh. After expiry, a new key is authorized with the same owner,
+        // while old pending uploads are automatically expired by S3 lifecycle.
+        const draft = recoverable ? null : await ensurePost(false);
         if (controller.signal.aborted) return;
-        const ticket = await authorizeStagingPostMedia(draft.id, selectedFile);
+        const postId = recoverable?.postId ?? draft!.id;
+        const ticket = recoverable?.ticket ??
+          await authorizeStagingPostMedia(postId, selectedFile);
         if (controller.signal.aborted) return;
+        if (!recoverable) setPendingTransfer({
+          file: selectedFile, postId, ticket, authorizedAtMs: Date.now()
+        });
         await transferFileToPrivateStaging(
           selectedFile, ticket, pct => setUploadProgress(pct), controller.signal
         );
         if (controller.signal.aborted) return;
-        draftId = draft.id;
+        draftId = postId;
         receipt = ticket.receipt;
+        setPendingTransfer(null);
         setPendingConfirmation({ file: selectedFile, postId: draftId, receipt });
       }
-      // Confirmation may mutate the database. Do not label this phase
-      // cancellable: a late Cancel could imply a rollback that never occurred.
+      // A verification request can commit the DB. Do not offer cancellation
+      // during this stage, even when the browser has not seen a response.
+      confirmationStarted = true;
       setVerifyingUpload(true);
       setUploadProgress(100);
-      await confirmStagingPostMedia(draftId, receipt);
-      const updated = await getMyPost(draftId);
-      setPost(updated);
-      if (!currentId) router.replace(`/posts/${draftId}/edit`);
-      setPendingConfirmation(null);
-      setSelectedFile(null);
-      if (fileInput.current) fileInput.current.value = "";
-      setNotice("Private upload attached to your draft. Publish only when ready.");
+      await commitUploadedFile(draftId, receipt);
     } catch (reason) {
-      if (controller.signal.aborted && !verifyingUpload)
+      if (controller.signal.aborted && !confirmationStarted) {
+        setPendingTransfer(null);
         setNotice("Transfer cancelled. Your draft was not published.");
-      else setError(reason instanceof Error ? reason.message : "Could not finish private media upload");
+      } else {
+        setError(reason instanceof Error ? reason.message : "Could not finish private media upload");
+      }
     } finally {
       if (uploadAbort.current === controller) uploadAbort.current = null;
       setBusy(false);
@@ -449,6 +496,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
                 const next = event.target.files?.[0] ?? null;
                 setSelectedFile(next);
                 setPendingConfirmation(null);
+                setPendingTransfer(null);
                 setError(next ? validateStagingUploadFile(next) : null);
               }} />
           </label>
@@ -464,11 +512,13 @@ export default function PostEditor({ postId }: { postId?: string }) {
               <small>{uploadProgress >= 99 ? "Verifying your uploaded media…" : `Uploading ${uploadProgress}%`}</small>
             </div>}
             <div className={styles.actions}>
-              <button type="button" className={styles.primary} onClick={() => void uploadSelectedFile()} disabled={busy || Boolean(validateStagingUploadFile(selectedFile))}>{pendingConfirmation?.file === selectedFile ? "Retry verification" : "Upload privately"}</button>
+              <button type="button" className={styles.primary} onClick={() => void uploadSelectedFile()} disabled={busy || Boolean(validateStagingUploadFile(selectedFile))}>{pendingConfirmation?.file === selectedFile ? "Retry verification" : pendingTransfer?.file === selectedFile ? "Retry private transfer" : "Upload privately"}</button>
+              {pendingTransfer?.file === selectedFile && !busy && <button type="button" className={styles.secondary} onClick={() => void checkPreviousTransfer()}>Check earlier upload first</button>}
               <button type="button" className={styles.secondary} disabled={verifyingUpload} onClick={() => {
                 uploadAbort.current?.abort();
                 if (!busy) {
                   setPendingConfirmation(null);
+                  setPendingTransfer(null);
                   setSelectedFile(null);
                   if (fileInput.current) fileInput.current.value = "";
                 }
