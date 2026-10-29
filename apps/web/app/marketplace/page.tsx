@@ -240,7 +240,7 @@ export default function MarketplacePage() {
 
       {filterOpen && <form id="marketplace-refine" className={styles.filterPanel} onSubmit={applyFilters}>
         <label>Category<input value={filters.category ?? ""} onChange={e=>setFilters({...filters,category:e.target.value})} placeholder="e.g. Beauty, Technology" maxLength={100}/></label>
-        {view !== "products" && <label>Skill<input value={filters.skill ?? ""} onChange={e=>setFilters({...filters,skill:e.target.value})} placeholder="e.g. Hair styling" maxLength={100}/></label>}
+        {view === "services" && <label>Skill<input value={filters.skill ?? ""} onChange={e=>setFilters({...filters,skill:e.target.value})} placeholder="e.g. Hair styling" maxLength={100}/></label>}
         <label>Location<input value={filters.location ?? ""} onChange={e=>setFilters({...filters,location:e.target.value})} placeholder="e.g. Lagos" maxLength={120}/></label>
         <label>Min price (₦)<input type="number" min="0" inputMode="numeric" value={filters.minPrice ?? ""} onChange={e=>setFilters({...filters,minPrice:e.target.value})} placeholder="0"/></label>
         <label>Max price (₦)<input type="number" min="0" inputMode="numeric" value={filters.maxPrice ?? ""} onChange={e=>setFilters({...filters,maxPrice:e.target.value})} placeholder="Any"/></label>
