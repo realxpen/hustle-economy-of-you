@@ -352,6 +352,19 @@ function localOnly(url) {
        // UX025: the real Marketplace has separate published Service and
        // Product sections, and focus is shareable without switching accounts.
        await page.goto(root+"/marketplace",{waitUntil:"domcontentloaded"});
+       const marketShell=page.locator('main[data-hustle-marketplace="true"]');
+       await marketShell.waitFor({state:"visible",timeout:15000});
+       const marketComputed=await marketShell.evaluate(el=>({
+         background:getComputedStyle(el).backgroundColor,
+         color:getComputedStyle(el).color,
+         scheme:getComputedStyle(el).colorScheme
+       }));
+       assert.equal(marketComputed.background,"rgb(247, 246, 242)",
+         "UX026 Market must use approved light paper, not a black/shared theme");
+       assert.equal(marketComputed.color,"rgb(24, 40, 30)",
+         "UX026 Market must use readable forest text");
+       assert.match(marketComputed.scheme,/light/,
+         "UX026 Market form controls must not auto-darken");
        const svc=page.getByRole("region",{name:"Published services and skills"});
        const prod=page.getByRole("region",{name:"Published products"});
        await svc.waitFor({state:"visible",timeout:15000});
@@ -360,6 +373,14 @@ function localOnly(url) {
          .getAttribute("href"),"/services/qa-service");
        assert.equal(await prod.getByRole("link",{name:/View product: QA Hair Care Kit/})
          .getAttribute("href"),"/products/qa-product");
+       if(size.width<=760){
+         const hero=page.getByRole("heading",{name:"Explore the Marketplace."});
+         await hero.waitFor({state:"visible"});
+         const firstOffer=svc.getByRole("link",{name:/View service: QA Barber Session/});
+         const box=await firstOffer.boundingBox();
+         assert.ok(box && box.y<950,
+           "UX026 real content must start above the fold-adjacent region on iPhone");
+       }
        await page.screenshot({path:path.join(out,size.label+"__ux025-all-market.png"),
          animations:"disabled",caret:"hide"});
        const focus=page.getByRole("group",{name:"Marketplace modes"});

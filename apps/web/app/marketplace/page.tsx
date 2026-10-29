@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { ExperienceState } from "../../components/experience/experience-state";
 import {
@@ -189,12 +190,16 @@ export default function MarketplacePage() {
   const count = visibleItems.length;
   const noResults = !loading && !error && count === 0;
 
-  return <main className={[styles.shell, "h-experience-shell"].join(" ")}>
+  return <main className={styles.shell} data-hustle-marketplace="true">
     <ExperienceHeader section="Marketplace" />
     <header className={styles.marketHero}>
+      <div className={styles.mobileTopbar}>
+        <Link href="/home" aria-label="Hustle home">Hustle<span aria-hidden="true">✳</span></Link>
+        <Link className={styles.accountShortcut} href="/account" aria-label="Your Hustle account">◉</Link>
+      </div>
       <div className={styles.heroEyebrow}>THE ECONOMY OF YOU <span aria-hidden="true">✳</span> MARKETPLACE</div>
-      <h1>Find the work.<br/><em>Find the things.</em></h1>
-      <p>Explore skills and services you can hire, alongside products you can buy. All from real Hustle profiles.</p>
+      <h1>Explore the <em>Marketplace.</em></h1>
+      <p>Hire a skill. Book a service. Shop a product. All from real people.</p>
       <div className={styles.quickFocus} aria-label="Marketplace quick browse">
         <button type="button" onClick={() => updateView("services")} aria-label="Browse skills and services">
           <span className={styles.focusGlyph} aria-hidden="true">✦</span>
@@ -292,6 +297,20 @@ export default function MarketplacePage() {
           </div>
           <div className={styles.productsGrid}>{slices.products.items.map((item,index)=>
             <MarketplaceOfferCard key={item.kind+"-"+item.id} item={item} onOpen={offer=>recordOpen(offer,index)}/>)}</div>
+        </section>}
+
+      {!loading && !error && view === "all" && slices.services.items.length > 0 && slices.products.items.length === 0 &&
+        <section className={styles.marketSection} aria-label="Products coming to the marketplace">
+          <div className={styles.sectionHeading}>
+            <div><span className={styles.sectionKicker}>MADE, FOUND & SOLD ON HUSTLE</span>
+              <h2>Products</h2><p>Explore products published by Hustlers.</p></div>
+          </div>
+          <div className={styles.emptyProductNote}>
+            <span aria-hidden="true">◈</span>
+            <div><strong>No products published here yet</strong>
+              <p>Products will appear as Hustlers publish them. There are no placeholder listings.</p></div>
+            <button type="button" onClick={()=>updateView("products")}>Browse products ↗</button>
+          </div>
         </section>}
 
       {!loading && !error && view !== "all" && slices[view].hasMore &&
