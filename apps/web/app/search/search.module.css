@@ -720,3 +720,17 @@
    padding-bottom:calc(30px + env(safe-area-inset-bottom,0px))!important;
  }
 }
+
+/* UX025: a single unobtrusive gateway from approved Explore landing to the
+   unified marketplace. Search results layouts/tabs remain unchanged. */
+.searchExperience .marketplaceEntry{max-width:1000px;margin:4px auto 19px;
+ padding:0 clamp(16px,4vw,22px)}
+.searchExperience .marketplaceEntry a{display:flex;align-items:center;justify-content:space-between;
+ gap:12px;min-height:68px;border:1px solid #D5E3CA;border-radius:17px;
+ padding:13px 15px;background:#EDF4E5;color:#18281E;text-decoration:none}
+.searchExperience .marketplaceEntry a>span:first-child{display:grid;gap:5px}
+.searchExperience .marketplaceEntry strong{font-size:13px;font-weight:850}
+.searchExperience .marketplaceEntry small{color:#536954;font-size:11px;line-height:1.4}
+.searchExperience .marketplaceEntry a>span:last-child{font-size:20px;color:#375A3F}
+.searchExperience .marketplaceEntry a:focus-visible{outline:3px solid #587735;outline-offset:3px}
+@media(max-width:760px){.searchExperience .marketplaceEntry{margin:4px 0 14px;padding-inline:20px}}
