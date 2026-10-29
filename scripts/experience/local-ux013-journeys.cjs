@@ -378,8 +378,9 @@ function localOnly(url) {
          await hero.waitFor({state:"visible"});
          const serviceGrid=svc.locator("[class*='servicesGrid']");
          const columns=await serviceGrid.evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(" ").length);
-         if(size.width>=370 && size.width<=760) assert.equal(columns,2,
-           "UX027 Marketplace must use the two-column Services gallery on iPhone");
+         const cardCount=await serviceGrid.locator("a[class*='offerCard']").count();
+         if(size.width>=370 && size.width<=760) assert.equal(columns,cardCount===1?1:2,
+           "UX027 iPhone: a single published Service fills the row; multiple Services use two columns");
 
          const firstOffer=svc.getByRole("link",{name:/View service: QA Barber Session/});
          const box=await firstOffer.boundingBox();
