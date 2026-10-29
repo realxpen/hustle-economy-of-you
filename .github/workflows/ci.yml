@@ -69,6 +69,8 @@ jobs:
         run: node scripts/experience/check-isolated-search-client.cjs
       - name: UX025 combined marketplace and independent type focus
         run: node scripts/experience/check-ux025-marketplace-focus.cjs
+      - name: UX027 founder-selected marketplace gallery and service detail parity
+        run: node scripts/experience/check-ux027-marketplace-reference.cjs
       - name: "Regression: isolated Hustler activation and publishing boundaries"
         run: node scripts/experience/check-isolated-hustler-activation.cjs
       - name: Verify UX005 wallet, commented feed and sandbox route boundaries
