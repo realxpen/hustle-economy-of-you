@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import type { SearchResult } from "../../lib/search";
 import { formatProductPrice } from "../../lib/product";
 import { formatServicePrice } from "../../lib/service";
@@ -22,7 +22,12 @@ export function MarketplaceOfferCard({
   const service = item.kind === "service";
   const title = service ? item.service.title : item.product.title;
   const category = service ? item.service.category : item.product.category;
-  const photo = service ? item.service.mediaUrls?.[0] : item.product.mediaUrls?.[0];
+  const mediaUrls = service ? item.service.mediaUrls ?? [] : item.product.mediaUrls ?? [];
+  // A video as first attachment often shows a blank tile on iOS before it
+  // buffers. Prefer an already-published image from the same listing.
+  const photo = mediaUrls.find((url) => !mediaIsVideo(url)) ?? mediaUrls[0];
+  const [mediaFailed, setMediaFailed] = useState(false);
+  useEffect(() => setMediaFailed(false), [photo]);
   const price = service ? formatServicePrice(item.service) : formatProductPrice(item.product);
   const seller = item.owner.displayName ?? item.owner.username ?? "Hustle creator";
   const sellerInitial = seller.charAt(0).toUpperCase();
@@ -40,12 +45,17 @@ export function MarketplaceOfferCard({
     aria-label={`${service ? "View service" : "View product"}: ${title || "Untitled offer"}, ${price}`}
   >
     <span className={styles.offerMedia}>
-      {photo ? mediaIsVideo(photo)
-        ? <video src={photo} muted playsInline preload="metadata" aria-hidden="true" tabIndex={-1} />
-        : <img src={photo} alt="" loading="lazy" />
-        : <span className={styles.emptyMedia} aria-hidden="true">{service ? "✦" : "◈"}</span>}
+      {photo && !mediaFailed
+        ? mediaIsVideo(photo)
+          ? <video src={photo} muted playsInline preload="metadata"
+              aria-hidden="true" tabIndex={-1} onError={()=>setMediaFailed(true)} />
+          : <img src={photo} alt="" loading="lazy" onError={()=>setMediaFailed(true)} />
+        : <span className={styles.emptyMedia} aria-label="Listing preview unavailable">
+            <span aria-hidden="true">{service ? "✦" : "◈"}</span>
+            <small>{photo ? "Preview unavailable" : "No photo uploaded"}</small>
+          </span>}
       <span className={styles.offerKind}>{service ? "Service" : "Product"}</span>
-      {photo && mediaIsVideo(photo) && <span className={styles.mediaPlay} aria-hidden="true">▶</span>}
+      {photo && !mediaFailed && mediaIsVideo(photo) && <span className={styles.mediaPlay} aria-hidden="true">▶</span>}
     </span>
     <span className={styles.offerContent}>
       {category && <span className={styles.offerCategory}>{category}</span>}
