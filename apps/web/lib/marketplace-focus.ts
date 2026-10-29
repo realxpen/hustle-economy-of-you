@@ -11,6 +11,7 @@ export function marketplaceView(search: string): MarketplaceTab {
 export function marketplaceModeFilters(view: MarketplaceTab, filters: SearchFilters): SearchFilters {
   return {
     ...filters,
+    skill: view === "services" ? filters.skill ?? "" : "",
     deliveryMode: view === "services" ? filters.deliveryMode ?? "" : "",
     productType: view === "products" ? filters.productType ?? "" : ""
   };
