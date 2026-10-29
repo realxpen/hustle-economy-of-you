@@ -295,6 +295,20 @@ function localOnly(url) {
        for(const heading of ["People","Posts","Services","Products"]){
          await page.getByRole("region",{name:heading+" search results"}).waitFor({state:"visible",timeout:15000});
        }
+       // UX022: a single post fills the mobile content width; larger sets
+       // remain in the regular 2-column media grid. No empty synthetic tiles.
+       if(size.width<=760){
+         const postSection=page.getByRole("region",{name:"Posts search results"});
+         const postCard=postSection.getByRole("link",{name:/A synthetic barber project/}).first();
+         const sectionBox=await postSection.boundingBox();
+         const cardBox=await postCard.boundingBox();
+         assert.ok(sectionBox && cardBox,"Visible mobile post and group are required");
+         assert.ok(cardBox.width >= sectionBox.width*.94,
+           "One actual post should occupy the mobile search results width");
+         const wrapPadding=await page.locator("section[class*='resultsWrap']").first()
+           .evaluate(el=>parseFloat(getComputedStyle(el).paddingBottom));
+         assert.ok(wrapPadding<=55,"Mobile search must not double-reserve dock space");
+       }
        for(const [name,href] of [
          ["QA Hustler","/u/qa-hustler"],["A synthetic barber project","/posts/qa-post-001"],
          ["QA Barber Session","/services/qa-service"],["QA Hair Care Kit","/products/qa-product"]
