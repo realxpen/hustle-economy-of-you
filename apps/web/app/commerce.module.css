@@ -62,3 +62,96 @@
 @media(prefers-reduced-transparency:reduce){
  .panel,.card,.summary,.detailBlock,.handoff{background:var(--h-surface,#fff);-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+
+/* UX029 — Shopping-only visual language. Order/dispute pages that also consume
+   commerce.module.css are intentionally unaffected. All financial operations
+   still run through authenticated server APIs. */
+.shoppingExperience{background:#F7F6F2;color:#18281E;color-scheme:light;
+  isolation:isolate;position:relative;min-height:100dvh;overflow-x:clip}
+.shoppingExperience .purchaseFlow{border-color:#E1E9DE;background:#FFF;gap:6px;
+  border-radius:15px;padding:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.shoppingExperience .purchaseFlow :is(a,span,strong){min-height:40px;flex:0 0 auto;
+  border-radius:10px;white-space:nowrap;font-size:11px;padding:9px 11px;
+  color:#617565;text-decoration:none}
+.shoppingExperience .purchaseFlow strong{background:#E5F5CB;color:#214831}
+.shoppingExperience .hero{padding:24px 0 19px;gap:16px;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr)}
+.shoppingExperience .hero h1{font-size:clamp(33px,5vw,54px);line-height:1.05;
+ letter-spacing:-.05em;margin:8px 0;color:#193B29}
+.shoppingExperience .hero>p{color:#5B705E;font-size:13px;line-height:1.5}
+.shoppingExperience .eyebrow{font-size:10px;letter-spacing:.07em;color:#628069}
+.shoppingExperience .grid{gap:14px;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr)}
+.shoppingExperience .panel,.shoppingExperience .card{background:#FFF;
+  border:1px solid #E2EADD;border-radius:18px;backdrop-filter:none;
+  -webkit-backdrop-filter:none;box-shadow:none}
+.shoppingExperience .panel{padding:22px}
+.shoppingExperience .card{padding:15px;gap:10px}
+.shoppingExperience .sectionTitle h2{font-size:clamp(20px,3vw,27px);line-height:1.22;
+  margin:3px 0 0;color:#193B29}
+.shoppingExperience .card h3{font-size:15px;line-height:1.4;color:#24432D}
+.shoppingExperience .card h3 a{text-decoration:none;color:inherit}
+.shoppingExperience .meta{color:#657666;font-size:11px;line-height:1.4}
+.shoppingExperience .price{font-size:clamp(17px,2.3vw,24px);color:#244C31;
+  line-height:1.3;white-space:normal}
+.shoppingExperience .row{gap:9px}
+.shoppingExperience .row input{min-height:46px;min-width:85px;
+  border-color:#CCDCC7;border-radius:12px;font-size:16px;color:#193B29}
+.shoppingExperience .danger{background:#F5F5F1;color:#536C56;border:1px solid #E0E8DB;
+  border-radius:12px;padding:10px 13px;font-size:12px}
+.shoppingExperience .summary{gap:11px}
+.shoppingExperience .summaryLine{border-color:#E2E9DE;gap:9px;
+  color:#586C5B;font-size:12px;line-height:1.4}
+.shoppingExperience .summaryLine strong{font-size:17px;color:#25482F}
+.shoppingExperience .notice{border-radius:15px;border:1px solid #D6E4CB;
+  background:#EBF5E2;color:#2E5236;padding:14px}
+.shoppingExperience .notice strong{color:#214A2E;font-size:12px}
+.shoppingExperience .notice p{font-size:11px;color:#54715A;line-height:1.5}
+.shoppingExperience .buttonAlt{display:grid;place-items:center;min-height:49px;
+  border-radius:13px;background:#C9F26B;color:#173B28;
+  font-weight:900;font-size:13px;text-align:center;padding:11px 13px}
+.shoppingExperience .button{display:grid;place-items:center;min-height:45px;
+  border-radius:13px;background:#F0F5ED;color:#285638;border:1px solid #D7E3CF;
+  font-weight:800;font-size:12px;padding:10px}
+.shoppingExperience .empty{padding:26px;border-radius:16px;background:#F7FAF5;
+  color:#627663;border-color:#C9DBC2}
+.shoppingExperience .form{gap:12px}
+.shoppingExperience .form label{color:#4D6854;font-size:11px;line-height:1.4}
+.shoppingExperience .form input,.shoppingExperience .form textarea{
+  min-height:47px;font-size:16px;color:#193B29;border-radius:12px;
+  background:#FBFCFA;border:1px solid #CFDECB;padding:11px 13px}
+.shoppingExperience .form textarea{min-height:94px}
+.shoppingExperience .footer{border-color:#E2E9DE;color:#617565;font-size:11px}
+.shoppingExperience :is(button,a,input,textarea):focus-visible{
+  outline:3px solid #638B46;outline-offset:3px}
+@media(max-width:900px){
+ .shoppingExperience .grid{grid-template-columns:minmax(0,1fr)}
+ .shoppingExperience .hero{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:760px){
+ .shoppingExperience{padding:12px 14px calc(118px + env(safe-area-inset-bottom,0px))}
+ .shoppingExperience>header:first-child{display:none}
+ .shoppingExperience .purchaseFlow{margin:3px 0 14px;padding:5px}
+ .shoppingExperience .purchaseFlow :is(a,span,strong){
+   min-height:40px;padding:8px 10px;font-size:10px;flex:0 0 auto}
+ .shoppingExperience .hero{display:grid;gap:6px;padding:0 0 16px}
+ .shoppingExperience .hero h1{font-size:clamp(28px,7.4vw,37px);margin:4px 0}
+ .shoppingExperience .hero>p{font-size:12px;line-height:1.5}
+ .shoppingExperience .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:11px}
+ .shoppingExperience .panel{padding:15px;border-radius:16px}
+ .shoppingExperience .card{padding:13px;border-radius:14px}
+ .shoppingExperience .cardTop{display:flex;flex-wrap:wrap;gap:7px}
+ .shoppingExperience .card h3{font-size:14px}
+ .shoppingExperience .meta{font-size:10px}
+ .shoppingExperience .price{font-size:17px}
+ .shoppingExperience .sectionTitle h2{font-size:22px}
+ .shoppingExperience .summaryLine strong{font-size:14px}
+ .shoppingExperience .summary{padding:17px}
+ .shoppingExperience .split{grid-template-columns:minmax(0,1fr)}
+ .shoppingExperience .form :is(input,textarea){width:100%;min-width:0}
+ .shoppingExperience .footer{margin-top:17px}
+}
+@media(max-width:360px){
+ .shoppingExperience{padding-inline:10px}
+ .shoppingExperience .row{flex-direction:column;align-items:stretch}
+ .shoppingExperience .row label{width:100%}
+}
