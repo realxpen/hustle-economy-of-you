@@ -24,7 +24,7 @@ assert.match(page,/marketplaceRoute\(nextView/);
 assert.match(cards,/href=\{destination\}/);
 assert.match(cards,/formatServicePrice\(item\.service\)/);
 assert.match(cards,/formatProductPrice\(item\.product\)/);
-assert.match(css,/\.singleOfferGrid,.singleProductGrid\{\s*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+assert.match(css,/\.servicesGrid,\.productsGrid,\.singleOfferGrid,\.singleProductGrid\{\s*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 assert.match(css,/\.bannerGlyph\{position:relative/);
 assert.match(css,/\.emptyProductNote\{display:grid;grid-template-columns:36px minmax\(0,1fr\)/);
 assert.match(css,/\.searchSubmit\{flex:0 0 40px;width:40px;min-height:40px/);
