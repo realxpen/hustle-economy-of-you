@@ -19,7 +19,7 @@ assert.match(market,/aria-pressed=\{view === mode\.id\}/);
 assert.match(market,/marketplaceRoute\(nextView/);
 assert.match(market,/const categories = useMemo/);
 assert.match(market,/categorySymbol\(category\)/);
-assert.match(market,/aria-label="Categories from loaded offers"/);
+assert.match(market,/aria-label="Marketplace category shortcuts"/);
 assert.match(market,/className=\{styles\.featureBanner\}/);
 assert.match(market,/const browsingTopics = \["Beauty", "Home", "Technology"/);
 assert.match(market,/browseCategories\.map\(category/);
