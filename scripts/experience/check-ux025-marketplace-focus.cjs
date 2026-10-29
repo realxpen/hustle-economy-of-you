@@ -49,6 +49,6 @@ assert.match(cards,/item\.owner\.verified/);
 assert.doesNotMatch(cards,/RELEVANCE|rating\.stars|Math\.random/);
 assert.match(css,/\.productsGrid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 assert.match(css,/\.servicesGrid\{display:grid;grid-template-columns:minmax\(0,1fr\)/);
-assert.match(sourceApi,/const route = tab === "all" \\? "\\/marketplace" : \`\\/marketplace\\/\\$\\{tab\\}`/);
+assert.ok(sourceApi.includes('const route = tab === "all" ? "/marketplace" : `/marketplace/${tab}`;'));
 assert.match(explore,/href="\/marketplace" aria-label="Browse Services and Products marketplace"/);
 console.log("PASS UX025: combined real published services/products, focused views, shareable URL, accessible category filters, canonical offers.");
