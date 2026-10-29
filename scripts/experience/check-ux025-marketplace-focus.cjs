@@ -35,7 +35,7 @@ assert.match(page,/getMarketplacePage\(nextView, \{/);
 assert.match(page,/window\.history\.replaceState\(null, "", marketplaceRoute/);
 assert.match(page,/role="group" aria-label="Marketplace modes"/);
 assert.match(page,/aria-pressed=\{view === mode\.id\}/);
-assert.match(page,/aria-label="Categories from loaded offers"/);
+assert.match(page,/aria-label="Marketplace category shortcuts"/);
 assert.match(page,/activeFilters\.category === category/);
 assert.match(page,/slices\[view\]\.nextCursor,true/);
 assert.match(page,/captureMarketplaceObservation\("marketplace\.result_clicked"/);
@@ -53,7 +53,7 @@ assert.ok(sourceApi.includes('const route = tab === "all" ? "/marketplace" : `/m
 assert.match(explore,/href="\/marketplace" aria-label="Browse Services and Products marketplace"/);
 assert.match(page,/data-hustle-marketplace="true"/);
 assert.doesNotMatch(page,/\[styles\.shell, "h-experience-shell"\]/);
-assert.match(page,/No products published here yet/);
+assert.match(page,/No products listed yet/);
 assert.match(cards,/mediaUrls\.find\(\(url\) => !mediaIsVideo\(url\)\)/);
 assert.match(cards,/onError=\{\(\)=>setMediaFailed\(true\)\}/);
 assert.match(css,/background-color:#F7F6F2/);
