@@ -89,6 +89,8 @@ jobs:
         run: node scripts/experience/check-ux015-figma-fidelity.cjs
       - name: UX019 Figma Explore, live suggestions and nearby truth contract
         run: node scripts/experience/check-ux019-explore-discovery.cjs
+      - name: UX021 search result identity, media and commerce layout contract
+        run: node scripts/experience/check-ux021-search-visual-results.cjs
       - run: npm run typecheck --workspace=@hustle/web
       - run: npm run typecheck --workspace=@hustle/admin
       - run: npm run typecheck --workspace=@hustle/mobile
