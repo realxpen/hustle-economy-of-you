@@ -18,6 +18,7 @@ import {
 } from "../../../lib/live";
 import { OfferQuickView } from "../../../components/commerce/offer-quick-view";
 import { NativeLiveViewer } from "../../../components/live/native-live-viewer";
+import { isolatedWebMode } from "../../../lib/auth/isolated-web-auth";
 import styles from "../live.module.css";
 
 function mergeComments(current: LiveCommentRecord[], incoming: LiveCommentRecord[]) {
@@ -153,7 +154,7 @@ export default function LiveViewerPage() {
   }, [liveId, session?.status]);
 
   useEffect(() => {
-    if (!liveId || session?.status !== "LIVE") return;
+    if (!liveId || session?.status !== "LIVE" || isolatedWebMode) return;
     let active = true;
 
     const heartbeat = async () => {
@@ -228,147 +229,124 @@ export default function LiveViewerPage() {
     }
   }
 
-  if (!session && !error) {
-    return <main className={styles.page}><div className={styles.shell}><section className={styles.empty}>Joining Live…</section></div></main>;
+  if (!session) {
+    return <main className={styles.immersiveRoom} data-hustle-live-room="true">
+      <div className={styles.roomFallback}>
+        <Link href="/live" className={styles.roomClose} aria-label="Return to LIVE">×</Link>
+        <span aria-hidden="true">✳</span>
+        <h1>{error ? "Can't open this Live" : "Entering the Live…"}</h1>
+        <p>{error ?? "Connecting to the broadcast."}</p>
+        {error && <Link href="/live" className={styles.roomReturn}>Back to LIVE</Link>}
+      </div>
+    </main>;
   }
 
-  return <main className={styles.page}>
-    <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <Link className={styles.brand} href="/live">HUSTLE LIVE</Link>
-        <div className={styles.actions}>
-          <button type="button" onClick={() => void share()}>Share</button>
-          <Link href="/live">Leave Live</Link>
+  const hostName = session.host.displayName?.trim() || session.host.username || "Hustle creator";
+  const liveNow = session.status === "LIVE";
+
+  return <main className={styles.immersiveRoom} data-hustle-live-room="true">
+    <section className={styles.roomCanvas} aria-label={"Live room: " + session.title}>
+      <div className={styles.roomVideo}>
+        {liveNow && session.media.nativeBroadcasting && !isolatedWebMode
+          ? <NativeLiveViewer liveId={liveId!} />
+          : embedUrl
+            ? <iframe src={embedUrl} title={session.title}
+                allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+            : session.playbackUrl
+              ? <video src={session.playbackUrl} autoPlay playsInline muted controls
+                  aria-label={"Live video: " + session.title} />
+              : <div className={styles.roomStreamUnavailable}>
+                  <span className={styles.roomStreamSymbol} aria-hidden="true">✳</span>
+                  <strong>{liveNow ? "Waiting for the live video" : "This Live has ended"}</strong>
+                  <small>{liveNow
+                    ? isolatedWebMode
+                      ? "Full Live media isn't enabled in AWS test yet."
+                      : "The host's stream will appear when broadcasting begins."
+                    : "The broadcast has ended. Replay isn't available."}</small>
+                </div>}
+      </div>
+      <div className={styles.roomGradient} aria-hidden="true" />
+
+      <header className={styles.roomHeader}>
+        <div className={styles.roomHostInfo}>
+          <span className={styles.roomAvatar}>
+            {session.host.avatarUrl
+              ? <img src={session.host.avatarUrl} alt="" />
+              : hostName.slice(0, 1).toUpperCase()}
+          </span>
+          <div className={styles.roomHostNames}>
+            {session.host.username
+              ? <Link href={"/u/" + encodeURIComponent(session.host.username)}
+                  onClick={() => liveId && !isolatedWebMode && void recordLiveEvent(liveId, "PROFILE_CLICKED").catch(() => undefined)}>
+                  {hostName}
+                </Link>
+              : <strong>{hostName}</strong>}
+            <small>{session.host.username ? "@" + session.host.username : (session.category ?? "Hustle creator")}</small>
+          </div>
         </div>
+        <span className={liveNow ? styles.roomLiveBadge : styles.roomEndedBadge}>
+          {liveNow ? "LIVE" : "ENDED"}
+        </span>
+        <span className={styles.roomWatching} aria-label={session.interactions.viewers + " people watching"}>
+          ◈ {session.interactions.viewers}
+        </span>
+        <Link href="/live" className={styles.roomClose} aria-label="Close Live">×</Link>
       </header>
 
-      {error && <div className={styles.error}>{error}</div>}
-      {notice && <div className={styles.notice}>{notice}</div>}
+      {error && <p className={styles.roomError} role="alert">{error}</p>}
+      {notice && <p className={styles.roomNotice} role="status">{notice}</p>}
 
-      {session && <>
-        <section className={styles.sectionTitle}>
-          <div>
-            <div className={styles.eyebrow}>{session.category ?? "LIVE COMMERCE"}</div>
-            <h2>{session.title}</h2>
-            <div className={styles.host} style={{ marginTop: 10 }}>
-              <div className={styles.avatar}>
-                {session.host.avatarUrl
-                  ? <img alt="" src={session.host.avatarUrl} />
-                  : (session.host.displayName ?? session.host.username ?? "H").slice(0, 1).toUpperCase()}
-              </div>
-              <div>
-                <strong>{session.host.displayName ?? session.host.username ?? "Hustler"}</strong>
-                <span>@{session.host.username ?? "hustler"}{session.host.verified ? " · Verified" : ""}</span>
-              </div>
+      <div className={styles.roomBottom}>
+        <p className={styles.roomTitle}>{session.title}</p>
+        <div className={styles.roomComments} aria-label="Live comments" role="log" aria-live="polite" aria-relevant="additions">
+          {comments.length === 0 && <p className={styles.roomEmptyComments}>No comments yet. Ask about the work, product or service.</p>}
+          {comments.map(comment => <article key={comment.id} className={styles.roomComment}>
+            <span className={styles.roomCommentAvatar} aria-hidden="true">
+              {comment.user.avatarUrl
+                ? <img src={comment.user.avatarUrl} alt="" />
+                : (comment.user.displayName ?? comment.user.username ?? "H").slice(0, 1).toUpperCase()}
+            </span>
+            <div>
+              <strong>{comment.user.displayName ?? comment.user.username ?? "Hustle viewer"}</strong>
+              <p>{comment.body}</p>
             </div>
-          </div>
-          <div className={styles.stats}>
-            <span>{session.interactions.viewers} watching</span>
-            <span>{session.interactions.comments} comments</span>
-          </div>
-        </section>
-
-        <div className={styles.viewerGrid}>
-          <section>
-            <div className={styles.stage}>
-              {session.status === "LIVE" && <div className={styles.stageBadge}>LIVE</div>}
-              {session.status === "LIVE" && session.media.nativeBroadcasting
-                ? <NativeLiveViewer liveId={liveId!} />
-                : embedUrl
-                  ? <iframe
-                      src={embedUrl}
-                      title={session.title}
-                      allow="autoplay; encrypted-media; picture-in-picture"
-                      allowFullScreen
-                    />
-                  : session.playbackUrl
-                    ? <video src={session.playbackUrl} controls autoPlay playsInline />
-                    : <div className={styles.stagePlaceholder}>
-                        <div className={styles.eyebrow}>
-                          {session.status === "ENDED"
-                            ? "SESSION ENDED"
-                            : session.media.nativeTransportAvailable
-                              ? "NATIVE LIVE · WAITING FOR HOST"
-                              : "LIVE ROOM ACTIVE"}
-                        </div>
-                        <h2>
-                          {session.status === "ENDED"
-                            ? "This Live has ended."
-                            : session.media.nativeTransportAvailable
-                              ? "The host media is reconnecting."
-                              : "The commerce room is live."}
-                        </h2>
-                        <p>
-                          {session.status === "ENDED"
-                            ? "The pinned offer and session context remain available. Replay is not part of this Live beta."
-                            : session.media.nativeTransportAvailable
-                              ? "Hustle will reconnect the stream automatically when the host publisher returns."
-                              : "Native media is not configured for this environment and no external playback source is attached."}
-                        </p>
-                      </div>}
-            </div>
-
-            {offer && session.pinnedOfferType && <div className={styles.commerceCard}>
-              <div>
-                <div className={styles.eyebrow}>PINNED {session.pinnedOfferType}</div>
-                <h3>{offer.title ?? "Hustle offer"}</h3>
-                <span className={styles.muted}>{formatLiveMoney(offer.priceMinor, offer.currency)}</span>
-              </div>
-              <OfferQuickView
-                type={session.pinnedOfferType}
-                id={offer.id}
-                label="Quick view →"
-                sourceLabel="LIVE"
-                className={`${styles.button} ${styles.primary}`}
-                onOpen={() => liveId && void recordLiveEvent(liveId, offerEvent)}
-              />
-            </div>}
-
-            <div className={styles.actions} style={{ marginTop: 16 }}>
-              <Link
-                href={`/u/${session.host.username ?? ""}`}
-                onClick={() => liveId && void recordLiveEvent(liveId, "PROFILE_CLICKED")}
-              >
-                View host profile
-              </Link>
-              {session.status === "ENDED" && <span className={styles.pill}>
-                Ended {session.endedAt ? new Date(session.endedAt).toLocaleString() : ""}
-              </span>}
-            </div>
-          </section>
-
-          <aside className={`${styles.panel} ${styles.comments}`}>
-            <div className={styles.sectionTitle} style={{ marginTop: 0 }}>
-              <div>
-                <div className={styles.eyebrow}>LIVE CHAT</div>
-                <h2>{session.status === "LIVE" ? "Room" : "Chat history"}</h2>
-              </div>
-            </div>
-            <div className={styles.commentList}>
-              {comments.length === 0 && <p className={styles.muted}>No comments yet. Ask about the work, Service or Product.</p>}
-              {comments.map((comment) => <div className={styles.comment} key={comment.id}>
-                <strong>{comment.user.displayName ?? comment.user.username ?? "Hustle user"}</strong>
-                <span>@{comment.user.username ?? "user"}</span>
-                <p>{comment.body}</p>
-              </div>)}
-              <div ref={commentsEndRef} />
-            </div>
-            {session.status === "LIVE"
-              ? <form className={styles.commentForm} onSubmit={submitComment}>
-                  <input
-                    maxLength={500}
-                    value={body}
-                    onChange={(event) => setBody(event.target.value)}
-                    placeholder="Say something…"
-                  />
-                  <button className={styles.button} disabled={busy || !body.trim()}>
-                    {busy ? "…" : "Send"}
-                  </button>
-                </form>
-              : <p className={styles.hint}>This Live has ended, so the room is now read-only.</p>}
-          </aside>
+          </article>)}
+          <div ref={commentsEndRef} />
         </div>
-      </>}
-    </div>
+
+        {offer && session.pinnedOfferType && <div className={styles.roomOffer} aria-label="Attached Live product or service">
+          <span className={styles.roomOfferIcon} aria-hidden="true">{session.pinnedOfferType === "PRODUCT" ? "◇" : "✦"}</span>
+          <div className={styles.roomOfferCopy}>
+            <small>{session.pinnedOfferType === "PRODUCT" ? "PRODUCT IN THIS LIVE" : "SERVICE IN THIS LIVE"}</small>
+            <strong>{offer.title ?? "Attached offer"}</strong>
+            <span>{formatLiveMoney(offer.priceMinor, offer.currency)}</span>
+          </div>
+          <OfferQuickView
+            type={session.pinnedOfferType}
+            id={offer.id}
+            label="View ↗"
+            sourceLabel="LIVE"
+            className={styles.roomOfferAction}
+            onOpen={() => liveId && !isolatedWebMode && void recordLiveEvent(liveId, offerEvent).catch(() => undefined)}
+          />
+        </div>}
+
+        <div className={styles.roomComposer}>
+          {liveNow && !isolatedWebMode
+            ? <form onSubmit={submitComment} className={styles.roomCommentForm}>
+                <input aria-label="Write a live comment" maxLength={500}
+                  value={body} onChange={event => setBody(event.target.value)}
+                  placeholder="Say something…" />
+                <button type="submit" disabled={busy || !body.trim()}
+                  aria-label="Send live comment">{busy ? "…" : "➤"}</button>
+              </form>
+            : <div className={styles.roomChatRestricted} role="status">
+                {liveNow ? "Live chat isn't enabled in AWS test." : "This Live has ended."}
+              </div>}
+          <button type="button" className={styles.roomShare} aria-label="Share Live"
+            onClick={() => void share()}>↗</button>
+        </div>
+      </div>
+    </section>
   </main>;
 }
