@@ -426,21 +426,37 @@ function FeedCard({
 
       {offerCount > 0 && <section className={styles.opportunityDock} aria-label="Services and products attached to this post">
         {offerCount === 1 && item.services.length === 1
-          ? <OfferQuickView type="SERVICE" id={item.services[0].id}
-              label={`✦  ${item.services[0].title ?? "Service"}`} trailingLabel="Book ↗"
-              sourceLabel="POST" sourcePostId={item.post.id} className={styles.directOffer}
-              onOpen={() => void captureFeedEvent({
-                name: "feed.service_clicked", postId: item.post.id, feedTab: tab,
-                position, sessionId, serviceId: item.services[0].id
-              }).catch(() => undefined)} />
-          : offerCount === 1 && item.products.length === 1
-            ? <OfferQuickView type="PRODUCT" id={item.products[0].id}
-                label={`✦  ${item.products[0].title ?? "Product"}`} trailingLabel="View ↗"
-                sourceLabel="POST" sourcePostId={item.post.id} className={styles.directOffer}
+          ? <div className={styles.inlineOfferCard} aria-label="Service attached to this post">
+              {item.services[0].mediaUrls?.[0]
+                ? <img className={styles.inlineOfferImage} src={item.services[0].mediaUrls[0]} alt="" loading="lazy" />
+                : <span className={styles.inlineOfferSymbol} aria-hidden="true">✦</span>}
+              <span className={styles.inlineOfferDetails}>
+                <strong>{item.services[0].title ?? "Service"}</strong>
+                <small>{formatServicePrice(item.services[0])} · Service</small>
+              </span>
+              <OfferQuickView type="SERVICE" id={item.services[0].id}
+                label="Book ↗" sourceLabel="POST" sourcePostId={item.post.id} className={styles.directOffer}
                 onOpen={() => void captureFeedEvent({
-                  name: "feed.product_clicked", postId: item.post.id, feedTab: tab,
-                  position, sessionId, productId: item.products[0].id
+                  name: "feed.service_clicked", postId: item.post.id, feedTab: tab,
+                  position, sessionId, serviceId: item.services[0].id
                 }).catch(() => undefined)} />
+            </div>
+          : offerCount === 1 && item.products.length === 1
+            ? <div className={styles.inlineOfferCard} aria-label="Product attached to this post">
+                {item.products[0].mediaUrls?.[0]
+                  ? <img className={styles.inlineOfferImage} src={item.products[0].mediaUrls[0]} alt="" loading="lazy" />
+                  : <span className={styles.inlineOfferSymbol} aria-hidden="true">◇</span>}
+                <span className={styles.inlineOfferDetails}>
+                  <strong>{item.products[0].title ?? "Product"}</strong>
+                  <small>{formatProductPrice(item.products[0])} · Product</small>
+                </span>
+                <OfferQuickView type="PRODUCT" id={item.products[0].id}
+                  label="View ↗" sourceLabel="POST" sourcePostId={item.post.id} className={styles.directOffer}
+                  onOpen={() => void captureFeedEvent({
+                    name: "feed.product_clicked", postId: item.post.id, feedTab: tab,
+                    position, sessionId, productId: item.products[0].id
+                  }).catch(() => undefined)} />
+              </div>
             : <>
         <button className={styles.offerToggle} type="button" aria-expanded={offersOpen}
           onClick={() => { setActionMenuOpen(false); setOffersOpen((previous) => !previous); }}>
