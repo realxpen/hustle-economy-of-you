@@ -14,7 +14,7 @@ if (!["postgres:", "postgresql:"].includes(uri.protocol) ||
 
 // Fake provider credentials and HTTP responses, actual Nest services and PostgreSQL.
 // No live Paystack account, real-money transaction, remote database, or outbound API is used.
-process.env.PAYSTACK_TEST_SECRET_KEY = "sk_test_DISPOSABLE_CI_ONLY";
+process.env.PAYSTACK_TEST_SECRET_KEY = "sk_test_DISPOSABLECIONLY";
 process.env.PAYSTACK_TEST_RETURN_ORIGIN = "https://hustle.example";
 
 const realFetch = globalThis.fetch;
