@@ -19,7 +19,7 @@ concurrency:
 jobs:
   android-native:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       CI: '1'
       APP_VARIANT: preview
@@ -52,6 +52,7 @@ jobs:
         run: |
           node apps/mobile/scripts/cloud-preview-config-gate.cjs
           node apps/mobile/scripts/staging-device-readiness-contract.cjs
+          node apps/mobile/scripts/staging-bundled-runtime-contract.cjs
           npm run typecheck --workspace=@hustle/mobile
       - name: Check Expo native package compatibility (diagnostic)
         working-directory: apps/mobile
@@ -90,7 +91,7 @@ jobs:
         run: |
           set -o pipefail
           chmod +x gradlew
-          ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a --stacktrace --no-daemon --max-workers=2 --warning-mode=summary 2>&1 | tee /tmp/hustle-native-gradle-diagnostic.log
+          ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a,x86_64 --stacktrace --no-daemon --max-workers=2 --warning-mode=summary 2>&1 | tee /tmp/hustle-native-gradle-diagnostic.log
       - name: Verify signed staging package and prepare installable artifact
         shell: bash
         env:

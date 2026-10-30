@@ -35,10 +35,15 @@ const expectedEnv = {
   EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES: "true"
 };
 const originalEnv = Object.fromEntries(Object.keys(expectedEnv).map(k => [k, process.env[k]]));
+const manifest = { android: { package: "com.hustle.economyofyou.preview.staging" },
+  ios: { bundleIdentifier: "com.hustle.economyofyou.preview.staging" } };
+const platform = { OS: "android" };
 const auth = load("src/lib/staging-auth.ts", {
   "better-auth/react": { createAuthClient: () => ({}) },
   "@better-auth/expo/client": { expoClient: () => ({}) },
-  "expo-secure-store": {}
+  "expo-secure-store": {},
+  "expo-constants": { __esModule: true, default: { expoConfig: manifest } },
+  "react-native": { Platform: platform }
 });
 const { checkStagingApiReady } = load("src/lib/staging-connectivity.ts");
 const stageScreen = fs.readFileSync(path.join(root, "src/experience/StagingSignIn.tsx"), "utf8");
@@ -57,9 +62,20 @@ async function check(label, fn) { await fn(); tests.push(label); console.log("PA
       assert.equal(auth.isExpoStagingSelected(), true);
       assert.doesNotThrow(() => auth.validateExpoStagingConfiguration());
     });
-    await check("Both app variant AND runtime scope required; production/demo fail closed", () => {
+    await check("Embedded preview identity AND runtime scope required; production/demo fail closed", () => {
+      for (const os of ["android", "ios"]) {
+        platform.OS = os;
+        const identity = os === "android" ? manifest.android : manifest.ios;
+        const field = os === "android" ? "package" : "bundleIdentifier";
+        const original = identity[field];
+        identity[field] = "com.hustle.economyofyou";
+        assert.throws(() => auth.validateExpoStagingConfiguration(), /isolated/i);
+        identity[field] = original;
+        assert.doesNotThrow(() => auth.validateExpoStagingConfiguration());
+      }
+      platform.OS = "android";
       for (const [name, bad] of [
-        ["APP_VARIANT", "production"],
+        ["EXPO_PUBLIC_HUSTLE_AUTH_PROVIDER", "supabase"],
         ["EXPO_PUBLIC_HUSTLE_RUNTIME_SCOPE", "production"],
         ["EXPO_PUBLIC_HUSTLE_DEMO", "true"],
         ["EXPO_PUBLIC_HUSTLE_AUTH_URL", "https://untrusted.invalid/api/auth"],

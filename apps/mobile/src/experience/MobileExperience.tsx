@@ -13,6 +13,7 @@ import { SkillChip } from '../ux004/components/SkillChip';
 import { ScreenHeader } from '../ux004/components/ScreenHeader';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { syncMobileAccount } from '../lib/account';
+import { NativeInbox } from './NativeInbox';
 import { mobileApi, type FeedItem, type FeedTab, type Offer, type PostComment, type SearchResult, type SearchTab, type BookingSlot, type SlotPage } from './feed-api';
 import { connectedSearchWebLink, describeMobileSearchResult } from '../ux004/discovery/connectedSearchResult';
 import { appendUniqueSearchResults } from '../ux004/discovery/connectedSearchPagination';
@@ -20,7 +21,7 @@ import { currentSearchOffer, getSearchHustler, matchedPublishedOffers, searchHus
   from '../ux004/discovery/connectedOpportunity';
 import { currentEnquirySlots, enquiryNextDays, enquiryServiceId, enquirySlotLabel }
   from '../ux004/discovery/connectedOpportunityAvailability';
-import { consultationWebLink, createEnquiryDelivery, prepareEnquiryMessage, type Delivery }
+import { createEnquiryDelivery, prepareEnquiryMessage, type Delivery }
   from '../ux004/discovery/enquiryConsultation';
 
 const C = { dark: colors.darkBase, lime: colors.lime, paper: colors.paper, white: colors.surface,
@@ -80,6 +81,7 @@ function SheetTitle({ title, onClose }: { title: string; onClose: () => void }) 
 
 function Experience({ session, onSignOut }: { session: Session; onSignOut: () => Promise<void> }) {
   const token = session.access_token;
+  const [inboxTarget, setInboxTarget] = useState<{ id: string; nonce: number } | null>(null);
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const [screen, setScreen] = useState<Screen>('Home');
@@ -414,11 +416,10 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
   }
   async function openEnquiryConversation() {
     const id = enquiryDeliveryState.conversationId;
-    const serviceId = enquiryServiceId(opportunitySelectedOffer);
-    const url = id && serviceId ? consultationWebLink(id, serviceId, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL) : null;
-    if (!url) return;
-    try { await Linking.openURL(url); }
-    catch { Alert.alert('Conversation unavailable', 'Could not open the conversation. Your enquiry has not been resent.'); }
+    if (!id) return;
+    setInboxTarget({ id, nonce: Date.now() });
+    setOpportunityStage(null);
+    setScreen('Inbox');
   }
   async function openSearchResult(item: SearchResult) {
     const url = connectedSearchWebLink(item, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL);
@@ -443,8 +444,6 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
     ? enquirySlotLabel(enquirySelectedSlot.startAt, enquirySlotPage.timezone) : null;
   const enquiryCanSend = process.env.EXPO_PUBLIC_HUSTLE_ENABLE_ENQUIRY_MESSAGES === 'true';
   const enquiryAttemptStarted = !['idle', 'failed'].includes(enquiryDeliveryState.status);
-  const enquiryConversationUrl = enquiryDeliveryState.conversationId && enquiryServiceId(opportunitySelectedOffer)
-    ? consultationWebLink(enquiryDeliveryState.conversationId, enquiryServiceId(opportunitySelectedOffer)!, process.env.EXPO_PUBLIC_PUBLIC_WEB_URL) : null;
   const offerService = active?.services.find(s => s.id === offerId) || null;
   useEffect(() => {
     if (sheet !== 'booking' || !offerService) return;
@@ -589,7 +588,8 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
           </Pressable>}
         </ScrollView>
     </View>}
-    {(screen === 'Inbox' || screen === 'You') && <View style={[styles.lightPage, { paddingTop: insets.top + 18 }]}><Text style={styles.pageTitle}>{screen}</Text><Text style={styles.subline}>{screen === 'You' ? session.user.email || 'Your Hustle identity' : 'Messages'}</Text><Text style={styles.meta}>{screen === 'Inbox' ? 'Messaging UI will use the authenticated Hustle messaging API in a later mobile milestone.' : 'One account. Client capability first. Hustler and Agent capabilities unlock on the same account.'}</Text>{screen === 'You' ? <Action onPress={() => void onSignOut()}>Sign out</Action> : null}</View>}
+    <NativeInbox key={token} token={token} active={screen === 'Inbox'} target={inboxTarget}/>
+    {screen === 'You' && <View style={[styles.lightPage, { paddingTop: insets.top + 18 }]}><Text style={styles.pageTitle}>You</Text><Text style={styles.subline}>{session.user.email || 'Your Hustle identity'}</Text><Text style={styles.meta}>One account. Client capability first. Hustler and Agent capabilities unlock on the same account.</Text><Action onPress={() => void onSignOut()}>Sign out</Action></View>}
     <View style={[styles.nav, { bottom: Math.max(10, insets.bottom) }]}>
       {([['Home','home'],['Explore','search'],['Create','add-circle'],['Inbox','chatbubbles'],['You','person']] as const).map(([label, icon]) => <Pressable key={label} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: label === screen }} onPress={() => {
         if (label === 'Create') Alert.alert('Create content', 'The mobile publishing workflow is being connected to Hustler permissions.');
@@ -797,10 +797,10 @@ function Experience({ session, onSignOut }: { session: Session; onSignOut: () =>
                     : enquiryDeliveryState.status === 'uncertain'
                       ? 'The message may have arrived. It will not be resent automatically. Check the conversation before preparing another enquiry.'
                       : 'Your draft stays here. No booking or payment is created.'}</Text>
-                  {enquiryConversationUrl && <Action secondary onPress={() => void openEnquiryConversation()}>
-                    Open conversation in browser ↗
+                  {enquiryDeliveryState.conversationId && <Action secondary onPress={() => void openEnquiryConversation()}>
+                    Open conversation in Hustle
                   </Action>}
-                  {enquiryConversationUrl && <Text style={styles.meta}>Browser sign-in is separate. Continue the consultation there; booking remains a separate request.</Text>}
+                  {enquiryDeliveryState.conversationId && <Text style={styles.meta}>Continue the consultation in your inbox; booking remains a separate request.</Text>}
                 </View>}
                 <Action secondary disabled={enquiryAttemptStarted}
                   onPress={() => { clearEnquirySlots(); setOpportunityStage('offer'); }}>Back to service</Action>
