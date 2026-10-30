@@ -1,6 +1,7 @@
 "use client";
 
 import { authenticatedFetch } from "./api/authenticated-fetch";
+import { publicReadFetch } from "./api/public-browsing";
 
 export type LiveSessionStatus = "DRAFT" | "LIVE" | "ENDED" | "CANCELLED";
 export type LivePinnedOfferType = "SERVICE" | "PRODUCT";
@@ -115,13 +116,13 @@ export function getLiveViewerKey() {
 }
 
 export async function getActiveLiveSessions(limit = 20): Promise<LiveSessionRecord[]> {
-  const response = await fetch(`${apiBase}/live?limit=${limit}`, { cache: "no-store" });
+  const response = await publicReadFetch(`/live?limit=${limit}`);
   if (!response.ok) throw new Error(await parseError(response));
   return response.json() as Promise<LiveSessionRecord[]>;
 }
 
 export async function getPublicLiveSession(liveId: string): Promise<LiveSessionRecord> {
-  const response = await fetch(`${apiBase}/live/${encodeURIComponent(liveId)}`, { cache: "no-store" });
+  const response = await publicReadFetch(`/live/${encodeURIComponent(liveId)}`);
   if (!response.ok) throw new Error(await parseError(response));
   return response.json() as Promise<LiveSessionRecord>;
 }
@@ -237,9 +238,8 @@ export async function getLiveComments(
     params.set("afterCreatedAt", options.after.createdAt);
     params.set("afterId", options.after.id);
   }
-  const response = await fetch(
-    `${apiBase}/live/${encodeURIComponent(liveId)}/comments?${params.toString()}`,
-    { cache: "no-store" }
+  const response = await publicReadFetch(
+    `/live/${encodeURIComponent(liveId)}/comments?${params.toString()}`
   );
   if (!response.ok) throw new Error(await parseError(response));
   return response.json() as Promise<LiveCommentRecord[]>;
