@@ -98,6 +98,10 @@ function localOnly(url) {
        });
        if(u.pathname==="/api/isolated/auth/get-session") return respond({session:null,user:null});
        if(/\/api\/v1\/guest\/feed\/for-you$/.test(u.pathname)) return respond(fixtureFeed);
+       // UX033: the normal Discovery page now asks for real LIVE sessions as
+       // optional public content. Synthetic QA has no active broadcaster;
+       // intercept every LIVE GET so no external staging/backend is contacted.
+       if(/\/api\/v1\/live$/.test(u.pathname)) return respond([]);
        if(/\/api\/v1\/guest\/marketplace(?:\/(services|products))?$/.test(u.pathname)) {
          const type=u.pathname.endsWith("/services") ? "services"
            : u.pathname.endsWith("/products") ? "products" : "all";
