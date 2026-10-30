@@ -24,6 +24,7 @@ import styles from "../products/product-editor.module.css";
 import {
   authorizeStagingPostMedia, confirmStagingPostMedia,
   isStagingTransferTicketFresh, transferFileToPrivateStaging,
+  PrivateMediaTransferError,
   validateStagingUploadFile, type MediaUploadAuthorization
 } from "../../lib/post-media-upload";
 import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
@@ -97,7 +98,9 @@ export default function PostEditor({ postId }: { postId?: string }) {
   // Keep the SAME signed key and receipt so the owner can verify or retry safely.
   const [pendingTransfer, setPendingTransfer] = useState<{
     file: File; postId: string; ticket: MediaUploadAuthorization; authorizedAtMs: number;
+    retryCount: number; checked: boolean;
   } | null>(null);
+  const [transferDiagnostic, setTransferDiagnostic] = useState<string | null>(null);
   const [verifyingUpload, setVerifyingUpload] = useState(false);
   const [draftMediaPreviews, setDraftMediaPreviews] = useState<Record<string,string>>({});
   const uploadAbort = useRef<AbortController | null>(null);
@@ -216,6 +219,9 @@ export default function PostEditor({ postId }: { postId?: string }) {
     };
   }, [postId, retry]);
 
+  const retryBlocked = Boolean(selectedFile && pendingTransfer?.file === selectedFile &&
+    (!pendingTransfer.checked || pendingTransfer.retryCount >= 1 &&
+      isStagingTransferTicketFresh(pendingTransfer.ticket, pendingTransfer.authorizedAtMs)));
   const currentId = post?.id ?? postId;
   const published = post?.status === "PUBLISHED";
   const mediaCount = post?.media.length ?? 0;
@@ -274,10 +280,14 @@ export default function PostEditor({ postId }: { postId?: string }) {
     }
   }
 
-  async function commitUploadedFile(draftId: string, receipt: string) {
+  async function commitUploadedFile(draftId: string, receipt: string, file: File) {
     // Confirmation is owner-scoped and idempotent. A successful POST may have
     // committed even if Safari failed to receive the HTTP response.
     await confirmStagingPostMedia(draftId, receipt);
+    // Confirmation can succeed even if the subsequent draft refresh fails.
+    // Preserve verification-only recovery; never transfer the bytes again.
+    setPendingConfirmation({ file, postId: draftId, receipt });
+    setPendingTransfer(null);
     const updated = await getMyPost(draftId);
     setPost(updated);
     if (!currentId) router.replace(`/posts/${draftId}/edit`);
@@ -299,8 +309,10 @@ export default function PostEditor({ postId }: { postId?: string }) {
       // This explicit owner action checks for the signed pending object and
       // attaches it to the DRAFT only if the object exists and passes server
       // signature, MIME, size, ownership and receipt verification.
-      await commitUploadedFile(attempt.postId, attempt.ticket.receipt);
+      await commitUploadedFile(attempt.postId, attempt.ticket.receipt, attempt.file);
     } catch (reason) {
+      // An unsuccessful check never proves that the object is absent.
+      setPendingTransfer(previous => previous?.ticket === attempt.ticket ? { ...previous, checked: true } : previous);
       setError("The earlier transfer could not be verified. No publication occurred. " +
         (reason instanceof Error ? reason.message : "Try again on a stable connection."));
     } finally {
@@ -313,6 +325,16 @@ export default function PostEditor({ postId }: { postId?: string }) {
     if (!selectedFile || busy) return;
     const problem = validateStagingUploadFile(selectedFile);
     if (problem) { setError(problem); return; }
+    const previousAttempt = pendingTransfer?.file === selectedFile ? pendingTransfer : null;
+    if (previousAttempt && !previousAttempt.checked) {
+      setError("Check earlier upload first. An unreadable Safari response does not prove S3 rejected the file.");
+      return;
+    }
+    if (previousAttempt && previousAttempt.retryCount >= 1 &&
+        isStagingTransferTicketFresh(previousAttempt.ticket, previousAttempt.authorizedAtMs)) {
+      setError("One retry was already used for this signed upload. Check earlier upload; request a fresh authorization only after expiry.");
+      return;
+    }
     const existingReceipt = pendingConfirmation?.file === selectedFile ? pendingConfirmation : null;
     const recoverable = pendingTransfer?.file === selectedFile && 
       isStagingTransferTicketFresh(pendingTransfer.ticket, pendingTransfer.authorizedAtMs)
@@ -323,6 +345,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
     setBusy(true);
     setError(null);
     setNotice(null);
+    setTransferDiagnostic(null);
     setUploadProgress(existingReceipt ? 100 : 0);
     try {
       let draftId: string;
@@ -341,8 +364,9 @@ export default function PostEditor({ postId }: { postId?: string }) {
           await authorizeStagingPostMedia(postId, selectedFile);
         if (controller.signal.aborted) return;
         if (!recoverable) setPendingTransfer({
-          file: selectedFile, postId, ticket, authorizedAtMs: Date.now()
+          file: selectedFile, postId, ticket, authorizedAtMs: Date.now(), retryCount: 0, checked: false
         });
+        else setPendingTransfer({ ...recoverable, retryCount: recoverable.retryCount + 1, checked: false });
         await transferFileToPrivateStaging(
           selectedFile, ticket, pct => setUploadProgress(pct), controller.signal
         );
@@ -357,12 +381,13 @@ export default function PostEditor({ postId }: { postId?: string }) {
       confirmationStarted = true;
       setVerifyingUpload(true);
       setUploadProgress(100);
-      await commitUploadedFile(draftId, receipt);
+      await commitUploadedFile(draftId, receipt, selectedFile);
     } catch (reason) {
       if (controller.signal.aborted && !confirmationStarted) {
         setPendingTransfer(null);
         setNotice("Transfer cancelled. Your draft was not published.");
       } else {
+        if (reason instanceof PrivateMediaTransferError) setTransferDiagnostic(reason.diagnostic);
         setError(reason instanceof Error ? reason.message : "Could not finish private media upload");
       }
     } finally {
@@ -495,6 +520,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
               onChange={event => {
                 const next = event.target.files?.[0] ?? null;
                 setSelectedFile(next);
+                 setTransferDiagnostic(null);
                 setPendingConfirmation(null);
                 setPendingTransfer(null);
                 setError(next ? validateStagingUploadFile(next) : null);
@@ -512,7 +538,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
               <small>{uploadProgress >= 99 ? "Verifying your uploaded media…" : `Uploading ${uploadProgress}%`}</small>
             </div>}
             <div className={styles.actions}>
-              <button type="button" className={styles.primary} onClick={() => void uploadSelectedFile()} disabled={busy || Boolean(validateStagingUploadFile(selectedFile))}>{pendingConfirmation?.file === selectedFile ? "Retry verification" : pendingTransfer?.file === selectedFile ? "Retry private transfer" : "Upload privately"}</button>
+              <button type="button" className={styles.primary} onClick={() => void uploadSelectedFile()} disabled={busy || retryBlocked || Boolean(validateStagingUploadFile(selectedFile))}>{pendingConfirmation?.file === selectedFile ? "Retry verification" : pendingTransfer?.file === selectedFile ? "Retry private transfer" : "Upload privately"}</button>
               {pendingTransfer?.file === selectedFile && !busy && <button type="button" className={styles.secondary} onClick={() => void checkPreviousTransfer()}>Check earlier upload first</button>}
               <button type="button" className={styles.secondary} disabled={verifyingUpload} onClick={() => {
                 uploadAbort.current?.abort();
