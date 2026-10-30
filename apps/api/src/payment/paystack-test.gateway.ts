@@ -80,9 +80,6 @@ export class PaystackTestGateway implements PaymentGatewayPort {
       throw new BadRequestException("Paystack test checkout currently supports NGN on Hustle");
     }
     const chargeAmount = amount(input.amountMinor);
-    if (chargeAmount < 10000) {
-      throw new BadRequestException("Paystack test amount must be at least ₦100");
-    }
     const reference = `hustle-${input.attemptId}`;
     const callbackOrigin = process.env.PAYSTACK_TEST_RETURN_ORIGIN?.trim();
     let callbackUrl: string | undefined;
