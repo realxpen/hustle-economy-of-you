@@ -28,7 +28,7 @@ export default function LiveDiscoveryPage() {
 
   return <main className={styles.livePreviewPage} data-hustle-live-previews="true">
     <header className={styles.livePreviewHeader}>
-      <Link href="/home" aria-label="Back to Discovery">‹ Discover</Link>
+      <Link href="/home" aria-label="Back to Discovery">‹ hustle</Link>
       <strong><span aria-hidden="true">●</span> LIVE</strong>
       <Link href="/live/create">Go LIVE +</Link>
     </header>
