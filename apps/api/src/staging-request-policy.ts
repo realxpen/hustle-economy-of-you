@@ -4,7 +4,8 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const authRead = /^\/api\/auth\/(get-session|ok)$/;
   const authWrite = /^\/api\/auth\/(sign-up\/email|sign-in\/email|sign-out)$/;
   const ordinaryRead = /^\/api\/v1(?:\/(?:health|foundation|auth\/me|creator-activation))?$/;
-  const discoveryRead = /^\/api\/v1\/(?:feed|search|marketplace|services|posts|products|messaging)(?:\/[A-Za-z0-9_-]+)*$/;
+  const discoveryRead = /^\/api\/v1\/(?:feed|search|marketplace|services|posts|messaging)(?:\/[A-Za-z0-9_-]+)*$/;
+  const productRead = /^\/api\/v1\/products(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?$/;
   const notificationRead = /^\/api\/v1\/notifications(?:\/unread-count)?$/;
   const notificationReceiptWrite = /^\/api\/v1\/notifications\/(?:read-all|[A-Za-z0-9_-]+\/read)$/;
   const isolatedMediaRead = /^\/api\/v1\/media\/(?:p|o)\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
@@ -35,7 +36,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const guestRead = /^\/api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;
   const ownerRead = /^\/api\/v1\/(?:hustler-application|professional-profile|services\/mine(?:\/[A-Za-z0-9_-]+)?|hustler-reviews(?:\/[A-Za-z0-9_-]+)?|profiles\/[A-Za-z0-9_-]+|storefronts\/[A-Za-z0-9_-]+)$/;
   if (method === "GET" || method === "HEAD")
-    return isolatedMediaRead.test(path) || authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || guestRead.test(path) || ownerRead.test(path) || safetyRead.test(path) || bookingRead.test(path) || guestSlots.test(path) || walletRead.test(path) || paymentRead.test(path) || reviewRead.test(path) || publicTrustRead.test(path) || notificationRead.test(path);
+    return isolatedMediaRead.test(path) || authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || productRead.test(path) || guestRead.test(path) || ownerRead.test(path) || safetyRead.test(path) || bookingRead.test(path) || guestSlots.test(path) || walletRead.test(path) || paymentRead.test(path) || reviewRead.test(path) || publicTrustRead.test(path) || notificationRead.test(path);
   if (method === "PATCH") return path === "/api/v1/auth/profile";
   if (method === "PUT")
     return path === "/api/v1/hustler-application" || path === "/api/v1/professional-profile" ||
