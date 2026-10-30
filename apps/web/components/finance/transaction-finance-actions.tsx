@@ -26,6 +26,18 @@ type Props = {
   onFinancialChange?: () => void | Promise<void>;
 };
 
+// Only allow the checkout host validated by our Paystack test gateway.
+function resumablePaystackCheckout(payment: PaymentAttemptRecord | null): string | null {
+  if (payment?.provider !== "PAYSTACK_TEST" || payment.status !== "PENDING" || !payment.checkoutUrl) return null;
+  try {
+    const url = new URL(payment.checkoutUrl);
+    return url.protocol === "https:" && url.hostname === "checkout.paystack.com" &&
+      !url.username && !url.password ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function idempotencyKey(storageKey: string, prefix: string) {
   const existing = window.sessionStorage.getItem(storageKey);
   if (existing) return existing;
@@ -138,6 +150,7 @@ export function TransactionFinanceActions({
     }
   }
 
+  const resumeCheckoutUrl = canInitialize ? resumablePaystackCheckout(payment) : null;
   const releaseAvailable = Boolean(canRelease && releaseKind && releaseState && !releaseState.released);
   const hasAction = canInitialize || canRefund || releaseAvailable;
   const releaseLabel = releaseKind === "BOOKING_ESCROW" ? "Escrow" : "Settlement";
@@ -146,6 +159,11 @@ export function TransactionFinanceActions({
     <div style={{ display: "grid", gap: 10 }}>
       <div style={{ border: "1px solid #b7b4aa", borderRadius: 16, padding: 14, background: "#f8f6f0" }}>
         <small style={{ fontWeight: 850, letterSpacing: ".12em" }}>FINANCIAL STATE</small>
+        {payment?.provider === "PAYSTACK_TEST" && (
+          <p role="status" style={{ margin: "8px 0", fontSize: 12, fontWeight: 750, color: "#87420b" }}>
+            Paystack test checkout — no real money is being charged. Hustle waits for verified provider confirmation.
+          </p>
+        )}
         {payment?.provider === "HUSTLE_SANDBOX" && (
           <p role="status" style={{ margin: "8px 0", fontSize: 12, fontWeight: 750, color: "#87420b" }}>
             Sandbox simulation — no real payment or provider settlement. This status is from Hustle's isolated test ledger.
@@ -182,6 +200,18 @@ export function TransactionFinanceActions({
             {busy === "payment" ? "Starting…" : payment?.status === "FAILED" ? "Retry payment" : "Start secure payment"}
           </button>
         )}
+        {resumeCheckoutUrl && (
+          <button disabled={Boolean(busy)} onClick={() => window.location.assign(resumeCheckoutUrl)}
+            style={{ border: 0, borderRadius: 999, padding: "12px 16px", background: "#111", color: "#fff", fontWeight: 800, cursor: "pointer" }}>
+            Resume Paystack test checkout
+          </button>
+        )}
+        {payment?.provider === "PAYSTACK_TEST" && payment.status === "PENDING" && (
+          <button disabled={Boolean(busy)} onClick={() => void afterChange()}
+            style={{ border: "1px solid #111", borderRadius: 999, padding: "12px 16px", background: "transparent", fontWeight: 800, cursor: "pointer" }}>
+            Check payment confirmation
+          </button>
+        )}
         {canRefund && (
           <button disabled={Boolean(busy)} onClick={() => void refund()} style={{ border: "1px solid #111", borderRadius: 999, padding: "12px 16px", background: "transparent", fontWeight: 800, cursor: "pointer" }}>
             {busy === "refund" ? "Requesting…" : "Request refund"}
@@ -192,7 +222,7 @@ export function TransactionFinanceActions({
             {busy === "release" ? "Releasing…" : payment?.provider === "HUSTLE_SANDBOX" ? "Release simulated escrow" : releaseKind === "BOOKING_ESCROW" ? "Confirm completion & release escrow" : "Release completed settlement"}
           </button>
         )}
-        <button disabled={Boolean(busy)} onClick={() => void refresh()} style={{ border: 0, background: "transparent", textDecoration: "underline", cursor: "pointer", fontWeight: 700 }}>
+        <button disabled={Boolean(busy)} onClick={() => void afterChange()} style={{ border: 0, background: "transparent", textDecoration: "underline", cursor: "pointer", fontWeight: 700 }}>
           Refresh financial status
         </button>
       </div>}
