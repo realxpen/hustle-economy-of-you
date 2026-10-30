@@ -33,7 +33,7 @@ globalThis.fetch = async (input, init) => {
     assert.equal(request.amount, 250000);
     assert.equal(request.currency, "NGN");
     assert.match(request.reference, /^hustle-/);
-    assert.match(request.callback_url, /^https:\/\/hustle\.example\/orders\//);
+    assert.match(request.callback_url, /^https:\/\/hustle\.example\/(orders|bookings)\//);
     reference = request.reference;
     return new Response(JSON.stringify({ status: true, data: {
       authorization_url: "https://checkout.paystack.com/disposable-only",
@@ -66,6 +66,8 @@ const { TrustModule } = require("../../apps/api/dist/trust/trust.module.js");
 const { PrismaService } = require("../../apps/api/dist/database/prisma.service.js");
 const { CommerceService } = require("../../apps/api/dist/commerce/commerce.service.js");
 const { PaymentService } = require("../../apps/api/dist/payment/payment.service.js");
+const { BookingService } = require("../../apps/api/dist/booking/booking.service.js");
+const { WalletService } = require("../../apps/api/dist/payment/wallet.service.js");
 const { PAYMENT_GATEWAY } = require("../../apps/api/dist/payment/payment-gateway.port.js");
 class TestModule {}
 Module({ imports: [DatabaseModule, PaymentModule, LiveModule, TrustModule, AnalyticsModule,
@@ -81,6 +83,8 @@ try {
   const prisma = app.get(PrismaService);
   const commerce = app.get(CommerceService);
   const payments = app.get(PaymentService);
+  const bookings = app.get(BookingService);
+  const wallet = app.get(WalletService);
   assert.equal((await prisma.$queryRawUnsafe("SELECT current_database() AS db"))[0].db, "hustle_payment_sandbox");
   assert.equal(app.get(PAYMENT_GATEWAY).constructor.name, "PaystackTestGateway");
 
@@ -88,6 +92,7 @@ try {
   const buyerSubject = "paystack-buyer-" + testId;
   const sellerSubject = "paystack-seller-" + testId;
   const buyerIdentity = { subject: buyerSubject, emailVerified: true, phoneVerified: false };
+  const sellerIdentity = { subject: sellerSubject, emailVerified: false, phoneVerified: false };
   const buyer = await prisma.user.create({
     data: { authSubject: buyerSubject, email: "buyer@example.test",
       emailVerified: true, displayName: "Disposable Paystack Buyer" }
@@ -221,6 +226,139 @@ try {
   assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: secondAttempt.id } }), 1,
     "Callback verification plus webhook may not double-post");
   assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).inventoryQuantity, 1);
+
+
+  // Service journey: original Booking terms -> provider verified funding -> work
+  // -> released test-ledger escrow. This uses the SAME real module/ledger,
+  // not another finance mock or a separate UI route.
+  const service = await prisma.service.create({
+    data: {
+      professionalProfileId: profile.id,
+      status: "PUBLISHED",
+      publishedAt: new Date(),
+      title: "Disposable Paid Service",
+      priceMinor: 250000,
+      currency: "NGN",
+      pricingType: "FIXED",
+      bookingMode: "WORK_QUEUE"
+    }
+  });
+  const booking = await bookings.create(buyerIdentity, {
+    serviceId: service.id,
+    requirements: "Disposable paid service integration acceptance",
+    requestedStartAt: new Date(Date.now() + 2 * 86_400_000).toISOString()
+  });
+  assert.equal(booking.status, "REQUESTED");
+  await assert.rejects(
+    () => payments.initialize(buyerIdentity, { subjectType: "BOOKING", subjectId: booking.id }, "preaccept-" + testId),
+    /Booking payment cannot start from REQUESTED/,
+    "Buyer cannot fund a Booking before Hustler accepts"
+  );
+  const accepted = await bookings.accept(sellerIdentity, booking.id, {});
+  assert.equal(accepted.status, "PAYMENT_PENDING");
+  assert.equal(accepted.agreedPriceMinor, 250000);
+  await assert.rejects(
+    () => bookings.start(sellerIdentity, booking.id),
+    /Payment is still pending/,
+    "No paid work before provider-confirmed funding"
+  );
+  assert.equal(await prisma.escrowRecord.count({ where: { subjectType: "BOOKING", subjectId: booking.id } }), 0);
+
+  const bookingAttempt = await payments.initialize(
+    buyerIdentity, { subjectType: "BOOKING", subjectId: booking.id }, "booking-paystack-" + testId
+  );
+  assert.equal(bookingAttempt.provider, "PAYSTACK_TEST");
+  assert.equal(bookingAttempt.status, "PENDING");
+  assert.equal(bookingAttempt.amountMinor, 250000);
+  assert.equal(initializeCount, 3);
+  const bookingReference = reference;
+  assert.equal(bookingAttempt.providerReference, bookingReference);
+  await assert.rejects(
+    () => payments.confirmPendingFromProvider(sellerIdentity, bookingAttempt.id),
+    /Payment attempt not found/,
+    "Hustler cannot impersonate the buyer during provider verification"
+  );
+  transactionId = 37829874;
+  verifyStatus = "pending";
+  const stillWaiting = await payments.confirmPendingFromProvider(buyerIdentity, bookingAttempt.id);
+  assert.equal(stillWaiting.status, "PENDING");
+  assert.equal((await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } })).status, "PAYMENT_PENDING");
+  assert.equal(await prisma.escrowRecord.count({ where: { subjectType: "BOOKING", subjectId: booking.id } }), 0);
+
+  verifyStatus = "success";
+  verifiedAmount = 250001;
+  await assert.rejects(
+    () => payments.confirmPendingFromProvider(buyerIdentity, bookingAttempt.id),
+    /Webhook amount does not match/,
+    "Altered provider amount may not fund a Booking"
+  );
+  assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: bookingAttempt.id } }), 0);
+  assert.equal(await prisma.escrowRecord.count({ where: { subjectType: "BOOKING", subjectId: booking.id } }), 0);
+
+  verifiedAmount = 250000;
+  const bookingFunded = await payments.confirmPendingFromProvider(buyerIdentity, bookingAttempt.id);
+  assert.equal(bookingFunded.status, "SUCCEEDED");
+  assert.equal(bookingFunded.appliedToSubject, true);
+  assert.equal((await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } })).status, "FUNDED");
+  const heldEscrow = await prisma.escrowRecord.findUniqueOrThrow({
+    where: { subjectType_subjectId: { subjectType: "BOOKING", subjectId: booking.id } }
+  });
+  assert.equal(heldEscrow.status, "HELD");
+  assert.equal(heldEscrow.amountMinor, 250000);
+  assert.equal(heldEscrow.currency, "NGN");
+  assert.equal(heldEscrow.paymentAttemptId, bookingAttempt.id);
+  assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: bookingAttempt.id } }), 1);
+  const fundingLedger = await prisma.ledgerTransaction.findFirstOrThrow({
+    where: { paymentAttemptId: bookingAttempt.id },
+    include: { postings: { include: { account: true } } }
+  });
+  assert.equal(fundingLedger.type, "PAYMENT_CONFIRMED");
+  assert.equal(fundingLedger.postings.length, 2);
+  assert.equal(fundingLedger.postings.filter(p => p.direction === "CREDIT" && p.account.type === "ESCROW").length, 1);
+  assert.equal(fundingLedger.postings.filter(p => p.direction === "DEBIT" && p.account.type === "PROVIDER_CLEARING").length, 1);
+  await assert.rejects(
+    () => wallet.releaseBookingEscrow(buyerIdentity, booking.id),
+    /Booking escrow cannot be released from FUNDED/,
+    "Buyer must not release escrow before work completion"
+  );
+  const workStarted = await bookings.start(sellerIdentity, booking.id);
+  assert.equal(workStarted.status, "IN_PROGRESS");
+  const workCompleted = await bookings.complete(sellerIdentity, booking.id);
+  assert.equal(workCompleted.status, "COMPLETED");
+  await assert.rejects(
+    () => wallet.releaseBookingEscrow(sellerIdentity, booking.id),
+    /Only the Booking client can confirm completion/,
+    "Hustler cannot release their own escrow"
+  );
+  const released = await wallet.releaseBookingEscrow(buyerIdentity, booking.id);
+  assert.equal(released.released, true);
+  assert.equal(released.duplicate, false);
+  const replayRelease = await wallet.releaseBookingEscrow(buyerIdentity, booking.id);
+  assert.equal(replayRelease.duplicate, true);
+  const escrowAfter = await prisma.escrowRecord.findUniqueOrThrow({
+    where: { subjectType_subjectId: { subjectType: "BOOKING", subjectId: booking.id } }
+  });
+  assert.equal(escrowAfter.status, "RELEASED");
+  assert.equal(await prisma.ledgerTransaction.count({
+    where: { subjectType: "BOOKING", subjectId: booking.id, type: "ESCROW_RELEASED" }
+  }), 1, "Escrow release posts once even when retried");
+
+  // A delayed signed Paystack test webhook after return verification and test
+  // ledger release cannot post another capture or re-create HELD escrow.
+  const lateBookingEvent = JSON.stringify({ event: "charge.success", data: {
+    id: transactionId, reference: bookingReference,
+    domain: "test", status: "success", amount: 250000, currency: "NGN"
+  } });
+  const lateBookingSignature = createHmac("sha512", process.env.PAYSTACK_TEST_SECRET_KEY)
+    .update(lateBookingEvent).digest("hex");
+  const lateBookingCallback = await notify(lateBookingEvent, lateBookingSignature);
+  assert.equal(lateBookingCallback.status, 201);
+  assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: bookingAttempt.id } }), 1);
+  assert.equal((await prisma.escrowRecord.findUniqueOrThrow({
+    where: { subjectType_subjectId: { subjectType: "BOOKING", subjectId: booking.id } }
+  })).status, "RELEASED");
+  assert.equal(await prisma.escrowRecord.count({ where: { subjectType: "BOOKING", subjectId: booking.id } }), 1);
+  console.log("PASS: real Nest/Postgres Booking REQUESTED -> PAYMENT_PENDING -> verified test funds -> FUNDED -> completed work -> once-only escrow release; negative and delayed webhook guards.");
 
   console.log("PASS: webhook-first and buyer-verified return each create one paid Order; pending/mismatched/cross-account/replay safe.");
 } finally {
