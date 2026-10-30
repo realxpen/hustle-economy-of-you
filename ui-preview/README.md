@@ -10,16 +10,24 @@
 - The prototype uses demo data. Interactions never send messages, book, pay, or write to production services.
 - Main app: `realxpen/hustle-economy-of-you`; this branch is for visual review only.
 
-## Cloudflare Pages — connect once to get a stable iPhone link
-1. Open https://dash.cloudflare.com/ and select **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
-2. Connect GitHub and authorize `realxpen/hustle-economy-of-you` (select only the repository necessary).
-3. Choose the **production branch** `preview/hustle-v1-posts-stories` for this separate Pages project. **Do not deploy the default `main` branch**.
-4. **Framework preset:** None.
-5. **Root directory (advanced):** `ui-preview`
-6. **Build command:** `exit 0` (or leave empty if Pages permits).
-7. **Build output directory:** `dist`
-8. Deploy. Cloudflare supplies the actual URL; do not guess it.
-9. For automatic future iterations, keep this project connected to the preview branch only.
+## Cloudflare Workers — connected static preview
+
+This is a **Cloudflare Workers Builds** deployment (the build log invokes `npx wrangler deploy`), not a Pages project.
+
+The preview branch includes a root `wrangler.jsonc` with `assets.directory: "./ui-preview/dist"`. The preview is a static asset deployment and requires no application framework, backend, or database.
+
+### Worker build settings
+1. Set Git branch to `preview/hustle-v1-posts-stories` (not `main`).
+2. Root directory: repository root (leave the field empty).
+3. Build command: `exit 0`.
+4. Deploy command: `npx wrangler deploy`.
+5. The Wrangler `name` is presently `hustle-ui-preview`. Cloudflare Workers Builds may require that this name match the Worker project's name on the Cloudflare dashboard. If a name mismatch error occurs, update this configuration's `name` to the exact Worker name in the dashboard.
+6. Retry the build. Use the URL Cloudflare returns; do not guess a hostname.
+
+The repository's root `package.json` can cause unnecessary dependency installation when builds start at the root. This is not needed for the static preview. Future optimizations may set root directory to `ui-preview` and move the Wrangler config accordingly.
+
+### Alternate Cloudflare Pages setup
+If creating a genuine **Pages** project instead of **Workers**, use this branch, set root directory empty, set build command `exit 0`, and set output directory `ui-preview/dist`. Pages uses a different deployment mechanism from Workers.
 
 ## Preview acceptance
 - Default Home shows a regular post, not the Stories viewer.
