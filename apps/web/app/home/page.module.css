@@ -1603,3 +1603,35 @@
  .liveInsert{border-radius:0}
  .liveInsert>a{border-radius:0}
 }
+
+
+/* UX034: normal posts share the same compact shoppable attachment language
+ * as LIVE previews. Source media and actual prices only; no fake product art. */
+.inlineOfferCard{width:100%;display:flex;align-items:center;gap:9px;min-width:0;
+ background:#f8fbf3eb;color:#182e22;border-radius:13px;padding:8px;
+ border:1px solid #fff8;min-height:62px;text-shadow:none}
+.inlineOfferImage{display:block;width:42px;height:43px;flex:0 0 42px;object-fit:cover;
+ border-radius:9px;background:#e3eddb}
+.inlineOfferSymbol{width:42px;height:43px;flex:0 0 42px;display:grid;
+ place-items:center;background:#e3eddb;color:#255c34;border-radius:9px;font-size:22px}
+.inlineOfferDetails{display:grid;gap:3px;min-width:0;flex:1}
+.inlineOfferDetails strong{font-size:12px;line-height:1.25;overflow:hidden;
+ white-space:nowrap;text-overflow:ellipsis}
+.inlineOfferDetails small{font-size:10px;color:#586c5b;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis}
+.inlineOfferCard .directOffer{min-width:68px;width:auto;max-width:85px;min-height:42px;
+ border-radius:9px;background:#c9f26b;color:#153d25;border:0;padding:9px 11px;
+ justify-content:center;flex:0 0 auto;box-shadow:none;font-weight:900;
+ font-size:11px;white-space:nowrap}
+.inlineOfferCard .directOffer:hover{background:#b9e85d}
+@media(max-width:760px){
+ .inlineOfferCard{width:calc(100% - 49px);max-width:360px;min-height:59px;
+ gap:7px;padding:7px;border-radius:12px}
+ .inlineOfferImage,.inlineOfferSymbol{height:42px;width:41px;flex-basis:41px}
+ .inlineOfferCard .directOffer{min-width:59px;max-width:69px;min-height:42px;
+ padding:8px;font-size:10px}
+ .inlineOfferDetails strong{font-size:11px}
+}
+@media(max-width:350px){.inlineOfferCard{width:calc(100% - 43px)}
+ .inlineOfferCard .directOffer{min-width:54px;padding:7px 5px}
+}
