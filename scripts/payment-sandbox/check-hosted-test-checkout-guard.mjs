@@ -8,7 +8,7 @@ const valid = {
   HUSTLE_TEST_CHECKOUT_PHASE: "PREPARE", HUSTLE_TEST_CHECKOUT_SOURCE_RUN_ID: "",
   NODE_ENV: "test", HUSTLE_PAYMENT_GATEWAY: "paystack-test",
   DATABASE_URL: "postgresql://postgres:sandbox_only@127.0.0.1:55439/hustle_payment_sandbox?schema=public",
-  PAYSTACK_TEST_SECRET_KEY: "sk_test_OFFLINE_CONTRACT_ONLY"
+  PAYSTACK_TEST_SECRET_KEY: "sk_test_OFFLINECONTRACTONLY1234"
 };
 assert.equal(assertHostedTestCheckoutEnvironment(valid), "PREPARE");
 assert.equal(assertHostedTestCheckoutEnvironment({
