@@ -50,6 +50,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
+      - name: Syntax-check protected provider runner without running it
+        run: node --check scripts/payment-sandbox/real-paystack-test-preflight.mjs
       - name: Validate protected real-provider preflight denies unsafe contexts without network
         run: node scripts/payment-sandbox/check-real-paystack-preflight.mjs
       - name: Mint throwaway webhook secret
