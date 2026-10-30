@@ -1,47 +1,54 @@
-.card{position:relative;display:block;width:100%;height:100%;min-height:390px;
- overflow:hidden;background:#12251C;color:#FFF;border-radius:22px;
- text-decoration:none;isolation:isolate}
+
+/* UX034: A LIVE preview is a video-first Discovery card, not a separate
+   commerce landing tile. Media fills the canvas; a linked real offer appears
+   as one compact shoppable attachment, inspired by short-video interfaces. */
+.card{display:block;position:relative;width:100%;height:100%;min-height:380px;
+ color:#fff;background:#0c1511;overflow:hidden;isolation:isolate;
+ border-radius:18px;text-decoration:none}
 .stage,.stageTint{position:absolute;inset:0}
-.stage{background:radial-gradient(circle at 30% 28%,#315A3B 0%,#10221A 60%,#0B1512 100%)}
-.poster{position:absolute;inset:-12%;width:124%;height:124%;object-fit:cover;
- filter:blur(24px) brightness(.47)}
-.video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:transparent}
-.stageTint{background:linear-gradient(to bottom,rgba(0,0,0,.32) 2%,transparent 26%,
- rgba(0,0,0,.12) 44%,rgba(0,0,0,.88) 100%)}
-.posterMark{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);
- font-size:clamp(75px,17vw,170px);color:#C9F26B;opacity:.52}
+.stage{background:radial-gradient(ellipse at 50% 28%,#385343,#111b16 66%,#0a100d)}
+.poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+ filter:brightness(.65) blur(5px);transform:scale(1.04)}
+.video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:transparent}
+.stageTint{background:linear-gradient(to bottom,rgba(0,0,0,.44) 0%,transparent 24%,
+ rgba(0,0,0,.04) 49%,rgba(0,0,0,.52) 73%,rgba(0,0,0,.89) 100%)}
+.posterMark{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);
+ color:#c7ef6c;opacity:.38;font-size:clamp(85px,20vw,150px);font-weight:800}
 .header,.footer{position:absolute;left:0;right:0;z-index:1}
-.header{top:0;display:flex;justify-content:space-between;align-items:center;
- padding:17px;gap:8px}
-.liveBadge{display:inline-flex;align-items:center;gap:7px;border-radius:7px;
- background:#EF3448;padding:7px 9px;font-weight:950;font-size:12px;letter-spacing:.06em}
-.liveBadge span{height:7px;width:7px;background:white;border-radius:50%}
-.viewerCount{border-radius:999px;background:#0B191BB8;padding:7px 10px;
- font-weight:750;font-size:12px}
-.footer{bottom:0;padding:22px 19px 18px;display:grid;gap:10px}
-.host{display:flex;gap:10px;align-items:center;min-width:0}
-.avatar{height:43px;width:43px;flex:0 0 43px;display:grid;place-items:center;
- overflow:hidden;border-radius:50%;background:#DFF0CA;color:#214D32;font-weight:900}
+.header{top:0;padding:15px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.liveBadge{background:#f52f59;display:inline-flex;align-items:center;gap:6px;
+ padding:7px 9px;border-radius:6px;font-size:11px;font-weight:900;letter-spacing:.04em}
+.liveBadge span{display:block;width:6px;height:6px;background:white;border-radius:50%}
+.viewerCount{font-size:11px;font-weight:750;background:#07110e99;padding:7px 10px;border-radius:999px}
+.footer{bottom:0;display:grid;gap:9px;padding:18px}
+.host{display:flex;align-items:center;gap:9px;min-width:0}
+.avatar{display:grid;place-items:center;width:35px;height:35px;min-width:35px;
+ background:#e3f1d1;color:#203b2c;border:1px solid #ffffffaa;border-radius:50%;
+ overflow:hidden;font-size:13px;font-weight:900}
 .avatar img{width:100%;height:100%;object-fit:cover}
-.host>div{min-width:0;display:grid;gap:2px}
-.host strong{font-size:14px}
-.host small{font-size:11px;color:#D1E1D3}
-.footer h2{font-size:clamp(24px,5.8vw,34px);line-height:1.08;letter-spacing:-.035em;margin:0}
-.pinned{background:#F8FCF3F2;color:#1A3625;padding:12px 14px;border-radius:13px;
- display:grid;gap:3px;max-width:100%;min-width:0}
-.pinned>span{font-size:10px;font-weight:850;color:#58715C;text-transform:uppercase;letter-spacing:.045em}
-.pinned strong{font-size:14px;overflow-wrap:anywhere}
-.pinned small{font-size:12px;color:#426D47}
-.enter{width:100%;max-width:260px;display:flex;justify-content:center;gap:12px;
- align-items:center;min-height:45px;background:#C9F26B;border-radius:13px;
- color:#153A26;font-size:13px;font-weight:900}
-.card:focus-visible{outline:3px solid #C9F26B;outline-offset:3px}
-@media(max-width:760px){
- .card{border-radius:0;min-height:100%;height:100%}
- .header{padding:15px}
- .footer{padding:19px 17px calc(19px + env(safe-area-inset-bottom,0px))}
- .footer h2{font-size:clamp(23px,7vw,33px)}
- .pinned{padding:10px 12px}
- .enter{min-height:46px}
+.host>div{min-width:0;display:grid;gap:1px}
+.host strong{font-size:13px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.host small{font-size:11px;color:#e2ede1}
+.footer h2{margin:0;font-size:clamp(16px,4vw,21px);line-height:1.19;
+ font-weight:700;letter-spacing:-.015em;text-shadow:0 1px 4px #0007;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.pinned{display:flex;align-items:center;gap:10px;width:min(100%,360px);
+ min-height:62px;padding:9px 10px;background:#f6fbf3ee;color:#203629;
+ border:1px solid #ffffffbf;border-radius:13px;box-shadow:0 8px 24px #0004}
+.pinnedSymbol{display:grid;place-items:center;flex:0 0 39px;height:43px;
+ background:#e4f2d5;border-radius:9px;color:#275e3e;font-size:22px}
+.pinnedCopy{display:grid;gap:3px;min-width:0;flex:1}
+.pinnedCopy strong{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pinnedCopy small{font-size:11px;color:#647467;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pinnedAction{background:#c9f26b;color:#173b25;padding:10px 12px;border-radius:9px;
+ white-space:nowrap;font-size:11px;font-weight:900}
+.enter{font-size:11px;font-weight:800;color:#ebfae6;letter-spacing:.03em}
+.enter span{color:#c9f26b;font-size:16px;vertical-align:-1px}
+.card:focus-visible{outline:3px solid #c9f26b;outline-offset:2px}
+@media(max-width:760px){.card{height:100%;min-height:100%;border-radius:0}
+ .header{padding:15px 17px}
+ .footer{padding:14px 16px 23px;gap:8px}
+ .pinned{width:min(100%,330px)}
+ .footer h2{font-size:clamp(15px,4.6vw,20px)}
 }
 @media(prefers-reduced-motion:reduce){.video{display:none}}
