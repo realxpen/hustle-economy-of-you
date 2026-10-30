@@ -109,6 +109,7 @@ const prisma={
 const auth={subject:"valid-client", emailVerified:true,phoneVerified:false};
 const forged={subject:"other-client", emailVerified:true,phoneVerified:false};
 const call=[];
+let currentHeadStatus = 200;
 let currentMime = "image/jpeg";
 let currentSize = 1234;
 let currentHeader = Buffer.from([0xff,0xd8,0xff,0xe0,0x12,0x34]);
@@ -116,7 +117,7 @@ global.fetch=async (url,init)=>{
   const action=init.method;
   call.push({url,action,headers:init.headers});
   assert.ok(String(url).startsWith("https://hustle-ux011-isolated-media-707859598737-eu-west-2.s3.eu-west-2.amazonaws.com/"));
-  if(action==="HEAD")return new Response(null,{status:200,headers:{"content-length":String(currentSize),"content-type":currentMime}});
+  if(action==="HEAD")return new Response(null,{status:currentHeadStatus,headers:{"content-length":String(currentSize),"content-type":currentMime}});
   if(action==="GET")return new Response(currentHeader,{status:206});
   if(action==="PUT")return new Response("<CopyObjectResult><ETag>mock</ETag></CopyObjectResult>",{status:200});
   if(action==="DELETE")return new Response(null,{status:204});
@@ -134,6 +135,18 @@ global.fetch=async (url,init)=>{
   await assert.rejects(service.confirm(forged,"client-post",{receipt:issued.receipt}),e=>e.getStatus?.()===404);
   await assert.rejects(service.confirm(auth,"client-post",{receipt:issued.receipt.slice(0,-2)+"aa"}),e=>e.getStatus?.()===403);
   assert.equal(call.length,0,"Receipt and identity checked before any S3 object lookup");
+  currentHeadStatus=404;
+  await assert.rejects(service.confirm(auth,"client-post",{receipt:issued.receipt}),
+    e=>e.getStatus?.()===404 && e.message==="Pending private media bytes not received",
+    "Only a signed owner's actual S3 HEAD 404 can confirm an absent pending upload");
+  assert.equal(writes,0,"Missing pending bytes must have no DB side effects");
+  currentHeadStatus=503;
+  await assert.rejects(service.confirm(auth,"client-post",{receipt:issued.receipt}),
+    e=>e.getStatus?.()===502,
+    "S3 upstream errors must stay inconclusive, never authorize retransmission");
+  assert.equal(writes,0);
+  currentHeadStatus=200;
+  call.length=0;
   const result=await service.confirm(auth,"client-post",{receipt:issued.receipt});
   assert.equal(result.alreadyAttached,false);
   assert.equal(writes,1);

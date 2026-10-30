@@ -98,3 +98,14 @@ real-device check/retry path are unverified. UX011 #244 remains accepted as
 an isolated staging pilot only; #266 remains open for physical evidence, and
 #267 remains the production media launch blocker. No production,
 AWS/IAM/S3/Lambda, database or payment changes are authorized here.
+
+
+## October 30 iPhone evidence — recovery check was inconclusive
+
+The founder supplied two screenshots: a direct-S3 `xhr-error` in under 10 seconds, with XHR ready=4 and unreadable HTTP status, and a later `Check earlier upload first` failure showing `Unexpected staging API response`. This string is emitted by `apps/web/lib/api/isolated-web-proxy.ts` when the upstream staging API responds with a non-JSON content type; it is NOT a conclusive "object absent" response. The screenshot shows no publication and a retry button that the editor had incorrectly enabled after any failed verification.
+
+Read-only isolated AWS checks at the time found 8 existing S3 objects and **no new S3 object dated October 30**. Lambda had actual invocations in the observed periods with zero execution errors or throttles, but those metrics cannot identify the HTTP response for one request. The underlying direct-S3 browser failure remains unexplained.
+
+**Proposed follow-up:** Distinguish a real S3 HEAD 404 on the exact owner-scoped pending key as HTTP 404 with fixed message `Pending private media bytes not received`. Only that definitive response permits an explicit, bounded same-key retry; non-JSON proxy 502, expired receipts, missing drafts, storage errors or upstream 5xx remain inconclusive and keep retry disabled. Preserve all existing private storage, signed policy and idempotent confirmation controls.
+
+No staging or production release, cleanup, IAM, S3 bucket policy, payment or database mutation is authorized by this patch. API and Web staging deployments each require their existing protected release gates after merge and green CI. Issue #266 remains open for device acceptance and root-cause diagnosis.
