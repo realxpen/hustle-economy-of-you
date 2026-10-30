@@ -83,6 +83,8 @@ jobs:
         run: node scripts/experience/check-ux032-live-directory.cjs
       - name: UX033 live preview Discovery integration and nonfinancial Cart staging
         run: node scripts/experience/check-ux033-live-cart.cjs
+      - name: UX034 immersive Live room and TikTok-style in-feed attachment experience
+        run: node scripts/experience/check-ux034-video-first-live.cjs
       - name: "Regression: isolated Hustler activation and publishing boundaries"
         run: node scripts/experience/check-isolated-hustler-activation.cjs
       - name: Verify UX005 wallet, commented feed and sandbox route boundaries

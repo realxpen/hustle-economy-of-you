@@ -312,3 +312,12 @@ body:has(main.h-discover-immersive) #hustle-page-content {
     padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))!important;
   }
 }
+
+
+/* UX034: the AWS TEST banner owns its safe area. The LIVE discovery stage
+ * takes only the remaining viewport so it never scrolls like a landing page.
+ * The full-screen /live/:id room is intentionally an overlay above the banner. */
+body:has(main[data-hustle-live-previews="true"]){display:flex;flex-direction:column;
+ height:100dvh;min-height:0;overflow:hidden}
+body:has(main[data-hustle-live-previews="true"]) #hustle-page-content{
+ flex:1;min-height:0;overflow:hidden}

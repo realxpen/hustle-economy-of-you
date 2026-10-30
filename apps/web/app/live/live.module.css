@@ -117,3 +117,148 @@
  .livePreviewFrame{min-height:0;padding-bottom:0}
  .livePreviewEmpty{margin:17px 12px 0}
 }
+
+
+/* UX034: Full LIVE is an immersive video room, never a desktop dashboard.
+ * Video is the background; host identity, audience, comments, offer and input
+ * float over it. Scoped to /live/:id only; creator controls retain their CSS. */
+.immersiveRoom{position:fixed;inset:0;z-index:95;display:grid;place-items:center;
+ height:100dvh;width:100%;background:#050907;color:#fff;overflow:hidden}
+.roomCanvas{position:relative;isolation:isolate;width:min(100%,540px);height:100dvh;
+ max-height:100dvh;overflow:hidden;background:#111a15;box-shadow:0 0 60px #0009}
+.roomVideo,.roomGradient{position:absolute;inset:0}
+.roomVideo{background:#0c1610;display:grid;place-items:center}
+.roomVideo>iframe,.roomVideo>video{position:absolute;inset:0;width:100%;height:100%;
+ min-height:0;object-fit:cover;border:0;background:#000}
+.roomVideo .nativeStage{position:absolute;inset:0;width:100%;height:100%;min-height:0}
+.roomVideo .remoteMediaRoot{position:absolute;inset:0;height:100%}
+.roomVideo .remoteVideo{height:100%;object-fit:cover}
+.roomVideo .stagePlaceholder{padding:30px}
+.roomVideo .viewerMediaControls{bottom:40%;right:12px;z-index:3}
+.roomGradient{z-index:1;pointer-events:none;background:linear-gradient(180deg,
+ rgba(0,0,0,.62) 0%,rgba(0,0,0,.10) 18%,transparent 38%,
+ rgba(0,0,0,.1) 48%,rgba(0,0,0,.36) 67%,rgba(0,0,0,.88) 100%)}
+.roomHeader{position:absolute;z-index:4;top:0;left:0;right:0;
+ padding:calc(15px + env(safe-area-inset-top,0px)) 15px 12px;
+ display:flex;align-items:center;gap:7px;min-width:0}
+.roomHostInfo{display:flex;gap:8px;align-items:center;min-width:0;flex:1}
+.roomAvatar{display:grid;place-items:center;flex:0 0 37px;width:37px;height:37px;
+ border:1.5px solid #fff;border-radius:50%;background:#dcebc7;color:#203828;
+ overflow:hidden;font-weight:900}
+.roomAvatar img{width:100%;height:100%;object-fit:cover}
+.roomHostNames{display:grid;gap:2px;min-width:0}
+.roomHostNames :is(a,strong){font-size:13px;font-weight:900;color:#fff;text-decoration:none;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.roomHostNames small{font-size:10px;color:#e5e7e2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.roomLiveBadge,.roomEndedBadge{background:#f02f57;color:#fff;border-radius:6px;
+ padding:6px 8px;font-size:11px;font-weight:950;letter-spacing:.05em;white-space:nowrap}
+.roomEndedBadge{background:#555}
+.roomWatching{font-size:10px;font-weight:750;white-space:nowrap;padding:7px 8px;
+ background:#101810ad;border-radius:999px}
+.roomClose{display:grid;place-items:center;flex:0 0 38px;height:38px;border-radius:50%;
+ background:#0a130b85;color:#fff;text-decoration:none;font-weight:500;font-size:28px;line-height:1}
+.roomBottom{position:absolute;z-index:3;left:0;right:0;
+ bottom:calc(15px + env(safe-area-inset-bottom,0px));padding:0 13px;
+ display:flex;flex-direction:column;gap:10px;min-width:0;max-height:72dvh}
+.roomTitle{font-size:12px;line-height:1.25;font-weight:750;color:#f3faf0;
+ margin:0;text-shadow:0 2px 6px #000a}
+.roomComments{display:flex;flex-direction:column;gap:10px;min-height:0;
+ max-height:min(35dvh,300px);overflow-y:auto;scrollbar-width:none;
+ overscroll-behavior:contain;mask-image:linear-gradient(to bottom,transparent 0%,black 13%);
+ padding:18px 4px 5px}
+.roomComments::-webkit-scrollbar{display:none}
+.roomComment{display:flex;gap:8px;align-items:flex-start;max-width:95%;
+ text-shadow:0 1px 5px #000a}
+.roomCommentAvatar{display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;
+ border-radius:50%;overflow:hidden;background:#e3efcf;color:#24472c;font-size:10px;font-weight:800}
+.roomCommentAvatar img{width:100%;height:100%;object-fit:cover}
+.roomComment>div{min-width:0}
+.roomComment strong{font-size:11px;color:#e9f8e4}
+.roomComment p{font-size:13px;line-height:1.3;margin:1px 0 0;overflow-wrap:anywhere;color:#fff}
+.roomEmptyComments{font-size:12px;color:#e6ebdf;margin:0}
+.roomOffer{width:100%;display:flex;gap:9px;align-items:center;border-radius:14px;
+ min-height:60px;background:#f8fbf3f2;color:#182c1e;padding:9px 10px;
+ box-shadow:0 8px 20px #0005}
+.roomOfferIcon{display:grid;place-items:center;flex:0 0 42px;width:42px;height:44px;
+ border-radius:10px;background:#e2efd3;color:#234c2d;font-size:23px}
+.roomOfferCopy{min-width:0;display:grid;gap:2px;flex:1}
+.roomOfferCopy small{font-size:9px;letter-spacing:.025em;color:#65796a;font-weight:900}
+.roomOfferCopy strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roomOfferCopy>span{font-size:12px;color:#315e3d;font-weight:800}
+.roomOfferAction{display:grid!important;place-items:center;min-width:71px;min-height:43px;
+ border:0!important;border-radius:10px!important;background:#c9f26b!important;
+ color:#163b22!important;padding:9px!important;white-space:nowrap;
+ font-size:12px!important;font-weight:900!important;text-decoration:none!important}
+.roomComposer{display:flex;align-items:center;gap:8px}
+.roomCommentForm{display:flex;flex:1;align-items:center;min-width:0;min-height:45px;
+ border:1px solid #ffffff6b;border-radius:999px;background:#1c261ca1}
+.roomCommentForm input{min-width:0;flex:1;background:transparent;border:0;color:#fff;
+ padding:10px 14px;font:inherit;font-size:13px;outline:0}
+.roomCommentForm input::placeholder{color:#d8ddd4}
+.roomCommentForm button{background:#c9f26b;border:0;color:#163b22;border-radius:50%;
+ width:35px;height:35px;margin-right:5px;font-weight:900;cursor:pointer}
+.roomCommentForm button:disabled{opacity:.4;cursor:not-allowed}
+.roomChatRestricted{display:flex;align-items:center;flex:1;min-height:45px;
+ padding:8px 13px;border:1px solid #ffffff5c;border-radius:999px;
+ background:#1b211bab;color:#ecefe8;font-size:12px}
+.roomShare{border:1px solid #fff6;background:#1b211bc1;color:#fff;border-radius:50%;
+ width:46px;height:46px;flex:0 0 46px;font-size:24px;cursor:pointer}
+.roomError,.roomNotice{position:absolute;z-index:8;top:calc(73px + env(safe-area-inset-top,0px));
+ left:14px;right:14px;margin:0;padding:9px 11px;border-radius:10px;
+ font-size:12px;line-height:1.35}
+.roomError{background:#671d25e9;color:#fff}
+.roomNotice{background:#143c24e9;color:#fff}
+.roomStreamUnavailable{display:grid;place-items:center;align-content:center;
+ text-align:center;gap:11px;padding:24px;color:#f2f5ee}
+.roomStreamUnavailable strong{font-size:18px}
+.roomStreamUnavailable small{color:#c4ccc0;line-height:1.5;font-size:12px}
+.roomStreamSymbol{font-size:70px;color:#c9f26b;opacity:.48}
+.roomFallback{position:relative;display:grid;justify-items:center;align-content:center;
+ gap:13px;width:min(100%,540px);height:100%;padding:26px;text-align:center;
+ background:radial-gradient(#24412b,#09110d)}
+.roomFallback>.roomClose{position:absolute;top:calc(15px + env(safe-area-inset-top,0px));right:15px}
+.roomFallback>span{font-size:76px;color:#c9f26b}
+.roomFallback h1{margin:0;font-size:26px}
+.roomFallback p{margin:0;color:#d7e6d1}
+.roomReturn{background:#c9f26b;color:#173c24;padding:12px 20px;border-radius:12px;text-decoration:none;font-weight:800}
+@media(max-width:760px){.roomCanvas{max-width:none;box-shadow:none}
+ .roomBottom{padding:0 11px}
+ .roomOffer{padding:8px}
+ .roomComments{max-height:33dvh}
+}
+@media(max-height:680px){.roomComments{max-height:24dvh}
+ .roomBottom{gap:6px}.roomOffer{min-height:53px}.roomTitle{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){.roomComments{scroll-behavior:auto}}
+
+
+/* UX034: LIVE discovery is itself a feed — the screen is previews, not
+   an information/marketing page. No introduction card and no counters. */
+.livePreviewPage{display:flex;flex-direction:column;height:100dvh;min-height:0;
+ padding:0 0 82px;background:#0b110d;overflow:hidden}
+.livePreviewHeader{position:relative;z-index:4;display:flex;flex:0 0 57px;
+ margin:0 auto;width:min(100%,540px);max-width:540px;padding:7px 13px;
+ align-items:center;gap:9px;background:#0c1310}
+.livePreviewHeader>a{background:transparent;border:0;border-radius:10px;
+ min-height:42px;padding:10px 8px;color:#f3f5ef;font-weight:700;font-size:13px}
+.livePreviewHeader>a:last-child{color:#cbf574}
+.livePreviewHeader>strong{font-size:15px}
+.livePreviewFeed{flex:1;height:auto;min-height:0;width:min(100%,540px);max-width:540px;
+ margin:0 auto;overflow-y:auto;scroll-snap-type:y mandatory}
+.livePreviewFrame{height:100%;min-height:0;padding:0;scroll-snap-stop:always}
+.livePreviewEmpty{display:grid;place-content:center;justify-items:center;gap:12px;
+ flex:1;min-height:0;max-width:540px;width:100%;margin:0 auto;
+ padding:28px;background:radial-gradient(ellipse at 40% 40%,#1f3325,#0b120e);
+ border:0;border-radius:0}
+.livePreviewEmpty>span{opacity:.55}
+.livePreviewEmpty h1{font-size:24px}
+.livePreviewEmpty p{max-width:280px}
+@media(max-width:760px){
+ .livePreviewPage{height:100%;min-height:0;
+  padding:0 0 calc(74px + env(safe-area-inset-bottom,0px))}
+ .livePreviewHeader{padding:4px 13px;flex-basis:52px;margin:0;max-width:none}
+ .livePreviewHeader>a{min-height:44px}
+ .livePreviewFeed{flex:1;height:auto;min-height:0;max-width:none}
+ .livePreviewFrame{height:100%;min-height:0}
+ .livePreviewEmpty{max-width:none;width:100%;height:auto;min-height:0;margin:0}
+}
