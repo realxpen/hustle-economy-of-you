@@ -51,6 +51,8 @@ const reviewPost = /^api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verifica
 const servicePost = /^api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/;
 // Isolated-staging Product editor actions only. Backend AuthGuard, active HUSTLER
 // capability, owner-profile and moderation checks remain authoritative.
+const cartRead = "api/v1/cart";
+const cartItem = /^api\/v1\/cart\/items\/[A-Za-z0-9_-]+$/;
 const productAction = /^api\/v1\/products\/[A-Za-z0-9_-]+\/(?:publish|pause|variants)$/;
 const productOwned = /^api\/v1\/products\/[A-Za-z0-9_-]+$/;
 const variantOwned = /^api\/v1\/products\/[A-Za-z0-9_-]+\/variants\/[A-Za-z0-9_-]+$/;
@@ -68,13 +70,13 @@ export function stagingProxyAllowed(method: string, segments: string[]) {
     return method === "GET" && allowedAuthReads.has(endpoint)
       || method === "POST" && allowedAuthWrites.has(endpoint);
   }
-  return method === "GET" && (isolatedMediaRead.test(route) || route === creatorActivationRead || apiRead.test(route) || livePublicRead.test(route) || guestRead.test(route) || messagingRead.test(route) || bookingRead.test(route) || guestSlots.test(route) || walletRead.test(route) || paymentRead.test(route) || reviewRead.test(route) || publicTrustRead.test(route) || notificationRead.test(route) || safetyRead.test(route)) ||
+  return method === "GET" && (isolatedMediaRead.test(route) || route === creatorActivationRead || apiRead.test(route) || route === cartRead || livePublicRead.test(route) || guestRead.test(route) || messagingRead.test(route) || bookingRead.test(route) || guestSlots.test(route) || walletRead.test(route) || paymentRead.test(route) || reviewRead.test(route) || publicTrustRead.test(route) || notificationRead.test(route) || safetyRead.test(route)) ||
     method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route) || productAction.test(route) || notificationReceiptWrite.test(route) ||
       route === "api/v1/bookings" || bookingDecision.test(route) || route === "api/v1/reviews" || sandboxWrite.test(route) ||
-      route === "api/v1/posts" || postMediaUploadAction.test(route) || postAction.test(route) || followAction.test(route) || messagingWrite.test(route) || safetyBlock.test(route) || route === "api/v1/trust-safety/reports" ||
+      route === "api/v1/cart/items" || route === "api/v1/posts" || postMediaUploadAction.test(route) || postAction.test(route) || followAction.test(route) || messagingWrite.test(route) || safetyBlock.test(route) || route === "api/v1/trust-safety/reports" ||
       ["api/v1/feed/events", "api/v1/search/events", "api/v1/marketplace/events"].includes(route)) ||
-    method === "PUT" && (apiPut.test(route) || productOwned.test(route) || variantOwned.test(route)) ||
-    method === "DELETE" && (postDelete.test(route) || followAction.test(route) || safetyBlock.test(route) || productOwned.test(route) || variantOwned.test(route)) ||
+    method === "PUT" && (apiPut.test(route) || cartItem.test(route) || productOwned.test(route) || variantOwned.test(route)) ||
+    method === "DELETE" && (postDelete.test(route) || route === cartRead || cartItem.test(route) || followAction.test(route) || safetyBlock.test(route) || productOwned.test(route) || variantOwned.test(route)) ||
     method === "PATCH" && route === "api/v1/auth/profile";
 }
 const privateHeaders = ["authorization", "cookie"];
