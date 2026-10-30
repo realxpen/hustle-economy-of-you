@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { OfferQuickView } from "../../components/commerce/offer-quick-view";
+import { LivePreviewCard } from "../../components/live/live-preview-card";
+import { getActiveLiveSessions, type LiveSessionRecord } from "../../lib/live";
 import { captureFeedEvent, getFeedPage, type FeedItem, type FeedPage, type FeedTab } from "../../lib/feed";
 import {
   followUser,
@@ -523,6 +525,7 @@ function FeedCard({
 export default function DiscoveryHomePage() {
   const [tab, setTab] = useState<FeedTab>("for-you");
   const [items, setItems] = useState<FeedItem[]>([]);
+  const [liveSessions, setLiveSessions] = useState<LiveSessionRecord[]>([]);
   const [meta, setMeta] = useState<Pick<FeedPage, "nextCursor" | "hasMore" | "viewerLocation" | "coldStart" | "reason" | "guest">>({
     nextCursor: null,
     hasMore: false,
@@ -544,6 +547,16 @@ export default function DiscoveryHomePage() {
   useEffect(() => {
     setSessionId(createSessionId());
   }, []);
+
+  // Discovery mixes genuine posts and active Live previews. If Live is offline,
+  // normal post discovery still works without interruption.
+  useEffect(() => {
+    let mounted = true;
+    void getActiveLiveSessions(12)
+      .then((sessions) => { if (mounted) setLiveSessions(sessions.filter(s => s.status === "LIVE")); })
+      .catch(() => { if (mounted) setLiveSessions([]); });
+    return () => { mounted = false; };
+  }, [tab]);
 
   // Figma's secondary feed menu is transient. It should not remain covering
   // the actual work when a user taps the media, another tab, or presses Escape.
@@ -650,6 +663,36 @@ export default function DiscoveryHomePage() {
 
   const activeTab = useMemo(() => tabs.find((item) => item.id === tab) ?? tabs[0], [tab]);
 
+  // For You may surface any public active Live; Nearby needs an actual matching
+  // region; Connections may only show hosts confirmed as followed by the current
+  // feed. No invented follow/location relationship or tracking events.
+  const visibleLive = useMemo(() => {
+    const location = meta.viewerLocation?.split(",")[0]?.trim().toLowerCase();
+    if (tab === "nearby" && !location) return [];
+    const followed = new Set(items.filter(item => item.viewer.following).map(item => item.creator.id));
+    return liveSessions.filter(session => {
+      if (tab === "connections") return !meta.guest && followed.has(session.hostUserId);
+      if (tab === "nearby") {
+        const hostLocation = session.host.location?.toLowerCase();
+        return Boolean(hostLocation && (hostLocation.includes(location!) || location!.includes(hostLocation.split(",")[0])));
+      }
+      return true;
+    }).slice(0,3);
+  }, [liveSessions, items, meta.viewerLocation, meta.guest, tab]);
+
+  const blendedFeed = useMemo(() => {
+    const entries: Array<{kind:"post"; post:FeedItem} | {kind:"live"; live:LiveSessionRecord}> = [];
+    let nextLive = 0;
+    items.forEach((post, index) => {
+      entries.push({kind:"post",post});
+      // Insert first Live after one post, subsequent ones after every third.
+      if ((index === 0 || (index + 1) % 3 === 0) && nextLive < visibleLive.length)
+        entries.push({kind:"live",live:visibleLive[nextLive++]});
+    });
+    if (items.length === 0) visibleLive.forEach(live => entries.push({kind:"live",live}));
+    return entries;
+  }, [items, visibleLive]);
+
   function replaceItem(next: FeedItem) {
     setItems((current) => current.map((item) => item.post.id === next.post.id ? next : item));
   }
@@ -696,7 +739,7 @@ export default function DiscoveryHomePage() {
           </div>
         </div>
 
-        {(loading || error || items.length === 0) && <div className={styles.stateStage}>
+        {(loading || error || blendedFeed.length === 0) && <div className={styles.stateStage}>
           {loading && <ExperienceState compact kind="loading" title="Finding your next discovery…"
             description="Loading real creators and their work." />}
           {error && <ExperienceState compact kind="error"
@@ -706,7 +749,7 @@ export default function DiscoveryHomePage() {
             action={/sign in|authentication is not configured/i.test(error)
               ? { label: "Open test sign-in", href: "/auth" }
               : { label: "Try again", onClick: () => void load(tab) }} />}
-          {!loading && !error && items.length === 0 && <ExperienceState compact kind="empty"
+          {!loading && !error && blendedFeed.length === 0 && <ExperienceState compact kind="empty"
             title={tab === "connections" ? "Your connections feed is ready." : "No published work here yet."}
             description={meta.reason ?? (tab === "connections"
               ? "Follow creators from For You and their posts will appear here."
@@ -716,7 +759,7 @@ export default function DiscoveryHomePage() {
               : { label: "Explore skills", href: "/search" }} />}
         </div>}
 
-        {!loading && !error && items.length > 0 && <section ref={feedRef} className={styles.feed}
+        {!loading && !error && blendedFeed.length > 0 && <section ref={feedRef} className={styles.feed}
           aria-label="Immersive discovery posts. Swipe vertically or focus and use the arrow keys for the next post."
           tabIndex={0}
           onKeyDown={(event) => {
@@ -732,10 +775,14 @@ export default function DiscoveryHomePage() {
             stage.scrollTo({ top: target * itemHeight,
               behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
           }}>
-          {items.map((item, index) => <FeedCard
-            key={tab + "-" + item.post.id} item={item} tab={tab} position={index}
-            sessionId={sessionId} guest={Boolean(meta.guest)} onChange={replaceItem} onCreatorFollowChange={updateCreatorFollow}
-          />)}
+          {blendedFeed.map((entry, index) => entry.kind === "live"
+            ? <div key={tab + "-live-" + entry.live.id} className={styles.liveInsert}>
+                <LivePreviewCard session={entry.live} context="discovery" />
+              </div>
+            : <FeedCard
+                key={tab + "-" + entry.post.post.id} item={entry.post} tab={tab} position={index}
+                sessionId={sessionId} guest={Boolean(meta.guest)} onChange={replaceItem} onCreatorFollowChange={updateCreatorFollow}
+              />)}
           {meta.hasMore && <div className={styles.paginationFrame}>
             {pageError && <p className={styles.paginationError} role="alert">{pageError} · Retry when ready.</p>}
             <button ref={paginationTrigger} className={styles.loadNext} type="button"

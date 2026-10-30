@@ -45,6 +45,15 @@ const fixturePost = {
   viewer:{liked:false,saved:false,commented:false,following:false},
   services:[service],products:[product],ranking:{score:88,reasons:["Relevant skill"]}
 };
+const fixtureLive={
+  id:"qa-live-01",hostUserId:owner.id,title:"QA Live haircut demonstration",
+  category:"Beauty",status:"LIVE",pinnedOfferType:"SERVICE",pinnedServiceId:service.id,
+  pinnedProductId:null,playbackUrl:null,createdAt:"2026-10-27T09:00:00Z",
+  updatedAt:"2026-10-27T09:00:00Z",startedAt:"2026-10-27T09:00:00Z",endedAt:null,
+  host:owner,pinnedService:service,pinnedProduct:null,
+  interactions:{viewers:6,comments:2},
+  media:{provider:"NONE",playbackUrl:null,ready:false,nativeTransportAvailable:false,nativeBroadcasting:false}
+};
 const fixtureFeed={tab:"for-you",items:[fixturePost],nextCursor:null,hasMore:false,
   viewerLocation:null,coldStart:false,guest:true,reason:null};
 const searchItem={kind:"service",id:"qa-service",url:"/services/qa-service",
@@ -98,6 +107,10 @@ function localOnly(url) {
        });
        if(u.pathname==="/api/isolated/auth/get-session") return respond({session:null,user:null});
        if(/\/api\/v1\/guest\/feed\/for-you$/.test(u.pathname)) return respond(fixtureFeed);
+       // UX033: the normal Discovery page now asks for real LIVE sessions as
+       // optional public content. Synthetic QA has no active broadcaster;
+       // intercept every LIVE GET so no external staging/backend is contacted.
+       if(/\/api\/v1\/live$/.test(u.pathname)) return respond([fixtureLive]);
        if(/\/api\/v1\/guest\/marketplace(?:\/(services|products))?$/.test(u.pathname)) {
          const type=u.pathname.endsWith("/services") ? "services"
            : u.pathname.endsWith("/products") ? "products" : "all";
@@ -444,6 +457,25 @@ function localOnly(url) {
        assert.ok(marketOverflow<=3,"Marketplace should not scroll horizontally");
        results.push({size:size.label,step:"UX025 combined Marketplace, typed focus, real links and category",
          result:"PASS",overflowPx:marketOverflow});
+       // UX033 LIVE-only directory uses the same real-data-shaped card as mixed
+       // Discovery. Preview is a navigation surface; comments remain in room.
+       await page.goto(root+"/live",{waitUntil:"domcontentloaded"});
+       const livePreview=page.getByRole("link",{name:/Enter Live: QA Live haircut demonstration/});
+       await livePreview.waitFor({state:"visible",timeout:12000});
+       assert.equal(await livePreview.getAttribute("href"),"/live/qa-live-01");
+       assert.equal(await livePreview.getByText("QA Barber Session").count(),1,
+         "The genuine pinned Service should be summarized on the LIVE preview");
+       assert.equal(await page.getByRole("heading",{name:"No one is live right now."}).count(),0);
+       assert.equal(await page.locator("main[data-hustle-live-previews='true']").count(),1);
+       assert.equal(await page.locator("main[data-hustle-live-previews='true'] textarea").count(),0,
+         "LIVE previews cannot expose full chat/comments inputs");
+       await page.screenshot({path:path.join(out,size.label+"__ux033-live-only.png"),
+         animations:"disabled",caret:"hide"});
+       await page.goto(root+"/home",{waitUntil:"domcontentloaded"});
+       await page.getByRole("link",{name:/Enter Live: QA Live haircut demonstration/})
+         .waitFor({state:"visible",timeout:12000});
+       results.push({size:size.label,step:"UX033 active LIVE-only previews and mixed For You, real pinned Service, no chat preview",
+         result:"PASS"});
      }catch(error){
        faults.push({size:size.label,message:String(error?.message||error).slice(0,1300)});
      }finally{await page.close();await ctx.close()}

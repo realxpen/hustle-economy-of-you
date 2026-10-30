@@ -5,6 +5,8 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const authWrite = /^\/api\/auth\/(sign-up\/email|sign-in\/email|sign-out)$/;
   const ordinaryRead = /^\/api\/v1(?:\/(?:health|foundation|auth\/me|creator-activation))?$/;
   const discoveryRead = /^\/api\/v1\/(?:feed|search|marketplace|services|posts|messaging)(?:\/[A-Za-z0-9_-]+)*$/;
+  const cartRead = "/api/v1/cart";
+  const cartItem = /^\/api\/v1\/cart\/items\/[A-Za-z0-9_-]+$/;
   const productRead = /^\/api\/v1\/products(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?$/;
   const notificationRead = /^\/api\/v1\/notifications(?:\/unread-count)?$/;
   // Public, read-only Live discovery. No host creation, publishing credentials,
@@ -39,12 +41,12 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
   const guestRead = /^\/api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;
   const ownerRead = /^\/api\/v1\/(?:hustler-application|professional-profile|services\/mine(?:\/[A-Za-z0-9_-]+)?|hustler-reviews(?:\/[A-Za-z0-9_-]+)?|profiles\/[A-Za-z0-9_-]+|storefronts\/[A-Za-z0-9_-]+)$/;
   if (method === "GET" || method === "HEAD")
-    return isolatedMediaRead.test(path) || authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || productRead.test(path) || livePublicRead.test(path) || guestRead.test(path) || ownerRead.test(path) || safetyRead.test(path) || bookingRead.test(path) || guestSlots.test(path) || walletRead.test(path) || paymentRead.test(path) || reviewRead.test(path) || publicTrustRead.test(path) || notificationRead.test(path);
+    return isolatedMediaRead.test(path) || authRead.test(path) || ordinaryRead.test(path) || discoveryRead.test(path) || path === cartRead || productRead.test(path) || livePublicRead.test(path) || guestRead.test(path) || ownerRead.test(path) || safetyRead.test(path) || bookingRead.test(path) || guestSlots.test(path) || walletRead.test(path) || paymentRead.test(path) || reviewRead.test(path) || publicTrustRead.test(path) || notificationRead.test(path);
   if (method === "PATCH") return path === "/api/v1/auth/profile";
   if (method === "PUT")
     return path === "/api/v1/hustler-application" || path === "/api/v1/professional-profile" ||
       /^\/api\/v1\/(?:services|posts)\/[A-Za-z0-9_-]+$/.test(path) ||
-      productOwned.test(path) || productVariantOwned.test(path);
+      productOwned.test(path) || productVariantOwned.test(path) || cartItem.test(path);
   if (method === "POST") return authWrite.test(path) ||
     new Set([
       "/api/v1/auth/sync",
@@ -53,6 +55,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
       "/api/v1/professional-profile/unpublish",
       "/api/v1/services",
       "/api/v1/products",
+      "/api/v1/cart/items",
       "/api/v1/bookings",
       "/api/v1/posts",
       "/api/v1/feed/events",
@@ -65,7 +68,7 @@ export function stagingRequestAllowed(method: string, path: string): boolean {
     path === "/api/v1/messaging/conversations/direct" ||
     /^\/api\/v1\/messaging\/conversations\/[A-Za-z0-9_-]+\/(?:messages|read|typing)$/.test(path) ||
     /^\/api\/v1\/messaging\/conversations\/[A-Za-z0-9_-]+\/messages\/[A-Za-z0-9_-]+\/context-opened$/.test(path);
-  if (method === "DELETE") return postDelete.test(path) || followAction.test(path) || safetyBlock.test(path) || productOwned.test(path) || productVariantOwned.test(path);
+  if (method === "DELETE") return path === cartRead || cartItem.test(path) || postDelete.test(path) || followAction.test(path) || safetyBlock.test(path) || productOwned.test(path) || productVariantOwned.test(path);
   // Never expose booking start/complete/extend, proof uploads, impersonation,
   // money movement, orders, payment attempts, escrow, wallet or admin writes.
   return false;

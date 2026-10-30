@@ -49,6 +49,8 @@ const api=load("apps/api/src/staging-request-policy.ts");
 const allowed=[
  ["GET","products/mine"],["GET","products/mine/test-1"],["GET","products/test-1"],
  ["POST","products"],["PUT","products/test-1"],
+ ["GET","cart"],["POST","cart/items"],["PUT","cart/items/item-1"],
+ ["DELETE","cart/items/item-1"],["DELETE","cart"],
  ["POST","products/test-1/publish"],["POST","products/test-1/pause"],
  ["POST","products/test-1/variants"],["PUT","products/test-1/variants/var-2"],
  ["DELETE","products/test-1/variants/var-2"],["DELETE","products/test-1"]
@@ -61,7 +63,9 @@ for(const [verb,endpoint] of allowed) {
    "API must allow owner product action "+verb+" "+endpoint);
 }
 const denied=[
- ["POST","orders"],["POST","orders/test-1/pay"],["POST","cart/items"],
+ ["POST","orders"],["POST","orders/test-1/pay"],
+ ["POST","cart/checkout"],["POST","cart/checkout/preview"],
+ ["GET","cart/checkout/preview"],["POST","cart/clear"],
  ["POST","products/test-1/pay"],["POST","products/test-1/checkout"],
  ["POST","products/test-1/refund"],["POST","products/test-1/variants/test-2/publish"],
  ["PUT","products/test-1/publish"],["PATCH","products/test-1"],

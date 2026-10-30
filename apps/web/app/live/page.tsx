@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ExperienceState } from "../../components/experience/experience-state";
-
-import { formatLiveMoney, getActiveLiveSessions, type LiveSessionRecord } from "../../lib/live";
+import { LivePreviewCard } from "../../components/live/live-preview-card";
+import { getActiveLiveSessions, type LiveSessionRecord } from "../../lib/live";
 import styles from "./live.module.css";
 
+/** LIVE is a Discovery feed filtered to active broadcasts. Open a card for
+ * comments, video interaction and the full attached-offer experience. */
 export default function LiveDiscoveryPage() {
   const [items, setItems] = useState<LiveSessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,64 +20,36 @@ export default function LiveDiscoveryPage() {
     setLoading(true);
     setError(null);
     getActiveLiveSessions(30)
-      .then((sessions) => { if (active) setItems(sessions); })
+      .then((sessions) => { if (active) setItems(sessions.filter(s=>s.status === "LIVE")); })
       .catch((reason: Error) => { if (active) setError(reason.message); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [reload]);
 
-  return <main className={styles.page}>
-    <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <a className={styles.brand} href="/home">HUSTLE</a>
-        <div className={styles.actions}>
-          <a href="/home">Home</a>
-          <a className={styles.primary} href="/live/create">Start a Live</a>
-        </div>
-      </header>
-
-      <section className={styles.hero}>
-        <div className={styles.heroPanel}>
-          <div className={styles.eyebrow}>LIVE COMMERCE · REAL WORK IN MOTION</div>
-          <h1>Watch the work. <em>Act while it is live.</em></h1>
-          <p>Hustle Live connects demonstration directly to a real Service or Product. Watch, ask questions, visit the host, then move into the same canonical booking and buying flows already trusted elsewhere on Hustle.</p>
-        </div>
-        {!loading && !error && <aside className={styles.statusCard}>
-          <div><div className={styles.eyebrow}>ACTIVE NOW</div><strong>{items.length}</strong></div>
-          <span className={styles.liveDot}>{items.length === 1 ? "1 session live" : `${items.length} sessions live`}</span>
-        </aside>}
-      </section>
-
-      {loading && <ExperienceState kind="loading" title="Finding Live sessions…" description="Checking which Hustlers are broadcasting now." />}
-      {error && <ExperienceState kind="error" title="Couldn't load Live sessions." description={error} action={{label:"Try again",onClick:()=>setReload(value=>value+1)}} />}
-
-      {!loading && !error && items.length === 0 && <section className={styles.empty}>
-        <div className={styles.eyebrow}>NO ONE IS LIVE YET</div>
-        <h2>The room is quiet for now.</h2>
-        <p className={styles.muted}>When a Hustler starts a commerce Live, it will appear here publicly.</p>
-        <div className={styles.actions} style={{justifyContent:"center",marginTop:18}}><a className={styles.primary} href="/live/create">Host the first Live →</a></div>
-      </section>}
-
-      {!loading && !error && items.length > 0 && <section className={styles.grid}>
-        {items.map((item) => {
-          const offer = item.pinnedService ?? item.pinnedProduct;
-          return <a className={styles.card} key={item.id} href={`/live/${item.id}`}>
-            <div className={styles.host}>
-              <div className={styles.avatar}>{item.host.avatarUrl ? <img alt="" src={item.host.avatarUrl} /> : (item.host.displayName ?? item.host.username ?? "H").slice(0,1).toUpperCase()}</div>
-              <div><strong>{item.host.displayName ?? item.host.username ?? "Hustler"}</strong><span>{item.host.username ? `@${item.host.username}` : item.host.displayName ?? "Hustle creator"}{item.host.verified ? " · Verified" : ""}</span></div>
-            </div>
-            <div><span className={styles.liveDot}>LIVE</span><h2>{item.title}</h2></div>
-            <div className={styles.meta}>
-              {item.category && <span className={styles.pill}>{item.category}</span>}
-              <span className={styles.pill}>{item.interactions.viewers} watching</span>
-              <span className={styles.pill}>{item.interactions.comments} comments</span>
-            </div>
-            <div className={styles.offer}>
-              {offer ? <><span className={styles.eyebrow}>PINNED {item.pinnedOfferType}</span><strong>{offer.title ?? "Hustle offer"}</strong><span className={styles.muted}>{formatLiveMoney(offer.priceMinor, offer.currency)}</span></> : <span className={styles.muted}>No offer pinned yet.</span>}
-            </div>
-          </a>;
-        })}
-      </section>}
+  return <main className={styles.livePreviewPage} data-hustle-live-previews="true">
+    <header className={styles.livePreviewHeader}>
+      <Link href="/home" aria-label="Return to Discover">‹ Discover</Link>
+      <strong><span aria-hidden="true">●</span> LIVE</strong>
+      <Link href="/live/create">Go Live ↗</Link>
+    </header>
+    <div className={styles.livePreviewIntro}>
+      <strong>Hustlers live now</strong>
+      <span>Tap a preview to join the full Live.</span>
     </div>
+    {loading && <ExperienceState compact kind="loading" title="Finding live broadcasts…" />}
+    {error && <ExperienceState compact kind="error" title="LIVE isn't available right now" description={error}
+       action={{label:"Try again",onClick:()=>setReload(n=>n+1)}} />}
+    {!loading && !error && items.length===0 && <div className={styles.livePreviewEmpty}>
+      <span aria-hidden="true">✳</span>
+      <h1>No one is live right now.</h1>
+      <p>When a Hustler starts a Live, a preview appears here and can also be discovered in regular feeds.</p>
+      <Link href="/home">Explore posts instead ↗</Link>
+    </div>}
+    {!loading && !error && items.length>0 && <section className={styles.livePreviewFeed}
+      aria-label="Active Hustle LIVE previews; select a preview to enter the live room">
+      {items.map(item => <div key={item.id} className={styles.livePreviewFrame}>
+        <LivePreviewCard session={item} />
+      </div>)}
+    </section>}
   </main>;
 }
