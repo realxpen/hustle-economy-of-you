@@ -17,7 +17,59 @@ export function selectedIsolatedBackendOrigin(): string | null {
 const prefix = "/api/isolated/";
 const allowedAuthReads = new Set(["get-session", "ok"]);
 const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]);
-const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+(?:\/interactions(?:\/me)?)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/[A-Za-z0-9_-]+)?))$/;
+const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+(?:\/interactions(?:\/me)?)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?))$/;
+const creatorActivationRead = "api/v1/creator-activation";
+const isolatedMediaRead = /^api\/v1\/media\/(?:p|o)\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
+const postMediaUploadAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/media\/uploads\/(?:authorize|confirm)$/;
+const apiWrite = new Set(["api/v1/auth/sync", "api/v1/hustler-application/submit",
+  "api/v1/professional-profile/publish", "api/v1/professional-profile/unpublish", "api/v1/services", "api/v1/products"]);
+const guestSlots = /^api\/v1\/guest\/bookings\/(?:availability|slots)$/;
+const sandboxWrite = /^api\/v1\/sandbox\/(?:bookings\/[A-Za-z0-9_-]+\/(?:fund|start|complete|release)|wallet\/withdrawals)$/;
+const walletRead = /^api\/v1\/wallet(?:\/(?:transactions|reconciliation|withdrawals|refunds|release-state\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+))?$/;
+const paymentRead = /^api\/v1\/payments\/(?:[A-Za-z0-9_-]+|subjects\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+\/latest)$/;
+const reviewRead = /^api\/v1\/reviews\/(?:eligibility\/BOOKING\/[A-Za-z0-9_-]+|[A-Za-z0-9_-]+)$/;
+const publicTrustRead = /^api\/v1\/trust\/users\/[A-Za-z0-9_-]+\/summary$/;
+const notificationRead = /^api\/v1\/notifications(?:\/unread-count)?$/;
+const notificationReceiptWrite = /^api\/v1\/notifications\/(?:read-all|[A-Za-z0-9_-]+\/read)$/;
+const bookingRead = /^api\/v1\/bookings\/(?:client|hustler|availability|slots|duration-insights|[A-Za-z0-9_-]+)$/;
+const bookingDecision = /^api\/v1\/bookings\/[A-Za-z0-9_-]+\/(?:accept|decline|cancel|propose-time|respond-time)$/;
+const guestRead = /^api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;
+const apiPut = /^api\/v1\/(?:hustler-application|professional-profile|services\/[A-Za-z0-9_-]+|posts\/[A-Za-z0-9_-]+)$/;
+const postAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media|publish|archive|like|save|share|comments|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
+const postDelete = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media\/[A-Za-z0-9_-]+|like|save|comments\/[A-Za-z0-9_-]+|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
+const followAction = /^api\/v1\/users\/[A-Za-z0-9_-]+\/follow$/;
+// Consultation and messaging are authenticated, participant-scoped routes only.
+const messagingRead = /^api\/v1\/messaging\/conversations(?:\/[A-Za-z0-9_-]+(?:\/(?:messages|typing))?)?$/;
+// Account-owned block and report operations; no administrator or transaction tools.
+const safetyRead = /^api\/v1\/trust-safety\/blocks\/status\/[A-Za-z0-9_-]+$/;
+const safetyBlock = /^api\/v1\/trust-safety\/blocks\/[A-Za-z0-9_-]+$/;
+const messagingWrite = /^api\/v1\/messaging\/conversations\/(?:direct|[A-Za-z0-9_-]+\/(?:messages|read|typing|messages\/[A-Za-z0-9_-]+\/context-opened))$/;
+const reviewPost = /^api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/;
+const servicePost = /^api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/;
+// UX031: exact owner-only product editing endpoints in isolated nonfinancial
+// staging. API AuthGuard + active HUSTLER capability + owner-profile checks
+// remain authoritative, and Orders/Payments/Wallet remain disabled.
+const productId = "[A-Za-z0-9_-]+";
+const productAction = new RegExp(`^api/v1/products/${productId}/(?:publish|pause|variants)import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * Non-production ONLY. Requests go exclusively to the verified disposable
+ * child staging API. This is a same-origin cookie/Bearer bridge for an installed
+ * iOS web app, not an arbitrary URL proxy or a production auth fallback.
+ */
+const STAGING_API_ORIGIN = "https://hustle-isolated-staging-api.vercel.app";
+const AWS_STAGING_API_ORIGIN = "https://hh2zi77ntrsjj3rgapko7rsjv40ztgpu.lambda-url.eu-west-2.on.aws";
+/** Only these two literal, vetted isolated runtimes may be used. */
+export function selectedIsolatedBackendOrigin(): string | null {
+  const choice = process.env.HUSTLE_API_BACKEND_TARGET;
+  if (choice === "aws-lambda-isolated-staging") return AWS_STAGING_API_ORIGIN;
+  if (!choice || choice === "vercel-isolated-staging") return STAGING_API_ORIGIN;
+  return null; // Invalid/missing preview target fails closed, never arbitrary forwarding.
+}
+const prefix = "/api/isolated/";
+const allowedAuthReads = new Set(["get-session", "ok"]);
+const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]);
+const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+(?:\/interactions(?:\/me)?)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?))$/;
 const creatorActivationRead = "api/v1/creator-activation";
 const isolatedMediaRead = /^api\/v1\/media\/(?:p|o)\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
 const postMediaUploadAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/media\/uploads\/(?:authorize|confirm)$/;
@@ -45,7 +97,103 @@ const safetyRead = /^api\/v1\/trust-safety\/blocks\/status\/[A-Za-z0-9_-]+$/;
 const safetyBlock = /^api\/v1\/trust-safety\/blocks\/[A-Za-z0-9_-]+$/;
 const messagingWrite = /^api\/v1\/messaging\/conversations\/(?:direct|[A-Za-z0-9_-]+\/(?:messages|read|typing|messages\/[A-Za-z0-9_-]+\/context-opened))$/;
 const reviewPost = /^api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/;
-const servicePost = /^api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/;
+);
+const productOwned = new RegExp(`^api/v1/products/${productId}import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * Non-production ONLY. Requests go exclusively to the verified disposable
+ * child staging API. This is a same-origin cookie/Bearer bridge for an installed
+ * iOS web app, not an arbitrary URL proxy or a production auth fallback.
+ */
+const STAGING_API_ORIGIN = "https://hustle-isolated-staging-api.vercel.app";
+const AWS_STAGING_API_ORIGIN = "https://hh2zi77ntrsjj3rgapko7rsjv40ztgpu.lambda-url.eu-west-2.on.aws";
+/** Only these two literal, vetted isolated runtimes may be used. */
+export function selectedIsolatedBackendOrigin(): string | null {
+  const choice = process.env.HUSTLE_API_BACKEND_TARGET;
+  if (choice === "aws-lambda-isolated-staging") return AWS_STAGING_API_ORIGIN;
+  if (!choice || choice === "vercel-isolated-staging") return STAGING_API_ORIGIN;
+  return null; // Invalid/missing preview target fails closed, never arbitrary forwarding.
+}
+const prefix = "/api/isolated/";
+const allowedAuthReads = new Set(["get-session", "ok"]);
+const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]);
+const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+(?:\/interactions(?:\/me)?)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?))$/;
+const creatorActivationRead = "api/v1/creator-activation";
+const isolatedMediaRead = /^api\/v1\/media\/(?:p|o)\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
+const postMediaUploadAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/media\/uploads\/(?:authorize|confirm)$/;
+const apiWrite = new Set(["api/v1/auth/sync", "api/v1/hustler-application/submit",
+  "api/v1/professional-profile/publish", "api/v1/professional-profile/unpublish", "api/v1/services"]);
+const guestSlots = /^api\/v1\/guest\/bookings\/(?:availability|slots)$/;
+const sandboxWrite = /^api\/v1\/sandbox\/(?:bookings\/[A-Za-z0-9_-]+\/(?:fund|start|complete|release)|wallet\/withdrawals)$/;
+const walletRead = /^api\/v1\/wallet(?:\/(?:transactions|reconciliation|withdrawals|refunds|release-state\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+))?$/;
+const paymentRead = /^api\/v1\/payments\/(?:[A-Za-z0-9_-]+|subjects\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+\/latest)$/;
+const reviewRead = /^api\/v1\/reviews\/(?:eligibility\/BOOKING\/[A-Za-z0-9_-]+|[A-Za-z0-9_-]+)$/;
+const publicTrustRead = /^api\/v1\/trust\/users\/[A-Za-z0-9_-]+\/summary$/;
+const notificationRead = /^api\/v1\/notifications(?:\/unread-count)?$/;
+const notificationReceiptWrite = /^api\/v1\/notifications\/(?:read-all|[A-Za-z0-9_-]+\/read)$/;
+const bookingRead = /^api\/v1\/bookings\/(?:client|hustler|availability|slots|duration-insights|[A-Za-z0-9_-]+)$/;
+const bookingDecision = /^api\/v1\/bookings\/[A-Za-z0-9_-]+\/(?:accept|decline|cancel|propose-time|respond-time)$/;
+const guestRead = /^api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;
+const apiPut = /^api\/v1\/(?:hustler-application|professional-profile|services\/[A-Za-z0-9_-]+|posts\/[A-Za-z0-9_-]+)$/;
+const postAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media|publish|archive|like|save|share|comments|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
+const postDelete = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media\/[A-Za-z0-9_-]+|like|save|comments\/[A-Za-z0-9_-]+|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
+const followAction = /^api\/v1\/users\/[A-Za-z0-9_-]+\/follow$/;
+// Consultation and messaging are authenticated, participant-scoped routes only.
+const messagingRead = /^api\/v1\/messaging\/conversations(?:\/[A-Za-z0-9_-]+(?:\/(?:messages|typing))?)?$/;
+// Account-owned block and report operations; no administrator or transaction tools.
+const safetyRead = /^api\/v1\/trust-safety\/blocks\/status\/[A-Za-z0-9_-]+$/;
+const safetyBlock = /^api\/v1\/trust-safety\/blocks\/[A-Za-z0-9_-]+$/;
+const messagingWrite = /^api\/v1\/messaging\/conversations\/(?:direct|[A-Za-z0-9_-]+\/(?:messages|read|typing|messages\/[A-Za-z0-9_-]+\/context-opened))$/;
+const reviewPost = /^api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/;
+);
+const variantOwned = new RegExp(`^api/v1/products/${productId}/variants/${productId}import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * Non-production ONLY. Requests go exclusively to the verified disposable
+ * child staging API. This is a same-origin cookie/Bearer bridge for an installed
+ * iOS web app, not an arbitrary URL proxy or a production auth fallback.
+ */
+const STAGING_API_ORIGIN = "https://hustle-isolated-staging-api.vercel.app";
+const AWS_STAGING_API_ORIGIN = "https://hh2zi77ntrsjj3rgapko7rsjv40ztgpu.lambda-url.eu-west-2.on.aws";
+/** Only these two literal, vetted isolated runtimes may be used. */
+export function selectedIsolatedBackendOrigin(): string | null {
+  const choice = process.env.HUSTLE_API_BACKEND_TARGET;
+  if (choice === "aws-lambda-isolated-staging") return AWS_STAGING_API_ORIGIN;
+  if (!choice || choice === "vercel-isolated-staging") return STAGING_API_ORIGIN;
+  return null; // Invalid/missing preview target fails closed, never arbitrary forwarding.
+}
+const prefix = "/api/isolated/";
+const allowedAuthReads = new Set(["get-session", "ok"]);
+const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]);
+const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+(?:\/interactions(?:\/me)?)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?))$/;
+const creatorActivationRead = "api/v1/creator-activation";
+const isolatedMediaRead = /^api\/v1\/media\/(?:p|o)\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
+const postMediaUploadAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/media\/uploads\/(?:authorize|confirm)$/;
+const apiWrite = new Set(["api/v1/auth/sync", "api/v1/hustler-application/submit",
+  "api/v1/professional-profile/publish", "api/v1/professional-profile/unpublish", "api/v1/services"]);
+const guestSlots = /^api\/v1\/guest\/bookings\/(?:availability|slots)$/;
+const sandboxWrite = /^api\/v1\/sandbox\/(?:bookings\/[A-Za-z0-9_-]+\/(?:fund|start|complete|release)|wallet\/withdrawals)$/;
+const walletRead = /^api\/v1\/wallet(?:\/(?:transactions|reconciliation|withdrawals|refunds|release-state\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+))?$/;
+const paymentRead = /^api\/v1\/payments\/(?:[A-Za-z0-9_-]+|subjects\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+\/latest)$/;
+const reviewRead = /^api\/v1\/reviews\/(?:eligibility\/BOOKING\/[A-Za-z0-9_-]+|[A-Za-z0-9_-]+)$/;
+const publicTrustRead = /^api\/v1\/trust\/users\/[A-Za-z0-9_-]+\/summary$/;
+const notificationRead = /^api\/v1\/notifications(?:\/unread-count)?$/;
+const notificationReceiptWrite = /^api\/v1\/notifications\/(?:read-all|[A-Za-z0-9_-]+\/read)$/;
+const bookingRead = /^api\/v1\/bookings\/(?:client|hustler|availability|slots|duration-insights|[A-Za-z0-9_-]+)$/;
+const bookingDecision = /^api\/v1\/bookings\/[A-Za-z0-9_-]+\/(?:accept|decline|cancel|propose-time|respond-time)$/;
+const guestRead = /^api\/v1\/guest\/(?:feed\/(?:for-you|nearby|connections)|search(?:\/(?:top|people|posts|services|products))?|marketplace(?:\/(?:all|services|products))?)$/;
+const apiPut = /^api\/v1\/(?:hustler-application|professional-profile|services\/[A-Za-z0-9_-]+|posts\/[A-Za-z0-9_-]+)$/;
+const postAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media|publish|archive|like|save|share|comments|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
+const postDelete = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/(?:media\/[A-Za-z0-9_-]+|like|save|comments\/[A-Za-z0-9_-]+|services\/[A-Za-z0-9_-]+|products\/[A-Za-z0-9_-]+)$/;
+const followAction = /^api\/v1\/users\/[A-Za-z0-9_-]+\/follow$/;
+// Consultation and messaging are authenticated, participant-scoped routes only.
+const messagingRead = /^api\/v1\/messaging\/conversations(?:\/[A-Za-z0-9_-]+(?:\/(?:messages|typing))?)?$/;
+// Account-owned block and report operations; no administrator or transaction tools.
+const safetyRead = /^api\/v1\/trust-safety\/blocks\/status\/[A-Za-z0-9_-]+$/;
+const safetyBlock = /^api\/v1\/trust-safety\/blocks\/[A-Za-z0-9_-]+$/;
+const messagingWrite = /^api\/v1\/messaging\/conversations\/(?:direct|[A-Za-z0-9_-]+\/(?:messages|read|typing|messages\/[A-Za-z0-9_-]+\/context-opened))$/;
+const reviewPost = /^api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/;
+);
 
 export function isIsolatedWebPreviewEnabled() {
   return process.env.HUSTLE_ISOLATED_PWA_GATE === "isolated-staging"
@@ -61,12 +209,12 @@ export function stagingProxyAllowed(method: string, segments: string[]) {
       || method === "POST" && allowedAuthWrites.has(endpoint);
   }
   return method === "GET" && (isolatedMediaRead.test(route) || route === creatorActivationRead || apiRead.test(route) || guestRead.test(route) || messagingRead.test(route) || bookingRead.test(route) || guestSlots.test(route) || walletRead.test(route) || paymentRead.test(route) || reviewRead.test(route) || publicTrustRead.test(route) || notificationRead.test(route) || safetyRead.test(route)) ||
-    method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route) || notificationReceiptWrite.test(route) ||
+    method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route) || productAction.test(route) || notificationReceiptWrite.test(route) ||
       route === "api/v1/bookings" || bookingDecision.test(route) || route === "api/v1/reviews" || sandboxWrite.test(route) ||
       route === "api/v1/posts" || postMediaUploadAction.test(route) || postAction.test(route) || followAction.test(route) || messagingWrite.test(route) || safetyBlock.test(route) || route === "api/v1/trust-safety/reports" ||
       ["api/v1/feed/events", "api/v1/search/events", "api/v1/marketplace/events"].includes(route)) ||
-    method === "PUT" && apiPut.test(route) ||
-    method === "DELETE" && (postDelete.test(route) || followAction.test(route) || safetyBlock.test(route)) ||
+    method === "PUT" && (apiPut.test(route) || productOwned.test(route) || variantOwned.test(route)) ||
+    method === "DELETE" && (postDelete.test(route) || followAction.test(route) || safetyBlock.test(route) || productOwned.test(route) || variantOwned.test(route)) ||
     method === "PATCH" && route === "api/v1/auth/profile";
 }
 const privateHeaders = ["authorization", "cookie"];
