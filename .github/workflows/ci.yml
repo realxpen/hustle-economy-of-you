@@ -77,6 +77,8 @@ jobs:
         run: node scripts/experience/check-ux029-shopping-surface.cjs
       - name: UX030 installed iPhone Discovery header, photo integrity and creator identity
         run: node scripts/experience/check-ux030-discovery-pwa.cjs
+      - name: UX031 isolated Product publishing authentication and owner-only staging contract
+        run: node scripts/experience/check-ux031-product-staging-auth.cjs
       - name: "Regression: isolated Hustler activation and publishing boundaries"
         run: node scripts/experience/check-isolated-hustler-activation.cjs
       - name: Verify UX005 wallet, commented feed and sandbox route boundaries

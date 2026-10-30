@@ -17,12 +17,12 @@ export function selectedIsolatedBackendOrigin(): string | null {
 const prefix = "/api/isolated/";
 const allowedAuthReads = new Set(["get-session", "ok"]);
 const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]);
-const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+(?:\/interactions(?:\/me)?)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/[A-Za-z0-9_-]+)?))$/;
+const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+(?:\/interactions(?:\/me)?)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?))$/;
 const creatorActivationRead = "api/v1/creator-activation";
 const isolatedMediaRead = /^api\/v1\/media\/(?:p|o)\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
 const postMediaUploadAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/media\/uploads\/(?:authorize|confirm)$/;
 const apiWrite = new Set(["api/v1/auth/sync", "api/v1/hustler-application/submit",
-  "api/v1/professional-profile/publish", "api/v1/professional-profile/unpublish", "api/v1/services"]);
+  "api/v1/professional-profile/publish", "api/v1/professional-profile/unpublish", "api/v1/services", "api/v1/products"]);
 const guestSlots = /^api\/v1\/guest\/bookings\/(?:availability|slots)$/;
 const sandboxWrite = /^api\/v1\/sandbox\/(?:bookings\/[A-Za-z0-9_-]+\/(?:fund|start|complete|release)|wallet\/withdrawals)$/;
 const walletRead = /^api\/v1\/wallet(?:\/(?:transactions|reconciliation|withdrawals|refunds|release-state\/(?:BOOKING|ORDER)\/[A-Za-z0-9_-]+))?$/;
@@ -46,6 +46,11 @@ const safetyBlock = /^api\/v1\/trust-safety\/blocks\/[A-Za-z0-9_-]+$/;
 const messagingWrite = /^api\/v1\/messaging\/conversations\/(?:direct|[A-Za-z0-9_-]+\/(?:messages|read|typing|messages\/[A-Za-z0-9_-]+\/context-opened))$/;
 const reviewPost = /^api\/v1\/hustler-reviews\/[A-Za-z0-9_-]+\/(?:start|verification|approve|reject)$/;
 const servicePost = /^api\/v1\/services\/[A-Za-z0-9_-]+\/(?:publish|pause)$/;
+// Isolated-staging Product editor actions only. Backend AuthGuard, active HUSTLER
+// capability, owner-profile and moderation checks remain authoritative.
+const productAction = /^api\/v1\/products\/[A-Za-z0-9_-]+\/(?:publish|pause|variants)$/;
+const productOwned = /^api\/v1\/products\/[A-Za-z0-9_-]+$/;
+const variantOwned = /^api\/v1\/products\/[A-Za-z0-9_-]+\/variants\/[A-Za-z0-9_-]+$/;
 
 export function isIsolatedWebPreviewEnabled() {
   return process.env.HUSTLE_ISOLATED_PWA_GATE === "isolated-staging"
@@ -61,12 +66,12 @@ export function stagingProxyAllowed(method: string, segments: string[]) {
       || method === "POST" && allowedAuthWrites.has(endpoint);
   }
   return method === "GET" && (isolatedMediaRead.test(route) || route === creatorActivationRead || apiRead.test(route) || guestRead.test(route) || messagingRead.test(route) || bookingRead.test(route) || guestSlots.test(route) || walletRead.test(route) || paymentRead.test(route) || reviewRead.test(route) || publicTrustRead.test(route) || notificationRead.test(route) || safetyRead.test(route)) ||
-    method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route) || notificationReceiptWrite.test(route) ||
+    method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route) || productAction.test(route) || notificationReceiptWrite.test(route) ||
       route === "api/v1/bookings" || bookingDecision.test(route) || route === "api/v1/reviews" || sandboxWrite.test(route) ||
       route === "api/v1/posts" || postMediaUploadAction.test(route) || postAction.test(route) || followAction.test(route) || messagingWrite.test(route) || safetyBlock.test(route) || route === "api/v1/trust-safety/reports" ||
       ["api/v1/feed/events", "api/v1/search/events", "api/v1/marketplace/events"].includes(route)) ||
-    method === "PUT" && apiPut.test(route) ||
-    method === "DELETE" && (postDelete.test(route) || followAction.test(route) || safetyBlock.test(route)) ||
+    method === "PUT" && (apiPut.test(route) || productOwned.test(route) || variantOwned.test(route)) ||
+    method === "DELETE" && (postDelete.test(route) || followAction.test(route) || safetyBlock.test(route) || productOwned.test(route) || variantOwned.test(route)) ||
     method === "PATCH" && route === "api/v1/auth/profile";
 }
 const privateHeaders = ["authorization", "cookie"];

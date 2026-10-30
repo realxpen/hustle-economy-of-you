@@ -37,6 +37,11 @@ try {
   ["GET","profiles/username"],["GET","storefronts/username"],["GET","services/mine"],["GET","services/mine/abc"],
   ["POST","services"],["PUT","services/abc"],["POST","services/abc/publish"],
   ["POST","services/abc/pause"],["PATCH","auth/profile"],
+  ["GET","products/mine"],["GET","products/mine/abc"],["GET","products/abc"],
+  ["POST","products"],["PUT","products/abc"],["POST","products/abc/publish"],
+  ["POST","products/abc/pause"],["POST","products/abc/variants"],
+  ["PUT","products/abc/variants/def"],["DELETE","products/abc/variants/def"],
+  ["DELETE","products/abc"],
   ["GET","guest/feed/for-you"],["GET","guest/feed/nearby"],["GET","guest/search"],
   ["GET","guest/search/people"],["GET","guest/marketplace"],["GET","guest/marketplace/services"],
   ["GET","posts/mine"],["GET","posts/mine/abc"],["GET","posts/abc/interactions/me"],
@@ -83,7 +88,10 @@ try {
   ["POST","bookings/booking1/extend"],["POST","bookings/booking1/fund"],
   ["POST","guest/bookings/availability"],["POST","guest/bookings/slots"],
   ["DELETE","bookings/booking1"],["POST","payments"],["POST","escrow/release"],
-  ["POST","orders"],["POST","wallet/deposit"],["POST","wallet/withdrawals"],
+  ["POST","orders"],["POST","cart/items"],["POST","products/abc/checkout"],
+  ["POST","products/abc/pay"],["PATCH","products/abc"],
+  ["GET","products/abc/variants/def"],["POST","products/abc/variants/def/publish"],
+  ["POST","wallet/deposit"],["POST","wallet/withdrawals"],
   ["POST","payments/initialize"],["POST","payments/webhooks/sandbox"],
   ["POST","wallet/escrows/bookings/b1/release"],["POST","sandbox/wallet/deposit"],
   ["PATCH","services/abc"],
@@ -129,7 +137,7 @@ try {
  const profileClient = get("apps/web/lib/auth/hustle-account.ts");
  assert(profileClient.includes('authenticatedFetch("/auth/profile", { method: "PATCH"'),
    "Profile onboarding must use the allowed PATCH path");
- for(const p of ["hustler-application","hustler-review","professional-profile","service"]){
+ for(const p of ["hustler-application","hustler-review","professional-profile","service","product"]){
   assert.match(get("apps/web/lib/"+p+".ts"),/import \{ authenticatedFetch \} from "\.\/api\/authenticated-fetch";/);
  }
  assert.match(get("apps/web/lib/storefront.ts"),/publicReadFetch/);
