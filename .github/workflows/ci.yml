@@ -81,6 +81,8 @@ jobs:
         run: node scripts/experience/check-ux031-product-staging-auth.cjs
       - name: UX032 isolated Live directory public read and explicit streaming denial
         run: node scripts/experience/check-ux032-live-directory.cjs
+      - name: UX033 live preview Discovery integration and nonfinancial Cart staging
+        run: node scripts/experience/check-ux033-live-cart.cjs
       - name: "Regression: isolated Hustler activation and publishing boundaries"
         run: node scripts/experience/check-isolated-hustler-activation.cjs
       - name: Verify UX005 wallet, commented feed and sandbox route boundaries
