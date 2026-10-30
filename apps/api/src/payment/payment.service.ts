@@ -90,7 +90,8 @@ export class PaymentService {
       subjectType,
       subjectId,
       amountMinor: subject.amountMinor,
-      currency: subject.currency
+      currency: subject.currency,
+      payerEmail: user.emailVerified ? user.email ?? undefined : undefined
     });
 
     try {
@@ -145,8 +146,9 @@ export class PaymentService {
     return this.serializeAttempt(attempt);
   }
 
-  async handleVerifiedWebhook(payload: unknown, signature?: string) {
-    const webhook = await this.gateway.verifyWebhook(payload, signature);
+  async handleVerifiedWebhook(payload: unknown, signature?: string, rawBody?: Buffer) {
+    const webhook = await this.gateway.verifyWebhook(payload, signature, rawBody);
+    if (!webhook) return { accepted: true, ignored: true, reason: "UNRELATED_PROVIDER_EVENT" };
     let event = await this.prisma.webhookEvent.findUnique({
       where: { provider_eventId: { provider: webhook.provider, eventId: webhook.eventId } }
     });
@@ -293,13 +295,13 @@ export class PaymentService {
       await this.bookingService.markFundedFromAuthoritativePayment({
         bookingId: attempt.subjectId,
         fundingReference: attempt.providerReference,
-        source: "phase13:sandbox"
+        source: attempt.provider === "PAYSTACK_TEST" ? "paystack:test" : "phase13:sandbox"
       });
     } else {
       await this.commerceService.markPaidFromAuthoritativePayment({
         orderId: attempt.subjectId,
         paymentReference: attempt.providerReference,
-        source: "phase13:sandbox"
+        source: attempt.provider === "PAYSTACK_TEST" ? "paystack:test" : "phase13:sandbox"
       });
       await this.postFinancialCapture(attempt, FinancialAccountType.PENDING);
     }
@@ -540,7 +542,10 @@ export class PaymentService {
   }
 
   private async requireUser(identity: AuthIdentity) {
-    const user = await this.prisma.user.findUnique({ where: { authSubject: identity.subject }, select: { id: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { authSubject: identity.subject },
+      select: { id: true, email: true, emailVerified: true }
+    });
     if (!user) throw new NotFoundException("Hustle account is not synchronized");
     return user;
   }
