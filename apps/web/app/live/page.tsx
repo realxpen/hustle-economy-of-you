@@ -28,22 +28,18 @@ export default function LiveDiscoveryPage() {
 
   return <main className={styles.livePreviewPage} data-hustle-live-previews="true">
     <header className={styles.livePreviewHeader}>
-      <Link href="/home" aria-label="Return to Discover">‹ Discover</Link>
+      <Link href="/home" aria-label="Back to Discovery">‹ Discover</Link>
       <strong><span aria-hidden="true">●</span> LIVE</strong>
-      <Link href="/live/create">Go Live ↗</Link>
+      <Link href="/live/create">Go LIVE +</Link>
     </header>
-    <div className={styles.livePreviewIntro}>
-      <strong>Hustlers live now</strong>
-      <span>Tap a preview to join the full Live.</span>
-    </div>
     {loading && <ExperienceState compact kind="loading" title="Finding live broadcasts…" />}
     {error && <ExperienceState compact kind="error" title="LIVE isn't available right now" description={error}
        action={{label:"Try again",onClick:()=>setReload(n=>n+1)}} />}
     {!loading && !error && items.length===0 && <div className={styles.livePreviewEmpty}>
       <span aria-hidden="true">✳</span>
-      <h1>No one is live right now.</h1>
-      <p>When a Hustler starts a Live, a preview appears here and can also be discovered in regular feeds.</p>
-      <Link href="/home">Explore posts instead ↗</Link>
+      <h1>No one is LIVE right now.</h1>
+      <p>New broadcasts will appear here, alongside posts in Discovery.</p>
+      <Link href="/home">Explore For You ↗</Link>
     </div>}
     {!loading && !error && items.length>0 && <section className={styles.livePreviewFeed}
       aria-label="Active Hustle LIVE previews; select a preview to enter the live room">
