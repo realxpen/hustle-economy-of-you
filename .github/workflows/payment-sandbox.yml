@@ -54,6 +54,10 @@ jobs:
         run: node --check scripts/payment-sandbox/real-paystack-test-preflight.mjs
       - name: Validate protected real-provider preflight denies unsafe contexts without network
         run: node scripts/payment-sandbox/check-real-paystack-preflight.mjs
+      - name: Validate hosted checkout PREPARE/VERIFY safety guards and syntax without network
+        run: |
+          node --check scripts/payment-sandbox/hosted-test-checkout.mjs
+          node scripts/payment-sandbox/check-hosted-test-checkout-guard.mjs
       - name: Mint throwaway webhook secret
         shell: bash
         run: |
