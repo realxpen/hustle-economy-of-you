@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 const assert=require("node:assert/strict");
+require("reflect-metadata");
 const fs=require("node:fs");
 const path=require("node:path");
 const Module=require("node:module");
