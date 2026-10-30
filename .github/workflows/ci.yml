@@ -75,6 +75,8 @@ jobs:
         run: node scripts/experience/check-ux028-marketplace-polish.cjs
       - name: UX029 real product gallery Cart and Checkout visual continuity
         run: node scripts/experience/check-ux029-shopping-surface.cjs
+      - name: UX030 installed iPhone Discovery header, photo integrity and creator identity
+        run: node scripts/experience/check-ux030-discovery-pwa.cjs
       - name: "Regression: isolated Hustler activation and publishing boundaries"
         run: node scripts/experience/check-isolated-hustler-activation.cjs
       - name: Verify UX005 wallet, commented feed and sandbox route boundaries

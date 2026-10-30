@@ -370,7 +370,19 @@ function FeedCard({
 
   const initial = (item.creator.displayName ?? item.creator.username ?? "H").charAt(0).toUpperCase();
   const skill = item.creator.professionalProfile.primarySkill ?? item.creator.professionalProfile.headline ?? item.post.category;
-  const creatorHref = item.creator.username ? `/u/${item.creator.username}` : "/home";
+  // A missing public username is not the handle "@user" and must not
+  // masquerade as a navigable profile.
+  const creatorHref = item.creator.username ? `/u/${item.creator.username}` : null;
+  const creatorLabel = item.creator.username
+    ? `@${item.creator.username}`
+    : item.creator.displayName?.trim() || "Hustle creator";
+  const creatorIdentity = <>
+    <span className={styles.avatar}>{item.creator.avatarUrl ? <img src={item.creator.avatarUrl} alt="" /> : initial}</span>
+    <span className={styles.creatorName}>
+      <strong>{item.creator.displayName ?? item.creator.username ?? "Hustle creator"} {item.creator.verified && <span className={styles.verification} aria-label="Verified creator">✓</span>}</strong>
+      <small>{creatorLabel}{item.post.location || item.creator.location ? <span className={styles.creatorLocation}>{" · " + (item.post.location ?? item.creator.location)}</span> : null}</small>
+    </span>
+  </>;
 
   const offerCount = item.services.length + item.products.length;
   const hasMedia = item.post.media.length > 0;
@@ -393,15 +405,10 @@ function FeedCard({
         <span>Behind the work</span><span>Discover · Connect</span>
       </div>
       <div className={styles.creatorRow}>
-        <Link className={styles.creator} href={creatorHref} onClick={() => void captureFeedEvent({
+        {creatorHref ? <Link className={styles.creator} href={creatorHref} onClick={() => void captureFeedEvent({
           name: "feed.profile_clicked", postId: item.post.id, feedTab: tab, position, sessionId
-        }).catch(() => undefined)}>
-          <span className={styles.avatar}>{item.creator.avatarUrl ? <img src={item.creator.avatarUrl} alt="" /> : initial}</span>
-          <span className={styles.creatorName}>
-            <strong>{item.creator.displayName ?? item.creator.username ?? "Hustle user"} {item.creator.verified && <span className={styles.verification} aria-label="Verified creator">✓</span>}</strong>
-            <small>{"@" + (item.creator.username ?? "user")}{item.post.location || item.creator.location ? <span className={styles.creatorLocation}>{" · " + (item.post.location ?? item.creator.location)}</span> : null}</small>
-          </span>
-        </Link>
+        }).catch(() => undefined)}>{creatorIdentity}</Link> :
+          <span className={styles.creator} aria-label={`Creator: ${creatorLabel}`}>{creatorIdentity}</span>}
         <button className={item.viewer.following ? styles.following : styles.follow} type="button"
           onClick={toggleFollow} disabled={working === "follow"} aria-pressed={item.viewer.following}>
           {item.viewer.following ? "Following" : "Follow"}

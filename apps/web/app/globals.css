@@ -294,3 +294,21 @@ body:has(main.h-discover-immersive) #hustle-page-content {
     overflow:hidden;
   }
 }
+
+/* UX030: AWS test banner already consumes the iPhone top safe area.
+ * Installed Discovery must not reserve it a second time. Its full-viewport
+ * stage must fit the flex remainder below the banner and above the 5-tab
+ * bottom dock; other pages and normal staging retain their original layout. */
+@media(max-width:760px) and (display-mode:standalone){
+  body:has(> .h-aws-preview-banner):has(main.h-discover-immersive){
+    --discover-top-safe-area:0px;
+  }
+  body:has(> .h-aws-preview-banner):has(main.h-discover-immersive) #hustle-page-content{
+    padding-bottom:0!important;
+  }
+  body:has(> .h-aws-preview-banner) main.h-discover-immersive{
+    height:100%!important;
+    min-height:0!important;
+    padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))!important;
+  }
+}
