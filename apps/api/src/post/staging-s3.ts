@@ -1,5 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
-import { BadGatewayException, ServiceUnavailableException } from "@nestjs/common";
+import { BadGatewayException, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 
 /**
  * Staging-only, minimal AWS SigV4 S3 adapter. Uses the IAM role's short-lived
@@ -104,6 +104,10 @@ function signedHeaders(method: "GET" | "HEAD" | "DELETE" | "PUT", key: string, e
 async function request(method: "HEAD" | "GET" | "PUT" | "DELETE", key: string, extra: Record<string,string> = {}) {
   const headers = signedHeaders(method, key, extra);
   const response = await fetch(`https://${host()}/${encodedKey(key)}`, { method, headers, signal: AbortSignal.timeout(15_000) });
+  // Only an authoritative 404 for the exact signed pending object is evidence
+  // that an upload can be retried. An opaque proxy/5xx/403 must fail closed.
+  if (method === "HEAD" && key.startsWith("pending/") && response.status === 404)
+    throw new NotFoundException("Pending private media bytes not received");
   if (!response.ok) throw new BadGatewayException("Isolated storage object verification failed");
   return response;
 }
