@@ -117,6 +117,11 @@ async function attempt(mode) {
   assert.match(editor,/Check earlier upload first/, "Explicit verification prior to retransmission");
   assert.match(editor,/retryCount: 0, checked: false/, "Fresh ticket has no prior retries");
   assert.match(editor,/previousAttempt && !previousAttempt\.checked/, "Owner must verify ambiguous result first");
+  assert.match(editor,/reason instanceof AuthenticatedApiError/, "Only typed HTTP status may authorize retry");
+  assert.match(editor,/reason\.status === 404 && reason\.message === "Pending private media bytes not received"/,
+    "Only a specific authenticated S3-missing response may unlock retry");
+  assert.match(editor,/checked: confirmedMissing/, "All other verification failures stay blocked");
+  assert.doesNotMatch(editor,/checked: true/, "Never mark arbitrary API verification errors as checked");
   assert.match(editor,/previousAttempt\.retryCount >= 1/, "At most one same-key retry per ticket");
   assert.match(editor,/retryCount: recoverable\.retryCount \+ 1, checked: false/, "Count the same-key retry");
   assert.match(editor,/setPendingConfirmation\(\{ file, postId: draftId, receipt \}\)/, "After confirm, failed refresh cannot repeat transfer");
