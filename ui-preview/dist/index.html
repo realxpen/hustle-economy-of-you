@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<meta name="robots" content="noindex,nofollow" />
 <meta name="theme-color" content="#f8f8f4" />
 <title>Hustle — V1 Refined • Posts + Stories</title>
 <style>
@@ -30,15 +29,47 @@ button{ -webkit-tap-highlight-color:transparent}
 @media(max-width:550px){html,body{background:var(--bg)}.demo-shell{padding:0;align-items:stretch}.phone{border:0;border-radius:0;box-shadow:none;height:100dvh;max-height:none;min-height:0;width:100%}.post-image{height:min(58dvh,520px)}.post{margin-left:10px;margin-right:10px}}
 @media(max-height:700px){.top-head{padding-top:7px;padding-bottom:6px}.feed-ranks{padding-bottom:7px}.story-zone{padding-bottom:6px}.post-image{height:clamp(330px,56dvh,430px)}.rail{gap:7px}.post-foot{gap:6px}}
 @media(prefers-reduced-motion:no-preference){.post-image>img{transition:opacity .2s ease}.story-view,.story-explore,.full-page{animation:appear .18s ease}@keyframes appear{from{opacity:.65;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}}
+
+/* Immersive, one-post-per-screen Home Feed. V1 typography and surface styling retained. */
+.phone{background:#142017}
+.feed-chrome-top{position:absolute;top:0;left:0;right:0;z-index:12;pointer-events:none;background:linear-gradient(180deg,rgba(249,251,247,.98) 0%,rgba(249,251,247,.96) 62%,rgba(249,251,247,.78) 83%,transparent 100%);padding-top:env(safe-area-inset-top);transition:opacity .22s ease,transform .28s ease}
+.feed-chrome-top .status,.feed-chrome-top .top-head,.feed-chrome-top .feed-ranks,.feed-chrome-top .story-zone{pointer-events:auto}
+.dark .feed-chrome-top{background:linear-gradient(180deg,rgba(17,25,18,.98),rgba(17,25,18,.96) 63%,rgba(17,25,18,.7) 85%,transparent)}
+.scroll-view{flex:1;height:100%;min-height:0;overflow-y:auto;overscroll-behavior-y:contain;scroll-snap-type:y mandatory;scroll-padding-top:0;scrollbar-width:none;padding:0;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:#142017}
+.scroll-view:focus-visible{outline-offset:-4px}
+.scroll-view::-webkit-scrollbar{display:none}
+.feed-blurb{display:none}
+#feedPosts{height:100%;width:100%}
+#feedPosts>.post{height:100%;min-height:100%;width:100%;margin:0;border:0;border-radius:0;box-shadow:none;position:relative;scroll-snap-align:start;scroll-snap-stop:always;background:#142017}
+#feedPosts>.post>.post-image{height:100%;min-height:100%;width:100%;border-radius:0;touch-action:pan-y}
+#feedPosts>.post>.post-image>img{width:100%;height:100%;object-fit:cover;object-position:center center;filter:brightness(.94)}
+#feedPosts>.post>.post-image:after{background:linear-gradient(180deg,#07110856 0%,transparent 30%,#03080316 47%,#020703e8 100%)}
+.post-under{display:none}
+.post-foot{left:16px;right:65px;bottom:calc(82px + env(safe-area-inset-bottom));gap:9px;max-height:46%;overflow-y:auto;scrollbar-width:none}
+.post-caption{font-size:12px;line-height:1.45;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.rail{top:auto;right:9px;bottom:calc(175px + env(safe-area-inset-bottom));gap:14px}
+.rail .action-ico{background:#111b17ae;backdrop-filter:blur(10px);width:41px;height:41px}
+.post-badge{top:auto;bottom:calc(282px + env(safe-area-inset-bottom));left:16px;background:#111d13b8}
+.post-top-more{top:calc(206px + env(safe-area-inset-top));right:12px}
+.slide-count{top:calc(208px + env(safe-area-inset-top));right:54px}
+.media-dots{bottom:calc(72px + env(safe-area-inset-bottom))}
+.bottom-nav{position:absolute;left:0;bottom:0;right:0;height:calc(66px + env(safe-area-inset-bottom));padding-bottom:calc(10px + env(safe-area-inset-bottom));border-top:1px solid #fff3;background:rgba(247,250,245,.94);backdrop-filter:blur(15px);transition:opacity .22s ease,transform .28s ease;z-index:14}
+.dark .bottom-nav{background:rgba(23,34,25,.95)}
+.phone.chrome-hidden .feed-chrome-top{opacity:0;transform:translateY(-28px);pointer-events:none}
+.phone.chrome-hidden .bottom-nav{opacity:0;transform:translateY(110%);pointer-events:none}
+.phone.chrome-hidden .feed-chrome-top *,.phone.chrome-hidden .bottom-nav *{pointer-events:none}
+@media (max-width:550px){.phone{height:100dvh;max-height:none;min-height:0}.post-image{height:100%}#feedPosts>.post>.post-image{height:100%}.post-foot{bottom:calc(84px + env(safe-area-inset-bottom))}}
+@media (max-height:700px){.post-foot{gap:5px;bottom:calc(73px + env(safe-area-inset-bottom))}.post-caption{font-size:11px;-webkit-line-clamp:2}.rail{gap:6px;bottom:calc(160px + env(safe-area-inset-bottom))}.post-badge{bottom:calc(242px + env(safe-area-inset-bottom))}.post-top-more{top:calc(170px + env(safe-area-inset-top))}}
+@media (prefers-reduced-motion:reduce){.feed-chrome-top,.bottom-nav{transition:none}.scroll-view{scroll-behavior:auto}}
 </style>
 </head>
 <body>
 <div class="demo-shell" id="app"><div class="phone" id="phone">
-<div class="status"><span>9:41</span><span class="status-icons">▂ ▆ ● ▰</span></div>
+<div class="feed-chrome-top" id="feedChromeTop"><div class="status"><span>9:41</span><span class="status-icons">▂ ▆ ● ▰</span></div>
 <header class="top-head"><div class="brand">hustle<i>.</i></div><div class="top-actions"><button class="round-ctl" data-action="notifications" aria-label="Notifications"><svg class="ico"><use href="#icon-bell"/></svg></button><button class="round-ctl" data-action="theme" aria-label="Toggle dark mode"><svg class="ico"><use href="#icon-moon"/></svg></button></div></header>
 <div class="feed-ranks" role="tablist" aria-label="Feed ranking"><button data-rank="Following">Following</button><button data-rank="For you" class="active" aria-selected="true">For you</button><button data-rank="Nearby">Nearby</button></div>
-<section class="story-zone" aria-label="Creator stories"><div class="story-track" id="stories"></div><button class="story-more" data-action="exploreStories" aria-label="Explore more stories"><span class="story-more-ring"><svg class="ico"><use href="#icon-arrow"/></svg></span><span>Explore</span></button></section>
-<main class="scroll-view" id="feedScroll" aria-label="Hustle posts"><div class="feed-blurb"><strong>Made by people. Built on skill.</strong><span>Swipe down for more posts</span></div><div id="feedPosts"></div></main>
+<section class="story-zone" aria-label="Creator stories"><div class="story-track" id="stories"></div><button class="story-more" data-action="exploreStories" aria-label="Explore more stories"><span class="story-more-ring"><svg class="ico"><use href="#icon-arrow"/></svg></span><span>Explore</span></button></section></div>
+<main class="scroll-view" id="feedScroll" aria-label="Hustle posts" tabindex="0"><div class="feed-blurb"><strong>Made by people. Built on skill.</strong><span>Swipe down for more posts</span></div><div id="feedPosts"></div></main>
 <nav class="bottom-nav" aria-label="Primary navigation"><button class="nav-button active" data-nav="Home"><svg class="ico"><use href="#icon-home"/></svg>Home</button><button class="nav-button" data-nav="Explore"><svg class="ico"><use href="#icon-search"/></svg>Explore</button><button class="nav-button" data-nav="Create"><span class="nav-plus"><svg class="ico"><use href="#icon-plus"/></svg></span>Create</button><button class="nav-button" data-nav="Inbox"><svg class="ico"><use href="#icon-chat"/></svg>Inbox</button><button class="nav-button" data-nav="Profile"><svg class="ico"><use href="#icon-user"/></svg>Profile</button></nav>
 <div id="globalOverlay"></div><div id="toastArea" aria-live="polite"></div>
 </div></div>
@@ -142,6 +173,15 @@ if(d.action==='notifications'){flash('No notifications in this demo');return}
 root.addEventListener('submit',e=>{e.preventDefault();const frm=e.target;if(frm.dataset.commentForm){let id=frm.dataset.commentForm,val=frm.querySelector('input').value.trim();if(val){(commentsFor[id]??=[]).push(val);renderPosts();openComments(id)}return}if(frm.dataset.storyForm!==undefined){close();flash('Story reply preview — not delivered');return}});
 root.addEventListener('click',e=>{if(e.target.hasAttribute('data-shade'))close()});
 let sx=0,sy=0;root.addEventListener('touchstart',e=>{sx=e.changedTouches[0].clientX;sy=e.changedTouches[0].clientY},{passive:true});root.addEventListener('touchend',e=>{const target=e.target.closest('[data-post-image]');if(!target)return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy,p=posts.find(x=>x.id===target.dataset.postImage);if(p&&p.type==='carousel'&&Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)){slideFor[p.id]=((slideFor[p.id]||0)+(dx<0?1:-1)+p.images.length)%p.images.length;renderPosts()}},{passive:true});
+
+// TikTok-style, snap-to-post scrolling with transient app chrome.
+let chromeRevealTimer=null, lastChromeScroll=0, lastWheelNavigation=0;
+function revealChromeLater(){clearTimeout(chromeRevealTimer);chromeRevealTimer=setTimeout(()=>root.classList.remove('chrome-hidden'),1500)}
+function hideChromeForScroll(){if(view!=='Home'||global.children.length)return;root.classList.add('chrome-hidden');revealChromeLater()}
+scroller.addEventListener('scroll',()=>{const y=scroller.scrollTop;if(Math.abs(y-lastChromeScroll)>3){lastChromeScroll=y;hideChromeForScroll()}},{passive:true});
+scroller.addEventListener('wheel',e=>{if(view!=='Home'||global.children.length||Math.abs(e.deltaY)<7)return;e.preventDefault();const now=Date.now();if(now-lastWheelNavigation<550)return;lastWheelNavigation=now;const rowHeight=scroller.clientHeight,index=Math.round(scroller.scrollTop/rowHeight),count=scroller.querySelectorAll('.post').length;hideChromeForScroll();scroller.scrollTo({top:Math.max(0,Math.min(count-1,index+(e.deltaY>0?1:-1)))*rowHeight,behavior:'smooth'});},{passive:false});
+scroller.addEventListener('keydown',e=>{if(!['ArrowDown','ArrowUp'].includes(e.key)||e.target.closest('button,input,textarea')||global.children.length)return;e.preventDefault();const height=scroller.clientHeight,index=Math.round(scroller.scrollTop/height);const count=scroller.querySelectorAll('.post').length;hideChromeForScroll();scroller.scrollTo({top:Math.max(0,Math.min(count-1,index+(e.key==='ArrowDown'?1:-1)))*height,behavior:'smooth'});});
+
 renderStories();renderRanks();renderPosts(false);
 })();
 </script></body></html>
