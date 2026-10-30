@@ -137,6 +137,56 @@ button{ -webkit-tap-highlight-color:transparent}
 .stories-discover button{border:0;border-radius:12px;background:var(--acid);font-size:11px;color:#142014;font-weight:900;white-space:nowrap;padding:10px}
 @media(max-width:550px){.top-actions{gap:6px}.stories-entry{padding:3px 8px 3px 4px;min-height:34px;font-size:10px}.stories-entry-ring{width:26px;height:26px}.feed-chrome-top{background:linear-gradient(180deg,rgba(247,249,244,.97) 0%,rgba(247,249,244,.88) 68%,transparent 100%)}.dark .feed-chrome-top{background:linear-gradient(180deg,rgba(19,29,21,.97) 0%,rgba(19,29,21,.88) 68%,transparent 100%)}.post-top-more{top:calc(110px + env(safe-area-inset-top))}.slide-count{top:calc(112px + env(safe-area-inset-top))}.story-tray-items{column-gap:9px}}
 @media(max-width:350px){.top-actions .round-ctl{width:31px;height:31px}.brand{font-size:21px}.stories-entry{padding-right:6px;font-size:10px}.stories-entry-ring{width:23px;height:23px}}
+
+/* Stories V2: Snapchat-like friends circles above square discovery recommendations. */
+.story-explore-v2{padding:0 0 calc(25px + env(safe-area-inset-bottom));scrollbar-width:none;background:var(--bg)}
+.story-explore-v2::-webkit-scrollbar{display:none}
+.story-explore-header{position:sticky;top:0;z-index:3;background:var(--bg);border-bottom:1px solid var(--line);box-shadow:0 8px 18px #1629150a;padding:calc(12px + env(safe-area-inset-top)) 16px 13px}
+.story-explore-nav{display:flex;align-items:center;gap:12px}
+.story-explore-nav>button{height:38px;width:38px;display:grid;place-items:center;font-size:20px;flex:none;background:var(--paper);border:1px solid var(--line);border-radius:50%;color:var(--text)}
+.story-explore-nav>div{min-width:0;flex:1}
+.story-explore-nav h2{font-size:23px;line-height:1.15;font-weight:900;letter-spacing:-.9px;margin:0}
+.story-explore-nav small{color:var(--muted);font-size:10px;display:block;margin-top:3px;font-weight:650}
+.story-explore-brand{font-size:13px;letter-spacing:-.6px;font-weight:950;color:var(--text)}
+.story-explore-brand span{color:#94be3b}
+.story-section-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:20px 0 13px}
+.story-section-title h3{font-size:14px;letter-spacing:-.3px;font-weight:900;margin:0;color:var(--text)}
+.story-section-title>span{font-size:10px;color:var(--muted);white-space:nowrap}
+.story-friends-row{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;padding:3px 0 7px;overscroll-behavior-x:contain}
+.story-friends-row::-webkit-scrollbar{display:none}
+.story-friend{display:flex;align-items:center;flex-direction:column;gap:7px;flex:0 0 62px;width:62px;border:0;background:none;color:var(--text);font-size:10px;font-weight:800;position:relative;padding:0}
+.story-friend-ring{display:block;border:2px solid #a9d65c;padding:3px;width:61px;height:61px;border-radius:50%;background:var(--paper);box-shadow:0 1px 4px #34492c18}
+.story-friend-ring img{width:100%;height:100%;object-fit:cover;border-radius:50%;background:#50684a}
+.story-friend-name{font-size:10px;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.story-friend-live{position:absolute;top:49px;left:10px;right:10px;color:#1b251a;background:var(--acid);border-radius:4px;font-size:8px;letter-spacing:.3px;font-weight:950;padding:2px}
+.story-rec-section{padding:0 16px 18px}
+.story-rec-title{margin:19px 0 16px;align-items:center}
+.story-rec-title p{margin:4px 0 0;color:var(--muted);font-size:11px}
+.story-rec-icon{width:34px;height:34px;display:grid;place-items:center;background:#dfff77;color:#233b20;border-radius:10px;font-size:20px;flex:none}
+.story-explore-v2 .explore-filters{margin-bottom:14px;padding:0 1px 4px}
+.story-explore-v2 .explore-filters button{font-size:10px;padding:8px 12px}
+.story-grid-squares{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.story-grid-squares .story-tile{width:100%;height:auto;aspect-ratio:1/1;border-radius:16px;background:#314339}
+.story-grid-squares .story-tile img{filter:brightness(.85)}
+.story-grid-squares .story-tile:after{background:linear-gradient(0deg,#09130ae9 0%,#0a120b42 48%,transparent 72%)}
+.story-grid-squares .story-tile b{bottom:31px;font-size:12px;left:12px;right:8px}
+.story-grid-squares .story-tile small{bottom:12px;left:12px;right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.story-grid-squares .story-tile .live-marker{top:10px;left:10px}
+.story-no-results{grid-column:1/-1;color:var(--muted);font-size:12px;line-height:1.5;padding:25px;border:1px dashed var(--line);border-radius:15px;background:var(--paper)}
+@media(max-width:550px){
+ .story-explore-v2{padding:0 0 calc(24px + env(safe-area-inset-bottom))}
+ .story-explore-header{padding:calc(10px + env(safe-area-inset-top)) 14px 9px}
+ .story-explore-nav h2{font-size:21px}
+ .story-section-title{margin:15px 0 9px}
+ .story-friends-row{gap:13px;padding-bottom:3px}
+ .story-friend{width:58px;flex-basis:58px}
+ .story-friend-ring{width:57px;height:57px}
+ .story-friend-live{top:45px;left:9px;right:9px}
+ .story-rec-section{padding:0 14px 18px}
+ .story-rec-title{margin:17px 0 13px}
+ .story-grid-squares{gap:11px}
+}
+@media(max-height:640px){.story-explore-v2 .story-explore-header{position:relative}}
 </style>
 </head>
 <body>
@@ -210,8 +260,40 @@ function openSheet(title,contents,kind){sheetType=kind;global.innerHTML=`<div cl
 function storyViewer(i){storyIndex=(i+creators.length)%creators.length;const c=creators[storyIndex];global.innerHTML=`<div class="story-view" role="dialog" aria-modal="true" aria-label="${ec(c.name)}'s story"><img src="${c.cover}" alt="Story from ${ec(c.full)}"><div class="story-shade"></div><div class="story-content"><div class="progress">${creators.map((_,j)=>`<span class="${j<=storyIndex?'on':''}"></span>`).join('')}</div><div class="story-person"><img src="${c.avatar}" alt=""><div class="sp-copy"><b>${ec(c.full)}</b><small>${ec(c.handle)} · Story demo</small></div><button data-close aria-label="Close story">×</button></div><div class="story-tap"><button data-story-prev aria-label="Previous story"></button><button data-story-next aria-label="Next story"></button></div><div class="story-bottom"><p>${ec(c.text)}</p><form class="story-reply" data-story-form><input required placeholder="Reply to story..." aria-label="Reply to story"><button type="submit" aria-label="Send reply">↑</button></form></div></div></div>`}
 function openStoryTray(){root.classList.remove('chrome-hidden');openSheet('Stories',`<p class="story-tray-intro">See what creators are working on. Tap a Story to watch.</p><div class="story-tray-items">${storiesMarkup()}</div><button class="story-tray-explore" data-action="exploreStories">Explore all Stories <span aria-hidden="true">→</span></button>`,'storyTray')}
 function storyExplore(){storyOrigin=view==='Stories'?storyOrigin:view;view='Stories';storyFilter='All';renderStoryExplore()}
-function renderStoryExplore(){const kinds=['All','Beauty','Fashion','Creative','Home','Food'],found=creators.filter(c=>storyFilter==='All'||c.category===storyFilter);
-global.innerHTML=`<section class="story-explore" aria-label="Explore stories"><div class="explore-head"><button data-back aria-label="Back to feed">←</button><h2>Explore stories<span style="color:#a0cb4e">.</span></h2></div><p class="explore-desc">Find more creators and see what they're making. Tap a story to watch.</p><div class="explore-filters">${kinds.map(k=>`<button data-story-filter="${k}" class="${storyFilter===k?'on':''}">${k}</button>`).join('')}</div><div class="story-grid">${found.map(c=>`<button class="story-tile" data-story="${creators.indexOf(c)}"><img src="${c.cover}" alt=""><b>${ec(c.full)}</b><small>${ec(c.category)} · ${ec(c.location)}</small>${c.live?'<span class="live-marker">LIVE</span>':''}</button>`).join('')}</div></section>`}
+function renderStoryExplore(){
+const friendIds=['tobi','zara','nora'];
+const friends=creators.filter(c=>friendIds.includes(c.id));
+const suggested=creators.filter(c=>!friendIds.includes(c.id));
+const kinds=['All','Beauty','Fashion','Creative','Home','Food'];
+const found=suggested.filter(c=>storyFilter==='All'||c.category===storyFilter);
+global.innerHTML=`<section class="story-explore story-explore-v2" aria-label="Explore all stories">
+<header class="story-explore-header">
+  <div class="story-explore-nav">
+    <button data-back aria-label="Back from Stories">←</button>
+    <div><h2>Stories<span style="color:#9ac63b">.</span></h2><small>Life behind the skills</small></div>
+    <span class="story-explore-brand">hustle<span>.</span></span>
+  </div>
+  <div class="story-section-title"><h3>Friends & following</h3><span>Recent Stories · demo</span></div>
+  <div class="story-friends-row" aria-label="Stories from friends and people you follow">
+    ${friends.map(c=>`<button class="story-friend" data-story="${creators.indexOf(c)}" aria-label="View ${ec(c.full)}'s Story">
+      <span class="story-friend-ring"><img src="${c.avatar}" alt="" onerror="this.style.display='none'"></span>
+      <span class="story-friend-name">${ec(c.name)}</span>
+      ${c.live?'<small class="story-friend-live">LIVE</small>':''}
+    </button>`).join('')}
+  </div>
+</header>
+<div class="story-rec-section">
+  <div class="story-section-title story-rec-title"><div><h3>Discover Stories</h3><p>Recommended creators and moments</p></div><span class="story-rec-icon" aria-hidden="true">✦</span></div>
+  <div class="explore-filters" aria-label="Recommended Story categories">${kinds.map(k=>`<button data-story-filter="${k}" aria-pressed="${String(storyFilter===k)}" class="${storyFilter===k?'on':''}">${k}</button>`).join('')}</div>
+  <div class="story-grid story-grid-squares">${found.map(c=>`<button class="story-tile" data-story="${creators.indexOf(c)}" aria-label="Watch ${ec(c.full)} recommended Story">
+    <img src="${c.cover}" alt="" loading="lazy">
+    <b>${ec(c.full)}</b>
+    <small>${ec(c.category)} · ${ec(c.location)}</small>
+    ${c.live?'<span class="live-marker">LIVE</span>':''}
+  </button>`).join('') || '<div class="story-no-results">No recommended Stories in this category yet. Choose another category to explore.</div>'}</div>
+</div>
+</section>`;
+}
 function openComments(id){const p=posts.find(x=>x.id===id);if(!p)return;const entries=(commentsFor[id]||[]).map(x=>`<div class="comment"><b>You:</b>${ec(x)}<button data-reply style="border:0;background:none;color:#7ba137;font-size:10px"> Reply</button></div>`).join('');openSheet('Comments & replies',`<div class="comment"><b>@lagos_creative:</b> Really clean work 👏 <button data-reply style="border:0;background:none;color:#7ba137;font-size:10px">Reply</button></div><div class="comment"><b>@taiwo:</b> The attention to detail is everything.</div>${entries}<form data-comment-form="${id}" class="inline-form"><input name="comment" placeholder="Write a comment..." required aria-label="Comment"><button class="lime-btn">Post</button></form><p>Demo comments stay on this device preview only.</p>`,'comments')}
 function openSave(id){openSheet('Save to collection',`<p>Keep this work in a collection.</p><div class="collections">${['Inspiration','Hire later','Work ideas'].map(n=>`<button data-collection="${ec(n)}" data-for="${id}">${ec(n)} &nbsp; +</button>`).join('')}</div>`,'save')}
 function openProfile(id){const c=creator(id);openSheet(c.full,`<div class="profile-hero"><img src="${c.avatar}" alt=""><div><b>${ec(c.full)} ✓</b><p>${ec(c.category)} · ${ec(c.location)}</p></div></div><p>${ec(c.handle)} · Verified professional (demo)</p><button class="lime-btn" data-from-profile="${id}">Hire / Contact →</button>`,'profile')}
