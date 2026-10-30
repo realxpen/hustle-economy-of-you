@@ -46,7 +46,7 @@ export default function LiveDiscoveryPage() {
       </section>
 
       {loading && <ExperienceState kind="loading" title="Finding Live sessions…" description="Checking which Hustlers are broadcasting now." />}
-      {error && <ExperienceState kind="error" title="Live sessions unavailable." description={error} action={{label:"Try again",onClick:()=>setReload(value=>value+1)}} />}
+      {error && <ExperienceState kind="error" title="Couldn't load Live sessions." description={error} action={{label:"Try again",onClick:()=>setReload(value=>value+1)}} />}
 
       {!loading && !error && items.length === 0 && <section className={styles.empty}>
         <div className={styles.eyebrow}>NO ONE IS LIVE YET</div>
@@ -61,7 +61,7 @@ export default function LiveDiscoveryPage() {
           return <a className={styles.card} key={item.id} href={`/live/${item.id}`}>
             <div className={styles.host}>
               <div className={styles.avatar}>{item.host.avatarUrl ? <img alt="" src={item.host.avatarUrl} /> : (item.host.displayName ?? item.host.username ?? "H").slice(0,1).toUpperCase()}</div>
-              <div><strong>{item.host.displayName ?? item.host.username ?? "Hustler"}</strong><span>@{item.host.username ?? "hustler"}{item.host.verified ? " · Verified" : ""}</span></div>
+              <div><strong>{item.host.displayName ?? item.host.username ?? "Hustler"}</strong><span>{item.host.username ? `@${item.host.username}` : item.host.displayName ?? "Hustle creator"}{item.host.verified ? " · Verified" : ""}</span></div>
             </div>
             <div><span className={styles.liveDot}>LIVE</span><h2>{item.title}</h2></div>
             <div className={styles.meta}>

@@ -19,6 +19,9 @@ const allowedAuthReads = new Set(["get-session", "ok"]);
 const allowedAuthWrites = new Set(["sign-in/email", "sign-up/email", "sign-out"]);
 const apiRead = /^api\/v1\/(?:(?:feed\/(?:for-you|nearby|connections))|(?:search(?:\/(?:top|people|posts|services|products))?)|(?:auth\/me)|(?:health)|(?:hustler-application)|(?:hustler-reviews(?:\/[A-Za-z0-9_-]+)?)|(?:professional-profile)|(?:profiles\/[A-Za-z0-9_-]+)|(?:storefronts\/[A-Za-z0-9_-]+)|(?:posts(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+(?:\/interactions(?:\/me)?)?)?)|(?:services(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?)|(?:marketplace(?:\/[A-Za-z0-9_-]+)?)|(?:products(?:\/mine(?:\/[A-Za-z0-9_-]+)?|\/[A-Za-z0-9_-]+)?))$/;
 const creatorActivationRead = "api/v1/creator-activation";
+// UX032: public Live directory, item detail, and comments ONLY. Avoid the
+// reserved /mine owner path and keep host/viewer mutation endpoints blocked.
+const livePublicRead = /^api\/v1\/live(?:\/(?!mine(?:\/|$))[A-Za-z0-9_-]+(?:\/comments)?)?$/;
 const isolatedMediaRead = /^api\/v1\/media\/(?:p|o)\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
 const postMediaUploadAction = /^api\/v1\/posts\/[A-Za-z0-9_-]+\/media\/uploads\/(?:authorize|confirm)$/;
 const apiWrite = new Set(["api/v1/auth/sync", "api/v1/hustler-application/submit",
@@ -65,7 +68,7 @@ export function stagingProxyAllowed(method: string, segments: string[]) {
     return method === "GET" && allowedAuthReads.has(endpoint)
       || method === "POST" && allowedAuthWrites.has(endpoint);
   }
-  return method === "GET" && (isolatedMediaRead.test(route) || route === creatorActivationRead || apiRead.test(route) || guestRead.test(route) || messagingRead.test(route) || bookingRead.test(route) || guestSlots.test(route) || walletRead.test(route) || paymentRead.test(route) || reviewRead.test(route) || publicTrustRead.test(route) || notificationRead.test(route) || safetyRead.test(route)) ||
+  return method === "GET" && (isolatedMediaRead.test(route) || route === creatorActivationRead || apiRead.test(route) || livePublicRead.test(route) || guestRead.test(route) || messagingRead.test(route) || bookingRead.test(route) || guestSlots.test(route) || walletRead.test(route) || paymentRead.test(route) || reviewRead.test(route) || publicTrustRead.test(route) || notificationRead.test(route) || safetyRead.test(route)) ||
     method === "POST" && (apiWrite.has(route) || reviewPost.test(route) || servicePost.test(route) || productAction.test(route) || notificationReceiptWrite.test(route) ||
       route === "api/v1/bookings" || bookingDecision.test(route) || route === "api/v1/reviews" || sandboxWrite.test(route) ||
       route === "api/v1/posts" || postMediaUploadAction.test(route) || postAction.test(route) || followAction.test(route) || messagingWrite.test(route) || safetyBlock.test(route) || route === "api/v1/trust-safety/reports" ||
