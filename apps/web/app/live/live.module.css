@@ -230,3 +230,35 @@
  .roomBottom{gap:6px}.roomOffer{min-height:53px}.roomTitle{font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){.roomComments{scroll-behavior:auto}}
+
+
+/* UX034: LIVE discovery is itself a feed — the screen is previews, not
+   an information/marketing page. No introduction card and no counters. */
+.livePreviewPage{display:flex;flex-direction:column;height:100dvh;min-height:0;
+ padding:0 0 82px;background:#0b110d;overflow:hidden}
+.livePreviewHeader{position:relative;z-index:4;display:flex;flex:0 0 57px;
+ margin:0 auto;width:min(100%,540px);max-width:540px;padding:7px 13px;
+ align-items:center;gap:9px;background:#0c1310}
+.livePreviewHeader>a{background:transparent;border:0;border-radius:10px;
+ min-height:42px;padding:10px 8px;color:#f3f5ef;font-weight:700;font-size:13px}
+.livePreviewHeader>a:last-child{color:#cbf574}
+.livePreviewHeader>strong{font-size:15px}
+.livePreviewFeed{flex:1;height:auto;min-height:0;width:min(100%,540px);max-width:540px;
+ margin:0 auto;overflow-y:auto;scroll-snap-type:y mandatory}
+.livePreviewFrame{height:100%;min-height:0;padding:0;scroll-snap-stop:always}
+.livePreviewEmpty{display:grid;place-content:center;justify-items:center;gap:12px;
+ flex:1;min-height:0;max-width:540px;width:100%;margin:0 auto;
+ padding:28px;background:radial-gradient(ellipse at 40% 40%,#1f3325,#0b120e);
+ border:0;border-radius:0}
+.livePreviewEmpty>span{opacity:.55}
+.livePreviewEmpty h1{font-size:24px}
+.livePreviewEmpty p{max-width:280px}
+@media(max-width:760px){
+ .livePreviewPage{height:100%;min-height:0;
+  padding:0 0 calc(74px + env(safe-area-inset-bottom,0px))}
+ .livePreviewHeader{padding:4px 13px;flex-basis:52px;margin:0;max-width:none}
+ .livePreviewHeader>a{min-height:44px}
+ .livePreviewFeed{flex:1;height:auto;min-height:0;max-width:none}
+ .livePreviewFrame{height:100%;min-height:0}
+ .livePreviewEmpty{max-width:none;width:100%;height:auto;min-height:0;margin:0}
+}
