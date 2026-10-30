@@ -33,6 +33,8 @@ jobs:
         run: node scripts/experience/check-complete-service-journey.cjs
       - name: Booking work-start funding boundary contracts
         run: node scripts/experience/check-booking-payment-gate.cjs
+      - name: Paystack test API signed webhook and exact amount financial boundary
+        run: node scripts/payment-sandbox/check-paystack-test-gateway.cjs
       - name: Authenticated opportunity return and redirect-safety contracts
         run: node scripts/experience/check-auth-opportunity-return.cjs
       - name: Private booking draft continuity and privacy contracts

@@ -8,6 +8,8 @@ export interface InitializeGatewayPaymentInput {
   subjectId: string;
   amountMinor: number;
   currency: string;
+  /** Authenticated buyer's verified email; mandatory for Paystack, optional in Hustle sandbox. */
+  payerEmail?: string;
 }
 
 export interface InitializeGatewayPaymentResult {
@@ -43,5 +45,9 @@ export interface VerifiedGatewayWebhook {
 
 export interface PaymentGatewayPort {
   initializePayment(input: InitializeGatewayPaymentInput): Promise<InitializeGatewayPaymentResult>;
-  verifyWebhook(payload: unknown, signature: string | undefined): Promise<VerifiedGatewayWebhook>;
+  verifyWebhook(
+    payload: unknown,
+    signature: string | undefined,
+    rawBody?: Buffer
+  ): Promise<VerifiedGatewayWebhook | null>;
 }

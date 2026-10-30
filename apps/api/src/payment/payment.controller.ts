@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Headers, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, NotFoundException, Param, Post, RawBodyRequest, Req, UseGuards } from "@nestjs/common";
+import type { Request } from "express";
 
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
@@ -37,6 +38,17 @@ export class PaymentWebhookController {
     @Body() payload: unknown,
     @Headers("x-hustle-sandbox-signature") signature?: string
   ) {
+    if (process.env.HUSTLE_PAYMENT_GATEWAY === "paystack-test") throw new NotFoundException();
     return this.payments.handleVerifiedWebhook(payload, signature);
+  }
+
+  @Post("paystack")
+  paystack(
+    @Body() payload: unknown,
+    @Headers("x-paystack-signature") signature: string | undefined,
+    @Req() request: RawBodyRequest<Request>
+  ) {
+    if (process.env.HUSTLE_PAYMENT_GATEWAY !== "paystack-test") throw new NotFoundException();
+    return this.payments.handleVerifiedWebhook(payload, signature, request.rawBody);
   }
 }

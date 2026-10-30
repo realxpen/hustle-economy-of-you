@@ -78,7 +78,7 @@ export function validateApiRuntimeEnvironment(env: NodeJS.ProcessEnv = process.e
   }
   for (const key of [
     "SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SERVICE_ROLE_KEY",
-    "PAYSTACK_SECRET_KEY", "MONNIFY_API_KEY", "MONIFLOW_PARTNER_HMAC_SECRET",
+    "PAYSTACK_SECRET_KEY", "PAYSTACK_TEST_SECRET_KEY", "MONNIFY_API_KEY", "MONIFLOW_PARTNER_HMAC_SECRET",
     "EXPO_TOKEN", "VERCEL_TOKEN"
   ]) {
     if (env[key]) throw new Error("External provider credentials forbidden in isolated staging");
