@@ -146,9 +146,32 @@ export class PaymentService {
     return this.serializeAttempt(attempt);
   }
 
+  async confirmPendingFromProvider(identity: AuthIdentity, paymentAttemptId: string) {
+    const user = await this.requireUser(identity);
+    const attempt = await this.prisma.paymentAttempt.findFirst({
+      where: { id: this.requiredId(paymentAttemptId, "paymentAttemptId"), payerUserId: user.id }
+    });
+    if (!attempt) throw new NotFoundException("Payment attempt not found");
+    if (attempt.provider !== "PAYSTACK_TEST" || !this.gateway.verifyReference) {
+      throw new BadRequestException("Provider verification is available only for Paystack test checkout");
+    }
+    if (attempt.domainAppliedAt || ![PaymentAttemptStatus.PENDING, PaymentAttemptStatus.SUCCEEDED].includes(attempt.status)) {
+      return this.serializeAttempt(attempt);
+    }
+    // The reference comes only from the owned database record, never the callback URL.
+    const verified = await this.gateway.verifyReference(attempt.providerReference);
+    if (verified) await this.applyVerifiedEvidence(verified);
+    const latest = await this.prisma.paymentAttempt.findUniqueOrThrow({ where: { id: attempt.id } });
+    return this.serializeAttempt(latest);
+  }
+
   async handleVerifiedWebhook(payload: unknown, signature?: string, rawBody?: Buffer) {
     const webhook = await this.gateway.verifyWebhook(payload, signature, rawBody);
     if (!webhook) return { accepted: true, ignored: true, reason: "UNRELATED_PROVIDER_EVENT" };
+    return this.applyVerifiedEvidence(webhook);
+  }
+
+  private async applyVerifiedEvidence(webhook: VerifiedGatewayWebhook) {
     let event = await this.prisma.webhookEvent.findUnique({
       where: { provider_eventId: { provider: webhook.provider, eventId: webhook.eventId } }
     });
