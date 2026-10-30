@@ -65,7 +65,8 @@ const denied=[
  ["POST","products/test-1/pay"],["POST","products/test-1/checkout"],
  ["POST","products/test-1/refund"],["POST","products/test-1/variants/test-2/publish"],
  ["PUT","products/test-1/publish"],["PATCH","products/test-1"],
- ["DELETE","products"],["POST","wallet/deposit"],["POST","payments/initialize"],
+ ["DELETE","products"],["DELETE","products/test-1/publish"],
+ ["POST","wallet/deposit"],["POST","payments/initialize"],
  ["POST","admin/products"],["GET","admin/operations/users"]
 ];
 for(const [verb,endpoint] of denied){
