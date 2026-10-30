@@ -533,6 +533,8 @@ export default function PostEditor({ postId }: { postId?: string }) {
             {selectedPreview && (selectedFile.type.startsWith("image/")
               ? <img src={selectedPreview} alt="Your selected photo preview" style={{maxWidth:"100%",maxHeight:230,objectFit:"contain",borderRadius:12}} />
               : <video src={selectedPreview} controls preload="metadata" style={{maxWidth:"100%",maxHeight:230,borderRadius:12}} />)}
+            {pendingTransfer?.file === selectedFile && <p className={styles.muted} role="status">Check the earlier upload before retrying; one same-key retry is allowed per signed authorization. A failed check does not prove storage is empty; this post remains a draft.</p>}
+            {transferDiagnostic && <p className={styles.muted} role="status">Safe Safari diagnostic: <code>{transferDiagnostic}</code>. No file, account or signed authorization details. This is not a confirmed root cause.</p>}
             {uploadProgress !== null && <div role="status" aria-live="polite">
               <progress value={uploadProgress} max={100} style={{width:"100%"}} />
               <small>{uploadProgress >= 99 ? "Verifying your uploaded media…" : `Uploading ${uploadProgress}%`}</small>
