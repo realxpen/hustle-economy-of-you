@@ -140,7 +140,7 @@ export class PaystackTestGateway implements PaymentGatewayPort {
     if (status !== "success") return null;
     const transactionId = verified.id;
     if ((typeof transactionId !== "number" && typeof transactionId !== "string") ||
-        !/^\\d+$/.test(String(transactionId))) {
+        !/^\d+$/.test(String(transactionId))) {
       throw new BadRequestException("Paystack transaction ID missing");
     }
     const amountMinor = amount(verified.amount);
