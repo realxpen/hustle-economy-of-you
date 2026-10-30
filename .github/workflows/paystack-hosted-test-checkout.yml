@@ -1,0 +1,154 @@
+name: Hustle Paystack Hosted Test Checkout Acceptance (manual, disposable)
+
+# PREPARE creates two TEST checkouts in a disposable runner database, saves a
+# synthetic-only database snapshot for 2 days and prints test links in the
+# completed run's summary. VERIFY restores that snapshot and independently
+# verifies both completed Paystack checkouts. Neither phase deploys an API.
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Phase 1: prepare test links. Phase 2: verify completed test checkouts.'
+        required: true
+        type: choice
+        options:
+          - PREPARE
+          - VERIFY
+        default: PREPARE
+      approve_test_only:
+        description: 'Authorize Paystack TEST checkouts only; NO real cards, live funds, public endpoint or production data'
+        required: true
+        type: choice
+        options:
+          - DO_NOT_RUN
+          - I_AUTHORIZE_HOSTED_TEST_CHECKOUT_ONLY
+        default: DO_NOT_RUN
+      source_run_id:
+        description: 'Only for VERIFY: the completed PREPARE GitHub run ID'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: hustle-paystack-hosted-test-checkout
+  cancel-in-progress: false
+
+jobs:
+  protected-checkout:
+    if: >-
+      github.repository == 'realxpen/hustle-economy-of-you' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.approve_test_only == 'I_AUTHORIZE_HOSTED_TEST_CHECKOUT_ONLY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: hustle-paystack-test-preflight
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: sandbox_only
+          POSTGRES_DB: hustle_payment_sandbox
+        ports:
+          - 127.0.0.1:55439:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hustle_payment_sandbox"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      NODE_ENV: test
+      HUSTLE_PAYMENT_GATEWAY: paystack-test
+      HUSTLE_TEST_CHECKOUT_APPROVAL: ${{ inputs.approve_test_only }}
+      HUSTLE_TEST_CHECKOUT_PHASE: ${{ inputs.phase }}
+      HUSTLE_TEST_CHECKOUT_SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      DATABASE_URL: postgresql://postgres:sandbox_only@127.0.0.1:55439/hustle_payment_sandbox?schema=public
+      HUSTLE_TEST_MANIFEST_PATH: ${{ runner.temp }}/hustle-ux040.json
+      PAYSTACK_TEST_SECRET_KEY: ${{ secrets.HUSTLE_PAYSTACK_TEST_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Fail closed before provider or database access
+        run: |
+          node --input-type=module -e 'import {assertHostedTestCheckoutEnvironment} from "./scripts/payment-sandbox/hosted-test-checkout-guard.mjs"; assertHostedTestCheckoutEnvironment(process.env); console.log("PASS: protected manual TEST-only run and disposable localhost database");'
+      - name: Install dependencies and validate offline guards
+        run: |
+          npm ci
+          node scripts/payment-sandbox/check-hosted-test-checkout-guard.mjs
+      - name: Prepare local database compatibility roles
+        shell: bash
+        run: |
+          PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -f scripts/payment-sandbox/supabase-compat.sql
+      - name: Resolve already-represented Story policy (prepare only)
+        if: inputs.phase == 'PREPARE'
+        run: npx prisma migrate resolve --applied 20260917130500_phase16b_story_rls_hardening --schema=apps/api/prisma/schema.prisma
+      - name: Apply migrations to disposable database (prepare only)
+        if: inputs.phase == 'PREPARE'
+        run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+      - name: Apply UX009 disposable booking proposal fields (prepare only)
+        if: inputs.phase == 'PREPARE'
+        shell: bash
+        run: |
+          PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -f infra/staging/schema-patches/20261025_ux009_booking_time_proposal.sql
+      - name: Download PREPARE snapshot (verify only; protected same-repository artifact)
+        if: inputs.phase == 'VERIFY'
+        uses: actions/download-artifact@v4
+        with:
+          name: hustle-ux040-checkout-${{ inputs.source_run_id }}
+          run-id: ${{ inputs.source_run_id }}
+          repository: realxpen/hustle-economy-of-you
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/ux040-restore
+      - name: Restore disposable synthetic-only checkout state (verify only)
+        if: inputs.phase == 'VERIFY'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$RUNNER_TEMP/ux040-restore/hustle-ux040.json"
+          test -f "$RUNNER_TEMP/ux040-restore/hustle-ux040.dump"
+          cp "$RUNNER_TEMP/ux040-restore/hustle-ux040.json" "$HUSTLE_TEST_MANIFEST_PATH"
+          PGPASSWORD=sandbox_only pg_restore --exit-on-error --clean --if-exists --no-owner --no-acl \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            "$RUNNER_TEMP/ux040-restore/hustle-ux040.dump"
+      - name: Build real Nest API
+        run: npm run build --workspace=@hustle/api
+      - name: PREPARE two real Paystack TEST hosted checkouts
+        if: inputs.phase == 'PREPARE'
+        run: node scripts/payment-sandbox/hosted-test-checkout.mjs
+      - name: Snapshot isolated checkout state (prepare only)
+        if: inputs.phase == 'PREPARE'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$HUSTLE_TEST_MANIFEST_PATH"
+          PGPASSWORD=sandbox_only pg_dump -Fc --no-owner --no-acl \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -f "$RUNNER_TEMP/hustle-ux040.dump"
+      - name: Preserve synthetic-only database for test completion (2-day expiry)
+        if: inputs.phase == 'PREPARE'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hustle-ux040-checkout-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/hustle-ux040.json
+            ${{ runner.temp }}/hustle-ux040.dump
+          if-no-files-found: error
+          retention-days: 2
+      - name: VERIFY real Paystack successful checkout and financial effects
+        if: inputs.phase == 'VERIFY'
+        run: node scripts/payment-sandbox/hosted-test-checkout.mjs
+      - name: Confirm isolation boundary
+        run: echo "Disposable GitHub runner Postgres only; no public webhook, production DB, deployment, real funds or live key."
