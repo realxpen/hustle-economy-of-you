@@ -93,6 +93,8 @@ async function attempt(mode) {
     await assert.rejects(run.task, e => {
       assert.equal(e.code, kind);
       assert.match(e.message, new RegExp(phrase));
+      assert.match(e.diagnostic, /^UX011\/direct-S3; event=xhr-(error|timeout|status-zero|http); elapsed=(under-10s|10-60s|60-180s|over-180s); ready=(unknown|[0-4]); HTTP=(opaque|[1-5][0-9]{2}); connectivity=(unknown|offline-reported|online-reported)$/);
+      assert.doesNotMatch(e.diagnostic, /sample\.jpg|fake-signature|not-a-real-policy|fixture-signed-receipt|pending\/test-user|amazonaws|hustle-ios-pwa/i);
       assert.doesNotMatch(e.message, /fake-signature|not-a-real-policy|fixture-signed-receipt|pending\/test-user/);
       return true;
     }, "Error " + mode + " must be classified without leaking policy or receipt");
@@ -113,14 +115,21 @@ async function attempt(mode) {
   assert.match(editor,/setPendingTransfer\(\{\s*file: selectedFile, postId, ticket, authorizedAtMs: Date\.now\(\)/,
     "Save signed receipt before sending bytes");
   assert.match(editor,/Check earlier upload first/, "Explicit verification prior to retransmission");
+  assert.match(editor,/retryCount: 0, checked: false/, "Fresh ticket has no prior retries");
+  assert.match(editor,/previousAttempt && !previousAttempt\.checked/, "Owner must verify ambiguous result first");
+  assert.match(editor,/previousAttempt\.retryCount >= 1/, "At most one same-key retry per ticket");
+  assert.match(editor,/retryCount: recoverable\.retryCount \+ 1, checked: false/, "Count the same-key retry");
+  assert.match(editor,/setPendingConfirmation\(\{ file, postId: draftId, receipt \}\)/, "After confirm, failed refresh cannot repeat transfer");
+  assert.match(editor,/reason instanceof PrivateMediaTransferError/, "Display safe typed diagnostic");
+  assert.doesNotMatch(editor,/console\.(log|warn|info|error)\([^\n]*(ticket|receipt|selectedFile)/, "Never log sensitive upload data");
   assert.match(editor,/checkPreviousTransfer\(\)/, "Check button is actionable");
   assert.match(editor,/isStagingTransferTicketFresh\(/, "Expired POST policy must be replaced");
   assert.match(editor,/const ticket = recoverable\?\.ticket \?\?/, "Fresh retry must use same signed key");
-  assert.match(editor,/await commitUploadedFile\(attempt\.postId, attempt\.ticket\.receipt\)/,
+  assert.match(editor,/await commitUploadedFile\(attempt\.postId, attempt\.ticket\.receipt, attempt\.file\)/,
     "Owner action must verify the same receipt, without retransferring");
   assert.match(editor,/setPendingTransfer\(null\)/, "After success or cancel, recovery token is cleared");
   assert.doesNotMatch(editor,/localStorage\.setItem\([^\n]*(receipt|ticket|pendingTransfer)/,
     "Never persist signed receipts to device storage");
 
-  console.log("PASS: UX011 opaque Safari S3 failures, cancel/status/size, bounded signed retry, explicit owner verify and no policy or token leakage");
+  console.log("PASS: UX011 Safari transport categorization, redacted diagnostic, check-first single retry, safe draft refresh");
 })().catch(e=>{console.error(e);process.exitCode=1;});
