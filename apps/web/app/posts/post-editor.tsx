@@ -28,7 +28,7 @@ import {
   validateStagingUploadFile, type MediaUploadAuthorization
 } from "../../lib/post-media-upload";
 import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
-import { authenticatedFetch } from "../../lib/api/authenticated-fetch";
+import { authenticatedFetch, AuthenticatedApiError } from "../../lib/api/authenticated-fetch";
 
 type PostForm = {
   caption: string;
@@ -311,10 +311,16 @@ export default function PostEditor({ postId }: { postId?: string }) {
       // signature, MIME, size, ownership and receipt verification.
       await commitUploadedFile(attempt.postId, attempt.ticket.receipt, attempt.file);
     } catch (reason) {
-      // An unsuccessful check never proves that the object is absent.
-      setPendingTransfer(previous => previous?.ticket === attempt.ticket ? { ...previous, checked: true } : previous);
-      setError("The earlier transfer could not be verified. No publication occurred. " +
-        (reason instanceof Error ? reason.message : "Try again on a stable connection."));
+      // Only an owner-authenticated S3 HEAD 404 for this signed pending key
+      // authorizes retry. A staging proxy 502, missing draft, expired receipt,
+      // storage outage or unreadable response is NOT proof of missing bytes.
+      const confirmedMissing = reason instanceof AuthenticatedApiError &&
+        reason.status === 404 && reason.message === "Pending private media bytes not received";
+      setPendingTransfer(previous => previous?.ticket === attempt.ticket
+        ? { ...previous, checked: confirmedMissing } : previous);
+      setError(confirmedMissing
+        ? "Storage confirms this exact pending upload is absent. Your draft is private; one retry is available while the signed authorization is valid."
+        : "Upload verification is inconclusive. Do not retry the transfer. Keep this draft private and use Check earlier upload first again after the staging API recovers.");
     } finally {
       setVerifyingUpload(false);
       setBusy(false);
@@ -327,7 +333,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
     if (problem) { setError(problem); return; }
     const previousAttempt = pendingTransfer?.file === selectedFile ? pendingTransfer : null;
     if (previousAttempt && !previousAttempt.checked) {
-      setError("Check earlier upload first. An unreadable Safari response does not prove S3 rejected the file.");
+      setError("The earlier upload has not been confirmed absent. Check earlier upload first. Do not retransmit while verification is unavailable.");
       return;
     }
     if (previousAttempt && previousAttempt.retryCount >= 1 &&
@@ -533,7 +539,7 @@ export default function PostEditor({ postId }: { postId?: string }) {
             {selectedPreview && (selectedFile.type.startsWith("image/")
               ? <img src={selectedPreview} alt="Your selected photo preview" style={{maxWidth:"100%",maxHeight:230,objectFit:"contain",borderRadius:12}} />
               : <video src={selectedPreview} controls preload="metadata" style={{maxWidth:"100%",maxHeight:230,borderRadius:12}} />)}
-            {pendingTransfer?.file === selectedFile && <p className={styles.muted} role="status">Check the earlier upload before retrying; one same-key retry is allowed per signed authorization. A failed check does not prove storage is empty; this post remains a draft.</p>}
+            {pendingTransfer?.file === selectedFile && <p className={styles.muted} role="status">{pendingTransfer.checked ? "Storage confirmed this pending upload is missing. You can retry once with the same file, if the signed authorization is still valid." : "Upload status is unknown. Check earlier upload first; an unexpected API response must never unlock a transfer retry."} Your post remains a draft.</p>}
             {transferDiagnostic && <p className={styles.muted} role="status">Safe Safari diagnostic: <code>{transferDiagnostic}</code>. No file, account or signed authorization details. This is not a confirmed root cause.</p>}
             {uploadProgress !== null && <div role="status" aria-live="polite">
               <progress value={uploadProgress} max={100} style={{width:"100%"}} />
