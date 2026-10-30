@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, NotFoundException, Param, Post, RawBodyRequest, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, HttpCode, NotFoundException, Param, Post, RawBodyRequest, Req, UseGuards } from "@nestjs/common";
 import type { Request } from "express";
 
 import { AuthGuard } from "../auth/auth.guard";
@@ -51,6 +51,7 @@ export class PaymentWebhookController {
   }
 
   @Post("paystack")
+  @HttpCode(200)
   paystack(
     @Body() payload: unknown,
     @Headers("x-paystack-signature") signature: string | undefined,
