@@ -353,7 +353,8 @@ try {
     .update(lateBookingEvent).digest("hex");
   const lateBookingCallback = await notify(lateBookingEvent, lateBookingSignature);
   assert.equal(lateBookingCallback.status, 201);
-  assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: bookingAttempt.id } }), 1);
+  assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: bookingAttempt.id, type: "PAYMENT_CONFIRMED" } }), 1,
+    "Late webhook may not double-post the initial collection");
   assert.equal((await prisma.escrowRecord.findUniqueOrThrow({
     where: { subjectType_subjectId: { subjectType: "BOOKING", subjectId: booking.id } }
   })).status, "RELEASED");
