@@ -20,6 +20,14 @@ export class PaymentController {
     return this.payments.initialize(identity, input, idempotencyKey);
   }
 
+  @Post("attempts/:paymentAttemptId/verify")
+  confirmPendingFromProvider(
+    @CurrentIdentity() identity: AuthIdentity,
+    @Param("paymentAttemptId") paymentAttemptId: string
+  ) {
+    return this.payments.confirmPendingFromProvider(identity, paymentAttemptId);
+  }
+
   @Get(":paymentAttemptId")
   getAttempt(
     @CurrentIdentity() identity: AuthIdentity,
