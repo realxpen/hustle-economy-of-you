@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { ExperienceState } from "../../components/experience/experience-state";
+import { isolatedWebMode } from "../../lib/auth/isolated-web-auth";
 import { clearCart, formatMoney, getCart, removeCartItem, type Cart, updateCartItem } from "../../lib/commerce";
 import styles from "../commerce.module.css";
 
@@ -101,9 +102,10 @@ export default function CartPage() {
           {unavailableItems.length} item{unavailableItems.length === 1 ? " is" : "s are"} currently unavailable.
           Remove or review {unavailableItems.length === 1 ? "it" : "them"} before checkout; the server will verify again.
         </div>}
-        {cart.items.length > 0 && unavailableItems.length === 0 && <a className={styles.buttonAlt} href="/checkout"
+        {cart.items.length > 0 && unavailableItems.length === 0 && !isolatedWebMode && <a className={styles.buttonAlt} href="/checkout"
           aria-disabled={changing} onClick={(event) => { if (changing) event.preventDefault(); }}>Review checkout →</a>}
-        {cart.items.length > 0 && unavailableItems.length > 0 && <button className={styles.buttonAlt}
+        {cart.items.length > 0 && isolatedWebMode && <div className={styles.notice} role="status"><strong>Cart testing is available.</strong><p>Checkout and payment are disabled in this isolated test app. You can add items, adjust quantities and remove them safely.</p></div>}
+        {cart.items.length > 0 && unavailableItems.length > 0 && !isolatedWebMode && <button className={styles.buttonAlt}
           type="button" disabled>Review unavailable items first</button>}
       </aside>
     </div>}
