@@ -216,7 +216,7 @@ export default function LiveViewerPage() {
       if (navigator.share) {
         await navigator.share({
           title: session.title,
-          text: `Watch @${session.host.username ?? "this Hustler"} live on Hustle.`,
+          text: session.host.username ? `Watch @${session.host.username} live on Hustle.` : `Watch ${session.host.displayName ?? "a Hustler"} live on Hustle.`,
           url
         });
       } else if (navigator.clipboard?.writeText) {
