@@ -98,6 +98,24 @@ button{ -webkit-tap-highlight-color:transparent}
  .phone.chrome-hidden .post-badge{bottom:calc(190px + env(safe-area-inset-bottom))}
  .phone.chrome-hidden .media-dots{bottom:calc(16px + env(safe-area-inset-bottom))}
 }
+
+/* V1 iPhone visible-state refinement: preserve full-screen feed priority. */
+@media (max-width:550px){
+  .top-head{padding:8px 15px 3px;min-height:41px}
+  .brand{font-size:23px;color:var(--text);opacity:1;filter:none;-webkit-filter:none;-webkit-font-smoothing:antialiased;text-shadow:none}
+  .top-actions .round-ctl{width:34px;height:34px;opacity:1;filter:none}
+  .feed-ranks{padding:0 0 3px;gap:21px}
+  .feed-ranks button{padding:5px 1px}
+  .story-zone{padding:0 11px 6px;align-items:center}
+  .story-item{width:46px;gap:3px;min-height:58px}
+  .story-ring{width:42px;height:42px}
+  .story-live{top:34px}
+  .story-more-ring{width:42px;height:42px}
+  .story-name{margin-top:1px}
+  .feed-chrome-top{background:linear-gradient(180deg,rgba(247,249,244,.97) 0%,rgba(247,249,244,.92) 40%,rgba(247,249,244,.72) 75%,rgba(247,249,244,.03) 100%)}
+  .dark .feed-chrome-top{background:linear-gradient(180deg,rgba(19,29,21,.97) 0%,rgba(19,29,21,.92) 40%,rgba(19,29,21,.74) 75%,rgba(19,29,21,.03) 100%)}
+}
+
 </style>
 </head>
 <body>
