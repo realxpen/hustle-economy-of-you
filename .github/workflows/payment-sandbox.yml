@@ -100,7 +100,7 @@ jobs:
         run: npm run build --workspace=@hustle/api
       - name: Run end-to-end paid Order and notification assertions
         run: node scripts/payment-sandbox/run.mjs
-      - name: Real Nest and disposable PostgreSQL Paystack test Order acceptance (mock provider only)
+      - name: Real Nest and disposable PostgreSQL Paystack Product and Booking acceptance (mock provider only)
         env:
           HUSTLE_PAYMENT_GATEWAY: paystack-test
         run: node scripts/payment-sandbox/paystack-order-end-to-end.mjs
