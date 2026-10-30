@@ -6,10 +6,8 @@ import type {
   SaveProductInput,
   SaveProductVariantInput
 } from "@hustle/types";
-import { getSupabaseBrowserClient } from "./supabase/client";
+import { authenticatedFetch } from "./api/authenticated-fetch";
 import { publicReadFetch } from "./api/public-browsing";
-
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 export interface PublicProduct {
   product: Product & { inStock: boolean };
@@ -39,25 +37,6 @@ async function parseError(response: Response) {
     message?: string;
   } | null;
   return body?.error?.message ?? body?.message ?? `Hustle API returned ${response.status}`;
-}
-
-async function authenticatedFetch(path: string, init?: RequestInit) {
-  const supabase = getSupabaseBrowserClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.access_token) throw new Error("You need to sign in again");
-
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${session.access_token}`);
-  if (init?.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
-
-  if (!response.ok) throw new Error(await parseError(response));
-  return response;
 }
 
 export async function getMyProducts(): Promise<Product[]> {
