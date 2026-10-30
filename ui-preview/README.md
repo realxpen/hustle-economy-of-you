@@ -17,12 +17,15 @@ This is a **Cloudflare Workers Builds** deployment (the build log invokes `npx w
 The preview branch includes a root `wrangler.jsonc` with `assets.directory: "./ui-preview/dist"`. The preview is a static asset deployment and requires no application framework, backend, or database.
 
 ### Worker build settings
-1. Set Git branch to `preview/hustle-v1-posts-stories` (not `main`).
-2. Root directory: repository root (leave the field empty).
-3. Build command: `exit 0`.
-4. Deploy command: `npx wrangler deploy`.
-5. The Wrangler `name` is presently `hustle-ui-preview`. Cloudflare Workers Builds may require that this name match the Worker project's name on the Cloudflare dashboard. If a name mismatch error occurs, update this configuration's `name` to the exact Worker name in the dashboard.
-6. Retry the build. Use the URL Cloudflare returns; do not guess a hostname.
+1. **Verify Git branch** is `preview/hustle-v1-posts-stories`, NOT `main`.
+2. **Root directory:** `ui-preview`. This isolates the static prototype from the monorepo's root npm workspaces.
+3. **Build command:** `exit 0`.
+4. **Deploy command:** `npx wrangler deploy --config wrangler.jsonc`. This forces Wrangler to load `ui-preview/wrangler.jsonc` instead of auto-detecting the monorepo.
+5. **Config assets directory:** `./dist` (relative to `ui-preview/wrangler.jsonc`).
+6. The Wrangler `name` is presently `hustle-ui-preview`. Cloudflare Workers Builds may require that it match the existing Worker name. If Cloudflare reports a name mismatch, use the exact Worker name in the configuration.
+7. **Retry with latest preview branch commit.** A previous build may have checked out an old commit. Confirm current build's commit includes `ui-preview/wrangler.jsonc`. Cloudflare will provide the real `workers.dev` URL after success.
+
+**Alternate deploy command when Cloudflare root must remain empty:** `npx wrangler deploy --cwd ui-preview --config wrangler.jsonc`; keep build command `exit 0`.
 
 The repository's root `package.json` can cause unnecessary dependency installation when builds start at the root. This is not needed for the static preview. Future optimizations may set root directory to `ui-preview` and move the Wrangler config accordingly.
 
