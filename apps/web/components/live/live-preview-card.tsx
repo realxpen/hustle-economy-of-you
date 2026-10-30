@@ -55,12 +55,15 @@ export function LivePreviewCard({ session, context = "live" }: {
         </div>
       </div>
       <h2>{session.title}</h2>
-      {offer && offerType && <div className={styles.pinned}>
-        <span>{offerType === "PRODUCT" ? "Featured product" : "Featured service"}</span>
-        <strong>{offer.title ?? "Attached offer"}</strong>
-        <small>{formatLiveMoney(offer.priceMinor, offer.currency)} · Explore in Live</small>
+      {offer && offerType && <div className={styles.pinned} aria-label={`Attached ${offerType.toLowerCase()}: ${offer.title ?? "Offer"}`}>
+        <span className={styles.pinnedSymbol} aria-hidden="true">{offerType === "PRODUCT" ? "◇" : "✦"}</span>
+        <span className={styles.pinnedCopy}>
+          <strong>{offer.title ?? "Attached offer"}</strong>
+          <small>{formatLiveMoney(offer.priceMinor, offer.currency)} · {offerType === "PRODUCT" ? "Product" : "Service"}</small>
+        </span>
+        <span className={styles.pinnedAction}>View ↗</span>
       </div>}
-      <span className={styles.enter}>Enter Live <span aria-hidden="true">↗</span></span>
+      <span className={styles.enter}>Tap to enter the Live <span aria-hidden="true">↗</span></span>
     </div>
   </Link>;
 }
