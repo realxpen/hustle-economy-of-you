@@ -27,10 +27,10 @@ assert.match(lib,/await publicReadFetch\(\x60\/live\/\$\{encodeURIComponent\(liv
 assert.match(lib,/await publicReadFetch\(\s*\x60\/live\/\$\{encodeURIComponent\(liveId\)\}\/comments\?\$\{params\.toString\(\)\}\x60/);
 assert.match(publicApi,/isolatedWebMode \? \x60\/api\/isolated\/api\/v1\$\{path\}\x60/);
 assert.match(page,/getActiveLiveSessions\(30\)/);
-assert.match(page,/setReload\(value=>value\+1\)/);
-assert.match(page,/item\.host\.username \? \x60@\$\{item\.host\.username\}\x60/);
+assert.match(page,/setReload\(n=>n\+1\)/);
+assert.match(source("apps/web/components/live/live-preview-card.tsx"),/session\.host\.username \? \x60@\$\{session\.host\.username\}\x60/);
 assert.doesNotMatch(page,/item\.host\.username \?\? "hustler"/);
-assert.match(css,/\.heroPanel\{padding:15px 16px;border-radius:17px/);
+assert.match(css,/\.livePreviewFeed\{max-width:700px;margin:auto/);
 const proxy=load("apps/web/lib/api/isolated-web-proxy.ts");
 const backend=load("apps/api/src/staging-request-policy.ts");
 const allow=[
