@@ -1587,3 +1587,19 @@
    grid-template-rows:calc(98px + var(--discover-top-safe-area,env(safe-area-inset-top,0px))) minmax(0,1fr);
  }
 }
+
+
+/* UX033: LIVE previews participate in the same vertically snapped
+ * Discovery stage as real posts. Tapping opens the full viewer and comments. */
+.liveInsert{width:100%;min-width:0;height:100%;min-height:100%;
+ scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;flex:0 0 100%;
+ padding:0;background:#0C1811}
+.liveInsert>a{height:100%;min-height:100%;max-height:100%}
+@media(min-width:761px){
+ .liveInsert{border-radius:22px}
+ .liveInsert>a{border-radius:20px}
+}
+@media(max-width:760px){
+ .liveInsert{border-radius:0}
+ .liveInsert>a{border-radius:0}
+}
