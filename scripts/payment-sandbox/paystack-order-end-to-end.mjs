@@ -150,18 +150,18 @@ try {
   const unrelatedRaw = JSON.stringify({ event: "transfer.success", data: event.data });
   const unrelatedSignature = createHmac("sha512", process.env.PAYSTACK_TEST_SECRET_KEY).update(unrelatedRaw).digest("hex");
   const unrelated = await notify(unrelatedRaw, unrelatedSignature);
-  assert.equal(unrelated.status, 201);
+  assert.equal(unrelated.status, 200);
   assert.equal((await unrelated.json()).ignored, true);
 
   const succeeded = await notify(raw, signature);
-  assert.equal(succeeded.status, 201, "Signed and independently verified Paystack test payment must apply");
+  assert.equal(succeeded.status, 200, "Signed and independently verified Paystack test payment must apply");
   assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: orderId } })).status, "PAID");
   assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).inventoryQuantity, 2);
   assert.equal((await prisma.paymentAttempt.findUniqueOrThrow({ where: { id: attempt.id } })).status, "SUCCEEDED");
   assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: attempt.id } }), 1);
 
   const replay = await notify(raw, signature);
-  assert.equal(replay.status, 201);
+  assert.equal(replay.status, 200);
   assert.equal((await replay.json()).duplicate, true);
   assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: attempt.id } }), 1);
   assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).inventoryQuantity, 2);
@@ -222,7 +222,7 @@ try {
   } });
   const lateSignature = createHmac("sha512", process.env.PAYSTACK_TEST_SECRET_KEY).update(lateEvent).digest("hex");
   const lateWebhook = await notify(lateEvent, lateSignature);
-  assert.equal(lateWebhook.status, 201, "A later signed webhook must be safely accepted");
+  assert.equal(lateWebhook.status, 200, "A later signed webhook must be safely accepted");
   assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: secondAttempt.id } }), 1,
     "Callback verification plus webhook may not double-post");
   assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).inventoryQuantity, 1);
@@ -352,7 +352,7 @@ try {
   const lateBookingSignature = createHmac("sha512", process.env.PAYSTACK_TEST_SECRET_KEY)
     .update(lateBookingEvent).digest("hex");
   const lateBookingCallback = await notify(lateBookingEvent, lateBookingSignature);
-  assert.equal(lateBookingCallback.status, 201);
+  assert.equal(lateBookingCallback.status, 200);
   assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: bookingAttempt.id, type: "PAYMENT_CONFIRMED" } }), 1,
     "Late webhook may not double-post the initial collection");
   assert.equal((await prisma.escrowRecord.findUniqueOrThrow({
