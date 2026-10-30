@@ -14,6 +14,7 @@ import { PaymentController, PaymentWebhookController } from "./payment.controlle
 import { PaymentService } from "./payment.service";
 import { SandboxFinancialOperationGateway } from "./sandbox-financial-operation.gateway";
 import { SandboxPaymentGateway } from "./sandbox-payment.gateway";
+import { PaystackTestGateway } from "./paystack-test.gateway";
 import { WalletController } from "./wallet.controller";
 import { MoniflowSandboxReceiptController } from "./moniflow-sandbox-receipt.controller";
 import { WalletService } from "./wallet.service";
@@ -36,8 +37,18 @@ import { WalletService } from "./wallet.service";
     FinancialOperationsService,
     FinancialReadService,
     SandboxPaymentGateway,
+    PaystackTestGateway,
     SandboxFinancialOperationGateway,
-    { provide: PAYMENT_GATEWAY, useExisting: SandboxPaymentGateway },
+    {
+      provide: PAYMENT_GATEWAY,
+      useFactory: (sandbox: SandboxPaymentGateway, paystack: PaystackTestGateway) => {
+        const selected = process.env.HUSTLE_PAYMENT_GATEWAY?.trim() ?? "sandbox";
+        if (selected === "sandbox") return sandbox;
+        if (selected === "paystack-test") return paystack;
+        throw new Error("Unsupported Hustle payment gateway; live-money providers are not enabled");
+      },
+      inject: [SandboxPaymentGateway, PaystackTestGateway]
+    },
     { provide: FINANCIAL_OPERATION_GATEWAY, useExisting: SandboxFinancialOperationGateway }
   ],
   exports: [PaymentService, WalletService, FinancialOperationsService, FinancialReadService]
