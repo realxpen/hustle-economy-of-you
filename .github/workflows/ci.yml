@@ -79,6 +79,8 @@ jobs:
         run: node scripts/experience/check-ux030-discovery-pwa.cjs
       - name: UX031 isolated Product publishing authentication and owner-only staging contract
         run: node scripts/experience/check-ux031-product-staging-auth.cjs
+      - name: UX032 isolated Live directory public read and explicit streaming denial
+        run: node scripts/experience/check-ux032-live-directory.cjs
       - name: "Regression: isolated Hustler activation and publishing boundaries"
         run: node scripts/experience/check-isolated-hustler-activation.cjs
       - name: Verify UX005 wallet, commented feed and sandbox route boundaries
