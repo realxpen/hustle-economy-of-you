@@ -184,6 +184,8 @@ export class PaymentService {
     const attempt = await this.prisma.paymentAttempt.findUnique({
       where: { providerReference: webhook.providerReference }
     });
+    // Invalid provider/amount/currency evidence must never poison the persistent event inbox.
+    if (attempt) this.assertWebhookMatchesAttempt(webhook, attempt);
 
     if (!event) {
       try {
@@ -223,8 +225,6 @@ export class PaymentService {
       });
       return { accepted: true, ignored: true, eventId: webhook.eventId, reason: "UNKNOWN_REFERENCE" };
     }
-
-    this.assertWebhookMatchesAttempt(webhook, attempt);
 
     if (webhook.type === "payment.failed") {
       if (attempt.status === PaymentAttemptStatus.SUCCEEDED) {
