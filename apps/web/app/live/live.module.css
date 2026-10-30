@@ -45,3 +45,37 @@
 @media(prefers-reduced-transparency:reduce){
  .heroPanel,.panel,.card,.statusCard,.sessionRow,.transportNote,.mediaPanel{background:#18181b;-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+/* UX032: Live directory is an operational browse screen, not a marketing splash
+   on iPhone. Keep the dark video-centric identity, but display controls and
+   real session/empty/error state within the first mobile viewport. */
+@media(max-width:760px){
+ .page{background:#101310;color:#F5F5EF;
+   padding:12px 14px calc(110px + env(safe-area-inset-bottom,0px))}
+ .shell{max-width:660px}
+ .topbar{align-items:center;gap:10px;margin-bottom:13px}
+ .brand{font-size:22px;letter-spacing:-.05em}
+ .actions{gap:7px;align-items:center}
+ .actions a{min-height:43px;display:inline-flex;align-items:center;
+   padding:8px 11px;font-size:11px;white-space:nowrap}
+ .hero{grid-template-columns:minmax(0,1fr);margin-bottom:12px;gap:10px}
+ .heroPanel{padding:15px 16px;border-radius:17px;
+   background:linear-gradient(118deg,#1D2B21,#151B17);
+   border-color:#3B4D3C;backdrop-filter:none;-webkit-backdrop-filter:none}
+ .hero .eyebrow{font-size:9px;letter-spacing:.10em;color:#A6B9A0}
+ .hero h1{font-size:clamp(27px,7.4vw,37px);line-height:1.04;
+   margin:8px 0 7px;letter-spacing:-.045em}
+ .hero h1 em{color:#C9F26B}
+ .hero p{font-size:12px;line-height:1.5;color:#C3CBC0;
+   margin:0;display:-webkit-box;-webkit-line-clamp:2;
+   -webkit-box-orient:vertical;overflow:hidden}
+ .statusCard{padding:11px 14px;border-radius:14px;min-height:0}
+ .statusCard strong{font-size:19px}
+ .empty{padding:25px 18px;border-radius:16px}
+ .empty h2{font-size:24px;line-height:1.2}
+ .grid{grid-template-columns:minmax(0,1fr);gap:10px}
+ .card{min-height:0;padding:14px;border-radius:15px;gap:11px}
+ .card h2{font-size:21px}
+ .host{gap:9px}
+ .avatar{height:39px;width:39px;flex-basis:39px}
+}
