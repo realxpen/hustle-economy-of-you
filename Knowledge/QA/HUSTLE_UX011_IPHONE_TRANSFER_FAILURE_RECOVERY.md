@@ -70,3 +70,31 @@ UX011 remains OPEN until this behavior is physically accepted; unexpected
 transfer errors may require follow-up browser/network repro evidence. Other
 production safeguards (moderation, transcoding, usage cost monitoring) remain
 separate release gates.
+
+
+## Follow-up #266 — privacy-safe Safari diagnostics and bounded retry (30 October 2026)
+
+**Proposed for review. Not yet deployed or proven on a failing physical iPhone.**
+
+- A direct-S3 XHR failure exposes a locally generated, deliberately coarse code:
+  event (network/timeout/status-zero/HTTP), elapsed-time band, XHR ready-state,
+  status code only when readable, and the browser's reported online hint.
+  Browser online hints are **not** proof of connectivity or cause.
+  Do NOT log file names/content, account identity, pending keys, signed
+  form fields, receipt, response XML, auth token or complete S3 URL.
+- An uncertain transfer requires the owner to use **Check earlier upload first**
+  before attempting a new transfer. There is at most **one** same-key retry
+  with a fresh signed policy. Once the policy expires, a new narrow
+  authorization can be requested after the previous check. A failed check
+  is **not** treated as proof that the storage object does not exist.
+- Once the authenticated confirmation endpoint succeeds, the client records
+  verification-only recovery *before* reloading the draft. This prevents a
+  failed draft refresh from causing an additional object upload.
+- Mock-browser CI covers each failure category, secret-free diagnostics,
+  bounded retry rules, check-first requirement and the confirm/refresh split.
+
+**Risk still open:** The actual intermittent Safari failure cause and
+real-device check/retry path are unverified. UX011 #244 remains accepted as
+an isolated staging pilot only; #266 remains open for physical evidence, and
+#267 remains the production media launch blocker. No production,
+AWS/IAM/S3/Lambda, database or payment changes are authorized here.
