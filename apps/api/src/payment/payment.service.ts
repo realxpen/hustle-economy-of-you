@@ -155,7 +155,7 @@ export class PaymentService {
     if (attempt.provider !== "PAYSTACK_TEST" || !this.gateway.verifyReference) {
       throw new BadRequestException("Provider verification is available only for Paystack test checkout");
     }
-    if (attempt.domainAppliedAt || ![PaymentAttemptStatus.PENDING, PaymentAttemptStatus.SUCCEEDED].includes(attempt.status)) {
+    if (attempt.domainAppliedAt || (attempt.status !== PaymentAttemptStatus.PENDING && attempt.status !== PaymentAttemptStatus.SUCCEEDED)) {
       return this.serializeAttempt(attempt);
     }
     // The reference comes only from the owned database record, never the callback URL.
