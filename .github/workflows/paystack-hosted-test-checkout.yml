@@ -85,18 +85,11 @@ jobs:
       - name: Fail closed before provider or database access
         run: |
           node --input-type=module -e 'import {assertHostedTestCheckoutEnvironment} from "./scripts/payment-sandbox/hosted-test-checkout-guard.mjs"; assertHostedTestCheckoutEnvironment(process.env); console.log("PASS: protected manual TEST-only run and disposable localhost database");'
-      - name: Match PostgreSQL 17 dump and restore tools to disposable database
+      - name: Verify disposable PostgreSQL 17 and pinned Docker archive tooling
         shell: bash
         run: |
-          set -euo pipefail
-          # The original PREPARE snapshot was written by pg_dump 17. Restoring
-          # into Postgres 16 fails on transaction_timeout before any payment
-          # verification. Check both sides BEFORE creating new checkout links.
-          server_major="$(PGPASSWORD=sandbox_only psql -At -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox -c 'SHOW server_version_num' | cut -c1-2)"
-          test "$server_major" = "17"
-          pg_dump --version | grep -Fq ') 17.'
-          pg_restore --version | grep -Fq ') 17.'
-          echo "PASS: PostgreSQL 17 server, pg_dump 17 and pg_restore 17 agree; UX040 archive is restore-compatible."
+          source scripts/payment-sandbox/pg17-snapshot.sh
+          ux040_pg17_check
       - name: Install dependencies and validate offline guards
         run: |
           npm ci
@@ -137,9 +130,8 @@ jobs:
           test -f "$RUNNER_TEMP/ux040-restore/hustle-ux040.json"
           test -f "$RUNNER_TEMP/ux040-restore/hustle-ux040.dump"
           cp "$RUNNER_TEMP/ux040-restore/hustle-ux040.json" "$HUSTLE_TEST_MANIFEST_PATH"
-          PGPASSWORD=sandbox_only pg_restore --exit-on-error --clean --if-exists --no-owner --no-acl \
-            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
-            "$RUNNER_TEMP/ux040-restore/hustle-ux040.dump"
+          source scripts/payment-sandbox/pg17-snapshot.sh
+          ux040_pg17_restore "$RUNNER_TEMP/ux040-restore/hustle-ux040.dump"
       - name: Build real Nest API
         run: npm run build --workspace=@hustle/api
       - name: PREPARE two real Paystack TEST hosted checkouts
@@ -151,9 +143,8 @@ jobs:
         run: |
           set -euo pipefail
           test -f "$HUSTLE_TEST_MANIFEST_PATH"
-          PGPASSWORD=sandbox_only pg_dump -Fc --no-owner --no-acl \
-            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
-            -f "$RUNNER_TEMP/hustle-ux040.dump"
+          source scripts/payment-sandbox/pg17-snapshot.sh
+          ux040_pg17_dump "$RUNNER_TEMP/hustle-ux040.dump"
       - name: Preserve synthetic-only database for test completion (2-day expiry)
         if: inputs.phase == 'PREPARE'
         uses: actions/upload-artifact@v4
