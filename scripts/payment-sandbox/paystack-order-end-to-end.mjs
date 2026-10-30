@@ -20,6 +20,8 @@ process.env.PAYSTACK_TEST_RETURN_ORIGIN = "https://hustle.example";
 const realFetch = globalThis.fetch;
 let reference = "";
 let verifiedAmount = 250000;
+let verifyStatus = "success";
+let transactionId = 37829872;
 let initializeCount = 0;
 let verifyCount = 0;
 globalThis.fetch = async (input, init) => {
@@ -42,7 +44,7 @@ globalThis.fetch = async (input, init) => {
     verifyCount++;
     assert.equal(decodeURIComponent(url.split("/").at(-1)), reference);
     return new Response(JSON.stringify({ status: true, data: {
-      id: 37829872, reference, domain: "test", status: "success",
+      id: transactionId, reference, domain: "test", status: verifyStatus,
       amount: verifiedAmount, currency: "NGN"
     }}), { status: 200, headers: { "content-type": "application/json" } });
   }
@@ -160,7 +162,67 @@ try {
   assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).inventoryQuantity, 2);
   assert.equal(initializeCount, 1);
   assert.ok(verifyCount >= 3, "All signed payment evidence must be independently verified");
-  console.log("PASS: real Nest + disposable Postgres Product -> Cart -> Order -> mocked Paystack test init/webhook -> PAID; forged/mismatched/unrelated/replay safe.");
+
+  // Second checkout: a Paystack return can be reconciled without a webhook,
+  // but never from query parameters, an unrelated account or non-success status.
+  await commerce.addCartItem(buyerIdentity, { productId: product.id, quantity: 1 });
+  const checkoutTwo = await commerce.checkout(buyerIdentity, {
+    deliveryName: "Disposable Test Buyer", deliveryPhone: "00000000000",
+    deliveryAddress: "Local sandbox only", deliveryCity: "Test City", deliveryCountry: "Nigeria"
+  });
+  const secondOrderId = checkoutTwo.orders[0].id;
+  const secondAttempt = await payments.initialize(
+    buyerIdentity, { subjectType: "ORDER", subjectId: secondOrderId }, "paystack-verify-" + testId
+  );
+  assert.equal(initializeCount, 2);
+  assert.equal(secondAttempt.status, "PENDING");
+  const secondReference = reference;
+  const ledgerBefore = await prisma.ledgerTransaction.count({ where: { paymentAttemptId: secondAttempt.id } });
+
+  await assert.rejects(
+    () => payments.confirmPendingFromProvider({ subject: sellerSubject, emailVerified: false }, secondAttempt.id),
+    /Payment attempt not found/i, "Only the payer can request verification"
+  );
+  verifyStatus = "pending";
+  const pending = await payments.confirmPendingFromProvider(buyerIdentity, secondAttempt.id);
+  assert.equal(pending.status, "PENDING");
+  assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: secondOrderId } })).status, "PENDING");
+  assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: secondAttempt.id } }), ledgerBefore);
+
+  verifyStatus = "success";
+  transactionId = 37829873;
+  verifiedAmount = 250001;
+  await assert.rejects(
+    () => payments.confirmPendingFromProvider(buyerIdentity, secondAttempt.id),
+    /Webhook amount does not match/i, "Provider-confirmed amount must match the persisted Order"
+  );
+  assert.equal(await prisma.webhookEvent.count({ where: { provider: "PAYSTACK_TEST", eventId: "verify.success:37829873" } }), 0,
+    "Mismatched evidence must not poison the durable inbox");
+
+  verifiedAmount = 250000;
+  const confirmed = await payments.confirmPendingFromProvider(buyerIdentity, secondAttempt.id);
+  assert.equal(confirmed.status, "SUCCEEDED");
+  assert.equal(confirmed.appliedToSubject, true);
+  assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: secondOrderId } })).status, "PAID");
+  assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).inventoryQuantity, 1);
+  assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: secondAttempt.id } }), 1);
+  const verificationCallsAfterPaid = verifyCount;
+  const confirmedAgain = await payments.confirmPendingFromProvider(buyerIdentity, secondAttempt.id);
+  assert.equal(confirmedAgain.status, "SUCCEEDED");
+  assert.equal(verifyCount, verificationCallsAfterPaid, "Applied payment must not cause repeat external checks");
+
+  const lateEvent = JSON.stringify({ event: "charge.success", data: {
+    id: transactionId, reference: secondReference, domain: "test",
+    status: "success", amount: 250000, currency: "NGN"
+  } });
+  const lateSignature = createHmac("sha512", process.env.PAYSTACK_TEST_SECRET_KEY).update(lateEvent).digest("hex");
+  const lateWebhook = await notify(lateEvent, lateSignature);
+  assert.equal(lateWebhook.status, 201, "A later signed webhook must be safely accepted");
+  assert.equal(await prisma.ledgerTransaction.count({ where: { paymentAttemptId: secondAttempt.id } }), 1,
+    "Callback verification plus webhook may not double-post");
+  assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).inventoryQuantity, 1);
+
+  console.log("PASS: webhook-first and buyer-verified return each create one paid Order; pending/mismatched/cross-account/replay safe.");
 } finally {
   await app?.close();
   globalThis.fetch = realFetch;
