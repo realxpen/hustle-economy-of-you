@@ -24,10 +24,21 @@ export function isStagingTransferTicketFresh(
 
 /** Never expose the S3 response body, credentials, bucket policy or receipt in UI errors. */
 export class PrivateMediaTransferError extends Error {
-  constructor(readonly code: "network" | "timeout" | "refused", message: string) {
+  constructor(readonly code: "network" | "timeout" | "refused", message: string, readonly diagnostic: string) {
     super(message);
     this.name = "PrivateMediaTransferError";
   }
+}
+
+/** Local-only Safari diagnostic: never contain user, file, object or signed fields. */
+function safeTransferDiagnostic(event: "xhr-error" | "xhr-timeout" | "xhr-status-zero" | "xhr-http", start: number, xhr: XMLHttpRequest) {
+  const ms = Math.max(0, Date.now() - start);
+  const elapsed = ms < 10000 ? "under-10s" : ms < 60000 ? "10-60s" : ms < 180000 ? "60-180s" : "over-180s";
+  const ready = [0, 1, 2, 3, 4].includes(xhr.readyState) ? String(xhr.readyState) : "unknown";
+  const status = event === "xhr-http" && xhr.status >= 100 && xhr.status <= 599 ? String(xhr.status) : "opaque";
+  // navigator.onLine is only a hint, NEVER proof of connectivity or failure cause.
+  const online = typeof navigator === "undefined" ? "unknown" : navigator.onLine === false ? "offline-reported" : "online-reported";
+  return `UX011/direct-S3; event=${event}; elapsed=${elapsed}; ready=${ready}; HTTP=${status}; connectivity=${online}`;
 }
 
 const supportedTypes = new Set([
@@ -105,6 +116,7 @@ export function transferFileToPrivateStaging(
       finish(new DOMException("Upload cancelled", "AbortError"));
     };
     signal.addEventListener("abort", abort, { once: true });
+    const startedAtMs = Date.now();
     xhr.open("POST", target.href);
     xhr.withCredentials = false;
     xhr.upload.onprogress = event => {
@@ -114,20 +126,23 @@ export function transferFileToPrivateStaging(
     // connection is lost or CORS blocks its response. The object might STILL
     // have arrived, so the owner should verify the same receipt before retry.
     xhr.onerror = () => finish(new PrivateMediaTransferError("network",
-      "Safari could not complete or read the private upload response (network or browser restriction). Check the upload before retrying; your draft remains private."));
+      "Safari could not complete or read the private upload response (network or browser restriction). Check the upload before retrying; your draft remains private.",
+      safeTransferDiagnostic("xhr-error", startedAtMs, xhr)));
     xhr.ontimeout = () => finish(new PrivateMediaTransferError("timeout",
-      "Private upload timed out on this connection. Check the upload before retrying; your draft remains private."));
+      "Private upload timed out on this connection. Check the upload before retrying; your draft remains private.",
+      safeTransferDiagnostic("xhr-timeout", startedAtMs, xhr)));
     xhr.onabort = () => finish(new DOMException("Upload cancelled", "AbortError"));
     xhr.onload = () => {
       if (xhr.status === 204) return finish();
       if (xhr.status === 0) return finish(new PrivateMediaTransferError("network",
-        "The browser could not read the private upload response. Check the upload before retrying."));
+        "The browser could not read the private upload response. Check the upload before retrying.",
+        safeTransferDiagnostic("xhr-status-zero", startedAtMs, xhr)));
       const detail = xhr.status === 403
         ? "Storage rejected the signed upload (HTTP 403). The temporary authorization may have expired."
         : xhr.status === 413
           ? "Storage rejected the upload size (HTTP 413). Choose a smaller file."
           : `Private storage refused the upload (HTTP ${xhr.status}).`;
-      finish(new PrivateMediaTransferError("refused", detail));
+      finish(new PrivateMediaTransferError("refused", detail, safeTransferDiagnostic("xhr-http", startedAtMs, xhr)));
     };
     // 30 MB on a weak mobile connection can exceed 120 seconds. Stay below
     // the five-minute S3 signed policy expiry so recovery remains possible.
