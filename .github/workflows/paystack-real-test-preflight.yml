@@ -68,7 +68,8 @@ jobs:
           node-version: 22
           cache: npm
       - name: Validate all test-only and disposable database preconditions before any network access
-        run: node --input-type=module -e 'import {assertRealPaystackTestPreflight} from "./scripts/payment-sandbox/real-paystack-preflight-guard.mjs"; assertRealPaystackTestPreflight(process.env); console.log("PASS: exact test-only manual authorization and throwaway local database.");'
+        run: |
+          node --input-type=module -e 'import {assertRealPaystackTestPreflight} from "./scripts/payment-sandbox/real-paystack-preflight-guard.mjs"; assertRealPaystackTestPreflight(process.env); console.log("PASS: exact test-only manual authorization and throwaway local database.");'
       - name: Install locked dependencies
         run: npm ci
       - name: Prepare disposable Postgres compatibility roles
