@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#f8f8f4" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Hustle Preview" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <title>Hustle — V1 Refined • Posts + Stories</title>
 <style>
 :root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:light;--bg:#f7f8f3;--paper:#fff;--line:#e8ece3;--text:#17201a;--muted:#7f897f;--acid:#dfff77;--accent:#76972f;--ink:#101a13;--shadow:0 14px 60px #26372a20}
@@ -243,6 +243,30 @@ button{ -webkit-tap-highlight-color:transparent}
   }
   .feed-chrome-top .stories-entry{
     opacity:1;
+  }
+}
+
+
+/* iPhone Safari / Home Screen fix v4: no intrusive gradient, native status bar safe area. */
+@media (max-width:550px){
+  .feed-chrome-top,.dark .feed-chrome-top{
+    box-shadow:none!important;
+    border-bottom:1px solid var(--line);
+  }
+  .feed-chrome-top::after,.dark .feed-chrome-top::after{
+    content:none!important;
+    display:none!important;
+    background:none!important;
+  }
+  .feed-chrome-top{background:#f8f9f5!important;}
+  .dark .feed-chrome-top{background:#141d16!important;}
+  /* Shortcuts and ranking must remain crisp even when the rest of the feed animates. */
+  .feed-chrome-top .brand,.feed-chrome-top .stories-entry,
+  .feed-chrome-top .feed-ranks,.feed-chrome-top .top-actions{
+    filter:none!important;
+    -webkit-filter:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
   }
 }
 
