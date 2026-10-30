@@ -67,7 +67,6 @@ jobs:
       HUSTLE_TEST_CHECKOUT_PHASE: ${{ inputs.phase }}
       HUSTLE_TEST_CHECKOUT_SOURCE_RUN_ID: ${{ inputs.source_run_id }}
       DATABASE_URL: postgresql://postgres:sandbox_only@127.0.0.1:55439/hustle_payment_sandbox?schema=public
-      HUSTLE_TEST_MANIFEST_PATH: ${{ runner.temp }}/hustle-ux040.json
       PAYSTACK_TEST_SECRET_KEY: ${{ secrets.HUSTLE_PAYSTACK_TEST_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v4
@@ -77,6 +76,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Bind disposable manifest path after runner allocation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${RUNNER_TEMP:-}"
+          printf 'HUSTLE_TEST_MANIFEST_PATH=%s/hustle-ux040.json\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Fail closed before provider or database access
         run: |
           node --input-type=module -e 'import {assertHostedTestCheckoutEnvironment} from "./scripts/payment-sandbox/hosted-test-checkout-guard.mjs"; assertHostedTestCheckoutEnvironment(process.env); console.log("PASS: protected manual TEST-only run and disposable localhost database");'
