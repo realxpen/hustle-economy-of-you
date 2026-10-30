@@ -125,6 +125,41 @@ export class PaystackTestGateway implements PaymentGatewayPort {
     };
   }
 
+  /**
+   * Check a pending attempt using our own stored reference and private test key.
+   * The browser callback is never accepted as financial evidence.
+   * Non-success statuses remain pending and cannot change the Order or ledger.
+   */
+  async verifyReference(providerReference: string): Promise<VerifiedGatewayWebhook | null> {
+    const reference = nonempty(providerReference, "reference");
+    const verified = await this.apiRequest(`/transaction/verify/${encodeURIComponent(reference)}`, { method: "GET" });
+    if (verified.reference !== reference || verified.domain !== "test") {
+      throw new UnauthorizedException("Paystack verification returned the wrong reference or environment");
+    }
+    const status = nonempty(verified.status, "status");
+    if (status !== "success") return null;
+    const transactionId = verified.id;
+    if ((typeof transactionId !== "number" && typeof transactionId !== "string") ||
+        !/^\d+$/.test(String(transactionId))) {
+      throw new BadRequestException("Paystack transaction ID missing");
+    }
+    const amountMinor = amount(verified.amount);
+    const currency = nonempty(verified.currency, "currency").toUpperCase();
+    // Deterministic evidence across retries; distinct from the raw signed-webhook event.
+    const evidence = JSON.stringify([reference, String(transactionId), amountMinor, currency, status, "test"]);
+    return {
+      provider: PROVIDER,
+      eventId: `verify.success:${transactionId}`,
+      type: "payment.succeeded",
+      providerReference: reference,
+      amountMinor,
+      currency,
+      failureCode: null,
+      failureReason: null,
+      payloadDigest: createHash("sha256").update(evidence).digest("hex")
+    };
+  }
+
   async verifyWebhook(
     payload: unknown,
     signature: string | undefined,

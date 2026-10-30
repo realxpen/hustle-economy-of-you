@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   formatWalletMoney,
@@ -8,6 +8,7 @@ import {
   getReleaseState,
   initializePayment,
   newIdempotencyKey,
+  verifyPaystackPayment,
   releaseBookingEscrow,
   releaseOrderSettlement,
   requestRefund,
@@ -60,6 +61,7 @@ export function TransactionFinanceActions({
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const returnVerificationRef = useRef<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -81,6 +83,34 @@ export function TransactionFinanceActions({
     await refresh();
     if (onFinancialChange) await onFinancialChange();
   }
+
+  async function checkProviderPayment(paymentAttemptId: string) {
+    if (busy) return;
+    setBusy("verification");
+    setError(null);
+    setNotice(null);
+    try {
+      const verified = await verifyPaystackPayment(paymentAttemptId);
+      setPayment(verified);
+      await afterChange();
+      setNotice(verified.status === "SUCCEEDED" && verified.appliedToSubject
+        ? "Paystack test payment confirmed by the server. Your transaction status has been refreshed."
+        : "Paystack has not confirmed successful payment yet. Your Order or Booking remains unpaid.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not verify payment with Paystack");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Returning from checkout is only a signal to CHECK; never payment proof.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("payment_return") !== "1" ||
+        payment?.provider !== "PAYSTACK_TEST" || payment.status !== "PENDING" ||
+        returnVerificationRef.current === payment.id) return;
+    returnVerificationRef.current = payment.id;
+    void checkProviderPayment(payment.id);
+  }, [payment?.id, payment?.provider, payment?.status]);
 
   async function startPayment() {
     if (busy) return;
@@ -207,9 +237,9 @@ export function TransactionFinanceActions({
           </button>
         )}
         {payment?.provider === "PAYSTACK_TEST" && payment.status === "PENDING" && (
-          <button disabled={Boolean(busy)} onClick={() => void afterChange()}
+          <button disabled={Boolean(busy)} onClick={() => payment && void checkProviderPayment(payment.id)}
             style={{ border: "1px solid #111", borderRadius: 999, padding: "12px 16px", background: "transparent", fontWeight: 800, cursor: "pointer" }}>
-            Check payment confirmation
+            {busy === "verification" ? "Verifying with Paystack…" : "Check payment confirmation"}
           </button>
         )}
         {canRefund && (

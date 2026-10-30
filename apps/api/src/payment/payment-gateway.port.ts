@@ -45,6 +45,8 @@ export interface VerifiedGatewayWebhook {
 
 export interface PaymentGatewayPort {
   initializePayment(input: InitializeGatewayPaymentInput): Promise<InitializeGatewayPaymentResult>;
+  /** Optional provider-side confirmation: only independently verified evidence may be applied. */
+  verifyReference?(providerReference: string): Promise<VerifiedGatewayWebhook | null>;
   verifyWebhook(
     payload: unknown,
     signature: string | undefined,

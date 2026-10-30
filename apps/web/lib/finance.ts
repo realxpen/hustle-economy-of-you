@@ -170,6 +170,14 @@ export async function initializePayment(
   return response.json() as Promise<PaymentAttemptRecord>;
 }
 
+/** Buyer-authorized, server-side Paystack test verification. Never trusts callback parameters. */
+export async function verifyPaystackPayment(paymentAttemptId: string) {
+  const response = await authenticatedFetch(`/payments/attempts/${encodeURIComponent(paymentAttemptId)}/verify`, {
+    method: "POST"
+  });
+  return response.json() as Promise<PaymentAttemptRecord>;
+}
+
 export async function getPaymentAttempt(paymentAttemptId: string) {
   const response = await authenticatedFetch(`/payments/${encodeURIComponent(paymentAttemptId)}`);
   return response.json() as Promise<PaymentAttemptRecord>;
