@@ -143,13 +143,36 @@ function attachEvidence(workId,title,description=""){
  const e={id:key("evidence"),spaceId:work.spaceId,orderId:work.id,title:String(title).trim().slice(0,120),description:String(description).slice(0,500),level:"completion_claim",created:date()};
  state.evidence.unshift(e);work.evidence.push(e.id);log("evidence.attach",e.id);return copy(e)
 }
+
+function mirrorBooking(snapshot){
+ if(!snapshot||!snapshot.reference||!snapshot.service||snapshot.stage==="request")return null;
+ const map={awaiting:"awaiting",consultation:"awaiting",consultPayment:"accepted",quote:"accepted",payment:"accepted",work:"in_progress",completion:"review",review:"completed",declined:"declined",cancelled:"cancelled"};
+ let mapped=map[snapshot.stage]||"awaiting";
+ if(snapshot.stage==="work"){
+  if(snapshot.jobStatus==="ready")mapped="ready";
+  else if(snapshot.jobStatus==="out_for_delivery")mapped="ready";
+  else if(snapshot.jobStatus==="completed")mapped="delivered";
+ }
+ const id=String(snapshot.reference).slice(0,100);
+ let w=state.orders.find(x=>x.externalRef===id);
+ if(!w){
+  w={id:key("work"),spaceId:"personal",serviceId:null,blueprint:snapshot.jobFulfillment?"item":"appointment",title:String(snapshot.service).slice(0,120),client:"You · demo customer",provider:String(snapshot.professional||"Example professional"),state:mapped,date:String(snapshot.day||date()),amount:Math.max(0,Number(snapshot.price)||0),source:"existing booking preview",externalRef:id,externalSource:"HustleJourneys",version:1,agreementVersion:1,steps:[{state:mapped,at:new Date().toISOString(),by:"booking preview"}],assignedTo:null,description:"Linked booking · "+String(snapshot.requirements||"No request details"),evidence:[],paymentStatus:snapshot.paymentConfirmed?"simulated_paid":"not_collected",metadata:{jobStatus:snapshot.jobStatus||"",readyDate:snapshot.readyDate||""}};
+  state.orders.unshift(w);log("work.link_existing_booking",w.id)
+ }else{
+  if(w.state!==mapped){w.state=mapped;w.version++;w.steps.push({state:mapped,at:new Date().toISOString(),by:"booking preview"});}
+  w.amount=Math.max(0,Number(snapshot.price)||0);
+  w.paymentStatus=snapshot.paymentConfirmed?"simulated_paid":"not_collected";
+  w.metadata={jobStatus:snapshot.jobStatus||"",readyDate:snapshot.readyDate||""};
+ }
+ return copy(w)
+}
 function capabilityGuidance(){
  const tags=state.person.capabilities;return [...(tags.includes("hire")?["Explore skilled people and publish a request"]:[]),...(tags.includes("offer")?["Create services with a suitable work blueprint"]:[]),...(tags.includes("manage")?["Separate business teams and work records"]:[]),...(tags.includes("create")?["Connect useful posts to services and products"]:[]),...(tags.includes("represent")?["Request scoped delegation before acting for another person"]:[])];
 }
 window.HustleAdaptive={
  capabilities:CAPABILITIES,blueprints:BLUEPRINTS,permissions:PERMISSIONS,privateActions:PRIVATE_ACTIONS,
  getState:()=>copy(state),currentSpace:()=>copy(currentSpace()),can, switchSpace,createSpace,addCapability,makeService,newWork,advanceWork,createOpportunity,suggestOpportunity,requestDelegation,consentDelegation,revokeDelegation,assignWork,attachEvidence,capabilityGuidance,
- getBlueprint:id=>BLUEPRINTS.find(x=>x.id===id),getService:serviceById,
+ getBlueprint:id=>BLUEPRINTS.find(x=>x.id===id),getService:serviceById,mirrorBooking,
  _test:{state,allowedTransitions}
 };
 })();
