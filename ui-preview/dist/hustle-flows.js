@@ -40,6 +40,7 @@ const training=[
 {id:"t-fashion",type:"training",seller:"zara",title:"Intro to dressmaking",category:"Fashion",price:45000,img:pics.fabric,photos:[pics.fabric],description:"A sample practical training listing covering measurements, fabric, and finishing.",includes:["Measurement basics","Fabric selection","A guided practical project"]}
 ];
 const allItems=[...services,...products,...training];
+const demoRequests=[];
 const threads=[
 {id:"tobi",person:"tobi",status:"Inquiry",unread:1,last:"Sure, send me a reference cut and location.",when:"10:42",about:"s-barber",messages:[{from:"me",text:"Hi, do you offer appointments in Lekki?",time:"10:39"},{from:"them",text:"Yes, let's discuss the style and location first.",time:"10:41"},{from:"them",text:"Sure, send me a reference cut and location.",time:"10:42"}]},
 {id:"zara",person:"zara",status:"Consultation",unread:0,last:"I can help you with that outfit.",when:"Yesterday",about:"s-fashion",messages:[{from:"me",text:"Hi Zara, can we discuss a custom outfit?",time:"Yesterday"},{from:"them",text:"I can help you with that outfit.",time:"Yesterday"}]},
@@ -49,10 +50,10 @@ const threads=[
 const samplePosts=[{"id":"post-tobi-1","seller":"tobi","kind":"video","image":"barber","caption":"A quiet morning at the chair. Getting the details right, one cut at a time.","related":"s-barber","tag":"Barbering"},{"id":"post-tobi-2","seller":"tobi","kind":"photo","image":"hair","caption":"The tools and people behind the finished look.","related":null,"tag":"Daily life"},{"id":"post-zara-1","seller":"zara","kind":"carousel","image":"fashion","caption":"From sketch to fitting. Here's a little behind the scenes of the making.","related":"s-fashion","tag":"Fashion"},{"id":"post-zara-2","seller":"zara","kind":"photo","image":"fabric","caption":"Mood board from this week's fabric hunt. What would you make with this?","related":null,"tag":"Creative process"},{"id":"post-maya-1","seller":"maya","kind":"photo","image":"photo","caption":"It's not just the camera. It's making people comfortable in front of it.","related":"s-photo","tag":"Photography"},{"id":"post-amara-1","seller":"amara","kind":"photo","image":"food","caption":"Cooking with family today. Good memories start in the kitchen.","related":null,"tag":"Life"},{"id":"post-amara-2","seller":"amara","kind":"photo","image":"meal","caption":"Weekend meal boxes are ready. Ask me anything about the menu.","related":"p-meal","tag":"Food"},{"id":"post-nora-1","seller":"nora","kind":"photo","image":"house","caption":"Small changes, completely different room. Before-and-after inspiration.","related":"s-interior","tag":"Home"},{"id":"post-femi-1","seller":"femi","kind":"photo","image":"style","caption":"Two ways to style pieces you already own.","related":"s-stylist","tag":"Fashion"},{"id":"post-flora-1","seller":"flora","kind":"video","image":"flowers","caption":"The way flowers open always makes me pause for a second.","related":"s-floral","tag":"Creative"},{"id":"post-you-1","seller":"self","kind":"photo","image":"photo","caption":"Learning, creating, and documenting the process. This is a sample post on my Hustle profile.","related":null,"tag":"Everyday"},{"id":"post-you-2","seller":"self","kind":"photo","image":"fashion","caption":"A sample of work I can share with the community.","related":null,"tag":"My work"}].map(p=>({...p,image:pics[p.image]}));
 const signedIn={name:"Your name",handle:"@yourhustle",bio:"A little about you, your interests, and the skills you want to share.",primary:"Your primary skill",secondary:"Your other skills",location:"Lagos, Nigeria",avatar:pics.style,cover:pics.photo,following:83,followers:128};
 const ownSavedPosts=new Set();
-const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Posts",post:"post-tobi-1",postLikes:new Set(),postComments:{},ownTab:"Posts",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},draftType:"Post",draftText:"",draftImageSrc:null};
+const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Posts",post:"post-tobi-1",postLikes:new Set(),postComments:{},ownTab:"Posts",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},draftType:"Post",draftText:"",draftImageSrc:null,draftFiles:[],draftPostKind:"Photo",draftServiceType:"In person",draftAttach:"",marketSort:"Featured",marketSearch:"",marketSlide:0,liveHubTab:"For You",liveCategory:"All",liveSetup:{title:"",category:"Cooking",audience:"Public",offer:"p-meal"},liveComments:[],liveHearts:0,liveStarted:false,request:"",postSlide:0};
 const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money=n=>"₦"+Number(n||0).toLocaleString("en-NG");
-const person=id=>people.find(p=>p.id===id)||people[0];
+const person=id=>id==="self"?{id:"self",name:signedIn.name,handle:signedIn.handle,avatar:signedIn.avatar,cover:signedIn.cover,primary:signedIn.primary,secondary:signedIn.secondary,location:signedIn.location,tag:"All",rating:"—",followers:String(signedIn.followers),bio:signedIn.bio,work:[],reviews:0}:people.find(p=>p.id===id)||people[0];
 const item=id=>allItems.find(p=>p.id===id)||services[0];
 const layer=document.createElement("section");layer.id="hfFlowLayer";layer.className="hf-layer";layer.hidden=true;phone.appendChild(layer);
 function head(title,subtitle="",back=true,action=""){
@@ -85,7 +86,7 @@ function render(){
  if(state.screen==="Home"){home();return}
  phone.querySelectorAll("video.hp-feed-video").forEach(v=>v.pause());
  layer.hidden=false;
- const main=new Set(["Explore","Marketplace","Inbox","OwnProfile","Create"]);
+ const main=new Set(["Explore","Marketplace","Inbox","OwnProfile","Create","LiveHub"]);
  const detail=!main.has(state.screen);
  layer.className="hf-layer"+(detail?" hf-detail":"")+(state.screen==="Chat"?" hf-chat-screen":"");
  phone.classList.add("hf-flow-active");
@@ -104,6 +105,10 @@ function render(){
   case "Cart":html=renderCart();break;
   case "Checkout":html=renderCheckout();break;
   case "Create":html=renderCreate();break;
+  case "LiveHub":html=renderLiveHub();break;
+  case "GoLive":html=renderGoLive();break;
+  case "LiveStudio":html=renderLiveStudio();break;
+  case "Request":html=renderRequest();break;
   case "Post":html=renderPostDetail();break;
   case "EditProfile":html=renderProfileEdit();break;
   default:html=renderExplore();
@@ -124,7 +129,7 @@ function categoryChips(){
  return `<div class="hf-chips" role="group" aria-label="Categories">${["All","Beauty","Fashion","Creative","Food","Home"].map(x=>`<button data-hf="cat" data-value="${x}" class="${state.category===x?"on":""}">${x}</button>`).join("")}</div>`;
 }
 function renderExplore(){
- const tabs=["Top","People","Posts","Services","Products","Training","Map","Stories","Live"];
+ const tabs=["Top","People","Posts","Services","Products","Training","Requests","Map","Stories","Live"];
  return `${head("Explore","People, skills, work and opportunities",false,`<button class="hf-icbtn" data-hf="cart" aria-label="Open cart">♧${state.cart.length?`<span class="hf-cart-count">${state.cart.length}</span>`:""}</button>`)}
  <div class="hf-page"><div class="hf-searchbox"><span>⌕</span><input id="hfExploreQuery" type="search" value="${esc(state.query)}" placeholder="Barber in Lekki, fashion in Yaba..." aria-label="Search Hustle"/><button data-hf="search-clear" aria-label="Clear search">×</button></div>
  <div class="hf-tabs" role="tablist" aria-label="Search sections">${tabs.map(x=>`<button data-hf="explore-tab" data-value="${x}" class="${state.exploreTab===x?"on":""}" role="tab" aria-selected="${state.exploreTab===x}">${x}</button>`).join("")}</div>
@@ -142,7 +147,8 @@ function matches(p){
 function exploreResults(){
  if(state.exploreTab==="Map")return renderMapResults();
  if(state.exploreTab==="Stories")return `<button class="hf-story-banner" data-hf="stories"><span>✦</span><div><b>Friends and recommended Stories</b><small>Circles for people you follow; square Stories for discovery</small></div><strong>→</strong></button>`;
- if(state.exploreTab==="Live")return `<div class="hf-hero-card"><div style="flex:1"><h3>See creators at work</h3><p>Visit a simulated Live room with comments, reactions and pinned products.</p><button class="hf-lime-button" data-hf="live">Explore Live demo →</button></div><img src="${pics.food}" alt="" loading="lazy"></div>`;
+ if(state.exploreTab==="Live")return liveExploreTeaser();
+ if(state.exploreTab==="Requests")return renderRequestGrid();
  const ppl=people.filter(p=>matches({...p,title:p.primary,description:p.secondary,category:p.tag,seller:p.id}));
  const foundPosts=samplePosts.filter(postMatches);
  const productsFound=products.filter(matches),servicesFound=services.filter(matches),trainingFound=training.filter(matches);
@@ -162,17 +168,54 @@ function refreshSearch(){
  const result=layer.querySelector("#hfSearchResults");
  if(result){if(mapInstance)disposeMap();result.innerHTML=exploreResults();if(state.exploreTab==="Map")initializeMapAfterRender();}
 }
+function marketCard(l){
+ const p=person(l.seller);
+ return `<article class="hf-shop-card"><button data-hf="listing" data-id="${l.id}" aria-label="View ${esc(l.title)}"><div class="hf-shop-img"><img src="${l.img}" alt="${esc(l.title)}" loading="lazy"><span>${l.type==="product"?"PRODUCT":l.type==="service"?"SERVICE":"LEARN"}</span></div><div class="hf-shop-body"><b>${esc(l.title)}</b><small>by ${esc(p.name)}</small><div class="hf-shop-price">${l.type==="service"?"From ":""}${money(l.price)}</div><div class="hf-shop-meta"><span>⌖ ${esc(p.location)}</span><strong>View →</strong></div></div></button></article>`;
+}
 function renderMarket(){
- const tabs=["All","Services","Products","Training"];
- const choices=state.marketTab==="Services"?services:state.marketTab==="Products"?products:state.marketTab==="Training"?training:allItems;
- const filtered=choices.filter(p=>state.category==="All"||p.category===state.category);
- return `${head("Marketplace","Services · Products · Apprenticeships",false,`<button class="hf-icbtn" data-hf="cart" aria-label="View shopping cart">♧${state.cart.length?`<span class="hf-cart-count">${state.cart.length}</span>`:""}</button>`)}
- <div class="hf-page"><p class="hf-subtitle">Work you can hire, things you can buy, and skills you can learn.</p>
- <div class="hf-tabs" role="tablist" aria-label="Marketplace categories">${tabs.map(x=>`<button class="${state.marketTab===x?"on":""}" data-hf="market-tab" data-value="${x}" role="tab">${x}</button>`).join("")}</div>${categoryChips()}
- ${state.marketTab==="All"?`<button class="hf-story-banner" data-hf="explore"><span>⌕</span><div><b>Looking for someone specific?</b><small>Search professionals by skill and location</small></div><strong>→</strong></button>`:""}
- <div class="hf-section-row"><h2>${state.marketTab==="All"?"Popular on Hustle":state.marketTab}</h2><small>${filtered.length} demo listings</small></div>
- <div class="hf-two">${filtered.map(listingCard).join("")||'<div class="hf-empty">No listings in this category yet.</div>'}</div>
+ const tabs=["All","Products","Services","Training"],cats=[["All","✦","Everything"],["Beauty","✂","Beauty"],["Fashion","♢","Fashion"],["Food","♨","Food"],["Home","⌂","Home"],["Creative","✳","Creative"]];
+ const promos=[
+ {kicker:"FEATURED · SAMPLE PROMOTION",title:"Made by people near you.",copy:"Discover products and skills from creators in Lagos.",image:pics.fashion,action:"market-products",label:"Shop products"},
+ {kicker:"FEATURED · SAMPLE PROMOTION",title:"Your next good find.",copy:"Explore local meals, gifts and handmade things.",image:pics.meal,action:"market-products",label:"Explore products"},
+ {kicker:"FEATURED · SAMPLE PROMOTION",title:"From skills to possibilities.",copy:"Book a conversation before you hire a professional.",image:pics.barber,action:"market-services",label:"Explore services"}
+ ];
+ const promo=promos[state.marketSlide%promos.length];
+ const tabProducts=state.marketTab==="Products"?products:state.marketTab==="Services"?services:state.marketTab==="Training"?training:allItems;
+ const words=state.marketSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
+ let filtered=tabProducts.filter(l=>(state.category==="All"||l.category===state.category)&&words.every(w=>[l.title,l.category,l.description,person(l.seller).name,person(l.seller).location].join(" ").toLowerCase().includes(w)));
+ if(state.marketSort==="Price: low")filtered=[...filtered].sort((a,b)=>a.price-b.price);
+ if(state.marketSort==="Price: high")filtered=[...filtered].sort((a,b)=>b.price-a.price);
+ const featuredProducts=products.filter(l=>state.category==="All"||l.category===state.category);
+ return `${head("Marketplace","Shop products · Book services · Learn skills",false,`<button class="hf-icbtn" data-hf="cart" aria-label="Shopping cart">🛍${state.cart.length?`<span class="hf-cart-count">${state.cart.reduce((n,x)=>n+x.qty,0)}</span>`:""}</button>`)}
+ <div class="hf-shop-page">
+ <div class="hf-shop-search"><span aria-hidden="true">⌕</span><input id="hfMarketSearch" type="search" value="${esc(state.marketSearch)}" placeholder="Search products, services, stores..." aria-label="Search marketplace"><button data-hf="market-search-clear" aria-label="Clear marketplace search">×</button></div>
+ <div class="hf-promo" role="region" aria-label="Featured sample promotions">
+ <img src="${promo.image}" alt="Featured creative work"><div class="hf-promo-gradient"></div>
+ <div class="hf-promo-copy"><span>${promo.kicker}</span><h2>${promo.title}</h2><p>${promo.copy}</p><button data-hf="${promo.action}">${promo.label} →</button></div>
+ <div class="hf-promo-controls"><button data-hf="market-promo-prev" aria-label="Previous promotional banner">‹</button><span>${promos.map((_,i)=>`<i class="${i===state.marketSlide%promos.length?"on":""}"></i>`).join("")}</span><button data-hf="market-promo-next" aria-label="Next promotional banner">›</button></div></div>
+ <div class="hf-shop-promo-disclaimer">Sponsored placements and discounts are illustrative. No advertiser is connected.</div>
+ <div class="hf-section-row"><h2>Shop by category</h2><small>Find your thing</small></div>
+ <div class="hf-shop-categories">${cats.map(([id,icon,name])=>`<button data-hf="cat" data-value="${id}" class="${state.category===id?"on":""}"><span>${icon}</span><b>${name}</b></button>`).join("")}</div>
+ <div class="hf-shop-pills">${tabs.map(x=>`<button data-hf="market-tab" data-value="${x}" class="${state.marketTab===x?"on":""}">${x}</button>`).join("")}</div>
+ <div class="hf-shop-sortrow"><div><b>${state.marketTab==="All"?"Discover listings":state.marketTab}</b><small>${filtered.length} sample listings</small></div><label>Sort <select id="hfMarketSort" aria-label="Sort marketplace listings">${["Featured","Price: low","Price: high"].map(x=>`<option ${state.marketSort===x?"selected":""} value="${x}">${x}</option>`).join("")}</select></label></div>
+ <div id="hfMarketListings" class="hf-shop-grid">${filtered.map(marketCard).join("")||'<div class="hf-empty">Nothing matches that search. Try another category.</div>'}</div>
+ ${state.marketTab==="All"&&!state.marketSearch?`<div class="hf-shop-promo-strip"><div><span>HUSTLE LIVE · DEMO</span><h3>Watch makers. Shop the moment.</h3><p>Explore creators and their pinned offers.</p><button data-hf="live-hub">Explore Live →</button></div><img src="${pics.food}" alt="Creator cooking" loading="lazy"></div>
+ <div class="hf-section-row"><h2>Curated products</h2><button class="hf-link" data-hf="market-products">Shop all →</button></div><div class="hf-shop-grid">${featuredProducts.slice(0,4).map(marketCard).join("")}</div>
+ <div class="hf-shop-proof"><span>✦ Direct from creators</span><span>⌖ Discover by skill</span><span>♧ Consultation before hire</span></div>`:""}
  </div>`;
+}
+function renderRequestGrid(){
+ const rows=demoRequests.map(r=>`<button class="hf-request-tile" data-hf="request-open" data-id="${r.id}"><b>${esc(r.title)}</b><p>${esc(r.description)}</p><span>${esc(r.category)} · ${esc(r.location)}</span><strong>${money(r.budget)} budget · demo →</strong></button>`).join("");
+ return `<div class="hf-section-row"><h2>Community requests</h2><small>Demo only</small></div>${rows||'<div class="hf-empty">No sample requests yet. Create one from the Create tab to see how they appear.</div>'}<button class="hf-soft-button" data-hf="request-create" style="width:100%;margin-top:12px">+ Post a demo request</button>`;
+}
+function renderRequest(){
+ const req=demoRequests.find(r=>r.id===state.request);
+ if(!req)return `${head("Request","Demo request",true)}<div class="hf-empty">Request unavailable.</div>`;
+ return `${head("Customer request","Sample opportunity",true)}<div class="hf-form"><span class="hf-create-kicker">DEMO · NOT PUBLISHED</span><h2>${esc(req.title)}</h2><div class="hf-summary"><div><b>Category</b><span>${esc(req.category)}</span></div><div><b>Location</b><span>${esc(req.location)}</span></div><div><b>Budget</b><span>${money(req.budget)}</span></div></div><p>${esc(req.description)}</p><button class="hf-lime-button" data-hf="request-contact" style="width:100%">Preview response →</button><p class="hf-demo-footnote">No real request is posted. Contacting the requester is disabled in this preview.</p></div>`;
+}
+function liveExploreTeaser(){
+ return `<div class="hf-hero-card"><div style="flex:1"><span style="font-size:10px;letter-spacing:1px;color:#dbff85">● LIVE HUB · DEMO</span><h3>Creators in the moment.</h3><p>Explore a dedicated Live discovery page, then try an interactive simulated Live room.</p><button class="hf-lime-button" data-hf="live-hub">Browse Live →</button></div><img src="${pics.food}" alt="Cooking creator" loading="lazy"></div>
+ <button class="hf-story-banner" data-hf="go-live"><span>●</span><div><b>Start your own Live</b><small>Configure your title, audience and pinned offer</small></div><strong>→</strong></button>`;
 }
 function poster(id){return id==="self"?{id:"self",name:signedIn.name,handle:signedIn.handle,avatar:signedIn.avatar,primary:signedIn.primary,location:signedIn.location,tag:"All"}:person(id)}
 function postById(id){return samplePosts.find(p=>p.id===id)||samplePosts[0]}
