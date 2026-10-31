@@ -194,8 +194,8 @@ export class BookingScheduleService {
       const finish = (row.confirmedEndAt ??
         new Date(row.confirmedStartAt!.getTime() + row.service.defaultDurationMinutes * 60_000)).getTime() +
         row.service.bufferMinutes * 60_000;
-      events.push({ at: Math.max(begin, candidateStart.getTime()), change: b.partySize });
-      events.push({ at: Math.min(finish, candidateEnd.getTime()), change: -b.partySize });
+      events.push({ at: Math.max(begin, candidateStart.getTime()), change: b.partySize ?? 1 });
+      events.push({ at: Math.min(finish, candidateEnd.getTime()), change: -(b.partySize ?? 1) });
     }
     events.sort((a,b)=>a.at - b.at || a.change - b.change);
     let active = 0, peak = 0;
