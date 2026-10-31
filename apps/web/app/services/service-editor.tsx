@@ -34,6 +34,10 @@ type FormState = {
   deliveryTime: string;
   requirements: string;
   bookingMode: BookingOperationMode;
+  consultationPolicy: "OFF" | "OPTIONAL" | "REQUIRED";
+  consultationFeeNaira: string;
+  consultationCreditEnabled: boolean;
+  maxPartySize: number;
   bookingTimezone: string;
   resourcePoolKey: string;
   defaultDurationMinutes: number;
@@ -61,6 +65,10 @@ const emptyForm: FormState = {
   deliveryTime: "",
   requirements: "",
   bookingMode: "APPOINTMENT",
+  consultationPolicy: "OPTIONAL",
+  consultationFeeNaira: "0",
+  consultationCreditEnabled: false,
+  maxPartySize: 1,
   bookingTimezone: "Africa/Lagos",
   resourcePoolKey: "primary",
   defaultDurationMinutes: 60,
@@ -89,6 +97,10 @@ function toForm(service: Service): FormState {
     deliveryTime: service.deliveryTime ?? "",
     requirements: service.requirements ?? "",
     bookingMode: service.bookingMode,
+    consultationPolicy: service.consultationPolicy,
+    consultationFeeNaira: String(service.consultationFeeMinor / 100),
+    consultationCreditEnabled: service.consultationCreditEnabled,
+    maxPartySize: service.maxPartySize,
     bookingTimezone: service.bookingTimezone,
     resourcePoolKey: service.resourcePoolKey,
     defaultDurationMinutes: service.defaultDurationMinutes,
@@ -158,6 +170,10 @@ export function ServiceEditor({ serviceId }: { serviceId?: string }) {
       deliveryTime: form.deliveryTime,
       requirements: form.requirements,
       bookingMode: form.bookingMode,
+      consultationPolicy: form.consultationPolicy,
+      consultationFeeMinor: form.consultationPolicy === "OFF" ? 0 : Math.round(Number(form.consultationFeeNaira || "0") * 100),
+      consultationCreditEnabled: form.consultationPolicy !== "OFF" && form.consultationCreditEnabled,
+      maxPartySize: form.maxPartySize,
       bookingTimezone: form.bookingTimezone,
       resourcePoolKey: form.resourcePoolKey,
       defaultDurationMinutes: form.defaultDurationMinutes,
@@ -308,10 +324,30 @@ export function ServiceEditor({ serviceId }: { serviceId?: string }) {
         <section className={styles.flowtime} aria-label="FlowTime scheduling configuration">
           <div className={styles.sectionHeading}><span>03</span><div><strong>FlowTime · Scheduling & capacity</strong><p>Make your own working rules. A solo Hustler stays simple; a team can accept parallel appointments.</p></div></div>
           <div className={styles.twoCol}>
+            <label><span>Consultation for this service</span>
+              <select value={form.consultationPolicy} onChange={(e)=>setField("consultationPolicy",e.target.value as FormState["consultationPolicy"])}>
+                <option value="OFF">Not needed — book directly</option>
+                <option value="OPTIONAL">Optional — client decides</option>
+                <option value="REQUIRED">Required — discuss first</option>
+              </select>
+            </label>
+            <label><span>Maximum clients per request</span>
+              <input type="number" min="1" max="50" value={form.maxPartySize} onChange={(e)=>setField("maxPartySize",Number(e.target.value))}/>
+              <small>Separate from simultaneous staff capacity below.</small>
+            </label>
+          </div>
+          {form.consultationPolicy !== "OFF" && <div className={styles.twoCol}>
+            <label><span>Consultation fee · ₦</span><input type="number" min="0" max="20000000" step="0.01" value={form.consultationFeeNaira} onChange={(e)=>setField("consultationFeeNaira",e.target.value)}/><small>0 for free. Paid consultations require payment infrastructure before activation.</small></label>
+            <label><span>Credit fee toward a later service</span>
+              <input type="checkbox" checked={form.consultationCreditEnabled} onChange={(e)=>setField("consultationCreditEnabled",e.target.checked)}/>
+              <small>Illustrative until a verified consultation payment can be attached to the booking. No automatic reduction yet.</small>
+            </label>
+          </div>}
+          <div className={styles.twoCol}>
             <label><span>How clients book</span><select value={form.bookingMode} onChange={(e) => setField("bookingMode", e.target.value as BookingOperationMode)}>
               <option value="APPOINTMENT">Appointments · reserve a time</option>
               <option value="WORK_QUEUE">Work queue · manage active orders</option>
-              <option value="CONSULTATION">Consultation · propose a schedule first</option>
+              <option value="CONSULTATION">Consultation scheduling (legacy mode)</option>
             </select></label>
             <label><span>Resource pool</span><input value={form.resourcePoolKey} maxLength={40} onChange={(e)=>setField("resourcePoolKey",e.target.value)} aria-describedby="pool-help" placeholder="primary"/></label>
           </div>
