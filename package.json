@@ -22,11 +22,12 @@
     "phase2:gate": "node scripts/phase2-gate-check.mjs",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
-    "ci": "npm run typecheck && npm run build",
+    "ci": "npm run typecheck && npm run build && npm run adaptive:contract",
     "live:setup": "node scripts/setup-livekit-local.mjs",
     "live:up": "npm run live:setup && node scripts/livekit-local.mjs up",
     "live:down": "node scripts/livekit-local.mjs down",
-    "live:status": "node scripts/livekit-local.mjs status"
+    "live:status": "node scripts/livekit-local.mjs status",
+    "adaptive:contract": "node --test scripts/qa/adaptive-core-structure.test.cjs"
   },
   "devDependencies": {
     "turbo": "^2.5.0",

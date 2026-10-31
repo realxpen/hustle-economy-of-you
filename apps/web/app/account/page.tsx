@@ -158,6 +158,10 @@ export default function AccountPage() {
 
     {error && <p className={styles.inlineError} role="alert">{error} <button type="button" onClick={() => setRefreshVersion((n)=>n+1)}>Retry</button></p>}
 
+    <section className={styles.section} aria-label="Your Economy workspaces">
+      <ToolRow href="/economy" icon="store" label="My Economy" supporting="Personal work, businesses, services and authorized teams" />
+    </section>
+
     <section className={styles.capabilities} aria-label="Your Hustle capabilities">
       <div className={styles.capabilityHeading}>
         <div><span className={styles.eyebrow}>ONE IDENTITY</span><h2>Your capabilities</h2></div>
