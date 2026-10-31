@@ -6,6 +6,8 @@ import { ExperienceHeader } from "../../components/navigation/experience-header"
 import { ExperienceState } from "../../components/experience/experience-state";
 import { adaptiveClient, type AdaptiveBlueprint, type AdaptiveInvitation, type AdaptiveMembership, type AdaptiveServiceDraft, type AdaptiveWorkItem } from "../../lib/adaptive";
 import styles from "./page.module.css";
+import { AdaptivePolicyForm } from "../../components/economy/adaptive-policy-form";
+import type { AdaptivePolicy } from "../../lib/adaptive";
 
 type Tab = "Overview" | "Services" | "Work" | "Team";
 const tabs: Tab[] = ["Overview", "Services", "Work", "Team"];
@@ -34,7 +36,7 @@ export default function EconomyPage() {
   const [notice, setNotice] = useState("");
   const [unavailable, setUnavailable] = useState(false);
   const [newBusiness, setNewBusiness] = useState({ name: "", kind: "BUSINESS", category: "" });
-  const [newService, setNewService] = useState({ title: "", blueprint: "appointment", price: "" });
+  const [newService, setNewService] = useState<{title: string; blueprint: string; price: string; policy: AdaptivePolicy; editingId: string | null; expectedRevision: number}>({ title: "", blueprint: "appointment", price: "", policy: {}, editingId: null, expectedRevision: 1 });
   const [newWork, setNewWork] = useState({ title: "", description: "" });
   const [newInvite, setNewInvite] = useState({ username: "", role: "ASSISTANT", permissions: ["work.manage","messages.reply"] });
 
@@ -44,6 +46,8 @@ export default function EconomyPage() {
         adaptiveClient.workspaces(), adaptiveClient.blueprints(), adaptiveClient.invitations()
       ]);
       setSpaces(memberships); setBlueprints(templates); setInvites(requests);
+      setNewService(current => Object.keys(current.policy).length ? current :
+        { ...current, policy: templates.find(t => t.slug === current.blueprint)?.defaults ?? {} });
       setSelected(prev => memberships.some(x => x.workspace.id === prev) ?
         prev : (memberships.find(x => x.workspace.kind === "PERSONAL")?.workspace.id ?? memberships[0]?.workspace.id ?? ""));
       setError(""); setUnavailable(false);
@@ -159,24 +163,53 @@ export default function EconomyPage() {
         </>}
         {tab === "Services" && <>
           <section className={styles.card}>
-            <h2>Draft a service journey</h2>
-            <p className={styles.help}>Nine configurable blueprints. Drafts stay private until the existing Hustler verification and service publishing journey is connected.</p>
-            <form className={styles.form} onSubmit={e => submit(e, () => void mutate(() =>
-              adaptiveClient.createService(selected, { title: newService.title, blueprint: newService.blueprint,
-                priceMinor: Math.round(Number(newService.price) * 100) }), "Service draft saved."))}>
-              <label>Service title<input required minLength={3} value={newService.title}
+            <h2>{newService.editingId ? "Edit private service draft" : "Configure a service"}</h2>
+            <p className={styles.help}>Set the right workflow for appointments, laundry, tailoring, events, training or digital work. Drafts remain private; these settings are not live availability or customer booking rules yet.</p>
+            <form className={styles.form} onSubmit={e => submit(e, () => void mutate(async () => {
+              const priceMinor = Math.round(Number(newService.price) * 100);
+              const policy = Object.keys(newService.policy).length ? newService.policy :
+                (blueprints.find(b => b.slug === newService.blueprint)?.defaults ?? {});
+              if (newService.editingId)
+                await adaptiveClient.updateService(selected, newService.editingId, { title: newService.title, priceMinor, policy, expectedRevision: newService.expectedRevision });
+              else
+                await adaptiveClient.createService(selected, { title: newService.title, blueprint: newService.blueprint, priceMinor, policy });
+              setNewService({ title: "", blueprint: "appointment", price: "", policy: blueprints.find(b => b.slug === "appointment")?.defaults ?? {}, editingId: null, expectedRevision: 1 });
+            }, newService.editingId ? "Service draft updated." : "Service draft saved."))}>
+              <label>Service title<input required minLength={3} maxLength={150} value={newService.title}
                 onChange={e => setNewService({ ...newService, title: e.target.value })} placeholder="What do you offer?" /></label>
-              <label>Journey type<select value={newService.blueprint} onChange={e => setNewService({ ...newService, blueprint: e.target.value })}>
+              <label>Journey type<select value={newService.blueprint} disabled={!!newService.editingId}
+                onChange={e => { const blueprint = e.target.value; setNewService({
+                  ...newService, blueprint, policy: blueprints.find(b => b.slug === blueprint)?.defaults ?? {}
+                }); }}>
                 {blueprints.map(b => <option key={b.slug} value={b.slug}>{b.label}</option>)}
               </select></label>
               <label>Starting price (₦)<input type="number" min={0} step=".01" required value={newService.price}
                 onChange={e => setNewService({ ...newService, price: e.target.value })} /></label>
-              <button type="submit" disabled={busy || !(owner || active?.permissions.includes("services.manage"))}>Save private draft</button>
+              <AdaptivePolicyForm blueprint={newService.blueprint}
+                policy={Object.keys(newService.policy).length ? newService.policy :
+                  (blueprints.find(b => b.slug === newService.blueprint)?.defaults ?? {})}
+                onChange={policy => setNewService({ ...newService, policy })} disabled={busy} />
+              <button type="submit" disabled={busy || !(owner || active?.permissions.includes("services.manage"))}>
+                {newService.editingId ? "Save revised draft" : "Save private service draft"}
+              </button>
+              {newService.editingId && <button type="button" className={styles.secondary} onClick={() =>
+                setNewService({ title: "", blueprint: "appointment", price: "", policy: blueprints.find(b => b.slug === "appointment")?.defaults ?? {}, editingId: null, expectedRevision: 1 })
+              }>Cancel editing</button>}
             </form>
           </section>
           <section className={styles.card}><div className={styles.sectionHead}><h2>Service drafts</h2><small>{serviceDrafts.length}</small></div>
             {!serviceDrafts.length && <p className={styles.help}>No drafts in this workspace yet.</p>}
-            {serviceDrafts.map(s => <article key={s.id} className={styles.item}><strong>{s.title}</strong><small>{s.blueprint.slug} v{s.blueprint.version} · {money(s.priceMinor)} · private draft</small></article>)}
+            {serviceDrafts.map(s => <article key={s.id} className={styles.item}>
+              <strong>{s.title}</strong>
+              <small>{s.blueprint.slug} v{s.blueprint.version} · revision {s.revision} · {money(s.priceMinor)} · private draft</small>
+              <small>Configuration: {Object.keys(s.policy ?? {}).length} workflow options</small>
+              <button type="button" className={styles.secondary} disabled={busy || !(owner || active?.permissions.includes("services.manage"))}
+                onClick={() => {
+                  setNewService({ title: s.title, blueprint: s.blueprint.slug, price: (s.priceMinor / 100).toFixed(2),
+                    policy: s.policy ?? {}, editingId: s.id, expectedRevision: s.revision });
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}>Edit this draft</button>
+            </article>)}
           </section>
         </>}
         {tab === "Work" && <>
