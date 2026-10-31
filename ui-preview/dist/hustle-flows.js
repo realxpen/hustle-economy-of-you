@@ -300,14 +300,22 @@ function booking(id){
  state.bookingStep=0;state.bookingItem=l.id;state.booking={details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"};
  push("Booking");
 }
-function openThread(id){const t=threads.find(x=>x.id===id)||threads.find(x=>x.person===id)||threads[0];t.unread=0;push("Chat",{thread:t.id})}
+function openThread(id){
+ let t=threads.find(x=>x.id===id)||threads.find(x=>x.person===id);
+ if(!t){
+  const creator=person(id),listing=allItems.find(x=>x.seller===creator.id);
+  t={id:creator.id,person:creator.id,status:"Inquiry",unread:0,last:"Start a conversation about their work.",when:"Now",about:listing?.id||services[0].id,messages:[]};
+  threads.push(t);
+ }
+ t.unread=0;push("Chat",{thread:t.id});
+}
 function addCart(id){
  const l=item(id);if(l.type!=="product")return;
  const variant=state.variant[id]||(l.variants?.[0]||"Standard");
  const count=state.quantity[id]||1;const found=state.cart.find(x=>x.id===id&&x.variant===variant);
  if(found)found.qty+=count;else state.cart.push({id,variant,qty:count});
  notify("Added to cart · demo");
- go("Cart");
+ push("Cart");
 }
 function setNav(name){
  if(name==="Home"){home();return}
