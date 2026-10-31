@@ -109,6 +109,13 @@ function bookingIndex(){return Math.max(0,steps.BookingJourney.indexOf(({request
 
 function policyFor(){return data.booking.policy||window.HustleBookingRules?.getForService(data.booking.service,data.booking.category,data.booking.professional)||{id:"generic",label:"Other service",consultation:"optional",consultFee:0,creditConsultation:false,capacity:1,duration:60,approval:"manual",locationModes:["At provider","At my location"],fields:[["style","What do you need?","Describe the work"]],groupQuote:true}}
 function payable(){const b=data.booking,p=policyFor();return Math.max(0,b.price-(b.consultPaid&&p.creditConsultation?Math.min(b.price,b.consultPaid):0))}
+function setExampleQuote(b,p){
+ b.quoteLines=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:b.consultPaid})||null;
+ b.price=b.quoteLines?.total??b.basePrice;
+ b.consultCredit=b.quoteLines?.credit??(b.consultPaid&&p.creditConsultation?Math.min(b.price,b.consultPaid):0);
+ b.stage="quote";
+ addNotice("Booking","Professional accepted sample request",b.service,"BookingJourney");render();
+}
 function renderBooking(){
  const b=data.booking,p=policyFor(),paid=Number(b.consultPaid||0),due=payable(),group=!!b.customQuote,estimate=b.quoteLines||window.HustleBookingRules?.quote({id:p.id,provider:b.professional,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:paid});
  const active=["request","consultation","consultPayment","awaiting","quote","payment","work","completion","review"];
@@ -139,11 +146,11 @@ function renderBooking(){
  }
  if(b.stage==="consultation")body=`<h2>Choose how to consult</h2><p class="hj-lead">The professional can offer free or paid consultations. The fee and credit terms are shown before payment.</p>
  ${formBody("booking-consult",`<div class="hj-field"><label>Consultation channel</label><select name="mode">${["Video call","Voice call","In person"].map(x=>`<option ${b.mode===x?"selected":""}>${x}</option>`).join("")}</select></div><div class="hj-status-card"><span>Consultation</span><b>${p.consultFee?money(p.consultFee):"Free"}</b><span>Credit towards service</span><b>${p.consultFee&&p.creditConsultation?"Yes, if you book":"No additional credit"}</b></div>` ,p.consultFee?"Review consultation fee →":"Request free consultation →")}`;
- if(b.stage==="consultPayment")body=`<h2>Consultation payment</h2><p class="hj-lead">This is a separate ${money(p.consultFee)} consultation charge.</p><div class="hj-status-card"><span>Consultation fee</span><b>${money(p.consultFee)}</b><span>Applied to later service</span><b>${p.creditConsultation?"Yes, automatically":"No — separately charged"}</b><span>Appointment</span><b>${esc(b.day)}, ${esc(b.time)}</b></div>${renderPaymentChoices(p.consultFee)}
+ if(b.stage==="consultPayment")body=`<h2>Consultation payment</h2><p class="hj-lead">Your consultation was approved. The separate fee is ${money(p.consultFee)}. In production it would be collected only after approval.</p><div class="hj-status-card"><span>Consultation fee</span><b>${money(p.consultFee)}</b><span>Applied to later service</span><b>${p.creditConsultation?"Yes, automatically":"No — separately charged"}</b><span>Appointment</span><b>${esc(b.day)}, ${esc(b.time)}</b></div>${renderPaymentChoices(p.consultFee)}
  ${button("Simulate consultation payment →","booking-consult-pay")}${info("No real payment or booking occurs. Cancellation/refund terms must be shown by the professional before a real consultation.")}`;
  if(b.stage==="awaiting")body=`<div class="hj-success-icon">◷</div><h2>Request awaiting professional approval</h2><p class="hj-lead">The professional can accept, propose another time, request details or decline. Your chosen slot isn't confirmed yet.</p><div class="hj-status-card"><span>Service</span><b>${esc(b.service)}</b><span>Time requested</span><b>${esc(b.day)}, ${esc(b.time)}</b><span>Location</span><b>${esc(b.venue)}</b><span>Group</span><b>${b.people} person${b.people===1?"":"s"}</b><span>Consultation paid (demo)</span><b>${money(paid)}</b></div>
  ${info(group?"Group, event and home-service requests need a separate confirmed quote. Availability and travel costs must be reviewed.":`Example remaining single-person spaces for this slot: ${window.HustleBookingRules?.left(p.id,b.day,b.time,b.professional)??p.capacity}. No time is reserved until approval.`)}
- ${button("Simulate professional acceptance →","booking-provider-accept")}${button("Propose another time","booking-reschedule","secondary")}${button("Cancel request","booking-cancel","secondary")}`;
+ ${button("Simulate professional acceptance →","booking-provider-accept")}${button("Simulate professional decline","booking-provider-decline","secondary")}${button("Propose another time","booking-reschedule","secondary")}${button("Cancel request","booking-cancel","secondary")}`;
  if(b.stage==="quote")body=`<h2>${group?"Review your custom event quote":"Review service price"}</h2><div class="hj-quote"><small>${group?"CUSTOM QUOTE EXAMPLE":"SERVICE PRICE EXAMPLE"} · PROFESSIONAL APPROVAL SIMULATED</small><strong>${money(b.price)}</strong><p>${esc(b.service)} · ${esc(b.professional)}</p></div><div class="hj-status-card"><span>Scope</span><b>${esc(b.fields?.style||b.requirements)}</b><span>Mode</span><b>${esc(b.venue)}</b><span>People</span><b>${b.people}</b><span>Service subtotal (${b.people} × ${money(estimate?.unit||b.basePrice)})</span><b>${money(estimate?.service||b.price)}</b><span>Travel / delivery</span><b>${money(estimate?.travel||0)}</b><span>Event / group logistics</span><b>${money(estimate?.event||0)}</b><span>Estimated working time</span><b>${estimate?.duration||p.duration} min (requires team confirmation)</b><span>Consultation already paid</span><b>${money(paid)}</b><span>Consultation credit</span><b>−${money(b.consultCredit||0)}</b><span>Remaining for service</span><b>${money(due)}</b></div>
  ${info("Custom prices, travel fees and timing are subject to the professional's confirmation. No payment has been charged.")}
  ${button("Accept example quote →","booking-accept")}${button("Request a revised quote","booking-revise","secondary")}${button("Cancel","booking-cancel","secondary")}`;
@@ -157,6 +164,7 @@ function renderBooking(){
  if(b.stage==="completion")body=`<div class="hj-success-icon">✓</div><h2>Service marked completed</h2><p class="hj-lead">The agreed demonstration milestones have been marked released.</p>${button("Leave a review →","booking-review")}${button("View example escrow","open-escrow","secondary")}`;
  if(b.stage==="review")body=`<h2>How was the service?</h2><div class="hj-rating">${[1,2,3,4,5].map(x=>`<button data-hj="rating" data-value="${x}" aria-label="${x} stars" class="${x<=b.review?"on":""}">★</button>`).join("")}</div>${field("reviewText","Comments (optional)","What went well?","textarea",b.notes)}${button("Finish demo journey","booking-finish")}`;
  if(b.stage==="cancelled")body=`<h2>Booking request cancelled</h2><p class="hj-lead">Any reserved demo appointment capacity was restored. Paid consultations and actual refunds must follow clearly disclosed provider terms.</p>${button("Back to explore","close")}`;
+ if(b.stage==="declined")body=`<h2>Professional declined this request</h2><p class="hj-lead">The professional could not accept this job or time. Choose another date or professional. No consultation payment was requested.</p>${button("Try another time","booking-reschedule")}${button("Return to Explore","close","secondary")}`;
  return heading("Book a service","BOOKING ADAPTS TO THE PROFESSIONAL")+`<div class="hj-page">${progress(visible.map(x=>names[x]),idx)}${body}</div>${renderModal()}`;
 }
 function renderPaymentChoices(amount){
@@ -265,15 +273,14 @@ function onAction(action,value="",id=""){
  case "modal-close":state.modal="";render();break;
  case "report-confirm":{const r={id:uid("HREP"),subject:state.reportSubject,reference:state.reportId,reason:state.reportReason,details:state.reportText,status:"Submitted"};data.reports.unshift(r);window.HustleOperations?.addDemoReport?.(r);state.reportIdActive=r.id;state.modal="";addNotice("System","Report submitted · demo",r.id,"Explore");go("ReportSent");break}
  case "booking-example":{const sample=window.HustleBookingRules?.samples?.find(x=>x.id===value);if(sample)open("BookingJourney",{service:sample.title,professional:sample.name,category:sample.id,price:window.HustleBookingRules?.get(sample.id,sample.name)?.basePrice});break}
+ case "booking-provider-decline":{const b=data.booking;if(b.stage!=="awaiting")break;b.stage="declined";addNotice("Booking","Professional declined the sample request",b.service,"BookingJourney");render();break}
  case "booking-provider-accept":{const b=data.booking,p=policyFor();
   if(b.stage!=="awaiting")break;
   if(!b.customQuote&&!b.slotReserved){const plan=window.HustleBookingRules?.reservePlan(p.id,b.day,b.time,1,b.professional);if(!plan){renderToast("This sample appointment cannot fit the schedule. Choose another time.");b.stage="request";render();break}b.slotPlan=plan;b.slotReserved=true;b.reservedUnits=1}
-  b.quoteLines=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:b.consultPaid})||null;
-  b.price=b.quoteLines?.total??b.basePrice;
-  b.consultCredit=b.quoteLines?.credit??(b.consultPaid&&p.creditConsultation?Math.min(b.price,b.consultPaid):0);
-  b.stage="quote";addNotice("Booking","Professional accepted sample request",b.service,"BookingJourney");render();break}
+  if(b.consultChoice&&p.consultFee>0&&!b.consultPaid){b.stage="consultPayment";addNotice("Booking","Consultation accepted · pay to proceed",b.service,"BookingJourney");render();break}
+  setExampleQuote(b,p);break}
  case "booking-consult-pay":{const b=data.booking,p=policyFor();if(b.stage!=="consultPayment"||!b.consultChoice)break;
-  b.consultPaid=p.consultFee;b.stage="awaiting";addNotice("Money","Consultation fee simulated",money(b.consultPaid)+" · no charge","BookingJourney");render();break}
+  b.consultPaid=p.consultFee;setExampleQuote(b,p);addNotice("Money","Approved consultation fee simulated",money(b.consultPaid)+" · no charge","BookingJourney");render();break}
  case "booking-reschedule":{const b=data.booking;if(b.slotReserved){if(b.slotPlan)window.HustleBookingRules?.releasePlan(b.slotPlan);else window.HustleBookingRules?.release(b.category,b.day,b.time,b.reservedUnits||1,b.professional)};b.slotPlan=null;b.slotReserved=false;b.stage="request";render();break}
  case "booking-cancel":{const b=data.booking;if(b.paymentConfirmed){renderToast("Use the dispute process for funded work");break}if(b.slotReserved){if(b.slotPlan)window.HustleBookingRules?.releasePlan(b.slotPlan);else window.HustleBookingRules?.release(b.category,b.day,b.time,b.reservedUnits||1,b.professional)};b.slotPlan=null;b.slotReserved=false;b.stage="cancelled";addNotice("Booking","Booking request cancelled · demo",b.service,"BookingJourney");render();break}
  case "booking-accept":{const b=data.booking;if(b.stage!=="quote")break;
@@ -348,7 +355,7 @@ function onSubmit(name,form){
  b.customQuote=b.people>1||/home|event|at my location|pickup|delivery|cater|custom order|site assessment|outdoor/i.test(b.venue);
  if(!b.customQuote&&(window.HustleBookingRules?.left(p.id,b.day,b.time,b.professional)??p.capacity)<1){renderToast("That sample time is full. Choose another slot.");return}
  b.stage=b.consultChoice?"consultation":"awaiting";render();return}
- if(name==="booking-consult"){const b=data.booking,p=policyFor();if(!b.consultChoice){b.stage="awaiting";render();return}b.mode=get("mode")||"Video call";b.stage=p.consultFee>0?"consultPayment":"awaiting";render();return}
+ if(name==="booking-consult"){const b=data.booking,p=policyFor();if(!b.consultChoice){b.stage="awaiting";render();return}b.mode=get("mode")||"Video call";b.stage="awaiting";render();return}
  if(name==="order-details"){data.purchase.delivery=get("delivery");if(!data.purchase.delivery){renderToast("Add a delivery area");return}data.purchase.stage="review";render();return}
  if(name==="agent-details"){state.agentName=get("agentName");state.agentSkill=get("agentSkill");state.agentArea=get("agentArea");state.agentLanguage=get("language")||"English";state.agentHandoff=get("handoff")||"In-person handover";if(!state.agentName||!state.agentSkill){renderToast("Name and skill are required");return}state.agentStep=2;render()}
 }
