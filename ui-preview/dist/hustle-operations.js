@@ -42,7 +42,7 @@ const held=x=>x.milestones.filter(m=>m.status==="Held").reduce((n,m)=>n+m.amount
 const totalHeld=()=>store.escrow.reduce((n,e)=>n+held(e),0);
 const tone=(s)=>s==="Held"?"held":s==="Completed"||s==="Released"||s==="Approved"?"success":s==="Disputed"?"danger":s==="Pending"?"pending":"neutral";
 function badge(s){return `<span class="ho-badge ho-${tone(s)}">${esc(s)}</span>`}
-function btn(label,op,variant="solid",id=""){return `<button class="ho-btn ho-${variant}" data-op="${op}" ${id?`data-id="${esc(id)}"`:""}>${label}</button>`}
+function btn(label,op,variant="solid",id=""){return `<button type="button" class="ho-btn ho-${variant}" data-op="${op}" ${id?`data-id="${esc(id)}"`:""}>${label}</button>`}
 function header(title,subtitle,back=true,actions=""){return `<header class="ho-header"><div class="ho-head-row">${back?`<button class="ho-back" data-op="back" aria-label="Go back">←</button>`:""}<div><small>HUSTLE · DEMO</small><h1>${title}</h1><p>${subtitle||""}</p></div>${actions}</div></header>`}
 function banner(title,text,mode="notice"){return `<div class="ho-banner ho-${mode}"><b>${title}</b><p>${text}</p></div>`}
 function section(title,action=""){return `<div class="ho-section"><h2>${title}</h2>${action}</div>`}
@@ -189,7 +189,7 @@ function renderAgentIntro(){
  return header("Agent Studio","Manage professionals with permission")+`<div class="ho-screen"><div class="ho-studio-hero"><span>AGENT ROLE · APPLICATION REQUIRED</span><h2>Build a network of talented professionals.</h2><p>Help hustlers manage enquiries, bookings, schedules and client relationships—without owning their funds.</p></div>
  ${section("What an approved agent can do")}
  ${[["Manage multiple professionals","Operate permitted calendars and listings"],["Track enquiries and bookings","Support work, consultations and customer communication"],["See commission reporting","Transparent agency agreements and fee records"],["Request withdrawal approval","Hustler must personally verify withdrawals"]].map(([a,b],i)=>line(["👥","▤","₦","🔐"][i],a,b,"✓")).join("")}
- ${banner("Access is permission-based","Agent status requires application, review and each professional's explicit authorization. This prototype can simulate the approved dashboard.","quiet")}
+ ${state.agentApplied?banner("Application pending","Your sample application is in review. This does not make your account an approved agent. You may separately preview the dashboard.","quiet"):""}${banner("Access is permission-based","Agent status requires application, review and each professional's explicit authorization. This prototype can simulate the approved dashboard.","quiet")}
  <div class="ho-actions">${btn("Apply (demo)","agent-apply","lime")}${btn("Preview approved studio","agent-preview","outline")}</div></div>`;
 }
 function renderAgent(){
@@ -349,7 +349,7 @@ function handle(op,id,value,node){
   case "booking":state.formDraft.booking=id;nav("Booking");break;
   case "booking-progress":{const b=store.bookings.find(x=>x.id===state.formDraft.booking);if(b){b.state="Awaiting customer approval";audit("Sample quote stage updated",b.id);render();toast("Demo booking updated")};break}
   case "create-service":{close();window.HustleFlowsPreview?.open("Create",{draftType:"Service"});break}
-  case "agent-apply":state.agentApplied=true;state.agentPreview=true;audit("Sample agent application","Awaiting approval · simulated");state.page="AgentIntro";render();toast("Application saved in demo only");break;
+  case "agent-apply":state.agentApplied=true;state.agentPreview=false;audit("Sample agent application","Awaiting approval · simulated");state.page="AgentIntro";render();toast("Application submitted in demo · Still awaiting review");break;
   case "agent-preview":state.agentPreview=true;state.page="Agent";render();break;
   case "agent-tab-target":state.agentTab=id;state.page="Agent";render();break;
   case "agent-invite":state.modal="invite";render();break;
