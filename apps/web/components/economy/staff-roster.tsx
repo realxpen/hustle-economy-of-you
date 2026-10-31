@@ -129,7 +129,7 @@ export function StaffRoster({workspaceId,canManage}:{workspaceId:string;canManag
      {canManage&&leave.staffId===s.id&&<form className={styles.leaveForm}
       onSubmit={e=>submit(e,()=>void save(()=>adaptiveClient.staffLeave(workspaceId,s.id,{
        startAt:leave.start+"T00:00:00+01:00",endAt:nextDay(leave.end)+"T00:00:00+01:00",note:leave.note
-      }),"Time off recorded.").then(ok=>{if(ok)setLeave({staffId:"",start:"",end:"",note:""})})))}>
+      }),"Time off recorded.").then(ok=>{if(ok)setLeave({staffId:"",start:"",end:"",note:""})}))}>
       <p className={styles.hint}>Full days in Africa/Lagos time. Existing booked customers may need reassignment.</p>
       <label>First day off<input required type="date" value={leave.start} disabled={busy}
        onChange={e=>setLeave({...leave,start:e.target.value})}/></label>
