@@ -32,6 +32,10 @@ export interface CreateBookingInput {
   location?: unknown;
   notes?: unknown;
   conversationId?: unknown;
+  partySize?: unknown;
+  venueType?: unknown;
+  referenceUrls?: unknown;
+  consultationRequested?: unknown;
 }
 
 export interface BookingPaginationInput {
@@ -109,6 +113,10 @@ const bookingSelect = {
   requirements: true,
   location: true,
   notes: true,
+  partySize: true,
+  venueType: true,
+  referenceUrls: true,
+  consultationRequested: true,
   serviceTitleSnapshot: true,
   agreedPriceMinor: true,
   currency: true,
@@ -141,7 +149,11 @@ const bookingSelect = {
       currency: true,
       pricingType: true,
       location: true,
-      professionalProfileId: true
+      professionalProfileId: true,
+      consultationPolicy: true,
+      consultationFeeMinor: true,
+      consultationCreditEnabled: true,
+      maxPartySize: true
     }
   }
 } satisfies Prisma.BookingSelect;
@@ -165,6 +177,24 @@ export class BookingService {
     const location = this.optionalText(input.location, "location", 300);
     const notes = this.optionalText(input.notes, "notes", 2000);
     const conversationId = this.optionalId(input.conversationId, "conversationId");
+    const partySize = input.partySize === undefined ? 1 : Number(input.partySize);
+    if (!Number.isSafeInteger(partySize) || partySize < 1 || partySize > 50) {
+      throw new BadRequestException("partySize must be an integer from 1 to 50");
+    }
+    const venueType = this.optionalText(input.venueType, "venueType", 24);
+    if (venueType && !["AT_PROVIDER", "AT_CLIENT", "EVENT", "REMOTE"].includes(venueType)) {
+      throw new BadRequestException("Unsupported venueType");
+    }
+    if (input.consultationRequested !== undefined && typeof input.consultationRequested !== "boolean") {
+      throw new BadRequestException("consultationRequested must be boolean");
+    }
+    const consultationRequested = input.consultationRequested === true;
+    const referenceUrls = input.referenceUrls === undefined ? [] : input.referenceUrls;
+    if (!Array.isArray(referenceUrls) || referenceUrls.length > 5 ||
+      referenceUrls.some((url) => typeof url !== "string" || url.length > 1200 ||
+        !/^https:\/\//i.test(url) || !URL.canParse(url))) {
+      throw new BadRequestException("referenceUrls must contain up to five HTTPS media links");
+    }
 
     if (requestedStartAt.getTime() <= Date.now()) {
       throw new BadRequestException("requestedStartAt must be in the future");
@@ -196,6 +226,8 @@ export class BookingService {
         currency: true,
         pricingType: true,
         bookingMode: true,
+        consultationPolicy: true,
+        maxPartySize: true,
         professionalProfile: {
           select: { userId: true }
         }
@@ -204,6 +236,16 @@ export class BookingService {
 
     if (!service) throw new NotFoundException("Service is not currently bookable");
     if (!service.title?.trim()) throw new BadRequestException("Service is missing a booking title");
+    if (partySize > service.maxPartySize) {
+      throw new BadRequestException("This Service does not offer bookings for that many people");
+    }
+    if ((service.consultationPolicy === "REQUIRED" || service.bookingMode === BookingOperationMode.CONSULTATION)
+      && !consultationRequested) {
+      throw new BadRequestException("This Service requires consultation before a booking request");
+    }
+    if (service.consultationPolicy === "OFF" && consultationRequested) {
+      throw new BadRequestException("This Service does not offer a consultation");
+    }
     if (service.priceMinor === null) {
       throw new BadRequestException("Service must have a concrete price before it can be booked");
     }
@@ -231,7 +273,16 @@ export class BookingService {
     }
 
     const serviceTitleSnapshot = service.title.trim();
-    const agreedPriceMinor = service.priceMinor;
+    // Fixed-price group work at the provider may be multiplied by party size.
+    // Home/event/variable quotes require a separately agreed quote: never create
+    // a payment-pending status for an unpriced extra.
+    const agreedPriceMinor = service.priceMinor * (
+      partySize > 1 && service.pricingType === "FIXED" && (venueType === "AT_PROVIDER" || !venueType)
+        ? partySize : 1
+    );
+    if (!Number.isSafeInteger(agreedPriceMinor) || agreedPriceMinor > 2_000_000_000) {
+      throw new BadRequestException("Group total is above the supported payment limit");
+    }
     const booking = await this.prisma.$transaction(async (tx) => {
       const created = await tx.booking.create({
       data: {
@@ -244,6 +295,10 @@ export class BookingService {
         requirements,
         location,
         notes,
+        partySize,
+        venueType,
+        referenceUrls: referenceUrls as string[],
+        consultationRequested,
         serviceTitleSnapshot,
         agreedPriceMinor,
         currency: service.currency,
@@ -261,7 +316,9 @@ export class BookingService {
       clientUserId: booking.clientUserId,
       hustlerUserId: booking.hustlerUserId,
       status: booking.status,
-      hasConversation: Boolean(booking.conversationId)
+      hasConversation: Boolean(booking.conversationId),
+      partySize: booking.partySize,
+      consultationRequested: booking.consultationRequested
     });
 
     return this.serializeBooking(booking, client.id);
@@ -324,6 +381,12 @@ export class BookingService {
       }
     }
 
+    if (booking.venueType === "AT_CLIENT" || booking.venueType === "EVENT") {
+      throw new ConflictException("Custom home/event quotation must be agreed before payment can be requested");
+    }
+    if (booking.partySize > 1 && booking.pricingTypeSnapshot !== "FIXED") {
+      throw new ConflictException("Group bookings with variable pricing need a confirmed quote before acceptance");
+    }
     const paid = booking.agreedPriceMinor > 0;
     const nextStatus = paid ? BookingStatus.PAYMENT_PENDING : BookingStatus.ACCEPTED;
     const now = new Date();
@@ -336,7 +399,8 @@ export class BookingService {
         hustlerUserId: viewer.id,
         startAt: confirmedStartAt,
         endAt: confirmedEndAt,
-        excludeBookingId: id
+        excludeBookingId: id,
+        partySize: booking.partySize
       });
       const result = await tx.booking.updateMany({
         where: {
