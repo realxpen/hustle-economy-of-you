@@ -257,10 +257,21 @@ async function run(){
  await expectForbidden(ops.myHandover(other,garment.id,{intakeMethod:"not_offered",returnMethod:"shop_pickup"}),400);
  const choices=await ops.myHandover(other,garment.id,{intakeMethod:"drop_off",returnMethod:"shop_pickup"});
  assert.equal(choices.status,"AWAITING_INTAKE");
+ assert.equal(choices.policySnapshot.turnaroundHours,96);
+ // The client agreement is snapshotted; later unsynchronized business-draft
+ // edits cannot silently change an accepted item's ETA or ready-notice policy.
+ await db.adaptiveServiceDraft.update({where:{id:template.id},data:{
+  policy:{itemType:"tailoring",turnaroundHours:500,notifyWhenReady:false}
+ }});
+
  assert.equal((await ops.myBookingSummary(other,garment.id)).fulfillment.intakeMethod,"drop_off");
  await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"RECEIVED",expectedRevision:1}),409);
  await db.booking.update({where:{id:garment.id},data:{status:"FUNDED"}});
  await ops.itemProgress(own,business.id,garment.id,{to:"RECEIVED",expectedRevision:1});
+ const receipt=await db.adaptiveItemFulfillment.findUniqueOrThrow({where:{bookingId:garment.id}});
+ const hoursUntilReady=(receipt.estimatedReadyAt.getTime()-Date.now())/3600000;
+ assert.ok(hoursUntilReady>95&&hoursUntilReady<97,"ETA reflects original 96-hour client terms, not later draft edits");
+
  await ops.itemProgress(own,business.id,garment.id,{to:"IN_PROGRESS",expectedRevision:2});
  const ready=await ops.itemProgress(own,business.id,garment.id,{to:"READY",expectedRevision:3});
  assert.equal(ready.status,"READY");
