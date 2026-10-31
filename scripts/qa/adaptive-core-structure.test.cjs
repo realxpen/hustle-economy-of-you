@@ -173,3 +173,22 @@ test("Assignment and item progress relations are private and additive",()=>{
  assert.match(proposal,/AdaptiveItemFulfillment_bookingId_key/);
  assert.match(proposal,/REVOKE ALL ON TABLE "AdaptiveBookingAssignment"/);
 });
+
+test("Staffing review is scoped and never changes accepted financial Booking records",()=>{
+ const ops=read("apps/api/src/adaptive/adaptive-booking-ops.service.ts");
+ const ctrl=read("apps/api/src/adaptive/adaptive.controller.ts");
+ assert.match(ops,/async staffingAlerts/);
+ assert.match(ops,/schedule\.manage/);
+ assert.match(ops,/SHIFT_OR_LEAVE_CONFLICT/);
+ assert.match(ops,/WORKER_INACTIVE/);
+ assert.match(ops,/UNASSIGNED/);
+ assert.match(ctrl,/@Get\("workspaces\/:workspaceId\/staffing-alerts"\)/);
+ const block=ops.slice(ops.indexOf("async staffingAlerts("),ops.indexOf("async assign("));
+ assert.doesNotMatch(block,/\.update\(|\.updateMany\(|\.create\(/);
+});
+test("Client item contract snapshots survive edits and stale writes are rejected",()=>{
+ const ops=read("apps/api/src/adaptive/adaptive-booking-ops.service.ts");
+ assert.match(ops,/prev\?\.policySnapshot/);
+ assert.match(ops,/revision:expected,status:AdaptiveItemStage\.AWAITING_INTAKE/);
+ assert.match(ops,/if\(changed\.count!==1\)/);
+});
