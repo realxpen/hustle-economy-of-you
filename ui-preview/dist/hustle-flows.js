@@ -428,7 +428,7 @@ function renderLiveWatch(){
  <header class="hf-live-room-header hf-live-watch-header">
  <img src="${c.avatar}" alt=""><div><b>${esc(c.name)}</b><small>${l.viewerCount} example viewers · ${esc(l.category)}</small></div>
  <button data-hf="live-follow" data-id="${l.person}">${state.follow.has(l.person)?"✓ Following":"+ Join"}</button>
- <button class="hf-live-room-exit" data-hf="back" aria-label="Leave Live room">×</button>
+ <button class="hf-live-room-report" data-hf="report-live" data-id="${l.id}" aria-label="Report Live room">⚑</button><button class="hf-live-room-exit" data-hf="back" aria-label="Leave Live room">×</button>
  </header>
  <div class="hf-live-room-status"><span>● LIVE ROOM DEMO</span><span>✦ ${esc(c.primary)}</span></div>
  <div class="hf-live-room-spacer"></div>
@@ -1001,6 +1001,7 @@ layer.addEventListener("click",e=>{
  case "report-listing":window.HustleJourneys?.open("Report",{subject:"Listing",id});break;
  case "report-profile":window.HustleJourneys?.open("Report",{subject:"Profile",id});break;
  case "report-chat":window.HustleJourneys?.open("Report",{subject:"Conversation",id});break;
+ case "report-live":window.HustleJourneys?.open("Report",{subject:"Live room",id});break;
  case "own-tab":state.ownTab=value;render();break;
  case "post-detail":openPost(id);break;
  case "post-photo-next":state.postSlide=(state.postSlide+1)%(postById(state.post).images?.length||1);render();break;
@@ -1046,7 +1047,7 @@ layer.addEventListener("click",e=>{
    if(!name||!loc){notify("Enter a name and delivery area to preview checkout");return}
    state.checkout={name,location:loc,note:layer.querySelector("#hfCheckoutNote")?.value.trim()||""};
   }
-  if(state.checkoutStep===1&&window.HustleJourneys){const first=state.cart[0],subtotal=state.cart.reduce((n,x)=>n+item(x.id).price*x.qty,0);window.HustleJourneys.open("PaymentJourney",{item:first?item(first.id).title:"Product purchase",price:subtotal});break}
+  if(state.checkoutStep===1&&window.HustleJourneys){const first=state.cart[0],subtotal=state.cart.reduce((n,x)=>n+item(x.id).price*x.qty,0);window.HustleJourneys.open("PaymentJourney",{item:first?item(first.id).title:"Product purchase",price:subtotal,method:state.checkoutMethod==="Wallet (demo)"?"Wallet":state.checkoutMethod,delivery:state.checkout.location});break}
   state.checkoutStep=Math.min(2,state.checkoutStep+1);render();break;
  }
  case "thread":openThread(id);break;
