@@ -118,30 +118,33 @@ function setExampleQuote(b,p){
 }
 function renderBooking(){
  const b=data.booking,p=policyFor(),paid=Number(b.consultPaid||0),due=payable(),group=!!b.customQuote,estimate=b.quoteLines||window.HustleBookingRules?.quote({id:p.id,provider:b.professional,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:paid});
- const active=["request","consultation","consultPayment","awaiting","quote","payment","work","completion","review"];
- const visible=active.filter(x=>!["consultation","consultPayment"].includes(x)||b.consultChoice).filter(x=>x!=="consultPayment"||p.consultFee>0);
- const idx=Math.max(0,visible.indexOf(b.stage));
- const names={request:"Request",consultation:"Consult",consultPayment:"Consult fee",awaiting:"Approval",quote:"Quote",payment:"Payment",work:"Work",completion:"Done",review:"Review"};
+ const visible=["Your request","Review & approval","Secure payment","Complete"];
+ const idx=b.stage==="request"||b.stage==="consultation"?0:["awaiting","quote","consultPayment"].includes(b.stage)?1:b.stage==="payment"?2:3;
  let body="";
  if(b.stage==="request"){
   const demoCases=window.HustleBookingRules?.samples||[];
   const venues=p.locationModes||[];
   body=`<div class="hj-service-header"><span class="hj-skill-icon">${esc(p.icon||"✳")}</span><div><small>${esc(p.label)} · tailored booking</small><h2>${esc(b.service)}</h2><p>${esc(b.professional)} · From ${money(b.basePrice)}</p></div></div>
+  <div class="hj-booking-highlights"><span>${p.consultation==="off"?"✓ No consultation":p.consultation==="required"?"◷ Consultation first":"✓ Direct booking available"}</span><span>▦ ${p.capacity} per slot</span><span>↗ ${p.duration} min/session</span></div>
   <details class="hj-skill-examples"><summary>Try another skill journey <span>▾</span></summary><div class="hj-chip-grid">${demoCases.map(x=>`<button type="button" data-hj="booking-example" data-value="${x.id}" class="${p.id===x.id?"on":""}">${esc(x.title)}</button>`).join("")}</div></details>
   <p class="hj-lead">Only answer what this service needs. Consultation is ${p.consultation==="off"?"not needed":p.consultation==="required"?"required":"optional"}. A slot is confirmed only after professional approval.</p>
   ${formBody("booking-request",`
-   <div class="hj-field"><label for="hj-venue">Service type</label><select id="hj-venue" name="venue">${venues.map(x=>`<option ${b.venue===x?"selected":""}>${esc(x)}</option>`).join("")}</select></div>
+   <div class="hj-booking-section"><span>01</span><h3>Tell ${esc(b.professional)} what you need</h3></div>
+   <div class="hj-field"><label for="hj-venue">How should this service happen?</label><select id="hj-venue" name="venue">${venues.map(x=>`<option ${b.venue===x?"selected":""}>${esc(x)}</option>`).join("")}</select></div>
    ${p.fields.map(([key,label,placeholder],i)=>field(key,label,placeholder,i===0?"textarea":"text",b.fields?.[key]||"",i===0?'required minlength="5"':"")).join("")}
    <div class="hj-field"><label for="hj-location">Service area or location</label><input name="location" id="hj-location" value="${esc(b.location)}" placeholder="e.g. Yaba or Online"><small>Exact address can be shared after acceptance.</small></div>
+   <div class="hj-booking-section"><span>02</span><h3>When should it happen?</h3></div>
    <div class="hj-field"><label for="hj-day">Preferred day</label><select name="day" id="hj-day">${["Tomorrow","This weekend","Next week"].map(x=>`<option ${b.day===x?"selected":""}>${esc(x)}</option>`).join("")}</select></div>
    <div class="hj-field"><label for="hj-time">Preferred time</label><select name="time" id="hj-time">${["1:00 PM – 2:00 PM","2:00 PM – 3:00 PM","5:00 PM – 6:00 PM"].map(x=>`<option ${b.time===x?"selected":""}>${esc(x)}</option>`).join("")}</select></div>
    <div class="hj-field"><label for="hj-people">How many people, guests or items? (1 for individual)</label><input type="number" id="hj-people" name="people" min="1" max="50" value="${b.people||1}"></div>
    <div class="hj-capacity-note"><b>${p.capacity} parallel appointment${p.capacity===1?"":"s"} per slot · ${p.duration} min/session</b><span>A salon with staff may accept multiple bookings in one hour. Groups require a separately agreed schedule.</span><small>Example openings (not real-time): ${["1:00 PM – 2:00 PM","2:00 PM – 3:00 PM"].map(t=>`${esc(t)}: ${window.HustleBookingRules?.left(p.id,b.day,t,b.professional)??p.capacity} of ${p.capacity}`).join(" · ")}</small></div>
-   <div class="hj-field"><label for="hj-bookingMedia">Reference photo or video (optional)</label><input type="file" id="hj-bookingMedia" accept="image/*,video/*"><small>${b.mediaName?`Selected: ${esc(b.mediaName)} · local only`:"Show the hairstyle, outfit, repair or example you want. Local demo only."}</small></div>
-   ${p.consultation==="off"?"":`<fieldset class="hj-consult-options"><legend>Consultation</legend>
+   <div class="hj-booking-section"><span>03</span><h3>Show your inspiration</h3></div>
+   <div class="hj-field hj-media-upload"><label for="hj-bookingMedia">Attach a reference (optional)</label><input type="file" id="hj-bookingMedia" accept="image/*,video/*"><small>Haircut photos, outfit sketches or a short video. Nothing is uploaded in this preview.</small><div id="hjReferencePreview" class="hj-media-preview" ${b.mediaName?"":"hidden"}>${b.mediaName?esc(b.mediaName):""}</div></div>
+   ${p.consultation==="off"?"":`<div class="hj-booking-section"><span>04</span><h3>Would you like to consult first?</h3></div><fieldset class="hj-consult-options"><legend>Choose a booking option</legend>
    ${p.consultation!=="required"?`<label><input type="radio" name="consultChoice" value="direct" ${!b.consultChoice?"checked":""}><span><b>Book without consultation</b><small>Send details now for professional approval</small></span></label>`:""}
    ${p.consultation!=="off"?`<label><input type="radio" name="consultChoice" value="consult" ${b.consultChoice?"checked":""}><span><b>${p.consultFee?`Consult first · ${money(p.consultFee)}`:"Free consultation"}</b><small>${p.consultFee&&p.creditConsultation?"Fee is credited if you later book this service":p.consultFee?"Separate paid consultation, not credited":"Discuss requirements before booking"}</small></span></label>`:""}
-   </fieldset>`}<div class="hj-booking-advice">✦ ${p.consultation==="off"?"No consultation needed.":p.consultation==="required"?"Consultation is required for this service.":"Consultation is your choice."} Wedding party, home visit or bespoke work? Ask for a custom quote.</div>
+   </fieldset>`}<div id="hjLiveQuote" class="hj-live-quote" aria-live="polite"></div>
+   <div class="hj-booking-advice">✦ ${p.consultation==="off"?"No consultation needed.":p.consultation==="required"?"Consultation is required for this service.":"Consultation is your choice."} Wedding party, home visit or bespoke work? Get a tailored quote.</div>
   `,"Continue →")}`;
  }
  if(b.stage==="consultation")body=`<h2>Choose how to consult</h2><p class="hj-lead">The professional can offer free or paid consultations. The fee and credit terms are shown before payment.</p>
@@ -165,7 +168,7 @@ function renderBooking(){
  if(b.stage==="review")body=`<h2>How was the service?</h2><div class="hj-rating">${[1,2,3,4,5].map(x=>`<button data-hj="rating" data-value="${x}" aria-label="${x} stars" class="${x<=b.review?"on":""}">★</button>`).join("")}</div>${field("reviewText","Comments (optional)","What went well?","textarea",b.notes)}${button("Finish demo journey","booking-finish")}`;
  if(b.stage==="cancelled")body=`<h2>Booking request cancelled</h2><p class="hj-lead">Any reserved demo appointment capacity was restored. Paid consultations and actual refunds must follow clearly disclosed provider terms.</p>${button("Back to explore","close")}`;
  if(b.stage==="declined")body=`<h2>Professional declined this request</h2><p class="hj-lead">The professional could not accept this job or time. Choose another date or professional. No consultation payment was requested.</p>${button("Try another time","booking-reschedule")}${button("Return to Explore","close","secondary")}`;
- return heading("Book a service","BOOKING ADAPTS TO THE PROFESSIONAL")+`<div class="hj-page">${progress(visible.map(x=>names[x]),idx)}${body}</div>${renderModal()}`;
+ return heading("Book a service","BOOKING ADAPTS TO THE PROFESSIONAL")+`<div class="hj-page hj-booking-page">${progress(visible,idx)}${body}</div>${renderModal()}`;
 }
 function renderPaymentChoices(amount){
  return `<div class="hj-payment-choice">${[["Card","💳","Pay by card"],["Bank transfer","🏦","Pay by bank transfer"],["Wallet","₦","Use available wallet funds (demo only)"]].map(([v,ico,sub])=>`<button data-hj="payment-method" data-value="${v}" class="${data.purchase.method===v?"on":""}"><span>${ico}</span><div><b>${v}</b><small>${sub}</small></div><strong>${data.purchase.method===v?"✓":"○"}</strong></button>`).join("")}</div>
@@ -239,6 +242,7 @@ function render(){
  if(root.hidden)return;
  root.innerHTML=screenContent()+((state.screen==="Report")?renderModal():"");
  root.scrollTop=0;
+ if(state.screen==="BookingJourney"&&data.booking.stage==="request")updateBookingPreview();
  const active=root.querySelector(".hj-page");
  if(active){active.classList.remove("hj-arrive");void active.offsetWidth;active.classList.add("hj-arrive")}
 }
@@ -250,17 +254,17 @@ function clearUnpaidReservation(){
  b.slotReserved=false;b.slotPlan=null;b.reservedUnits=0;
 }
 function open(screen="Welcome",opts={}){
- if(screen==="BookingJourney")clearUnpaidReservation();
+ if(screen==="BookingJourney"){clearUnpaidReservation();clearBookingMedia()}
  if(screen==="Splash")state.guest=true;
  if(screen==="Report"){state.reportSubject=opts.subject||"Content";state.reportId=opts.id||"Sample content";state.reportText="";state.reportReason="Misleading or fraudulent"}
- if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category,opts.professional||data.booking.professional);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:"Tomorrow",time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,mediaName:"",quoteLines:null,slotReserved:false,slotPlan:null,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
+ if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category,opts.professional||data.booking.professional);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:"Tomorrow",time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,mediaName:"",mediaType:"",mediaUrl:"",quoteLines:null,slotReserved:false,slotPlan:null,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
  if(screen==="PaymentJourney"&&opts.item){data.purchase={...data.purchase,item:opts.item,price:Number(opts.price)||data.purchase.price,method:opts.method||data.purchase.method,delivery:opts.delivery||data.purchase.delivery,stage:"details",status:"Not placed"}}
  if(screen==="AgentAdd"){state.agentStep=0;state.agentMode="Existing";state.agentSelected="";state.agentConsent=false;state.agentTerms=false;state.agentLanguage="English";state.agentHandoff="In-person handover"}
  state.stack=[];state.screen=screen;state.modal="";root.hidden=false;phone.classList.add("hj-open");render();if(screen==="Splash")playSplash();
 }
 function go(screen){state.stack.push(state.screen);state.screen=screen;state.modal="";render()}
 function back(){if(state.modal){state.modal="";render();return}if(state.stack.length){state.screen=state.stack.pop();render()}else close()}
-function close(){if(state.screen==="BookingJourney")clearUnpaidReservation();root.hidden=true;root.innerHTML="";phone.classList.remove("hj-open");state.stack=[];state.modal=""}
+function close(){if(state.screen==="BookingJourney"){clearUnpaidReservation();clearBookingMedia()}root.hidden=true;root.innerHTML="";phone.classList.remove("hj-open");state.stack=[];state.modal=""}
 function addNotice(type,title,detail,route){data.notifications.unshift({id:uid("n"),type,title,detail,time:"Now",read:false,route})}
 function onAction(action,value="",id=""){
  switch(action){
