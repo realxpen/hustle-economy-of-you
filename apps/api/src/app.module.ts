@@ -28,6 +28,7 @@ import { AgentBusinessModule } from "./agent-business/agent-business.module";
 import { AgentClientOperationsModule } from "./agent-client-operations/agent-client-operations.module";
 import { AdminOperationsModule } from "./admin-operations/admin-operations.module";
 import { NotificationsModule } from "./notifications/notifications.module";
+import { AdaptiveModule } from "./adaptive/adaptive.module";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
 
 @Module({
@@ -60,7 +61,8 @@ import { RequestContextMiddleware } from "./common/middleware/request-context.mi
     AgentBusinessModule,
     AgentClientOperationsModule,
     AdminOperationsModule,
-    NotificationsModule
+    NotificationsModule,
+    AdaptiveModule
   ]
 })
 export class AppModule implements NestModule {
