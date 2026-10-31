@@ -63,13 +63,16 @@ CREATE TABLE "AdaptiveServiceDraft" (
  "title" TEXT NOT NULL,
  "priceMinor" INTEGER NOT NULL DEFAULT 0,
  "currency" TEXT NOT NULL DEFAULT 'NGN',
+ "canonicalServiceId" TEXT,
  "policy" JSONB NOT NULL DEFAULT '{}'::jsonb,
  "revision" INTEGER NOT NULL DEFAULT 1,
  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
  "updatedAt" TIMESTAMP(3) NOT NULL
 );
+CREATE UNIQUE INDEX "AdaptiveServiceDraft_canonicalServiceId_key" ON "AdaptiveServiceDraft" ("canonicalServiceId");
 CREATE INDEX "AdaptiveServiceDraft_workspaceId_updatedAt_idx" ON "AdaptiveServiceDraft" ("workspaceId","updatedAt");
 ALTER TABLE "AdaptiveServiceDraft" ADD CONSTRAINT "AdaptiveServiceDraft_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "AdaptiveWorkspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "AdaptiveServiceDraft" ADD CONSTRAINT "AdaptiveServiceDraft_canonicalServiceId_fkey" FOREIGN KEY ("canonicalServiceId") REFERENCES "Service"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "AdaptiveServiceDraft" ADD CONSTRAINT "AdaptiveServiceDraft_blueprintId_fkey" FOREIGN KEY ("blueprintId") REFERENCES "AdaptiveBlueprint"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "AdaptiveServiceDraft" ADD CONSTRAINT "AdaptiveServiceDraft_revision_positive" CHECK ("revision" > 0);
 ALTER TABLE "AdaptiveServiceDraft" ADD CONSTRAINT "AdaptiveServiceDraft_price_nonnegative" CHECK ("priceMinor" >= 0);

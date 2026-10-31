@@ -707,6 +707,7 @@ model Service {
   professionalProfile ProfessionalProfile     @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
   postAttachments     PostServiceAttachment[]
   bookings            Booking[]
+  adaptiveDraft       AdaptiveServiceDraft? @relation("AdaptiveCanonicalService")
 
   @@index([professionalProfileId, status])
   @@index([professionalProfileId, resourcePoolKey])
@@ -1637,6 +1638,8 @@ model AdaptiveServiceDraft {
   title          String
   priceMinor     Int                  @default(0)
   currency       String               @default("NGN")
+  canonicalServiceId String?            @unique
+  canonicalService Service?             @relation("AdaptiveCanonicalService", fields: [canonicalServiceId], references: [id], onDelete: SetNull)
   policy         Json                 @default("{}")
   revision       Int                  @default(1)
   createdAt      DateTime             @default(now())

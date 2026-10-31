@@ -25,6 +25,7 @@ async function run(){
  const own=id(owner.authSubject),member=id(agent.authSubject),other=id(outsider.authSubject);
  const p1=await api.provisionPersonal(own),p2=await api.provisionPersonal(own);
  assert.equal(p1.id,p2.id,"personal provisioning must be idempotent");
+ const profile=await db.professionalProfile.create({data:{userId:owner.id}});
  const business=await api.createWorkspace(own,{name:"Sample Tailoring Studio",kind:"BUSINESS",category:"Tailoring"});
  assert.ok(business.id);
  assert.equal((await api.workspaces(member)).length,0,"agent should not have automatic access");
@@ -35,6 +36,23 @@ async function run(){
  assert.equal(list.length,1);
  assert.equal(list[0].blueprint.slug,"item");
  assert.equal(template.policy.itemType,"tailoring");
+ // Handoff uses canonical Service (not duplicate booking/money) and is idempotent.
+ const prepared=await api.prepareCanonicalService(own,business.id,template.id);
+ assert.equal(prepared.created,true);
+ assert.equal(prepared.serviceStatus,"DRAFT");
+ assert.equal(prepared.bookingMode,"WORK_QUEUE");
+ const preparedAgain=await api.prepareCanonicalService(own,business.id,template.id);
+ assert.equal(preparedAgain.created,false);
+ assert.equal(preparedAgain.serviceId,prepared.serviceId);
+ const canonical=await db.service.findUniqueOrThrow({where:{id:prepared.serviceId}});
+ assert.equal(canonical.status,"DRAFT","handoff must never publish");
+ assert.equal(canonical.professionalProfileId,(await db.professionalProfile.findUniqueOrThrow({where:{userId:owner.id}})).id);
+ assert.equal(canonical.turnaroundHours,72);
+ assert.equal((await db.adaptiveServiceDraft.findUniqueOrThrow({where:{id:template.id}})).canonicalServiceId,prepared.serviceId);
+ await expectForbidden(api.prepareCanonicalService(other,business.id,template.id));
+ // Existing account cannot use owner-only service handoff just by accepting an agent invitation.
+ await expectForbidden(api.prepareCanonicalService(member,business.id,template.id));
+
  assert.deepEqual(template.policy.measurementMethods,["shop_visit","guided_remote"]);
  assert.equal(template.revision,1);
  // Appointment capacities cannot exceed staff/stations even in private drafts.
@@ -48,6 +66,15 @@ async function run(){
   policy:{availableProfessionals:3,availableStations:2,concurrentCapacity:2,durationMinutes:30,
    consultationMode:"optional",consultationFeeMinor:100000,creditConsultation:true,homeService:true}});
  assert.equal(salon.policy.concurrentCapacity,2);
+ const salonPrepared=await api.prepareCanonicalService(own,business.id,salon.id);
+ const salonService=await db.service.findUniqueOrThrow({where:{id:salonPrepared.serviceId}});
+ assert.equal(salonService.status,"DRAFT");
+ assert.equal(salonService.bookingMode,"APPOINTMENT");
+ assert.equal(salonService.parallelCapacity,2);
+ assert.equal(salonService.overbookingAllowance,0);
+ assert.deepEqual(salonService.weeklyHours,[],"appointments start with no bookable opening hours");
+ assert.equal(salonService.resourcePoolKey,business.id);
+
  assert.equal(salon.policy.creditConsultation,true);
  const laundry=await api.draftService(own,business.id,{title:"Laundry pickup and delivery",blueprint:"item",priceMinor:450000,
   policy:{itemType:"laundry",handoverMethods:["home_pickup","drop_off"],
@@ -59,6 +86,7 @@ async function run(){
  const tutorial=await api.draftService(own,business.id,{title:"Five seat shoemaking tutorial",blueprint:"group",priceMinor:200000,
   policy:{maxParticipants:5,sessionCount:2,sessionMinutes:90}});
  assert.equal(tutorial.policy.maxParticipants,5);
+ await expectForbidden(api.prepareCanonicalService(own,business.id,tutorial.id),400);
  const digital=await api.draftService(own,business.id,{title:"Digital portrait delivery",blueprint:"digital",priceMinor:250000,
   policy:{revisionRounds:3,estimatedDays:4}});
  assert.equal(digital.policy.revisionRounds,3);
@@ -86,6 +114,7 @@ async function run(){
  await expectForbidden(api.services(member,business.id));
  await expectForbidden(api.respond(other,invite.id,true),409);
  await api.respond(member,invite.id,true);
+ await expectForbidden(api.prepareCanonicalService(member,business.id,salon.id));
  await expectForbidden(api.updateServiceDraft(member,business.id,template.id,{
   expectedRevision:3,title:"Agent without service permission",priceMinor:30000,policy:{itemType:"tailoring"}}));
 
@@ -103,7 +132,7 @@ async function run(){
  await api.revoke(own,business.id,invite.id);
  await expectForbidden(api.draftWork(member,business.id,{title:"No more access"}));
  // Canonical Booking/Order remain unmodified and visible only to authenticated participants.
- const profile=await db.professionalProfile.create({data:{userId:owner.id}});
+
  const service=await db.service.create({data:{professionalProfileId:profile.id,title:"Sample haircut",priceMinor:5000,currency:"NGN",pricingType:"FIXED"}});
  const booking=await db.booking.create({data:{serviceId:service.id,clientUserId:outsider.id,hustlerUserId:owner.id,
    requestedStartAt:new Date(Date.now()+86400000),requirements:"Short fade",serviceTitleSnapshot:"Sample haircut",

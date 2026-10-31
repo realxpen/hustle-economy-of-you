@@ -17,6 +17,10 @@ This implementation adds six Prisma models and an UNAPPLIED SQL proposal under b
 - Private work drafts with optimistic version cancellation and an appended work-event row.
 - Canonical Work Hub read projection over existing Booking and Order records, filtered by logged-in user, with no retroactive business attribution or duplicate booking/settlement records.
 - Real Next.js /economy route and /account entry use existing authenticatedFetch. No fake data fallback.
+- Owner-only prepare-canonical creates exactly one private canonical Service draft for appointment or item workflows. It reuses the existing Hustler profile and BookingScheduleService; a PostgreSQL row lock makes repeat requests idempotent. No publishing, booking, notification, charges or settlement.
+- The existing BookingScheduleService already enforces capacity and atomic acceptance. Appointment drafts start with NO opening hours (closed). Staff declarations require verification and actual scheduling before publication.
+- Editing adaptive draft settings does not update a linked canonical Service. Manage actual availability in Hustler Studio, with its existing publishing gates.
+
 
 ## Routes
 All require Bearer Auth and feature flag. Base /api/v1/adaptive:
@@ -26,6 +30,7 @@ All require Bearer Auth and feature flag. Base /api/v1/adaptive:
 - POST /workspaces/:workspaceId/members/:memberId/revoke
 - GET /workspaces/:workspaceId/services, POST /workspaces/:workspaceId/services
 - PATCH /workspaces/:workspaceId/services/:draftId (expectedRevision); stale edits receive 409
+- POST /workspaces/:workspaceId/services/:draftId/prepare-canonical (owner + active Hustler only)
 - POST /workspaces/:workspaceId/work-drafts
 - PATCH /work-drafts/:workId/cancel with expectedVersion
 - GET /work optionally scoped with workspaceId
@@ -40,6 +45,6 @@ All require Bearer Auth and feature flag. Base /api/v1/adaptive:
 ## Explicitly deferred
 Draft capacity is a declaration, not validated worker availability. Consultation credits are configuration only; no credit is applied to a payment. Booking concurrency, payment, real notifications and staff roster activation are not yet connected.
 
-Actual multi-staff resource booking, adaptive service publishing and economic pricing, order/payment/escrow writes, customer outreach, delivery logistics, AI matching, push notifications and evidence verification are not part of this safe skeleton. Existing Booking/Order APIs remain authoritative.
+Verified individual staff rostering, automatically syncing adaptive draft edits, and adaptive service publishing and economic pricing, order/payment/escrow writes, customer outreach, delivery logistics, AI matching, push notifications and evidence verification are not part of this safe skeleton. Existing Booking/Order APIs remain authoritative.
 
 No production DB, payments, deployment or merge is changed by this branch.

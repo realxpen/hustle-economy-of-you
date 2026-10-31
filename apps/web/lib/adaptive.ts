@@ -20,7 +20,7 @@ export type AdaptiveMembership = {
 };
 export type AdaptiveServiceDraft = {
   id: string; title: string; priceMinor: number; currency: string;
-  revision: number; policy: AdaptivePolicy;
+  revision: number; policy: AdaptivePolicy; canonicalServiceId?: string | null;
   blueprint: { slug: string; version: number; type: string };
 };
 export type AdaptiveWorkItem = {
@@ -51,6 +51,9 @@ export const adaptiveClient = {
   updateService: (id: string, draftId: string, input: {title: string; priceMinor: number; policy: AdaptivePolicy; expectedRevision: number}) =>
     json<AdaptiveServiceDraft>("/workspaces/" + encodeURIComponent(id) + "/services/" + encodeURIComponent(draftId),
       { method: "PATCH", body: JSON.stringify(input) }),
+  prepareCanonicalService: (workspaceId: string, draftId: string) =>
+    post<{ serviceId: string; serviceStatus: string; bookingMode: string; created: boolean; next: string }>(
+      "/workspaces/" + encodeURIComponent(workspaceId) + "/services/" + encodeURIComponent(draftId) + "/prepare-canonical"),
   work: (scope?: string) => json<{ items: AdaptiveWorkItem[]; nextCursor: null }>(
     "/work" + (scope ? "?workspaceId=" + encodeURIComponent(scope) : "")
   ),
