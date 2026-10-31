@@ -85,3 +85,14 @@ An abandoned service booking does not automatically imply a consultation refund.
 - 8/8 mocked booking UI checks passed: native calendar, date-responsive options, worker departure impact and shared teaching duration.
 - A final scheduling fix rejects late-day appointment windows that cannot fit the selected service duration.
 - No production DB, payment provider, real authentication, or deployment was touched. Cloudflare redeployment and physical iPhone Safari visual acceptance remain unverified.
+
+
+## Fully booked day/time UX — 31 October 2026
+
+- Service booking calendar now shows a horizontally scrollable seven-day ribbon with Available/opening count, Full, and Closed states. Exact date input remains available for later dates. The date ribbon accounts for a user's requested head count and the professional's shared/batch/individual service delivery model.
+- Time choices are labelled Full and disabled if **the complete appointment group and duration** cannot fit. A dry-run planner checks all required staff allocations and consecutive hours without reserving any resources.
+- If the entire date is unavailable, the customer sees a clear message and up to four nearby opening suggestions within the next 45 days. Suggestions can directly change the date/time input; a dedicated button returns to Explore to find another professional.
+- The Continue control is disabled whenever no suitable time exists and automatically re-enabled when an available time/date is selected. Submission validates availability again; there is no fallback to a default slot when the selected day is full. Concurrent/conflicting acceptances remain protected by the sample reservation check.
+- A **Join demo waitlist** action records an in-memory example waitlist request, rejects duplicates and displays **no real reservation, monitoring, or future notification**. Production waitlist availability alerts require opt-in, reliable event handling, authenticated subscriptions and cancellation/rescheduling policy.
+- Production requires a persistent staff-aware transactionally safe availability service, atomic holds with TTL, consistent time zones, per-resource overlap handling and actual outgoing messages. The UI preview is simulated, not a guarantee of actual booking capacity.
+- Final verification: 15/15 source and booking-engine checks passed (including full day, full time, group overlap and alternatives); 7/7 UI interaction checks passed (7-day ribbon, disabled Continue, alternative date selection, re-enabled submission and demo waitlist).
