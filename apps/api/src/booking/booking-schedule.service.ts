@@ -16,14 +16,7 @@ const scheduleSelect = {
   bufferMinutes: true, parallelCapacity: true, overbookingAllowance: true,
   weeklyHours: true, blackoutDates: true, maxActiveJobs: true,
   turnaroundHours: true, autoExtensionMinutes: true,
-  professionalProfile: { select: { userId: true } },
-  adaptiveDraft: { select: { workspace: { select: {
-    rosterEnabled: true, stationCapacity: true,
-    staff: { where: { active: true }, select: {
-      active: true, weeklyHours: true,
-      leave: { where: { cancelledAt: null }, select: { startAt: true, endAt: true, cancelledAt: true } }
-    } }
-  } } } }
+  professionalProfile: { select: { userId: true } }
 } satisfies Prisma.ServiceSelect;
 
 type SchedulingService = Prisma.ServiceGetPayload<{ select: typeof scheduleSelect }>;
@@ -188,7 +181,23 @@ export class BookingScheduleService {
     // Roster-managed canonical Services use verified shift coverage for the
     // WHOLE window including prep/buffer. No overbooking beyond actual people/chairs.
     // Legacy/non-opt-in services retain the existing FlowTime behavior.
-    const roster = service.adaptiveDraft?.workspace;
+    // IMPORTANT: existing Booking/Service tables must remain usable even when
+    // the optional adaptive migration has NOT been applied. Never JOIN the
+    // adaptive table in the main Service selection. Feature flag is OFF by
+    // default; no roster-table query is made until isolated activation.
+    const linked = process.env.HUSTLE_ADAPTIVE_CORE_ENABLED === "true"
+      ? await db.adaptiveServiceDraft.findUnique({
+          where: { canonicalServiceId: service.id },
+          select: { workspace: { select: {
+            rosterEnabled: true, stationCapacity: true,
+            staff: { where: { active: true }, select: {
+              active: true, weeklyHours: true,
+              leave: { where: { cancelledAt: null }, select: { startAt: true, endAt: true, cancelledAt: true } }
+            } }
+          } } }
+        })
+      : null;
+    const roster = linked?.workspace;
     const staffed = roster?.rosterEnabled
       ? rosterCapacity(roster.staff, roster.stationCapacity, candidateStart, candidateEnd, service.bookingTimezone)
       : null;
