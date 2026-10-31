@@ -58,7 +58,7 @@ export class AdaptiveRosterService {
   const {space}=await this.access(identity,spaceId,true),d=this.object(raw);
   const displayName=this.name(d.displayName),weeklyHours=this.shifts(d.weeklyHours);
   return this.locked(space.ownerUserId,async tx=>{
-   const staff=await tx.adaptiveStaffMember.create({data:{workspaceId:spaceId,displayName,weeklyHours}});
+   const staff=await tx.adaptiveStaffMember.create({data:{workspaceId:spaceId,displayName,weeklyHours:weeklyHours as unknown as Prisma.InputJsonValue}});
    return {staff,affectedExistingBookings:await this.warnings(tx,spaceId,space.ownerUserId)};
   });
  }
@@ -70,7 +70,7 @@ export class AdaptiveRosterService {
   return this.locked(space.ownerUserId,async tx=>{
    const changed=await tx.adaptiveStaffMember.updateMany({
     where:{id:staffId,workspaceId:spaceId,revision:expectedRevision},
-    data:{displayName,weeklyHours,active:d.active,revision:{increment:1}}});
+    data:{displayName,weeklyHours:weeklyHours as unknown as Prisma.InputJsonValue,active:d.active,revision:{increment:1}}});
    if(changed.count!==1)throw new ConflictException("Staff roster changed. Refresh and retry.");
    const staff=await tx.adaptiveStaffMember.findUniqueOrThrow({where:{id:staffId}});
    return {staff,affectedExistingBookings:await this.warnings(tx,spaceId,space.ownerUserId)};
