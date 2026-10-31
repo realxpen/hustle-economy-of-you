@@ -378,6 +378,7 @@ const posts=[
 {id:'p5',creator:'nora',type:'photo',category:'HOME & INTERIORS',images:[photos.home],caption:'Same room, completely different feeling. What do you think of the result?',service:'Interior consultation',price:'₦25,000',cta:'Hire',likes:1377,comments:35}
 ];
 let rank='For you',view='Home',storyOrigin='Home',storyIndex=null,storyFilter='All',slideFor={},commentsFor={},liked=new Set(),saved=new Map(),followed=new Set(),sheetType='',selection={day:'Tomorrow',time:'11:30 AM'},noticeTimer;
+let activeProfessional=null, activeProfileTab='Work', exploreCategory='All';
 const ec=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon=(name,fill=false)=>`<svg class="ico ${fill?'filled':''}" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 const creator=id=>creators.find(c=>c.id===id)||creators[0];
