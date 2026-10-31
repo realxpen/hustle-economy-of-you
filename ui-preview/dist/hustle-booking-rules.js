@@ -61,7 +61,7 @@ function setMemberOff(id,provider,memberId,day,on=true){
 }
 function effectiveCapacity(id,day,provider="default"){
  const b=business(id,provider),configured=get(id,provider).capacity;
- if(b.mode!=="team")return b.staff.length?Math.min(1,configured):Math.max(1,configured);
+ if(b.mode!=="team")return 1;
  const active=b.staff.filter(x=>x.status==="active"&&!x.timeOff.includes(day)).length;
  return Math.min(configured,active);
 }
