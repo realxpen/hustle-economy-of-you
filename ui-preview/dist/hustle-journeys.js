@@ -206,7 +206,7 @@ function addNotice(type,title,detail,route){data.notifications.unshift({id:uid("
 function onAction(action,value="",id=""){
  switch(action){
  case "close":close();break;case "back":back();break;
- case "guest":state.guest=true;state.signedIn=false;close();break;
+ case "guest":state.guest=true;state.signedIn=false;data.auth.contact="";close();break;
  case "auth-start":data.auth.contact="";data.auth.method="phone";go("Auth");break;
  case "auth-method":data.auth.method=value;render();break;
  case "onboard-back":state.onboardStep=Math.max(0,state.onboardStep-1);render();break;
@@ -275,6 +275,6 @@ function updateReportStatus(id,status){
  return true;
 }
 window.HustleJourneys={open,close,notify:addNotice,updateReportStatus,getState:()=>({screen:state.screen,guest:state.guest,signedIn:state.signedIn,user:state.user,booking:{stage:data.booking.stage,milestones:data.booking.milestones.map(x=>x.state),dispute:data.booking.dispute},payment:{stage:data.purchase.stage,status:data.purchase.status},reports:data.reports.map(x=>({id:x.id,status:x.status})),agentInvites:data.agentInvites.map(x=>({name:x.name,status:x.status})),notifications:data.notifications.map(x=>({id:x.id,read:x.read}))}),_test:{data,state,onAction,onSubmit,render}};
-setTimeout(()=>{if(root.hidden&&state.screen==="Splash")open("Splash");},80);
+open("Splash");
 setTimeout(()=>{if(!root.hidden&&state.screen==="Splash"){state.screen="Welcome";render()}},1150);
 })();
