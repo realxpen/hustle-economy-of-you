@@ -209,7 +209,7 @@ export class BookingScheduleService {
       capacity: totalCapacity, remainingCapacity: remaining,
       overbooking: peak >= normalCapacity,
       turnaroundHours: service.turnaroundHours,
-      reason: remaining ? null : "All available capacity for this time is already committed"
+      reason: remaining >= required ? null : "Not enough staff capacity for the requested party size"
     };
   }
 
