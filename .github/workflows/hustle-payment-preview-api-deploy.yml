@@ -97,6 +97,16 @@ jobs:
           SECRET_ARN="$(aws secretsmanager describe-secret --secret-id hustle-payment-preview-credentials --region "$AWS_REGION" --query ARN --output text)"
           [[ "$SECRET_ARN" =~ ^arn:aws:secretsmanager:eu-west-2:707859598737:secret:hustle-payment-preview-[A-Za-z0-9_-]+$ ]]
           printf 'PREVIEW_SECRET_ARN=%s\n' "$SECRET_ARN" >> "$GITHUB_ENV"
+          # Secret skeleton is intentionally unusable until separate DB and
+          # protected test-only provider credentials are installed. Refuse a
+          # public Lambda deployment while the metadata says not configured.
+          SECRET_STATUS="$(aws secretsmanager describe-secret \
+            --secret-id hustle-payment-preview-credentials --region "$AWS_REGION" \
+            --query "Tags[?Key=='status'].Value | [0]" --output text)"
+          test "$SECRET_STATUS" = 'configured-test-only' || {
+            echo "::error::Dedicated payment preview secret is INACTIVE. Provision and review new database/test credentials first; no Lambda deployment attempted."
+            exit 1
+          }
           # Never print, retrieve, or put secret values into GitHub Actions.
           aws cloudformation validate-template --region "$AWS_REGION" \
             --template-body file://infra/aws/lambda/payment-preview-template.yaml > /dev/null
@@ -108,7 +118,6 @@ jobs:
           REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           URI="${REGISTRY}/${ECR}"
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
-          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
           if ! aws ecr describe-images --region "$AWS_REGION" --repository-name "$ECR" --image-ids "imageTag=$GITHUB_SHA" >/dev/null 2>&1; then
             docker build --platform linux/amd64 -f infra/aws/lambda/Dockerfile -t "${URI}:${GITHUB_SHA}" .
             docker push "${URI}:${GITHUB_SHA}"
