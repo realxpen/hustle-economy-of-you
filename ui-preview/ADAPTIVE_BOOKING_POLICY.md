@@ -48,3 +48,14 @@ An abandoned service booking does not automatically imply a consultation refund.
 7. Studio can change only the selected sample professional's policy and can preview the resulting customer journey.
 8. Close/replace an unpaid request releases held demo capacity. Paid service records are not silently cancelled.
 9. No demo control charges a card, creates real escrow, or impersonates a provider's confirmation.
+
+
+## UI/UX implementation — marketplace and booking screens (31 October 2026)
+- Existing service-detail pages now include a compact "How booking works" component presenting the individual professional's consultation policy, duration and parallel staff capacity; booking CTA dynamically reads "Request booking" or "Request consultation". The deprecated generic message saying consultation is mandatory has been removed from service details and booking chat.
+- Marketplace listing/sticky footer price now reads a professional's explicitly overridden demo service price, and the connected booking journey uses that same amount. Default listing prices are preserved until a professional edits the relevant example policy.
+- Booking overlay uses four concise progress segments: Your request → Review & approval → Secure payment → Complete. The request UI organizes category-specific fields, day/time, reference photo/video, consultation options and an itemized estimated quote into visually distinct sections. There are no redundant consultation controls when consultation is off.
+- Dynamic example quote responds to changes in group size, service mode, home/event fee, and consultation choice without submitting or wiping the form. An optional paid consultation shows potential fee credit as conditional on completing the service, rather than falsely treating an unpaid fee as credited already.
+- Reference media selection renders a local thumbnail or playable local video; a blob URL is revoked on exit or service switch and nothing uploads.
+- Hustler Studio → Booking setup exposes editable consultation policy, fee/credit, price, duration, staff capacity, travel and event add-ons for demo professionals, and a customer journey preview shortcut.
+- Tested: 11/11 syntax/assets and source integration checks; 8/8 interactive form/estimate/media checks; 14/14 end-to-end simulated booking and scheduling checks. Actual iOS Safari visual QA and live Cloudflare deployment were not verified.
+- Assets changed exclusively inside `ui-preview/dist/` plus this preview document. No real authentication, payment provider, production API/database or production deployment was modified.
