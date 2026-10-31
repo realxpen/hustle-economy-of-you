@@ -50,7 +50,7 @@ const threads=[
 const samplePosts=[{"id":"post-tobi-1","seller":"tobi","kind":"video","image":"barber","caption":"A quiet morning at the chair. Getting the details right, one cut at a time.","related":"s-barber","tag":"Barbering"},{"id":"post-tobi-2","seller":"tobi","kind":"photo","image":"hair","caption":"The tools and people behind the finished look.","related":null,"tag":"Daily life"},{"id":"post-zara-1","seller":"zara","kind":"carousel","image":"fashion","caption":"From sketch to fitting. Here's a little behind the scenes of the making.","related":"s-fashion","tag":"Fashion"},{"id":"post-zara-2","seller":"zara","kind":"photo","image":"fabric","caption":"Mood board from this week's fabric hunt. What would you make with this?","related":null,"tag":"Creative process"},{"id":"post-maya-1","seller":"maya","kind":"photo","image":"photo","caption":"It's not just the camera. It's making people comfortable in front of it.","related":"s-photo","tag":"Photography"},{"id":"post-amara-1","seller":"amara","kind":"photo","image":"food","caption":"Cooking with family today. Good memories start in the kitchen.","related":null,"tag":"Life"},{"id":"post-amara-2","seller":"amara","kind":"photo","image":"meal","caption":"Weekend meal boxes are ready. Ask me anything about the menu.","related":"p-meal","tag":"Food"},{"id":"post-nora-1","seller":"nora","kind":"photo","image":"house","caption":"Small changes, completely different room. Before-and-after inspiration.","related":"s-interior","tag":"Home"},{"id":"post-femi-1","seller":"femi","kind":"photo","image":"style","caption":"Two ways to style pieces you already own.","related":"s-stylist","tag":"Fashion"},{"id":"post-flora-1","seller":"flora","kind":"video","image":"flowers","caption":"The way flowers open always makes me pause for a second.","related":"s-floral","tag":"Creative"},{"id":"post-you-1","seller":"self","kind":"photo","image":"photo","caption":"Learning, creating, and documenting the process. This is a sample post on my Hustle profile.","related":null,"tag":"Everyday"},{"id":"post-you-2","seller":"self","kind":"photo","image":"fashion","caption":"A sample of work I can share with the community.","related":null,"tag":"My work"}].map(p=>({...p,image:pics[p.image]}));
 const signedIn={name:"Your name",handle:"@yourhustle",bio:"A little about you, your interests, and the skills you want to share.",primary:"Your primary skill",secondary:"Your other skills",location:"Lagos, Nigeria",avatar:pics.style,cover:pics.photo,following:83,followers:128};
 const ownSavedPosts=new Set();
-const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Posts",post:"post-tobi-1",postLikes:new Set(),postComments:{},ownTab:"Posts",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},draftType:"Post",draftText:"",draftImageSrc:null,draftForms:{},draftFiles:[],draftPostKind:"Photo",draftServiceType:"In person",draftAttach:"",marketSort:"Featured",marketSearch:"",marketSlide:0,liveHubTab:"For You",liveCategory:"All",liveSetup:{title:"",category:"Cooking",audience:"Public",offer:"p-meal"},liveComments:[],liveHearts:0,liveStarted:false,request:"",postSlide:0};
+const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Posts",post:"post-tobi-1",postLikes:new Set(),postComments:{},ownTab:"Posts",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},draftType:"Post",draftText:"",draftImageSrc:null,draftForms:{},draftFiles:[],draftPostKind:"Photo",draftServiceType:"In person",draftAttach:"",marketSort:"Featured",marketSearch:"",marketSlide:0,liveHubTab:"For You",liveCategory:"All",liveSlideId:null,livePreviewLikes:new Set(),liveSetup:{title:"",category:"Cooking",audience:"Public",offer:"p-meal"},liveComments:[],liveHearts:0,liveStarted:false,request:"",postSlide:0};
 const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money=n=>"₦"+Number(n||0).toLocaleString("en-NG");
 const person=id=>id==="self"?{id:"self",name:signedIn.name,handle:signedIn.handle,avatar:signedIn.avatar,cover:signedIn.cover,primary:signedIn.primary,secondary:signedIn.secondary,location:signedIn.location,tag:"All",rating:"—",followers:String(signedIn.followers),bio:signedIn.bio,work:[],reviews:0}:people.find(p=>p.id===id)||people[0];
@@ -90,7 +90,7 @@ function render(){
  if(state.screen==="Home"){home();return}
  phone.querySelectorAll("video.hp-feed-video").forEach(v=>v.pause());
  layer.hidden=false;
- const main=new Set(["Explore","Marketplace","Inbox","OwnProfile","Create","LiveHub"]);
+ const main=new Set(["Explore","Marketplace","Inbox","OwnProfile","Create"]);
  const detail=!main.has(state.screen);
  layer.className="hf-layer"+(detail?" hf-detail":"")+(state.screen==="Chat"?" hf-chat-screen":"");
  phone.classList.add("hf-flow-active");
@@ -125,6 +125,7 @@ function render(){
  if(state.screen==="LiveWatch"||state.screen==="LiveStudio")layer.querySelector("#hfLiveMessages")?.scrollTo?.(0,100000);
  if(state.screen==="Chat"){const chat=layer.querySelector(".hf-chat-scroll");if(chat)chat.scrollTop=chat.scrollHeight}
  if(state.screen==="GoLive"||state.screen==="LiveStudio")bindCameraPreview();
+ if(state.screen==="LiveHub")initLiveFeed();
 }
 function personCard(p){
  return `<button class="hf-person" data-hf="profile" data-id="${p.id}"><img src="${p.avatar}" alt="" loading="lazy"><span class="hf-person-data"><b>${esc(p.name)} <span class="hf-verified">✓</span></b><small>${esc(p.primary)} · ${esc(p.location)}</small><small>★ ${esc(p.rating)} example rating · ${esc(p.secondary)}</small></span><span class="hf-chevron">›</span></button>`;
@@ -178,7 +179,7 @@ function mapPreSearchCard(){
 }
 function mapSearchPreview(){
  const list=mapPeople();
- if(!state.query.trim()||!["Top","People","Services","Products","Training"].includes(state.exploreTab))return "";
+ if(!state.query.trim()||!["Top","People","Posts","Services","Products","Training"].includes(state.exploreTab))return "";
  const count=list.length;
  return `<section class="hf-map-results-feature" aria-label="Map search matches">
  <div class="hf-map-results-copy"><span>⌖ MAP MATCHES</span><b>${count===1?"1 local skill to explore":count+" local skills to explore"}</b>
@@ -288,22 +289,71 @@ async function toggleCamera(){
 }
 function stopCamera(){if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}}
 function bindCameraPreview(){const v=layer.querySelector("#hfLiveCamera");if(v&&cameraStream){v.srcObject=cameraStream;v.play().catch(()=>{})}}
+function liveHubMatches(){
+ return liveSessions.filter(l=>(state.liveCategory==="All"||l.category===state.liveCategory)&&(state.liveHubTab!=="Following"||state.follow.has(l.person)||l.person==="amara"));
+}
 function renderLiveHub(){
- const types=["For You","Following","Nearby"],cats=["All","Food","Beauty","Fashion","Home"];
- const filtered=liveSessions.filter(x=>(state.liveCategory==="All"||x.category===state.liveCategory)&&(state.liveHubTab!=="Following"||state.follow.has(x.person)||x.person==="amara"));
- const featured=liveSessions[0];
- return `${head("Live","Watch the work as it happens",false,`<button class="hf-create-go-live-btn" data-hf="go-live">● Go Live</button>`)}
- <div class="hf-live-page"><div class="hf-live-banner"><img src="${pics.food}" alt="Chef making a meal">
- <div><span>LIVE DISCOVERY · SIMULATION</span><h2>Real skills. In the moment.</h2><p>Watch a demo room, explore creator offers, or set up your own Live preview.</p><button data-hf="live-watch" data-id="live-chef">Watch Chef Amara →</button></div></div>
- <div class="hf-live-tabs">${types.map(x=>`<button data-hf="live-hub-tab" data-value="${x}" class="${state.liveHubTab===x?"on":""}">${x}</button>`).join("")}</div>
- <div class="hf-live-categories">${cats.map(x=>`<button data-hf="live-category" data-value="${x}" class="${state.liveCategory===x?"on":""}">${x}</button>`).join("")}</div>
- <div class="hf-section-row"><h2>Explore Live rooms</h2><small>Simulations, not broadcasts</small></div>
- <div class="hf-live-cards">${filtered.map(l=>`<button class="hf-live-card" data-hf="live-watch" data-id="${l.id}">
- <img src="${pics[l.picture]}" alt="${esc(l.title)}"><span class="hf-live-card-flag">● DEMO ROOM</span>
- <div><b>${esc(l.title)}</b><small>${esc(person(l.person).name)} · ${l.category}</small><small>Example audience: ${l.viewerCount}</small></div>
- </button>`).join("")||'<div class="hf-empty">No rooms match this selection in the demo. Try For You or All.</div>'}</div>
- <button class="hf-story-banner" data-hf="go-live"><span>●</span><div><b>Go Live yourself</b><small>Try host controls, audience options and pinned offers</small></div><strong>→</strong></button>
- <p class="hf-demo-footnote">All Live rooms, viewers and chat messages shown here are simulated. No user is broadcasting.</p></div>`;
+ const tabs=["For You","Following","Nearby"],cats=["All","Food","Beauty","Fashion","Home"];
+ const filtered=liveHubMatches();
+ return `<section class="hf-live-feed" aria-label="Swipe through sample Live rooms">
+ <header class="hf-live-feed-top">
+  <div class="hf-live-feed-header"><button class="hf-live-feed-close" data-hf="back" aria-label="Back to Home or Explore">×</button>
+   <span class="hf-live-feed-title">hustle<span>.</span> <b>LIVE</b></span>
+   <button class="hf-live-feed-create" data-hf="go-live">＋ Go Live</button></div>
+  <nav class="hf-live-feed-tabs" aria-label="Live discovery feeds">${tabs.map(x=>`<button data-hf="live-hub-tab" data-value="${x}" class="${state.liveHubTab===x?"on":""}" aria-pressed="${state.liveHubTab===x}">${x}</button>`).join("")}</nav>
+  <div class="hf-live-feed-filter" aria-label="Filter by skill">${cats.map(x=>`<button data-hf="live-category" data-value="${x}" class="${state.liveCategory===x?"on":""}" aria-pressed="${state.liveCategory===x}">${x}</button>`).join("")}</div>
+ </header>
+ <main class="hf-live-feed-viewport" id="hfLiveFeedViewport" aria-label="Swipe vertically through Live previews" tabindex="0">
+ ${filtered.map((l,i)=>{
+ const c=person(l.person),offer=item(l.offer),liked=state.livePreviewLikes.has(l.id);
+ return `<article class="hf-live-feed-slide" data-live-slide="${l.id}" aria-label="${esc(c.name)} simulated Live preview ${i+1} of ${filtered.length}">
+ <img class="hf-live-feed-backdrop" src="${pics[l.picture]}" alt="${esc(l.title)}"><div class="hf-live-feed-shade"></div>
+ <span class="hf-live-feed-demo">● LIVE PREVIEW · NO BROADCAST</span>
+ <div class="hf-live-feed-rail">
+  <button data-hf="live-preview-like" data-id="${l.id}" aria-pressed="${liked}" aria-label="React to Live preview">${liked?"♥":"♡"}<small>${liked?"Liked":"Like"}</small></button>
+  <button data-hf="live-preview-follow" data-id="${l.person}" aria-label="Follow ${esc(c.name)}">${state.follow.has(l.person)?"✓":"＋"}<small>${state.follow.has(l.person)?"Following":"Follow"}</small></button>
+  <button data-hf="live-watch" data-id="${l.id}" aria-label="Enter ${esc(c.name)} demo Live room">▢<small>Chat</small></button>
+ </div>
+ <div class="hf-live-feed-content">
+ <div class="hf-live-feed-creator"><img src="${c.avatar}" alt=""><div><b>${esc(c.name)} <span>✓</span></b><small>${esc(c.primary)} · ${esc(c.location)}</small></div></div>
+ <h2>${esc(l.title)}</h2><p>See the skill behind the work, then join the conversation.</p>
+ <button class="hf-live-feed-offer" data-hf="listing" data-id="${offer.id}"><span>✦ ${esc(offer.title)}</span><strong>${money(offer.price)} ↗</strong></button>
+ <button class="hf-live-feed-watch" data-hf="live-watch" data-id="${l.id}">Enter demo Live room →</button>
+ </div></article>`}).join("") || '<div class="hf-live-feed-empty"><h2>No sample rooms here yet.</h2><p>Try another category or switch to For You.</p><button data-hf="live-hub-tab" data-value="For You">See For You →</button></div>'}
+ </main><div class="hf-live-feed-hint">Swipe for next creator · Demonstration only</div></section>`;
+}
+function updateLiveReaction(id){
+ const node=layer.querySelector('[data-hf="live-preview-like"][data-id="'+id+'"]');
+ if(!node)return;
+ const liked=state.livePreviewLikes.has(id);
+ node.innerHTML=(liked?"♥":"♡")+"<small>"+(liked?"Liked":"Like")+"</small>";
+ node.setAttribute("aria-pressed",String(liked));
+}
+function updateLiveFollow(id){
+ layer.querySelectorAll('[data-hf="live-preview-follow"][data-id="'+id+'"]').forEach(node=>{
+  const on=state.follow.has(id);node.innerHTML=(on?"✓":"＋")+"<small>"+(on?"Following":"Follow")+"</small>";
+ });
+}
+function initLiveFeed(){
+ const viewport=layer.querySelector("#hfLiveFeedViewport");if(!viewport)return;
+ const slides=Array.from(viewport.querySelectorAll("[data-live-slide]"));
+ const index=slides.findIndex(el=>el.dataset.liveSlide===state.liveSlideId);
+ if(index>0)viewport.scrollTop=index*viewport.clientHeight;
+ let ticking=false;
+ viewport.addEventListener("scroll",()=>{
+  if(ticking)return;ticking=true;
+  requestAnimationFrame(()=>{
+   ticking=false;
+   const height=viewport.clientHeight||1,idx=Math.max(0,Math.min(slides.length-1,Math.round(viewport.scrollTop/height)));
+   if(slides[idx])state.liveSlideId=slides[idx].dataset.liveSlide;
+  });
+ },{passive:true});
+ viewport.addEventListener("keydown",e=>{
+  if(e.target!==viewport||!["ArrowDown","ArrowUp"].includes(e.key))return;
+  e.preventDefault();
+  const current=Math.round(viewport.scrollTop/(viewport.clientHeight||1));
+  viewport.scrollTo({top:Math.max(0,Math.min(slides.length-1,current+(e.key==="ArrowDown"?1:-1)))*viewport.clientHeight,behavior:window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches?"auto":"smooth"});
+ });
 }
 function renderLiveWatch(){
  const l=liveSessions.find(x=>x.id===state.liveWatchId)||liveSessions[0];
@@ -827,9 +877,11 @@ layer.addEventListener("click",e=>{
  case "live":push("LiveHub");break;
  case "live-hub":push("LiveHub");break;
  case "go-live":state.liveComments=[];state.liveHearts=0;push("GoLive");break;
- case "live-hub-tab":state.liveHubTab=value;render();break;
- case "live-category":state.liveCategory=value;render();break;
- case "live-watch":state.liveWatchId=id;state.liveComments=[];state.liveHearts=0;push("LiveWatch");break;
+ case "live-hub-tab":state.liveHubTab=value;state.liveSlideId=null;render();break;
+ case "live-category":state.liveCategory=value;state.liveSlideId=null;render();break;
+ case "live-watch":state.liveWatchId=id;state.liveSlideId=id;state.liveComments=[];state.liveHearts=0;push("LiveWatch");break;
+ case "live-preview-like":state.livePreviewLikes.has(id)?state.livePreviewLikes.delete(id):state.livePreviewLikes.add(id);updateLiveReaction(id);break;
+ case "live-preview-follow":state.follow.has(id)?state.follow.delete(id):state.follow.add(id);updateLiveFollow(id);break;
  case "live-heart":state.liveHearts++;render();break;
  case "live-follow":state.follow.has(id)?state.follow.delete(id):state.follow.add(id);render();break;
  case "live-end":stopCamera();state.liveStarted=false;back();notify("Live simulation ended · No stream created");break;
