@@ -97,7 +97,9 @@ function renderSettings(){
  <button class="hf-person" data-hf="appearance"><span class="hf-person-icon">☾</span><span class="hf-person-data"><b>Appearance</b><small>Toggle light or dark theme</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="notifications"><span class="hf-person-icon">♧</span><span class="hf-person-data"><b>Notifications</b><small>No notifications connected in the preview</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="payments"><span class="hf-person-icon">₦</span><span class="hf-person-data"><b>Payments & earnings</b><small>Protected payments, earnings and payout overview</small></span><span class="hf-chevron">›</span></button>
- <p class="hf-demo-footnote">These preferences and account screens are demonstration-only.</p></div>`;
+ <div class="hf-section-row"><h2>Internal tools</h2><small>Restricted demo</small></div>
+ <button class="hf-person" data-hf="admin-preview"><span class="hf-person-icon">🔐</span><span class="hf-person-data"><b>Admin Console</b><small>Internal, invitation-only · Sandbox preview</small></span><span class="hf-chevron">›</span></button>
+ <p class="hf-demo-footnote">These settings are demo-only. The internal Admin Console is a non-authenticated design sandbox, not a real admin account.</p></div>`;
 }
 function head(title,subtitle="",back=true,action=""){
  return `<header class="hf-page-head"><div class="hf-headrow">${back?'<button class="hf-icbtn" data-hf="back" aria-label="Go back">←</button>':''}<div><h1>${esc(title)}<em>.</em></h1>${subtitle?`<small>${esc(subtitle)}</small>`:''}</div>${action}</div></header>`;
@@ -668,8 +670,9 @@ function renderOwn(){
  <button data-hf="market"><span>🛍️</span><b>Marketplace</b><small>Explore offers</small></button>
  <button data-hf="cart"><span>🛒</span><b>Cart${cartItemCount()?` (${cartItemCount()})`:""}</b><small>Review items</small></button>
  <button data-hf="orders"><span>▤</span><b>My orders</b><small>Purchases & bookings</small></button>
- <button data-hf="payments"><span>₦</span><b>Payments & earnings</b><small>Escrow · Payouts</small></button>
+ <button data-hf="payments"><span>₦</span><b>Wallet & escrow</b><small>Fund · Milestones · Payouts</small></button>
  </div></div>
+ <div class="hf-profile-commerce hf-profile-studios"><div class="hf-section-row"><h2>Workspaces</h2><small>Creator & agent tools</small></div><div class="hf-profile-commerce-grid"><button data-hf="hustler-studio"><span>✳</span><b>Hustler Studio</b><small>Bookings · Insights</small></button><button data-hf="agent-studio"><span>♙</span><b>Agent Studio</b><small>Apply · Manage talent</small></button></div></div>
  <div class="hf-notice hf-own-notice">Preview account only. No real identity, followers, posts, or account data is connected.</div>
  <div class="hf-tabs" role="tablist" aria-label="Your profile sections">${tabs.map(x=>`<button data-hf="own-tab" data-value="${x}" class="${state.ownTab===x?"on":""}" role="tab" aria-selected="${state.ownTab===x}">${x}</button>`).join("")}</div>
  <div class="hf-own-tab-content">${content}</div></div>`;
@@ -859,7 +862,7 @@ function renderCreate(){
  }
  return `${head("Create","Share work, sell, teach or find talent",false,`<button class="hf-create-go-live-btn" data-hf="go-live">● Go Live</button>`)}
  <div class="hf-create-page">
- <div class="hf-create-intro"><span>CREATE ON HUSTLE</span><h2>What are you making today?</h2><p>Every account can show their work, offer a service, sell something, request help or teach.</p></div>
+ <div class="hf-create-intro"><button class="hf-tinybtn hf-studio-launch" data-hf="hustler-studio" style="float:right">✳ Hustler Studio →</button><span>CREATE ON HUSTLE</span><h2>What are you making today?</h2><p>Every account can show their work, offer a service, sell something, request help or teach.</p></div>
  <div class="hf-create-tabs" role="tablist" aria-label="Creation types">${choices.map(x=>`<button class="${x===state.draftType?"on":""}" data-hf="draft-type" data-value="${x}" role="tab" aria-selected="${x===state.draftType}"><span>${x==="Post"?"▣":x==="Service"?"✂":x==="Product"?"♧":x==="Request"?"⌕":"✳"}</span>${x}</button>`).join("")}</div>
  <form id="hfCreateForm" class="hf-create-form">
  <div class="hf-create-form-heading"><div><span>NEW ${state.draftType.toUpperCase()}</span><h3>${state.draftType==="Post"?"Tell the story":state.draftType==="Service"?"Offer your skill":state.draftType==="Product"?"List a product":state.draftType==="Request"?"Find someone who can help":"Share what you know"}</h3></div><span class="hf-create-step">Demo only</span></div>
@@ -977,7 +980,10 @@ layer.addEventListener("click",e=>{
  case "own":go("OwnProfile");break;
  case "own-edit":push("EditProfile");break;
  case "own-settings":push("Settings");break;
- case "payments":push("Payments");break;
+ case "payments":if(window.HustleOperations)window.HustleOperations.open("Wallet");else push("Payments");break;
+ case "hustler-studio":window.HustleOperations?.open("Hustler");break;
+ case "agent-studio":window.HustleOperations?.open("Agent");break;
+ case "admin-preview":window.HustleOperations?.open("Admin");break;
  case "orders":push("Orders");break;
  case "finance-tab":state.financeTab=value;render();break;
  case "appearance":phone.classList.toggle("dark");notify("Appearance updated for this preview");break;
