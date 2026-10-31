@@ -122,13 +122,23 @@ function releasePlan(plan){
  for(const a of plan.allocations)release(plan.id,plan.day,a.time,a.units,plan.provider);
  return true;
 }
-function quote({id="generic",provider="default",basePrice,people=1,venue="",consultPaid=0}={}){
- const p=get(id,provider),n=Math.max(1,Math.min(50,Number(people)||1)),cap=Math.max(1,effectiveCapacity(id,"",provider));const unit=Number.isFinite(Number(basePrice))?Math.max(0,Math.round(Number(basePrice))):p.basePrice;
+
+function slotsFor(id,day,provider="default"){
+ const b=business(id,provider),start=Math.ceil(hoursToMinutes(b.start)/60),end=Math.floor(hoursToMinutes(b.end)/60),out=[];
+ for(let hr=start;hr<end;hr++){
+  const fmt=n=>(n%12||12)+":00 "+(n<12?"AM":"PM");
+  const time=fmt(hr)+" – "+fmt(hr+1);
+  if(isOpen(id,day,time,provider))out.push({time,left:left(id,day,time,provider),capacity:effectiveCapacity(id,day,provider)});
+ }
+ return out;
+}
+function quote({id="generic",provider="default",day="",basePrice,people=1,venue="",consultPaid=0}={}){
+ const p=get(id,provider),n=Math.max(1,Math.min(50,Number(people)||1)),cap=Math.max(1,effectiveCapacity(id,day,provider));const unit=Number.isFinite(Number(basePrice))?Math.max(0,Math.round(Number(basePrice))):p.basePrice;
  const service=unit*n,travel=/home|at my location|pickup|delivery|at event|outdoor|site assessment/i.test(venue)?(p.travelFee||0):0;
  const event=/event|group|cater|wedding/i.test(venue)?(p.eventFee||0):0;
  const full=service+travel+event,credit=p.creditConsultation?Math.min(full,Math.max(0,Math.round(Number(consultPaid)||0))):0;
  return {unit,people:n,service,travel,event,total:full,credit,due:Math.max(0,full-credit),duration:Math.ceil(n/cap)*p.duration};
 }
 const finalDue=(amount,paid,enabled)=>Math.max(0,Math.round(amount)-(enabled?Math.min(Math.round(amount),Math.max(0,Math.round(paid))):0));
-window.HustleBookingRules={templates,samples,get,getForService,hasOverride,detect,update,held,left,reserve,release,reservePlan,releasePlan,quote,finalDue,getTeam,setBusiness,addMember,setMemberStatus,setMemberOff,effectiveCapacity,isOpen,_testing:{overrides,reservations,businesses}};
+window.HustleBookingRules={templates,samples,get,getForService,hasOverride,detect,update,held,left,reserve,release,reservePlan,releasePlan,quote,finalDue,getTeam,setBusiness,addMember,setMemberStatus,setMemberOff,effectiveCapacity,isOpen,slotsFor,_testing:{overrides,reservations,businesses}};
 })();
