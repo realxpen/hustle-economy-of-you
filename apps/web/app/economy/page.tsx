@@ -7,6 +7,7 @@ import { ExperienceState } from "../../components/experience/experience-state";
 import { adaptiveClient, type AdaptiveBlueprint, type AdaptiveInvitation, type AdaptiveMembership, type AdaptiveServiceDraft, type AdaptiveWorkItem } from "../../lib/adaptive";
 import styles from "./page.module.css";
 import { AdaptivePolicyForm } from "../../components/economy/adaptive-policy-form";
+import { StaffRoster } from "../../components/economy/staff-roster";
 import type { AdaptivePolicy } from "../../lib/adaptive";
 
 type Tab = "Overview" | "Services" | "Work" | "Team";
@@ -248,6 +249,9 @@ export default function EconomyPage() {
           </section>
         </>}
         {tab === "Team" && <>
+          {selected && active?.workspace.kind !== "PERSONAL" && <StaffRoster workspaceId={selected}
+            canManage={!!(owner || active?.permissions.includes("schedule.manage"))} />}
+
           <section className={styles.card}><h2>Current members</h2>
             {members.map(m => <article key={m.id} className={styles.item}>
               <strong>{m.user.displayName || m.user.username || "Hustle member"}</strong>
