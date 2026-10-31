@@ -66,15 +66,18 @@ function push(screen,params={}){
  render();
 }
 function go(screen,params={}){
+ if(state.screen==="GoLive"||state.screen==="LiveStudio")stopCamera();
  state.stack=[];state.screen=screen;Object.assign(state,params);render();
 }
 function home(){
+ if(cameraStream)stopCamera();
  state.screen="Home";state.stack=[];layer.hidden=true;layer.innerHTML="";phone.classList.remove("hf-flow-active","hf-flow-detail-active");phone.classList.remove("chrome-hidden");
  const legacy=phone.querySelector(".full-page");if(legacy)legacy.remove();
  updateNav("Home");
  const v=phone.querySelector("video.hp-feed-video");if(v&&v.getBoundingClientRect().top>=0&&v.getBoundingClientRect().top<phone.clientHeight*.6)v.play().catch(()=>{});
 }
 function back(){
+ if(state.screen==="GoLive"||state.screen==="LiveStudio")stopCamera();
  const prev=state.stack.pop();
  if(prev){state.screen=prev.screen;Object.assign(state,{profile:prev.profile,profileTab:prev.profileTab,item:prev.item,thread:prev.thread});render();return}
  home();
@@ -118,6 +121,7 @@ function render(){
  layer.innerHTML=html;
  layer.scrollTop=0;
  if(state.screen==="Explore"&&state.exploreTab==="Map")initializeMapAfterRender();
+ if(state.screen==="LiveWatch"||state.screen==="LiveStudio")layer.querySelector("#hfLiveMessages")?.scrollTo?.(0,100000);
  if(state.screen==="Chat"){const chat=layer.querySelector(".hf-chat-scroll");if(chat)chat.scrollTop=chat.scrollHeight}
  if(state.screen==="GoLive"||state.screen==="LiveStudio")bindCameraPreview();
 }
@@ -132,7 +136,7 @@ function categoryChips(){
 }
 function renderExplore(){
  const tabs=["Top","People","Posts","Services","Products","Training","Requests","Map","Stories","Live"];
- return `${head("Explore","People, skills, work and opportunities",false,`<button class="hf-icbtn" data-hf="cart" aria-label="Open cart">♧${state.cart.length?`<span class="hf-cart-count">${state.cart.length}</span>`:""}</button>`)}
+ return `${head("Explore","People, skills, work and opportunities",false,`<button class="hf-live-mini" data-hf="live-hub" aria-label="Explore Live feeds">● LIVE</button><button class="hf-icbtn" data-hf="cart" aria-label="Open cart">♧${state.cart.length?`<span class="hf-cart-count">${state.cart.length}</span>`:""}</button>`)}
  <div class="hf-page"><div class="hf-searchbox"><span>⌕</span><input id="hfExploreQuery" type="search" value="${esc(state.query)}" placeholder="Barber in Lekki, fashion in Yaba..." aria-label="Search Hustle"/><button data-hf="search-clear" aria-label="Clear search">×</button></div>
  <div class="hf-tabs" role="tablist" aria-label="Search sections">${tabs.map(x=>`<button data-hf="explore-tab" data-value="${x}" class="${state.exploreTab===x?"on":""}" role="tab" aria-selected="${state.exploreTab===x}">${x}</button>`).join("")}</div>
  ${categoryChips()}
@@ -217,6 +221,15 @@ function renderRequest(){
 }
 const liveSessions=[{"id":"live-chef","person":"amara","title":"In the kitchen with Chef Amara","category":"Food","picture":"food","viewerCount":486,"offer":"p-meal"},{"id":"live-barber","person":"tobi","title":"Inside the barber studio","category":"Beauty","picture":"barber","viewerCount":129,"offer":"s-barber"},{"id":"live-style","person":"zara","title":"Making a custom outfit","category":"Fashion","picture":"fashion","viewerCount":82,"offer":"s-fashion"},{"id":"live-decor","person":"nora","title":"Designing a cozy living room","category":"Home","picture":"house","viewerCount":55,"offer":"s-interior"}];
 let cameraStream=null;
+async function toggleCamera(){
+ if(cameraStream){stopCamera();render();return}
+ if(!navigator.mediaDevices?.getUserMedia){notify("Camera preview is unavailable in this browser");return}
+ try {
+  const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+  if(state.screen!=="GoLive"&&state.screen!=="LiveStudio"){stream.getTracks().forEach(x=>x.stop());return}
+  cameraStream=stream;render();
+ }catch(e){notify("Camera not available or permission denied. The demo works without it.")}
+}
 function stopCamera(){if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}}
 function bindCameraPreview(){const v=layer.querySelector("#hfLiveCamera");if(v&&cameraStream){v.srcObject=cameraStream;v.play().catch(()=>{})}}
 function renderLiveHub(){
@@ -446,14 +459,14 @@ function renderProfile(){
  ${inner}</div>`;
 }
 function renderOwn(){
- const tabs=["Posts","Work","Services","Products","Reposts","Saved","Reviews"];
+ const tabs=["Posts","Work","Services","Products","Training","Reposts","Saved","Reviews"];
  let content="";
  if(state.ownTab==="Posts")content=renderPostsGrid(samplePosts.filter(p=>p.seller==="self"),"Your own posts will appear here.");
  else if(state.ownTab==="Work")content=renderPostsGrid(samplePosts.filter(p=>p.seller==="self"&&p.tag==="My work"),"Showcase your skills here.");
  else if(state.ownTab==="Saved")content=renderPostsGrid(samplePosts.filter(p=>ownSavedPosts.has(p.id)),"Only you can see saved posts.");
  else if(state.ownTab==="Reposts")content='<div class="hf-empty">Posts you repost can appear here. Privacy controls come with your real account.</div>';
  else if(state.ownTab==="Reviews")content='<div class="hf-empty">Reviews from real customers will appear once your account is connected.</div>';
- else content='<div class="hf-empty">No demo listings under your profile yet. Create a listing draft to see this flow.</div><button class="hf-lime-button hf-listing-draft" data-hf="create">+ Create listing draft</button>';
+ else {const type=state.ownTab==="Services"?"service":state.ownTab==="Products"?"product":"training";const ownItems=allItems.filter(x=>x.seller==="self"&&x.type===type);content=ownItems.length?`<div class="hf-two">${ownItems.map(listingCard).join("")}</div>`:'<div class="hf-empty">No demo '+type+' listings under your profile yet.</div><button class="hf-lime-button hf-listing-draft" data-hf="create">+ Create listing draft</button>';}
  return `<div class="hf-profile-cover hf-own-cover"><img src="${signedIn.cover}" alt="Sample profile cover"><div class="hf-profile-head"><span>HUSTLE · YOUR PROFILE</span><button data-hf="own-settings" aria-label="Profile settings">⚙</button></div></div>
  <div class="hf-profile-info"><div class="hf-profile-identity"><img src="${signedIn.avatar}" alt="Sample avatar"><div><h2>${esc(signedIn.name)}</h2><small>${esc(signedIn.handle)} · ${esc(signedIn.location)}</small></div></div>
  <p class="hf-profile-bio">${esc(signedIn.bio)}</p><div class="hf-trust"><span>Primary: ${esc(signedIn.primary)}</span><span>Secondary: ${esc(signedIn.secondary)}</span><span>Client + creator</span></div>
@@ -692,11 +705,23 @@ layer.addEventListener("click",e=>{
  case "market-services":state.category="All";state.marketTab="Services";go("Marketplace");break;
  case "market-products":state.category="All";state.marketTab="Products";go("Marketplace");break;
  case "market-tab":state.marketTab=value;render();break;
- case "explore-tab":if(value==="Stories"){triggerStories()}else if(value==="Live"){state.exploreTab=value;render()}else{state.exploreTab=value;render()}break;
+ case "market-search-clear":state.marketSearch="";render();layer.querySelector("#hfMarketSearch")?.focus();break;
+ case "market-promo-next":state.marketSlide=(state.marketSlide+1)%3;render();break;
+ case "market-promo-prev":state.marketSlide=(state.marketSlide+2)%3;render();break;
+ case "explore-tab":if(value==="Stories"){triggerStories()}else if(value==="Live"){push("LiveHub")}else{state.exploreTab=value;render()}break;
  case "cat":state.category=value;render();break;
  case "search-clear":state.query="";render();layer.querySelector("#hfExploreQuery")?.focus();break;
  case "stories":triggerStories();break;
- case "live":triggerLive();break;
+ case "live":push("LiveHub");break;
+ case "live-hub":push("LiveHub");break;
+ case "go-live":state.liveComments=[];state.liveHearts=0;push("GoLive");break;
+ case "live-hub-tab":state.liveHubTab=value;render();break;
+ case "live-category":state.liveCategory=value;render();break;
+ case "live-watch":state.liveWatchId=id;state.liveComments=[];state.liveHearts=0;push("LiveWatch");break;
+ case "live-heart":state.liveHearts++;render();break;
+ case "live-follow":state.follow.has(id)?state.follow.delete(id):state.follow.add(id);render();break;
+ case "live-end":stopCamera();state.liveStarted=false;back();notify("Live simulation ended · No stream created");break;
+ case "live-camera":toggleCamera();break;
  case "map-locate":mapUseLocation();break;
  case "map-reset":state.mapGPS=null;state.mapSelected=null;if(mapInstance)disposeMap();initializeMapAfterRender();break;
  case "profile":openProfile(id);break;
@@ -750,18 +775,13 @@ layer.addEventListener("click",e=>{
  case "thread":openThread(id);break;
  case "inbox-tab":state.inboxTab=value;render();break;
  case "create":setNav("Create");break;
- case "draft-type":state.draftText=layer.querySelector("#hfDraft")?.value||state.draftText;state.draftType=value;render();break;
- case "draft-preview":{
-  state.draftText=layer.querySelector("#hfDraft")?.value||"";
-  if(!state.draftText.trim()){notify("Write a caption first");break}
-  if(state.draftType==="Post"){
-   samplePosts.unshift({id:"post-you-"+Date.now(),seller:"self",kind:"photo",image:state.draftImageSrc||pics.photo,caption:state.draftText.trim(),related:null,tag:"Everyday"});
-   state.draftText="";state.draftImageSrc=null;state.ownTab="Posts";
-   go("OwnProfile");notify("Added to your demo profile — not published");break
-  }
-  notify("Draft preview only — nothing published");break;
- }
- default:break;
+ case "draft-type":storeDraftForm();state.draftType=value;state.draftFiles=[];render();break;
+ case "post-kind":storeDraftForm();state.draftPostKind=value;state.draftFiles=[];render();break;
+ case "request-create":state.draftType="Request";push("Create");break;
+ case "request-open":push("Request",{request:id});break;
+ case "request-contact":notify("Response preview · Not sent to any user");break;
+ case "draft-preview":notify("Use the Create form's main button to add a demo listing");break;
+  default:break;
  }
 });
 layer.addEventListener("change",e=>{
