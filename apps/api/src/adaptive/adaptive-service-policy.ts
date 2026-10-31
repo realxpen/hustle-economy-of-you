@@ -157,6 +157,9 @@ export function validateAdaptiveServicePolicy(kind: AdaptiveServiceKind, input: 
     if (output.consultationFeeMinor === 0 && output.creditConsultation)
       throw new Error("Consultation credit requires a paid consultation");
   }
+  if (kind === "item" && (output.measurementMethods as string[]).includes("not_required") &&
+      (output.measurementMethods as string[]).length > 1)
+    throw new Error("Choose either no measurements or one or more measurement methods");
   if (kind === "item" && output.itemType === "laundry" &&
       (output.measurementMethods as string[]).some(x => x !== "not_required"))
     throw new Error("Laundry bookings do not request body measurements");
