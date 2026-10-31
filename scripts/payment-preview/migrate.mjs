@@ -14,18 +14,45 @@ const dbname = "hustle_payment_preview";
 const owner = "hustle_payment_preview_owner";
 const apiRole = "hustle_payment_preview_api";
 
+/**
+ * Only accept Neon-generated connection URLs for the approved empty test DB.
+ * Neon commonly offers a -pooler URL with channel_binding=require and no
+ * Prisma schema parameter. Canonicalize that exact endpoint to its approved
+ * unpooled origin before psql/Prisma; never migrate via the connection pooler.
+ * Errors reveal only which invariant failed, never the URL or password.
+ */
 export function validateMigrationTarget(raw) {
   let url;
-  try { url = new URL(raw || ""); } catch { throw new Error("REFUSED: missing protected test-only Neon owner URL"); }
+  try { url = new URL(raw || ""); }
+  catch { throw new Error("REFUSED: malformed Neon owner URL; copy the PostgreSQL URI, not a psql command"); }
+  const pooler = "ep-holy-block-zauxat1w-pooler.c-2.eu-west-2.aws.neon.tech";
+  if (url.protocol !== "postgresql:")
+    throw new Error("REFUSED: Neon owner URI must use postgresql://");
+  if (url.hostname !== host && url.hostname !== pooler)
+    throw new Error("REFUSED: owner URI host is not the dedicated payment-preview Neon endpoint");
+  if (url.pathname !== "/" + dbname)
+    throw new Error("REFUSED: owner URI must target hustle_payment_preview database");
+  if (url.username !== owner)
+    throw new Error("REFUSED: migration requires the Neon hustle_payment_preview_owner role, not the API role");
+  if (!url.password || url.password.length < 16)
+    throw new Error("REFUSED: owner URI password is missing or too short");
+  if (url.port || url.hash || url.username !== owner || url.searchParams.has("user"))
+    throw new Error("REFUSED: unexpected port, fragment or user override");
   const keys = [...url.searchParams.keys()];
-  if (url.protocol !== "postgresql:" || url.hostname !== host ||
-      url.pathname !== "/" + dbname || url.username !== owner ||
-      !url.password || url.password.length < 16 ||
-      url.port || url.hash || url.searchParams.get("sslmode") !== "require" ||
-      url.searchParams.get("schema") !== "public" ||
-      keys.some(k => !["schema","sslmode"].includes(k))) {
-    throw new Error("REFUSED: migration authority must be the exact dedicated unpooled Neon project owner and TLS database");
-  }
+  if (keys.length !== new Set(keys).size ||
+      keys.some(key => !["sslmode", "schema", "channel_binding"].includes(key)))
+    throw new Error("REFUSED: unsupported or duplicate Neon URI parameters");
+  if (url.searchParams.get("sslmode") !== "require" ||
+      (url.searchParams.has("channel_binding") &&
+       url.searchParams.get("channel_binding") !== "require"))
+    throw new Error("REFUSED: Neon URI must require TLS (sslmode=require and optional channel_binding=require)");
+  if (url.searchParams.has("schema") &&
+      url.searchParams.get("schema") !== "public")
+    throw new Error("REFUSED: migration owner URI must use schema=public");
+  // Treat a generated pooler URI ONLY as an address of the same exact Neon
+  // project: actual migrations always target the trusted direct host.
+  url.hostname = host;
+  url.search = "?sslmode=require&schema=public";
   return url;
 }
 
