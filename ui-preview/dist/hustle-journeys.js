@@ -113,7 +113,7 @@ function setExampleQuote(b,p){
  b.quoteLines=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,day:b.day,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:b.consultPaid,intake:b.intake,returnMethod:b.returnMethod,measurementMethod:b.measurementMethod})||null;
  b.price=b.quoteLines?.total??b.basePrice;
  b.consultCredit=b.quoteLines?.credit??(b.consultPaid&&p.creditConsultation?Math.min(b.price,b.consultPaid):0);
- b.stage="quote";if(p.jobFulfillment&&!b.readyDate)b.readyDate=window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"";
+ b.stage="quote";if(p.jobFulfillment&&!b.readyDate){b.readyDate=window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"";b.readyTime=p.readyTime||"17:00"}
  addNotice("Booking","Professional accepted sample request",b.service,"BookingJourney");render();
 }
 function clearBookingMedia(){
@@ -193,7 +193,7 @@ function updateBookingPreview(){
  }
  const intake=form.querySelector('[name="intake"]')?.value||b.intake,returnMethod=form.querySelector('[name="returnMethod"]')?.value||b.returnMethod,measurementMethod=form.querySelector('[name="measurementMethod"]')?.value||b.measurementMethod;
  const quote=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,day:chosenDate,basePrice:b.basePrice,people,venue,consultPaid:0,intake,returnMethod,measurementMethod});
- const eta=root.querySelector("#hjEstimatedReady");if(eta)eta.textContent=niceDate(window.HustleBookingRules?.estimatedReadyDate(chosenDate,p.id,b.professional)||"");const guide=root.querySelector("#hjMeasureGuide");if(guide)guide.hidden=!/Measure myself/.test(measurementMethod||"");
+ const eta=root.querySelector("#hjEstimatedReady");if(eta)eta.textContent=readyLabel(window.HustleBookingRules?.estimatedReadyDate(chosenDate,p.id,b.professional)||"",p.readyTime||"17:00");const guide=root.querySelector("#hjMeasureGuide");if(guide)guide.hidden=!/Measure myself/.test(measurementMethod||"");
  if(!quote)return;
  const possibleCredit=choice==="consult"&&p.creditConsultation?Math.min(quote.total,p.consultFee):0;
  const custom=people>1||/home|event|at my location|pickup|delivery|cater|custom order|site assessment|outdoor/i.test(venue);
@@ -233,21 +233,21 @@ function fulfillmentFields(p,b){
  +'<div class="hj-field"><label for="hj-returnMethod">When the work is ready</label>'+opts("returnMethod",f.returnModes,b.returnMethod||f.returnModes[0])+'</div>'
  +(f.measurementModes.length?'<div class="hj-field"><label for="hj-measurementMethod">Measurements or sizing</label>'+opts("measurementMethod",f.measurementModes,b.measurementMethod||f.measurementModes[0])+'</div><div class="hj-measure-guide" id="hjMeasureGuide" '+(/Measure myself/.test(b.measurementMethod)?'':'hidden')+'>'+esc(guidance)+'</div>':"")
  +'<div class="hj-field"><label for="hj-handoffAddress">Collection / delivery area (if required)</label><input name="handoffAddress" id="hj-handoffAddress" value="'+esc(b.handoffAddress||"")+'" placeholder="e.g. Yaba, Lagos"><small>Only a general area in this demo. Exact addresses should be shared privately after acceptance.</small></div>'
- +'<div class="hj-ready-estimate"><span>◷ ESTIMATED READY DATE</span><b id="hjEstimatedReady">'+niceDate(window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"")+'</b><small>Proposed only. The professional confirms the timeline when accepting.</small></div></section>';
+ +'<div class="hj-ready-estimate"><span>◷ ESTIMATED READY DATE</span><b id="hjEstimatedReady">'+readyLabel(window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"",p.readyTime||"17:00")+'</b><small>Proposed only. The professional confirms the timeline when accepting.</small></div></section>';
 }
 function fulfillmentSummary(b,p){
  if(!p.jobFulfillment)return "";
  return '<div class="hj-fulfillment-summary"><div><span>Items received by</span><b>'+esc(b.intake||"To agree")+'</b></div>'
  +'<div><span>Return method</span><b>'+esc(b.returnMethod||"To agree")+'</b></div>'
  +(b.measurementMethod?'<div><span>Fitting / sizing</span><b>'+esc(b.measurementMethod)+'</b></div>':"")
- +'<div><span>Estimated ready</span><b>'+niceDate(b.readyDate||window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"")+'</b></div></div>';
+ +'<div><span>Estimated ready</span><b>'+readyLabel(b.readyDate||window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"",b.readyTime||p.readyTime||"17:00")+'</b></div></div>';
 }
 function jobStatusName(status){return ({awaiting_handoff:"Awaiting item handover",received:"Items received",processing:"Work in progress",ready:"Ready for collection / delivery",out_for_delivery:"Out for delivery",completed:"Collected or delivered"})[status]||"Awaiting item handover";}
 function renderJobTracker(b){
  const steps=["awaiting_handoff","received","processing","ready",...(b.returnMethod==="Deliver to my address"?["out_for_delivery"]:[]),"completed"];
  const idx=steps.indexOf(b.jobStatus||"awaiting_handoff");
  return '<section class="hj-job-tracker"><header><span>YOUR JOB · DEMO</span><b>'+jobStatusName(b.jobStatus)+'</b></header>'
- +'<div class="hj-ready-banner"><span>Estimated completion</span><strong>'+niceDate(b.readyDate)+'</strong><small>Subject to revision, not a guaranteed collection date.</small></div>'
+ +'<div class="hj-ready-banner"><span>Estimated completion</span><strong>'+readyLabel(b.readyDate,b.readyTime)+'</strong><small>Subject to revision, not a guaranteed collection date.</small></div>'
  +'<div class="hj-job-steps">'+steps.map((status,i)=>'<div class="'+(i<=idx?"done":"")+'"><i>'+(i<idx?"✓":i+1)+'</i><span>'+jobStatusName(status)+'</span></div>').join("")+'</div>'
  +'<p><b>Return plan:</b> '+esc(b.returnMethod||"To confirm")+'. Only professional updates trigger a ready notification.</p></section>';
 }
@@ -567,6 +567,6 @@ function updateReportStatus(id,status){
  if(!root.hidden&&(state.screen==="Reports"||state.screen==="ReportSent"))render();
  return true;
 }
-window.HustleJourneys={open,close,notify:addNotice,updateProfessionalJob,showExistingBooking,getFulfillmentJob:()=>{const b=data.booking,p=policyFor();return p.jobFulfillment?{stage:b.stage,professional:b.professional,service:b.service,status:b.jobStatus||"awaiting_handoff",returnMethod:b.returnMethod,readyDate:b.readyDate,day:b.day,paid:!!b.paymentConfirmed,intake:b.intake,measurementMethod:b.measurementMethod}:null},updateReportStatus,getState:()=>({screen:state.screen,guest:state.guest,signedIn:state.signedIn,user:state.user,booking:{stage:data.booking.stage,milestones:data.booking.milestones.map(x=>x.state),dispute:data.booking.dispute},payment:{stage:data.purchase.stage,status:data.purchase.status},reports:data.reports.map(x=>({id:x.id,status:x.status})),agentInvites:data.agentInvites.map(x=>({name:x.name,status:x.status})),notifications:data.notifications.map(x=>({id:x.id,read:x.read}))}),_test:{data,state,onAction,onSubmit,render}};
+window.HustleJourneys={open,close,notify:addNotice,updateProfessionalJob,showExistingBooking,getFulfillmentJob:()=>{const b=data.booking,p=policyFor();return p.jobFulfillment?{stage:b.stage,professional:b.professional,service:b.service,status:b.jobStatus||"awaiting_handoff",returnMethod:b.returnMethod,readyDate:b.readyDate,readyTime:b.readyTime,day:b.day,paid:!!b.paymentConfirmed,intake:b.intake,measurementMethod:b.measurementMethod}:null},updateReportStatus,getState:()=>({screen:state.screen,guest:state.guest,signedIn:state.signedIn,user:state.user,booking:{stage:data.booking.stage,milestones:data.booking.milestones.map(x=>x.state),dispute:data.booking.dispute},payment:{stage:data.purchase.stage,status:data.purchase.status},reports:data.reports.map(x=>({id:x.id,status:x.status})),agentInvites:data.agentInvites.map(x=>({name:x.name,status:x.status})),notifications:data.notifications.map(x=>({id:x.id,read:x.read}))}),_test:{data,state,onAction,onSubmit,render}};
 if(!introSeen())open("Splash");
 })();
