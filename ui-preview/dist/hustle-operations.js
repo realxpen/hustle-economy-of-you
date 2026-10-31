@@ -160,11 +160,11 @@ function renderHustler(){
   content=`${section("Bookings & consultations")}${store.bookings.map(b=>line("◷",esc(b.service),`${esc(b.person)} · ${esc(b.day)}`,badge(b.state),"booking",b.id)).join("")}
   ${banner("Quotes & milestones","Each booking progresses through consultation → quote → client-approved milestones → protected payment → completion and release. Only clients authorize escrow release.","quiet")}`;
  }else if(state.hustlerTab==="Booking setup"){
-  const rules=window.HustleBookingRules,skill=state.bookingConfigSkill,p=rules?.get(skill);
+  const rules=window.HustleBookingRules,skill=state.bookingConfigSkill,owner=rules?.samples?.find(x=>x.id===skill)?.name||"Sample professional",p=rules?.get(skill,owner);
   if(!p){content=banner("Booking engine unavailable","This preview must load the service booking rules before opening the studio.","quiet")}
   else {
    content=`${visibleStatus()}${section("Configure a service journey")}
-   <p class="ho-copy">Every skill has a starting template; the professional controls whether consultations are offered, staff capacity, prices and added services. Saving affects this browser demo only.</p>
+   <p class="ho-copy">Every skill has a starting template. This demo edits settings for the selected sample professional, not every worker with that skill. Real settings will belong to the authenticated provider and service. Saving affects this browser demo only.</p>
    <div class="ho-policy-skills">${Object.values(rules.templates).map(x=>`<button data-op="booking-config-skill" data-value="${x.id}" class="${x.id===skill?"on":""}">${x.icon} ${esc(x.label)}</button>`).join("")}</div>
    <form class="ho-form ho-booking-policy" data-ho-form="booking-policy">
     <div class="ho-field"><label for="hoPolicyConsult">Consultation policy</label><select id="hoPolicyConsult" name="consultation">
@@ -358,7 +358,7 @@ function handle(op,id,value,node){
   case "wallet-tab":state.walletTab=value;render();break;
   case "studio-tab":state.hustlerTab=value;render();break;
   case "booking-config-skill":state.bookingConfigSkill=value;render();break;
-  case "booking-config-preview":{const rules=window.HustleBookingRules,caseData=rules?.samples?.find(x=>x.id===state.bookingConfigSkill);if(!caseData){toast("Booking example unavailable");break}close();window.HustleJourneys?.open("BookingJourney",{service:caseData.title,professional:caseData.name,category:caseData.id,price:rules.get(caseData.id).basePrice});break}
+  case "booking-config-preview":{const rules=window.HustleBookingRules,caseData=rules?.samples?.find(x=>x.id===state.bookingConfigSkill);if(!caseData){toast("Booking example unavailable");break}close();window.HustleJourneys?.open("BookingJourney",{service:caseData.title,professional:caseData.name,category:caseData.id,price:rules.get(caseData.id,caseData.name).basePrice});break}
   case "agent-tab":state.agentTab=value;render();break;
   case "admin-tab":if(state.adminPreview){state.adminTab=value;render()}break;
   case "activity-tab":state.activityTab=value;render();break;
@@ -401,7 +401,7 @@ root.addEventListener("click",e=>{
 root.addEventListener("submit",e=>{
  const form=e.target;const type=form.dataset.hoForm;if(!type)return;
  e.preventDefault();
- if(type==="booking-policy"){const f=new FormData(form),skill=state.bookingConfigSkill,patch={consultation:String(f.get("consultation")||"optional"),consultFee:Number(f.get("consultFee")),basePrice:Number(f.get("basePrice")),capacity:Number(f.get("capacity")),duration:Number(f.get("duration")),travelFee:Number(f.get("travelFee")),eventFee:Number(f.get("eventFee")),creditConsultation:f.get("creditConsultation")==="yes"};if(!window.HustleBookingRules?.update(skill,patch)){toast("Please check fee, price and capacity limits");return}audit("Demo service booking policy changed",skill);render();toast("Booking rules saved for this preview session");return}
+ if(type==="booking-policy"){const f=new FormData(form),skill=state.bookingConfigSkill,owner=window.HustleBookingRules?.samples?.find(x=>x.id===skill)?.name||"Sample professional",patch={consultation:String(f.get("consultation")||"optional"),consultFee:Number(f.get("consultFee")),basePrice:Number(f.get("basePrice")),capacity:Number(f.get("capacity")),duration:Number(f.get("duration")),travelFee:Number(f.get("travelFee")),eventFee:Number(f.get("eventFee")),creditConsultation:f.get("creditConsultation")==="yes"};if(!window.HustleBookingRules?.update(skill,patch,owner)){toast("Please check fee, price and capacity limits");return}audit("Demo service booking policy changed",skill);render();toast("Booking rules saved for this preview session");return}
  if(type==="deposit")submitFunding(form);
  if(type==="withdraw")submitWithdraw(form);
  if(type==="escrow")submitEscrow(form);
