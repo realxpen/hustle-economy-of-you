@@ -108,6 +108,7 @@ function render(){
   case "LiveHub":html=renderLiveHub();break;
   case "GoLive":html=renderGoLive();break;
   case "LiveStudio":html=renderLiveStudio();break;
+  case "LiveWatch":html=renderLiveWatch();break;
   case "Request":html=renderRequest();break;
   case "Post":html=renderPostDetail();break;
   case "EditProfile":html=renderProfileEdit();break;
@@ -118,6 +119,7 @@ function render(){
  layer.scrollTop=0;
  if(state.screen==="Explore"&&state.exploreTab==="Map")initializeMapAfterRender();
  if(state.screen==="Chat"){const chat=layer.querySelector(".hf-chat-scroll");if(chat)chat.scrollTop=chat.scrollHeight}
+ if(state.screen==="GoLive"||state.screen==="LiveStudio")bindCameraPreview();
 }
 function personCard(p){
  return `<button class="hf-person" data-hf="profile" data-id="${p.id}"><img src="${p.avatar}" alt="" loading="lazy"><span class="hf-person-data"><b>${esc(p.name)} <span class="hf-verified">✓</span></b><small>${esc(p.primary)} · ${esc(p.location)}</small><small>★ ${esc(p.rating)} example rating · ${esc(p.secondary)}</small></span><span class="hf-chevron">›</span></button>`;
@@ -212,6 +214,74 @@ function renderRequest(){
  const req=demoRequests.find(r=>r.id===state.request);
  if(!req)return `${head("Request","Demo request",true)}<div class="hf-empty">Request unavailable.</div>`;
  return `${head("Customer request","Sample opportunity",true)}<div class="hf-form"><span class="hf-create-kicker">DEMO · NOT PUBLISHED</span><h2>${esc(req.title)}</h2><div class="hf-summary"><div><b>Category</b><span>${esc(req.category)}</span></div><div><b>Location</b><span>${esc(req.location)}</span></div><div><b>Budget</b><span>${money(req.budget)}</span></div></div><p>${esc(req.description)}</p><button class="hf-lime-button" data-hf="request-contact" style="width:100%">Preview response →</button><p class="hf-demo-footnote">No real request is posted. Contacting the requester is disabled in this preview.</p></div>`;
+}
+const liveSessions=[{"id":"live-chef","person":"amara","title":"In the kitchen with Chef Amara","category":"Food","picture":"food","viewerCount":486,"offer":"p-meal"},{"id":"live-barber","person":"tobi","title":"Inside the barber studio","category":"Beauty","picture":"barber","viewerCount":129,"offer":"s-barber"},{"id":"live-style","person":"zara","title":"Making a custom outfit","category":"Fashion","picture":"fashion","viewerCount":82,"offer":"s-fashion"},{"id":"live-decor","person":"nora","title":"Designing a cozy living room","category":"Home","picture":"house","viewerCount":55,"offer":"s-interior"}];
+let cameraStream=null;
+function stopCamera(){if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}}
+function bindCameraPreview(){const v=layer.querySelector("#hfLiveCamera");if(v&&cameraStream){v.srcObject=cameraStream;v.play().catch(()=>{})}}
+function renderLiveHub(){
+ const types=["For You","Following","Nearby"],cats=["All","Food","Beauty","Fashion","Home"];
+ const filtered=liveSessions.filter(x=>(state.liveCategory==="All"||x.category===state.liveCategory)&&(state.liveHubTab!=="Following"||state.follow.has(x.person)||x.person==="amara"));
+ const featured=liveSessions[0];
+ return `${head("Live","Watch the work as it happens",false,`<button class="hf-create-go-live-btn" data-hf="go-live">● Go Live</button>`)}
+ <div class="hf-live-page"><div class="hf-live-banner"><img src="${pics.food}" alt="Chef making a meal">
+ <div><span>LIVE DISCOVERY · SIMULATION</span><h2>Real skills. In the moment.</h2><p>Watch a demo room, explore creator offers, or set up your own Live preview.</p><button data-hf="live-watch" data-id="live-chef">Watch Chef Amara →</button></div></div>
+ <div class="hf-live-tabs">${types.map(x=>`<button data-hf="live-hub-tab" data-value="${x}" class="${state.liveHubTab===x?"on":""}">${x}</button>`).join("")}</div>
+ <div class="hf-live-categories">${cats.map(x=>`<button data-hf="live-category" data-value="${x}" class="${state.liveCategory===x?"on":""}">${x}</button>`).join("")}</div>
+ <div class="hf-section-row"><h2>Explore Live rooms</h2><small>Simulations, not broadcasts</small></div>
+ <div class="hf-live-cards">${filtered.map(l=>`<button class="hf-live-card" data-hf="live-watch" data-id="${l.id}">
+ <img src="${pics[l.picture]}" alt="${esc(l.title)}"><span class="hf-live-card-flag">● DEMO ROOM</span>
+ <div><b>${esc(l.title)}</b><small>${esc(person(l.person).name)} · ${l.category}</small><small>Example audience: ${l.viewerCount}</small></div>
+ </button>`).join("")||'<div class="hf-empty">No rooms match this selection in the demo. Try For You or All.</div>'}</div>
+ <button class="hf-story-banner" data-hf="go-live"><span>●</span><div><b>Go Live yourself</b><small>Try host controls, audience options and pinned offers</small></div><strong>→</strong></button>
+ <p class="hf-demo-footnote">All Live rooms, viewers and chat messages shown here are simulated. No user is broadcasting.</p></div>`;
+}
+function renderLiveWatch(){
+ const l=liveSessions.find(x=>x.id===state.liveWatchId)||liveSessions[0];
+ const c=person(l.person),offer=item(l.offer);
+ const chats=state.liveComments;
+ return `<section class="hf-live-room" aria-label="Live room demonstration">
+ <img class="hf-live-room-bg" src="${pics[l.picture]}" alt="${esc(l.title)}">
+ <div class="hf-live-room-shade"></div><div class="hf-live-room-ui">
+ <div class="hf-live-room-header"><button data-hf="back" aria-label="Leave Live room">×</button><img src="${c.avatar}" alt=""><div><b>${esc(c.name)}</b><small>● DEMO · ${l.viewerCount} example viewers</small></div><button data-hf="live-follow" data-id="${l.person}">${state.follow.has(l.person)?"✓ Following":"+ Follow"}</button></div>
+ <span class="hf-live-warning">Simulated Live · No stream is occurring</span>
+ <div class="hf-live-room-spacer"></div>
+ <div class="hf-live-room-messages" id="hfLiveMessages"><p><b>@community</b> Loving the behind-the-scenes look!</p><p><b>@viewer</b> Can you tell us about the pinned offer?</p>${chats.map(m=>`<p><b>You</b> ${esc(m)}</p>`).join("")}</div>
+ <button class="hf-live-pinned" data-hf="listing" data-id="${offer.id}"><span>✦ PINNED OFFER · EXAMPLE</span><b>${esc(offer.title)}</b><strong>${money(offer.price)} →</strong></button>
+ <form id="hfLiveChatForm" class="hf-live-composer"><input name="message" maxlength="200" required placeholder="Chat in this demo…"><button type="submit">↑</button></form>
+ <button class="hf-live-reaction" data-hf="live-heart">♥ <span>${state.liveHearts}</span></button>
+ </div></section>`;
+}
+function renderGoLive(){
+ const categories=["Beauty","Fashion","Creative","Food","Home"];
+ const l=state.liveSetup;
+ return `${head("Go Live","Create a host session · Demo only",true)}<div class="hf-live-setup">
+ <div class="hf-live-setup-intro"><span>● CREATOR LIVE STUDIO</span><h2>Show people the process.</h2><p>Let viewers discover your work, ask questions and find relevant offers.</p></div>
+ <div class="hf-live-camera-box"><img src="${pics.food}" alt="Sample background for Live setup"><video id="hfLiveCamera" autoplay muted playsinline></video><div><span>${cameraStream?"CAMERA PREVIEW · LOCAL ONLY":"CAMERA OFF · SAMPLE BACKGROUND"}</span><button data-hf="live-camera">${cameraStream?"Stop camera":"Preview camera (optional)"}</button></div></div>
+ <div class="hf-notice">Camera access is optional. Permission is only requested if you tap Preview camera. Nothing is broadcast or uploaded.</div>
+ <form id="hfGoLiveForm" class="hf-create-form">
+ <div class="hf-field"><label for="hfLiveTitle">Live title</label><input name="title" id="hfLiveTitle" maxlength="90" required value="${esc(l.title)}" placeholder="e.g. Cooking Saturday orders"></div>
+ <div class="hf-field"><label for="hfLiveCategory">What skill are you showing?</label><select name="category" id="hfLiveCategory">${categories.map(x=>`<option value="${x}" ${l.category===x?"selected":""}>${x}</option>`).join("")}</select></div>
+ <div class="hf-field"><label for="hfLiveAudience">Audience</label><select name="audience" id="hfLiveAudience">${["Public","Following","Mutuals"].map(x=>`<option value="${x}" ${l.audience===x?"selected":""}>${x}</option>`).join("")}</select></div>
+ <div class="hf-field"><label for="hfLiveOffer">Pin an offer (optional)</label><select name="offer" id="hfLiveOffer"><option value="">No pinned offer</option>${allItems.map(x=>`<option value="${x.id}" ${l.offer===x.id?"selected":""}>${esc(x.title)} · ${money(x.price)}</option>`).join("")}</select></div>
+ <button type="submit" class="hf-lime-button hf-create-submit">Start Live simulation →</button>
+ <p class="hf-demo-footnote">Starting here does not start a real livestream, enable real audience access or collect payments.</p></form>
+ </div>`;
+}
+function renderLiveStudio(){
+ const l=state.liveSetup;
+ const chosen=l.offer?allItems.find(x=>x.id===l.offer):null;
+ return `<section class="hf-live-room" aria-label="Your simulated Live studio">
+ <img class="hf-live-room-bg" src="${pics.food}" alt="Simulated Live host background"><video id="hfLiveCamera" class="hf-live-room-camera" autoplay muted playsinline></video><div class="hf-live-room-shade"></div>
+ <div class="hf-live-room-ui">
+ <div class="hf-live-room-header"><button data-hf="live-end" aria-label="End Live simulation">×</button><img src="${signedIn.avatar}" alt=""><div><b>${esc(signedIn.name)}</b><small>● HOST PREVIEW · No audience connected</small></div><span class="hf-live-card-flag">DEMO</span></div>
+ <div class="hf-live-warning">${esc(l.title)} · ${esc(l.audience)} · No live stream</div>
+ <div class="hf-live-room-spacer"></div>
+ <div class="hf-live-room-messages" id="hfLiveMessages"><p><b>Hustle demo</b> This is how your creator Live could feel.</p>${state.liveComments.map(m=>`<p><b>You</b> ${esc(m)}</p>`).join("")}</div>
+ ${chosen?`<button class="hf-live-pinned" data-hf="listing" data-id="${chosen.id}"><span>✦ PINNED OFFER · PREVIEW</span><b>${esc(chosen.title)}</b><strong>${money(chosen.price)} →</strong></button>`:""}
+ <div class="hf-live-host-tools"><button data-hf="live-camera">${cameraStream?"Stop camera preview":"Preview camera"}</button><button data-hf="live-heart">♥ Demo hearts ${state.liveHearts}</button></div>
+ <form id="hfLiveChatForm" class="hf-live-composer"><input name="message" maxlength="200" placeholder="Test a chat message…" required><button type="submit">↑</button></form>
+ <button class="hf-live-end" data-hf="live-end">End demo Live</button></div></section>`;
 }
 function liveExploreTeaser(){
  return `<div class="hf-hero-card"><div style="flex:1"><span style="font-size:10px;letter-spacing:1px;color:#dbff85">● LIVE HUB · DEMO</span><h3>Creators in the moment.</h3><p>Explore a dedicated Live discovery page, then try an interactive simulated Live room.</p><button class="hf-lime-button" data-hf="live-hub">Browse Live →</button></div><img src="${pics.food}" alt="Cooking creator" loading="lazy"></div>
