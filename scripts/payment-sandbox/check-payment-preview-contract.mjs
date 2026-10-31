@@ -34,6 +34,15 @@ const valid = {
 };
 
 assert.equal(validateApiRuntimeEnvironment({ ...valid }), "payment-preview");
+// AWS automatically injects these temporary role credentials into Lambda.
+// The test-only preview must allow ONLY its specific function identity.
+assert.equal(validateApiRuntimeEnvironment({ ...valid,
+  AWS_ACCESS_KEY_ID: "TEMPORARY_EXECUTION_ROLE_KEY",
+  AWS_SECRET_ACCESS_KEY: "TEMPORARY_EXECUTION_ROLE_SECRET",
+  AWS_SESSION_TOKEN: "TEMPORARY_EXECUTION_ROLE_TOKEN",
+  AWS_LAMBDA_FUNCTION_NAME: "hustle-payment-preview-api",
+  AWS_REGION: "eu-west-2"
+}), "payment-preview");
 const supabase = { verifyAccessToken: () => { throw Error("Do not use production"); } };
 assert.notEqual(chooseHustleAuthPort(supabase, valid), supabase,
   "Preview authentication must use a separate invited Better Auth port");
@@ -70,7 +79,21 @@ const deny = {
   "empty invites": { HUSTLE_STAGING_TEST_EMAILS: "" },
   "non-invited bad address": { HUSTLE_STAGING_TEST_EMAILS: "buyer" },
   "arbitrary extra ssl param": { DATABASE_URL: dsn("public") + "&connect_timeout=20" },
-  "unapproved AWS credential": { AWS_ACCESS_KEY_ID: "secret" }
+  "unapproved AWS credential": { AWS_ACCESS_KEY_ID: "secret" },
+  "wrong Lambda name with AWS credentials": {
+    AWS_ACCESS_KEY_ID: "temporary", AWS_SECRET_ACCESS_KEY: "temporary",
+    AWS_SESSION_TOKEN: "temporary", AWS_REGION: "eu-west-2",
+    AWS_LAMBDA_FUNCTION_NAME: "hustle-isolated-lambda-staging"
+  },
+  "wrong Lambda region with AWS credentials": {
+    AWS_ACCESS_KEY_ID: "temporary", AWS_SECRET_ACCESS_KEY: "temporary",
+    AWS_SESSION_TOKEN: "temporary", AWS_REGION: "us-east-1",
+    AWS_LAMBDA_FUNCTION_NAME: "hustle-payment-preview-api"
+  },
+  "incomplete Lambda credentials": {
+    AWS_ACCESS_KEY_ID: "temporary", AWS_SECRET_ACCESS_KEY: "temporary",
+    AWS_LAMBDA_FUNCTION_NAME: "hustle-payment-preview-api", AWS_REGION: "eu-west-2"
+  }
 };
 for (const [name, patch] of Object.entries(deny)) {
   assert.throws(() => validateApiRuntimeEnvironment({ ...valid, ...patch }), undefined, name);
