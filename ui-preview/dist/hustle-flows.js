@@ -135,13 +135,66 @@ function listingCard(p){
 function categoryChips(){
  return `<div class="hf-chips" role="group" aria-label="Categories">${["All","Beauty","Fashion","Creative","Food","Home"].map(x=>`<button data-hf="cat" data-value="${x}" class="${state.category===x?"on":""}">${x}</button>`).join("")}</div>`;
 }
+
+function mapCategoryInfo(p){
+ const id=p.id;
+ const info={
+  tobi:{icon:"💈",label:"Barbering",color:"#c6e97b",group:"Beauty"},
+  zara:{icon:"🧵",label:"Fashion",color:"#efc4e3",group:"Fashion"},
+  maya:{icon:"📷",label:"Photography",color:"#bad8fa",group:"Creative"},
+  amara:{icon:"🍳",label:"Cooking",color:"#ffd59e",group:"Food"},
+  nora:{icon:"🏠",label:"Home design",color:"#c9d2fc",group:"Home"},
+  femi:{icon:"👗",label:"Styling",color:"#e6c8f8",group:"Fashion"},
+  flora:{icon:"💐",label:"Floral design",color:"#f9c4d7",group:"Creative"}
+ };
+ return info[id]||{icon:"✦",label:p.primary||"Skill",color:"#daff8a",group:p.tag||"Creative"};
+}
+function mapLegend(){
+ const list=[people[0],people[1],people[2],people[3],people[4],people[6]];
+ return `<div class="hf-map-skill-legend" aria-label="Map skills legend">${list.map(p=>{const i=mapCategoryInfo(p);return `<span><i style="background:${i.color}">${i.icon}</i>${esc(i.label)}</span>`}).join("")}</div>`;
+}
+function mapMiniGraphic(list,variant){
+ const all=list.filter(p=>p.coords);
+ const name=variant==="results"?"Results map illustration":"Lagos skills illustration";
+ return `<div class="hf-map-illustration hf-map-illustration-${variant}" role="group" aria-label="${name}; sample neighborhood positions, not a live map">
+ <svg viewBox="0 0 300 170" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+ <path d="M-40 143 C60 96 119 192 344 72" fill="none" stroke="#b7c8b0" stroke-width="21" opacity=".53"/>
+ <path d="M-30 61 C102 105 150 15 329 32" fill="none" stroke="#edf4e5" stroke-width="12"/>
+ <path d="M63 -16 L100 188 M168 -30 L229 197 M-16 125 L321 126" fill="none" stroke="#ffffff" stroke-width="7" opacity=".68"/>
+ <path d="M-10 150 C40 137 63 177 99 180 L-10 190Z" fill="#afd1d9" opacity=".75"/>
+ </svg>
+ <span class="hf-map-place hf-map-place-lekki">LEKKI</span><span class="hf-map-place hf-map-place-yaba">YABA</span><span class="hf-map-place hf-map-place-ikeja">IKEJA</span>
+ ${all.map((p,n)=>{const i=mapCategoryInfo(p);const positions={tobi:[75,69],zara:[37,55],maya:[45,21],amara:[64,14],nora:[27,47],femi:[59,84],flora:[29,70]},pos=positions[p.id]||[35,35];
+ return `<button type="button" class="hf-mini-skill-pin" data-hf="mini-map-pin" data-id="${p.id}" style="left:${pos[0]}%;top:${pos[1]}%;--skill-color:${i.color};--skill-delay:${(n%5)*.22}s" aria-label="View ${esc(p.name)} · ${esc(i.label)} in ${esc(p.location)}"><span>${i.icon}</span></button>`;
+ }).join("")}
+ </div>`;
+}
+function mapPreSearchCard(){
+ return `<div class="hf-map-discovery-card" aria-label="Discover professionals on a map">
+ <div class="hf-map-discovery-copy"><span class="hf-map-kicker">⌖ EXPLORE BY LOCATION</span><h2>Find skills around you<span>.</span></h2><p>See who does what, and where to find them.</p>
+ <button data-hf="map-open" class="hf-map-cta">Explore map <span aria-hidden="true">↗</span></button><small>Sample Lagos locations · No GPS needed</small></div>
+ ${mapMiniGraphic(mapPeople(),"home")}
+ </div>`;
+}
+function mapSearchPreview(){
+ const list=mapPeople();
+ if(!state.query.trim()||!["Top","People","Services","Products","Training"].includes(state.exploreTab))return "";
+ const count=list.length;
+ return `<section class="hf-map-results-feature" aria-label="Map search matches">
+ <div class="hf-map-results-copy"><span>⌖ MAP MATCHES</span><b>${count===1?"1 local skill to explore":count+" local skills to explore"}</b>
+ <small>${count?"See matching demo professionals on the map":"No demo map pins match this search yet"}</small>
+ <button data-hf="map-open" class="hf-map-results-open">View map results ↗</button></div>
+ ${mapMiniGraphic(list.slice(0,5),"results")}
+ </section>`;
+}
+
 function renderExplore(){
  const tabs=["Top","People","Posts","Services","Products","Training","Requests","Map","Stories","Live"];
  return `${head("Explore","People, skills, work and opportunities",false,`<button class="hf-live-mini" data-hf="live-hub" aria-label="Explore Live feeds">● LIVE</button><button class="hf-icbtn" data-hf="cart" aria-label="Open cart">♧${state.cart.length?`<span class="hf-cart-count">${state.cart.length}</span>`:""}</button>`)}
- <div class="hf-page"><div class="hf-searchbox"><span>⌕</span><input id="hfExploreQuery" type="search" value="${esc(state.query)}" placeholder="Barber in Lekki, fashion in Yaba..." aria-label="Search Hustle"/><button data-hf="search-clear" aria-label="Clear search">×</button></div>
+ <div class="hf-page"><div id="hfMapPresearchHost">${state.exploreTab==="Top"&&!state.query.trim()?mapPreSearchCard():""}</div><div class="hf-searchbox"><span>⌕</span><input id="hfExploreQuery" type="search" value="${esc(state.query)}" placeholder="Barber in Lekki, fashion in Yaba..." aria-label="Search Hustle"/><button data-hf="search-clear" aria-label="Clear search">×</button></div>
  <div class="hf-tabs" role="tablist" aria-label="Search sections">${tabs.map(x=>`<button data-hf="explore-tab" data-value="${x}" class="${state.exploreTab===x?"on":""}" role="tab" aria-selected="${state.exploreTab===x}">${x}</button>`).join("")}</div>
  ${categoryChips()}
- <div id="hfSearchResults">${exploreResults()}</div>
+ <div id="hfSearchResults">${mapSearchPreview()}${exploreResults()}</div>
  </div>`;
 }
 function matches(p){
@@ -165,7 +218,7 @@ function exploreResults(){
  if(["Top","Services"].includes(state.exploreTab)&&servicesFound.length)blocks.push(`<div class="hf-section-row"><h2>Services</h2>${state.exploreTab==="Top"?'<button class="hf-link" data-hf="market-services">View all →</button>':""}</div><div class="hf-two">${servicesFound.slice(0,state.exploreTab==="Top"?4:20).map(listingCard).join("")}</div>`);
  if(["Top","Products"].includes(state.exploreTab)&&productsFound.length)blocks.push(`<div class="hf-section-row"><h2>Products</h2>${state.exploreTab==="Top"?'<button class="hf-link" data-hf="market-products">View all →</button>':""}</div><div class="hf-two">${productsFound.slice(0,state.exploreTab==="Top"?2:20).map(listingCard).join("")}</div>`);
  if(["Top","Training"].includes(state.exploreTab)&&trainingFound.length)blocks.push(`<div class="hf-section-row"><h2>Learn from professionals</h2></div><div class="hf-two">${trainingFound.map(listingCard).join("")}</div>`);
- if(state.exploreTab==="Top"&&!state.query)blocks.unshift(`<div class="hf-hero-card"><div style="flex:1"><h3>From watching to doing.</h3><p>Find the service or product behind the work you love.</p><button class="hf-lime-button" data-hf="market">Open marketplace →</button></div><img src="${pics.fashion}" alt="Fashion work" loading="lazy"></div>`);
+ if(state.exploreTab==="Top"&&!state.query)blocks.push(`<div class="hf-hero-card"><div style="flex:1"><h3>From watching to doing.</h3><p>Find the service or product behind the work you love.</p><button class="hf-lime-button" data-hf="market">Open marketplace →</button></div><img src="${pics.fashion}" alt="Fashion work" loading="lazy"></div>`);
  if(state.exploreTab==="Top"&&!state.query)blocks.push(`<div class="hf-section-row"><h2>More to discover</h2></div><button class="hf-story-banner" data-hf="stories"><span>✦</span><div><b>Explore creator Stories</b><small>Quick behind-the-scenes moments</small></div><strong>→</strong></button>`);
  return blocks.join("")||'<div class="hf-empty">No matches in this demo. Try a skill, person or location such as “barber in Lekki”.</div>';
 }
@@ -173,7 +226,9 @@ function refreshSearch(){
  const input=layer.querySelector("#hfExploreQuery");
  if(input)state.query=input.value;
  const result=layer.querySelector("#hfSearchResults");
- if(result){if(mapInstance)disposeMap();result.innerHTML=exploreResults();if(state.exploreTab==="Map")initializeMapAfterRender();}
+ if(result){if(mapInstance)disposeMap();result.innerHTML=mapSearchPreview()+exploreResults();if(state.exploreTab==="Map")initializeMapAfterRender();}
+  const discover=layer.querySelector("#hfMapPresearchHost");
+  if(discover)discover.innerHTML=state.exploreTab==="Top"&&!state.query.trim()?mapPreSearchCard():"";
 }
 function marketCard(l){
  const p=person(l.seller);
@@ -767,6 +822,8 @@ layer.addEventListener("click",e=>{
  case "live-follow":state.follow.has(id)?state.follow.delete(id):state.follow.add(id);render();break;
  case "live-end":stopCamera();state.liveStarted=false;back();notify("Live simulation ended · No stream created");break;
  case "live-camera":toggleCamera();break;
+ case "map-open":state.exploreTab="Map";render();break;
+ case "mini-map-pin":openProfile(id);break;
  case "map-locate":mapUseLocation();break;
  case "map-reset":state.mapGPS=null;state.mapSelected=null;if(mapInstance)disposeMap();initializeMapAfterRender();break;
  case "profile":openProfile(id);break;
