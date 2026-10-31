@@ -203,6 +203,17 @@ export default function EconomyPage() {
               <strong>{s.title}</strong>
               <small>{s.blueprint.slug} v{s.blueprint.version} · revision {s.revision} · {money(s.priceMinor)} · private draft</small>
               <small>Configuration: {Object.keys(s.policy ?? {}).length} workflow options</small>
+              {s.canonicalServiceId ? <>
+                <small>Linked to the existing Hustle service system · Changes here are not automatically synchronized</small>
+                <Link href={"/services/manage"}>Manage published-service details and availability →</Link>
+              </> : (s.blueprint.slug === "appointment" || s.blueprint.slug === "item") ? <>
+                <button type="button" className={styles.secondary} disabled={busy || !owner}
+                  onClick={() => void mutate(() => adaptiveClient.prepareCanonicalService(selected, s.id),
+                    "Private canonical Service draft prepared. Open Hustler Studio to set opening hours, portfolio, and publishing requirements.")}>
+                  Prepare in Hustler Studio
+                </button>
+                <small>Owner-only · requires approved Hustler capability · does not publish or take bookings</small>
+              </> : <small>This workflow has no canonical booking handoff yet.</small>}
               <button type="button" className={styles.secondary} disabled={busy || !(owner || active?.permissions.includes("services.manage"))}
                 onClick={() => {
                   setNewService({ title: s.title, blueprint: s.blueprint.slug, price: (s.priceMinor / 100).toFixed(2),
