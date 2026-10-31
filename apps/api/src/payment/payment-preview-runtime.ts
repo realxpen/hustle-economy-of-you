@@ -13,13 +13,12 @@ const existingStagingHosts = new Set([
   "ep-square-sea-zax0gyud-pooler.c-2.eu-west-2.aws.neon.tech"
 ]);
 
-function requireOrigin(value: string | undefined, prefix: string): URL {
+function requireOrigin(value: string | undefined, exact: string): URL {
   let origin: URL;
   try { origin = new URL(value ?? ""); } catch { throw new Error("Invalid isolated payment preview origin"); }
-  if (origin.protocol !== "https:" || origin.origin !== value ||
-      !origin.hostname.startsWith(prefix) ||
-      !origin.hostname.endsWith(".realxpens.workers.dev") ||
-      origin.username || origin.password || origin.port || origin.search || origin.hash) {
+  if (value !== exact || origin.protocol !== "https:" ||
+      origin.origin !== value || origin.username || origin.password ||
+      origin.port || origin.search || origin.hash) {
     throw new Error("Unapproved isolated payment preview origin");
   }
   return origin;
@@ -74,8 +73,10 @@ export function validatePaymentPreviewRuntime(env: NodeJS.ProcessEnv): void {
   requireDedicatedDatabase(env.DATABASE_URL, host, "public");
   requireDedicatedDatabase(env.STAGING_AUTH_DATABASE_URL, host, "payment_auth");
 
-  const api = requireOrigin(env.HUSTLE_PAYMENT_PREVIEW_API_ORIGIN, "hustle-payment-preview-api.");
-  const web = requireOrigin(env.HUSTLE_PAYMENT_PREVIEW_WEB_ORIGIN, "hustle-payment-preview.");
+  const api = requireOrigin(env.HUSTLE_PAYMENT_PREVIEW_API_ORIGIN,
+    "https://hustle-payment-preview-api.realxpens.workers.dev");
+  const web = requireOrigin(env.HUSTLE_PAYMENT_PREVIEW_WEB_ORIGIN,
+    "https://hustle-payment-preview.realxpens.workers.dev");
   if (api.origin === web.origin || env.WEB_ORIGIN !== web.origin ||
       env.BETTER_AUTH_URL !== api.origin + "/api/auth" ||
       env.PAYSTACK_TEST_RETURN_ORIGIN !== web.origin ||
