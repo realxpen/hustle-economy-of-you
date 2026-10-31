@@ -19,7 +19,10 @@ assert.match(config, /awsPreviewBuild \? "aws-lambda-isolated-staging" : "vercel
 assert.match(config, /HUSTLE_STAGING_AWS_CUTOVER_BUILD === "true"/);
 assert.match(config, /mutually exclusive/);
 assert.match(config, /compatibilityFlags: \["nodejs_compat"\]/);
-assert.match(config, /HUSTLE_ISOLATED_PWA_GATE: bindings\.text\("isolated-staging"\)/);
+assert.match(config, /HUSTLE_ISOLATED_PWA_GATE: bindings\.text\(paymentPreviewBuild \? "payment-preview" : "isolated-staging"\)/);
+assert.match(config, /paymentPreviewBuild \? "hustle-payment-preview"/);
+assert.match(config, /HUSTLE_PAYMENT_PREVIEW_API_ORIGIN: bindings\.text/);
+assert.match(config, /HUSTLE_PAYMENT_PREVIEW_BUILD === "true"/);
 assert.match(config, /NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: bindings\.text\("true"\)/);
 assert.match(config, /runWorkerFirst: awsPreviewBuild/);
 assert.match(config, /"\!\/aws-test\.webmanifest"/);
