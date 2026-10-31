@@ -53,7 +53,8 @@ function visibleStatus(){return `<p class="ho-demo-label">SIMULATED DATA · No r
 function nav(page){if(page===state.page)return;state.previous.push(state.page);state.page=page;state.modal="";render()}
 function back(){if(state.modal){state.modal="";render();return}if(state.previous.length){state.page=state.previous.pop();render()}else close()}
 function close(){root.hidden=true;root.innerHTML="";state.previous=[];state.modal="";phone.classList.remove("ho-open")}
-function open(page="Wallet"){
+function open(page="Wallet",opts={}){
+ if(page==="BusinessSetup"){state.businessStep=0;if(opts.owner)state.businessOwner=String(opts.owner).slice(0,80);if(opts.skill&&window.HustleBookingRules?.templates[opts.skill])state.bookingConfigSkill=opts.skill}
  state.previous=[];state.page=page;state.modal="";state.adminPreview=false;state.adminInspect=false;
  if(page==="Agent"&&!state.agentPreview)state.page="AgentIntro";
  if(page==="Admin")state.page="AdminGate";
@@ -423,7 +424,7 @@ function handle(op,id,value,node){
   case "staff-remove-off":if(window.HustleBookingRules?.setMemberOff(state.bookingConfigSkill,state.businessOwner,id,value,false))render();break;
   case "team-date-off":{const day=root.querySelector("#hoTimeOffDate")?.value;if(!day){toast("Choose a leave date");break}if(window.HustleBookingRules?.setMemberOff(state.bookingConfigSkill,state.businessOwner,id,day,true)){audit("Staff leave",id+" · "+day);render()}break}
 
-  case "booking-config-preview":{const rules=window.HustleBookingRules,caseData=rules?.samples?.find(x=>x.id===state.bookingConfigSkill);if(!caseData){toast("Booking example unavailable");break}close();window.HustleJourneys?.open("BookingJourney",{service:caseData.title,professional:caseData.name,category:caseData.id,price:rules.get(caseData.id,caseData.name).basePrice});break}
+  case "booking-config-preview":{const rules=window.HustleBookingRules,caseData=rules?.samples?.find(x=>x.id===state.bookingConfigSkill);if(!caseData){toast("Booking example unavailable");break}const owner=state.businessOwner||caseData.name;close();window.HustleJourneys?.open("BookingJourney",{service:caseData.title,professional:owner,category:caseData.id,price:rules.get(caseData.id,owner).basePrice});break}
   case "agent-tab":state.agentTab=value;render();break;
   case "admin-tab":if(state.adminPreview){state.adminTab=value;render()}break;
   case "activity-tab":state.activityTab=value;render();break;
