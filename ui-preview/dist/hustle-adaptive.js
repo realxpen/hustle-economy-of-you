@@ -8,7 +8,8 @@ const CAPABILITIES=[
  {id:"create",label:"Publish creative work",icon:"✦"},
  {id:"teach",label:"Teach or mentor",icon:"◇"},
  {id:"manage",label:"Manage a business",icon:"▥"},
- {id:"represent",label:"Represent with consent",icon:"♙"}
+ {id:"represent",label:"Represent with consent",icon:"♙"},
+ {id:"learn",label:"Learn or apprentice",icon:"✧"}
 ];
 const BLUEPRINTS=[
  {id:"appointment",label:"Appointment",icon:"◷",description:"Scheduled individual services",steps:["Request","Availability","Approval","Service","Confirmation"],features:["calendar","staff","location","reference","consultation"],example:"Barber, makeup artist"},
@@ -178,7 +179,7 @@ function mirrorBooking(snapshot){
  return copy(w)
 }
 function capabilityGuidance(){
- const tags=state.person.capabilities;return [...(tags.includes("hire")?["Explore skilled people and publish a request"]:[]),...(tags.includes("offer")?["Create services with a suitable work blueprint"]:[]),...(tags.includes("manage")?["Separate business teams and work records"]:[]),...(tags.includes("create")?["Connect useful posts to services and products"]:[]),...(tags.includes("represent")?["Request scoped delegation before acting for another person"]:[])];
+ const tags=state.person.capabilities;return [...(tags.includes("hire")?["Explore skilled people and publish a request"]:[]),...(tags.includes("offer")?["Create services with a suitable work blueprint"]:[]),...(tags.includes("manage")?["Separate business teams and work records"]:[]),...(tags.includes("create")?["Connect useful posts to services and products"]:[]),...(tags.includes("represent")?["Request scoped delegation before acting for another person"]:[]),...(tags.includes("learn")?["Find training, mentors or apprenticeship opportunities"]:[])];
 }
 window.HustleAdaptive={
  capabilities:CAPABILITIES,blueprints:BLUEPRINTS,permissions:PERMISSIONS,privateActions:PRIVATE_ACTIONS,exampleDirectory:SAMPLE_DIRECTORY,
