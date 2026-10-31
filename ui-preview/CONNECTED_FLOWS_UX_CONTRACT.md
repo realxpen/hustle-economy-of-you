@@ -148,3 +148,25 @@ This branch is an isolated static Cloudflare Worker preview. All professionals, 
 - 18 targeted preview-runtime checks passed for Map card before search, category pins, matching Map previews in Posts search, direct Map route, Home Live entry, Live full-screen composition, snap-scroll behavior, filters, Live room navigation, back routing, camera opt-in, backend isolation and reduced-motion CSS.
 - JavaScript syntax and CSS references were validated. **The Cloudflare worker deployment and the actual iPhone Safari layout have not been visually verified by these checks.**
 - All changes are on isolated branch `preview/hustle-v1-posts-stories`, with no production deployment, database changes, real uploads, bookings or payment transactions.
+
+
+## Live discovery versus full Live room — screenshot-aligned UX milestone
+
+The user supplied two reference screenshots demonstrating the distinct TikTok Live states: a quiet full-screen Live preview while scrolling in a normal content feed, and an interactive room entered after tapping.
+
+### Discovery (no chat until entering)
+- The Live entry on Home opens a vertically snapping preview feed.
+- Discovery shows one large video/photo preview at a time, with top **For You / Following / Nearby** discovery filters, a small demo Live status, creator name, and **Tap to watch LIVE**.
+- No public chat messages, pinned product card, gifts, or room-specific controls appear in preview mode. Tapping the preview (including its prompt) enters the room.
+- The Flora Studio example includes a muted, looping public sample flower video using `https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4`. This is a test clip, **not an actual creator livestream**.
+- Other preview rooms use still photographs, clearly labelled as demo stills, until a true streaming source is available. Do not display a photograph as if it were actual live video.
+- Inactive sample videos are paused on swipe. Reduced-motion preference is respected; video availability on actual Safari/iPhone remains to be verified. Preview video error falls back to a still image.
+
+### Inside the Live room
+- After entering, the room displays the media, host identity, example viewer count, Join/Follow, the active comment stream, a pinned product or service, text chat, hearts and a **free demo gift** control.
+- Interacting with chat, Join, hearts and demo gifts updates local UI state **without re-rendering/restarting** the sample video.
+- No real audience, livestream connection, monetary gift, chat delivery, order, or payment is implied. All controls remain local demonstration interactions, with no real broadcasts.
+
+### Verification
+- Fourteen runtime checks passed for preview media, swipe behavior, preview exclusion of room chat/gifts, room entry, pinned service, chat, gift/heart/Join without media reset, back navigation, Home Live access and lack of camera permission requests.
+- Code and styles are present on preview branch. **Could not verify the latest Cloudflare deployment or actual iPhone Safari visual layout in this session.**
