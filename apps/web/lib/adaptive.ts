@@ -28,6 +28,12 @@ export type AdaptiveWorkItem = {
   status: string; updatedAt: string; amountMinor?: number;
   workspaceId?: string; canonicalPath?: string; version?: number; canWrite: boolean;
 };
+export type WeeklyShift = { day: number; start: string; end: string };
+export type StaffLeave = { id: string; startAt: string; endAt: string; note: string | null };
+export type AdaptiveStaff = { id: string; displayName: string; active: boolean; revision: number;
+  weeklyHours: WeeklyShift[]; leave: StaffLeave[] };
+export type AdaptiveRoster = { stationCapacity: number; rosterEnabled: boolean;
+  activeStaff: number; staff: AdaptiveStaff[]; warning: string };
 export type AdaptiveInvitation = {
   id: string; role: string; permissions: string[];
   workspace: { id: string; name: string; kind: string };
@@ -69,6 +75,25 @@ export const adaptiveClient = {
     post("/workspaces/" + encodeURIComponent(id) + "/invitations", { username, role, permissions }),
   respond: (id: string, answer: "accept" | "decline") =>
     post("/invitations/" + encodeURIComponent(id) + "/" + answer),
+  roster: (id: string) => json<AdaptiveRoster>("/workspaces/" + encodeURIComponent(id) + "/roster"),
+  rosterSettings: (id: string, input: { stationCapacity: number; rosterEnabled: boolean }) =>
+    json<{ stationCapacity: number; rosterEnabled: boolean; affectedExistingBookings: number }>(
+      "/workspaces/" + encodeURIComponent(id) + "/roster-settings",
+      { method: "PATCH", body: JSON.stringify(input) }),
+  addStaff: (id: string, input: { displayName: string; weeklyHours: WeeklyShift[] }) =>
+    post<{ staff: AdaptiveStaff; affectedExistingBookings: number }>(
+      "/workspaces/" + encodeURIComponent(id) + "/staff", input),
+  updateStaff: (id: string, staffId: string, input: { displayName: string; weeklyHours: WeeklyShift[]; active: boolean; expectedRevision: number }) =>
+    json<{ staff: AdaptiveStaff; affectedExistingBookings: number }>(
+      "/workspaces/" + encodeURIComponent(id) + "/staff/" + encodeURIComponent(staffId),
+      { method: "PATCH", body: JSON.stringify(input) }),
+  staffLeave: (id: string, staffId: string, input: { startAt: string; endAt: string; note?: string }) =>
+    post<{ leave: StaffLeave; affectedExistingBookings: number }>(
+      "/workspaces/" + encodeURIComponent(id) + "/staff/" + encodeURIComponent(staffId) + "/leave",input),
+  cancelStaffLeave: (id: string, staffId: string, leaveId: string) =>
+    post<{ cancelled: boolean; affectedExistingBookings: number }>(
+      "/workspaces/" + encodeURIComponent(id) + "/staff/" + encodeURIComponent(staffId) +
+      "/leave/" + encodeURIComponent(leaveId) + "/cancel"),
   members: (id: string) => json<{
     id: string; role: string; status: string; permissions: string[];
     user: { username: string | null; displayName: string | null };
