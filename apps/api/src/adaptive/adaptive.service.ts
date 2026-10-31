@@ -3,6 +3,7 @@ import { AdaptiveMemberRole, AdaptiveMemberStatus, AdaptiveWorkspaceKind, Adapti
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { PrismaService } from "../database/prisma.service";
 import { ADAPTIVE_BLUEPRINTS, allowedWorkspacePermissions } from "./adaptive-blueprints";
+import { defaultAdaptiveServicePolicy, validateAdaptiveServicePolicy, type AdaptiveServiceKind } from "./adaptive-service-policy";
 
 type Data = Record<string, unknown>;
 
@@ -160,7 +161,7 @@ export class AdaptiveService {
     return { status: "REVOKED" };
   }
   blueprints() {
-    return ADAPTIVE_BLUEPRINTS.map(b => ({ ...b, status: "AVAILABLE_FOR_DRAFTS" }));
+    return ADAPTIVE_BLUEPRINTS.map(b => ({ ...b, defaults: defaultAdaptiveServicePolicy(b.slug as AdaptiveServiceKind), status: "AVAILABLE_FOR_DRAFTS" }));
   }
   async services(identity: AuthIdentity, workspaceId: string) {
     const user = await this.actor(identity);
@@ -178,10 +179,9 @@ export class AdaptiveService {
     const priceMinor = this.int(d.priceMinor, "priceMinor");
     const template = ADAPTIVE_BLUEPRINTS.find(b => b.slug === d.blueprint);
     if (!template) throw new BadRequestException("Unknown blueprint type");
-    const policy = d.policy ?? {};
-    if (!policy || typeof policy !== "object" || Array.isArray(policy) ||
-      JSON.stringify(policy).length > 10000)
-      throw new BadRequestException("policy must be a small JSON object");
+    let policy: ReturnType<typeof validateAdaptiveServicePolicy>;
+    try { policy = validateAdaptiveServicePolicy(template.slug as AdaptiveServiceKind, d.policy ?? {}); }
+    catch (error) { throw new BadRequestException(error instanceof Error ? error.message : "Invalid service workflow"); }
     const blueprint = await this.db.adaptiveBlueprint.upsert({
       where: { slug_version: { slug: template.slug, version: template.version } },
       update: {},
@@ -193,6 +193,35 @@ export class AdaptiveService {
         currency: "NGN", policy: policy as Prisma.InputJsonValue }
     });
   }
+  async updateServiceDraft(identity: AuthIdentity, workspaceId: string, draftId: string, raw: unknown) {
+    const user = await this.actor(identity);
+    await this.membership(user.id, workspaceId, "services.manage");
+    const d = this.data(raw);
+    const expectedRevision = this.int(d.expectedRevision, "expectedRevision");
+    if (expectedRevision < 1) throw new BadRequestException("Invalid service draft revision");
+    const draft = await this.db.adaptiveServiceDraft.findFirst({
+      where: { id: draftId, workspaceId },
+      select: { id: true, blueprint: { select: { slug: true } } }
+    });
+    if (!draft) throw new NotFoundException("Service draft not found in this workspace");
+    const type = draft.blueprint.slug as AdaptiveServiceKind;
+    const title = this.text(d.title, "title", 3, 150);
+    const priceMinor = this.int(d.priceMinor, "priceMinor");
+    let policy: ReturnType<typeof validateAdaptiveServicePolicy>;
+    try { policy = validateAdaptiveServicePolicy(type, d.policy ?? {}); }
+    catch (error) { throw new BadRequestException(error instanceof Error ? error.message : "Invalid service workflow"); }
+    const changed = await this.db.adaptiveServiceDraft.updateMany({
+      where: { id: draftId, workspaceId, revision: expectedRevision },
+      data: { title, priceMinor, policy: policy as Prisma.InputJsonValue, revision: { increment: 1 } }
+    });
+    if (changed.count !== 1)
+      throw new ConflictException("Service draft changed. Refresh before editing again.");
+    return this.db.adaptiveServiceDraft.findUniqueOrThrow({
+      where: { id: draftId },
+      include: { blueprint: { select: { slug: true, type: true, version: true } } }
+    });
+  }
+
   async draftWork(identity: AuthIdentity, workspaceId: string, raw: unknown) {
     const user = await this.actor(identity);
     await this.membership(user.id, workspaceId, "work.manage");
