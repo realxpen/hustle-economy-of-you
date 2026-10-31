@@ -70,7 +70,7 @@ export class AdaptiveRosterService {
   return this.locked(space.ownerUserId,async tx=>{
    const changed=await tx.adaptiveStaffMember.updateMany({
     where:{id:staffId,workspaceId:spaceId,revision:expectedRevision},
-    data:{displayName,weeklyHours:weeklyHours as unknown as Prisma.InputJsonValue,active:d.active,revision:{increment:1}}});
+    data:{displayName,weeklyHours:weeklyHours as unknown as Prisma.InputJsonValue,active:d.active as boolean,revision:{increment:1}}});
    if(changed.count!==1)throw new ConflictException("Staff roster changed. Refresh and retry.");
    const staff=await tx.adaptiveStaffMember.findUniqueOrThrow({where:{id:staffId}});
    return {staff,affectedExistingBookings:await this.warnings(tx,spaceId,space.ownerUserId)};
@@ -86,7 +86,7 @@ export class AdaptiveRosterService {
     if(!active.some(s=>Array.isArray(s.weeklyHours)&&s.weeklyHours.length>0))
      throw new BadRequestException("Add an active worker with shifts before enabling roster capacity");
    }
-   const workspace=await tx.adaptiveWorkspace.update({where:{id:spaceId},data:{stationCapacity,rosterEnabled:d.rosterEnabled}});
+   const workspace=await tx.adaptiveWorkspace.update({where:{id:spaceId},data:{stationCapacity,rosterEnabled:d.rosterEnabled as boolean}});
    return {stationCapacity:workspace.stationCapacity,rosterEnabled:workspace.rosterEnabled,
     affectedExistingBookings:await this.warnings(tx,spaceId,space.ownerUserId)};
   });
