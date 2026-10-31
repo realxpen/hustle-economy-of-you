@@ -4,7 +4,7 @@ Status: **Review only. Migration unapplied; runtime feature OFF.**
 
 Hustle's actual API is a NestJS modular monolith with Prisma/PostgreSQL and an existing authentication adapter. The older backend-readiness/adaptive-v1/001_schema.sql document was only exploratory. It assumed UUID references to Supabase auth.users and a separate adaptive schema. **Do NOT execute that earlier SQL draft.** The real application uses User.id (CUID) and authenticated authSubject, with existing Booking, Order, UserCapability and AgentRelationship models.
 
-This implementation adds six Prisma models and a migration proposal under apps/api/prisma/migrations/20261031130000_adaptive_core_v1. They do not replace those existing tables or authentication.
+This implementation adds six Prisma models and an UNAPPLIED SQL proposal under backend-readiness/adaptive-v1/prisma-migration-proposal.sql (not in the active migration ledger). They do not replace those existing tables or authentication.
 
 ## Implemented server slice
 - Reuses existing AuthGuard, CurrentIdentity and PrismaService.
