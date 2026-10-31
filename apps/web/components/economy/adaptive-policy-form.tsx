@@ -59,7 +59,11 @@ export function AdaptivePolicyForm({ blueprint, policy, onChange, disabled }: Pr
       {values.map(([id, text]) => <label key={id}>
         <input type="checkbox" disabled={disabled} checked={selected.includes(id)}
           onChange={e => {
-            const next = e.target.checked ? [...selected,id] : selected.filter(s => s !== id);
+            let next = e.target.checked ? [...selected,id] : selected.filter(s => s !== id);
+            if (key === "measurementMethods" && e.target.checked) {
+              if (id === "not_required") next = ["not_required"];
+              else next = next.filter(v => v !== "not_required");
+            }
             // Prevent invalid empty delivery/intake/measurement configurations.
             if (next.length) set(key,next);
           }} />{text}
