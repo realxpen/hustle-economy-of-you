@@ -54,6 +54,10 @@ export default function NewBookingPage() {
   const [requirements, setRequirements] = useState("");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [partySize, setPartySize] = useState(1);
+  const [venueType, setVenueType] = useState<"AT_PROVIDER" | "AT_CLIENT" | "EVENT" | "REMOTE">("AT_PROVIDER");
+  const [referenceUrlsText, setReferenceUrlsText] = useState("");
+  const [consultFirst, setConsultFirst] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
@@ -86,6 +90,10 @@ export default function NewBookingPage() {
           setRequirements(draft.requirements);
           setLocation(draft.location);
           setNotes(draft.notes);
+          setPartySize(draft.partySize ?? 1);
+          setVenueType((draft.venueType as "AT_PROVIDER" | "AT_CLIENT" | "EVENT" | "REMOTE") ?? "AT_PROVIDER");
+          setReferenceUrlsText(draft.referenceUrlsText ?? "");
+          setConsultFirst(draft.consultationRequested ?? false);
           setDraftPresent(true);
           setDraftRestored(true);
         } else {
@@ -94,6 +102,10 @@ export default function NewBookingPage() {
           setRequirements("");
           setLocation(service.service.location ?? service.owner.location ?? "");
           setNotes("");
+          setPartySize(1);
+          setVenueType("AT_PROVIDER");
+          setReferenceUrlsText("");
+          setConsultFirst(false);
         }
       })
       .catch((reason: Error) => { if (active) setError(reason.message); });
@@ -129,7 +141,8 @@ export default function NewBookingPage() {
   }, [data, requestedStartAt, requestedEndAt]);
 
   function draftFields(): BookingDraftFields {
-    return { requestedStartAt, requestedEndAt, requirements, location, notes };
+    return { requestedStartAt, requestedEndAt, requirements, location, notes, partySize, venueType, referenceUrlsText,
+      consultationRequested: consultFirst };
   }
 
   function updateDraft(patch: Partial<BookingDraftFields>) {
@@ -147,6 +160,10 @@ export default function NewBookingPage() {
     setRequestedEndAt("");
     setRequirements("");
     setNotes("");
+    setPartySize(1);
+    setVenueType("AT_PROVIDER");
+    setReferenceUrlsText("");
+    setConsultFirst(false);
     setLocation(data?.service.location ?? data?.owner.location ?? "");
     setDraftPresent(false);
     setDraftRestored(false);
@@ -174,6 +191,19 @@ export default function NewBookingPage() {
       setError("Describe what you need before sending this request.");
       return;
     }
+    const referenceUrls = referenceUrlsText.split(/[\n,]+/).map((u)=>u.trim()).filter(Boolean);
+    if (referenceUrls.length > 5 || referenceUrls.some((u)=>!/^https:\/\//i.test(u) || !URL.canParse(u))) {
+      setError("Use up to 5 valid HTTPS links to your reference photos or videos.");
+      return;
+    }
+    if (partySize < 1 || partySize > data.service.maxPartySize) {
+      setError("The requested party size exceeds this professional's listing limit.");
+      return;
+    }
+    if (consultFirst && data.service.consultationPolicy === "OPTIONAL") {
+      setError("Start the consultation in Messages first, then return to book.");
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -188,7 +218,8 @@ export default function NewBookingPage() {
       const availability = await checkBookingAvailability({
         serviceId: data.service.id,
         startAt: start,
-        ...(end ? { endAt: end } : {})
+        ...(end ? { endAt: end } : {}),
+        partySize
       });
       if (!availability.available) {
         setError(availability.reason ?? "That time is not currently available.");
@@ -211,6 +242,10 @@ export default function NewBookingPage() {
         requestedStartAt: start,
         ...(end ? { requestedEndAt: end } : {}),
         requirements,
+        partySize,
+        venueType,
+        referenceUrls,
+        consultationRequested: data.service.consultationPolicy === "REQUIRED" || data.service.bookingMode === "CONSULTATION",
         ...(location.trim() ? { location: location.trim() } : {}),
         ...(notes.trim() ? { notes: notes.trim() } : {}),
         ...(conversationId ? { conversationId } : {})
@@ -248,13 +283,13 @@ export default function NewBookingPage() {
 
     <OpportunityContext sourcePostId={sourcePostId} ownerUsername={owner.username}
       offerHref={`/services/${encodeURIComponent(service.id)}`} offerLabel="Review service" />
-    <div className={styles.bookingConsult}>
-      <div><strong>Want to clarify the job first?</strong><span>Ask questions about scope, timing, or pricing, then return to this Booking request. Your draft stays in this tab.</span></div>
+    {service.consultationPolicy !== "OFF" && <div className={styles.bookingConsult}>
+      <div><strong>{service.consultationPolicy === "REQUIRED" ? "Consultation is required" : "Want to clarify the job first?"}</strong><span>Ask questions about scope, timing, or pricing, then return to this Booking request. Your draft stays in this tab.</span></div>
       <a href={consultHref}>
         Consult {owner.displayName ?? owner.username ?? "Hustler"} ↗
       </a>
-    </div>
-    {service.bookingMode === "CONSULTATION" && <section className={styles.consultationRequired} aria-label="Consultation before booking">
+    </div>}
+    {(service.consultationPolicy === "REQUIRED" || service.bookingMode === "CONSULTATION") && <section className={styles.consultationRequired} aria-label="Consultation before booking">
       <strong>{isolatedWebMode ? "Consultation required before booking" : "Consult with the Hustler before booking"}</strong>
       <p>{isolatedWebMode
         ? "Send a message about this Service using the linked Service in the conversation. Then return here to submit your request. Opening a chat without sending a Service-linked message is not enough."
@@ -295,6 +330,47 @@ export default function NewBookingPage() {
               : "Your draft is stored only in this browser tab for up to 2 hours as you type."}</span>
           {draftPresent && <button type="button" onClick={discardDraft} disabled={submitting}>Clear draft</button>}
         </div>
+        <section className={styles.formCard} aria-label="Booking preferences">
+          <h3>What sort of booking?</h3>
+          {service.consultationPolicy === "OPTIONAL" && <label className={styles.field}>
+            <span>How would you like to begin?</span>
+            <select value={consultFirst ? "consult" : "book"} onChange={(e)=>{const value=e.target.value==="consult";setConsultFirst(value);updateDraft({consultationRequested:value});}}>
+              <option value="book">Send a booking request directly</option>
+              <option value="consult">Consult with the professional first</option>
+            </select>
+          </label>}
+          {consultFirst && service.consultationPolicy === "OPTIONAL" && <p role="status">
+            <a href={consultHref}>Open service conversation before booking ↗</a>
+            {service.consultationFeeMinor > 0 ? ` · Published consultation fee: ₦${(service.consultationFeeMinor/100).toLocaleString("en-NG")}. Payment is not active on this screen.` : " · Consultation is free."}
+          </p>}
+          <div className={styles.grid2}>
+            <label className={styles.field}><span>People in this booking</span>
+              <input type="number" min={1} max={service.maxPartySize} value={partySize} onChange={(e)=>{const value=Number(e.target.value);setPartySize(value);updateDraft({partySize:value});}} />
+              <small>Up to {service.maxPartySize} per request. Booking all {partySize} requires enough simultaneous staff capacity.</small>
+            </label>
+            <label className={styles.field}><span>Where will it happen?</span>
+              <select value={venueType} onChange={(e)=>{const value=e.target.value as typeof venueType;setVenueType(value);updateDraft({venueType:value});}}>
+                <option value="AT_PROVIDER">At the professional's place</option>
+                <option value="AT_CLIENT">Home or client location (quote required)</option>
+                <option value="EVENT">Wedding/event/group venue (quote required)</option>
+                <option value="REMOTE">Remote/online</option>
+              </select>
+            </label>
+          </div>
+          <label className={styles.field}><span>Reference photos/videos · HTTPS links (optional)</span>
+            <textarea maxLength={6200} value={referenceUrlsText} onChange={(e)=>{setReferenceUrlsText(e.target.value);updateDraft({referenceUrlsText:e.target.value});}} placeholder="One link per line, up to five. Do not upload private photos to public hosts."/>
+          </label>
+          {(partySize > 1 || venueType === "AT_CLIENT" || venueType === "EVENT") && <p role="status">
+            {venueType === "EVENT" || venueType === "AT_CLIENT"
+              ? "Home and event requests need an agreed custom quote before financial acceptance. They won't be charged at the starting price."
+              : "For fixed-price group work, the per-person service price is multiplied by the party size. Confirm staff availability before booking."}
+          </p>}
+          {service.consultationPolicy !== "OFF" && <small>
+            Consultation: {service.consultationPolicy.toLowerCase()} ·
+            {service.consultationFeeMinor ? ` ₦${(service.consultationFeeMinor/100).toLocaleString("en-NG")} published fee` : " free"}.
+            {service.consultationCreditEnabled ? " A verified paid consultation may qualify for a future quote credit; no credit is applied without payment verification." : " No credit promised."}
+          </small>}
+        </section>
         <div className={styles.formSectionHeading}>
           <span className={styles.formStep}>01 · Timing</span>
           <h3>When do you need this?</h3>
