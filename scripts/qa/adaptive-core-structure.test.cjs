@@ -192,3 +192,27 @@ test("Client item contract snapshots survive edits and stale writes are rejected
  assert.match(ops,/revision:expected,status:AdaptiveItemStage\.AWAITING_INTAKE/);
  assert.match(ops,/if\(changed\.count!==1\)/);
 });
+
+test("ETA revisions and client receipt are scoped, versioned and do not release escrow",()=>{
+ const ops=read("apps/api/src/adaptive/adaptive-booking-ops.service.ts");
+ const ctrl=read("apps/api/src/adaptive/adaptive.controller.ts");
+ assert.match(ops,/async reviseReadyEstimate/);
+ assert.match(ops,/async confirmItemReceived/);
+ assert.match(ops,/Only this business can revise its item-service estimate/);
+ assert.match(ops,/only be acknowledged after delivery or collection/);
+ assert.match(ops,/item\.eta_revised/);
+ assert.match(ops,/item\.client_received/);
+ assert.match(ops,/revision:expected/);
+ assert.match(ops,/NotificationKind\.BOOKING/);
+ assert.match(ctrl,/@Post\("bookings\/:bookingId\/confirm-item-receipt"\)/);
+ assert.match(ctrl,/@Post\("workspaces\/:workspaceId\/bookings\/:bookingId\/estimate"\)/);
+ const segment=ops.slice(ops.indexOf("async reviseReadyEstimate("),ops.indexOf("async itemProgress("));
+ assert.doesNotMatch(segment,/tx\.booking\.update|tx\.paymentAttempt|tx\.escrow/);
+});
+test("Receipt timestamp and ETA audit fields are added only in private schema proposal",()=>{
+ const sql=read("backend-readiness/adaptive-v1/prisma-migration-proposal.sql");
+ assert.match(schema,/clientConfirmedAt\s+DateTime\?/);
+ assert.match(schema,/details\s+Json\s+@default\("\{\}"\)/);
+ assert.match(sql,/"clientConfirmedAt" TIMESTAMP\(3\)/);
+ assert.match(sql,/"details" JSONB NOT NULL/);
+});
