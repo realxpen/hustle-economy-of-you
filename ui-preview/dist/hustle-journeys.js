@@ -114,8 +114,8 @@ function renderBooking(){
  if(stage==="payment")body=`<h2>Protect your service payment</h2><p class="hj-lead">Your example quote is accepted. Choose a checkout method to continue the simulated protected-payment journey.</p>
  ${renderPaymentChoices(b.price)}${button("Simulate protected payment →","booking-pay")}${button("Back to quote","booking-revise","secondary")}`;
  if(stage==="work")body=`<h2>Work is in progress</h2><p class="hj-lead">Milestone amounts are shown separately, so the client can approve completed work.</p>
- ${b.milestones.map((m,i)=>`<div class="hj-milestone"><span>${m.state==="Released"?"✓":"🔒"}</span><div><b>${esc(m.title)}</b><small>${money(Math.round(b.price*m.fraction))} · ${esc(m.state)}</small></div>${m.state==="Held"?button("Review release","booking-milestone","outline",`data-id="${i}"`):""}</div>`).join("")}
- ${button("Raise a dispute","booking-dispute","secondary")}
+ ${b.milestones.map((m,i)=>`<div class="hj-milestone"><span>${m.state==="Released"?"✓":"🔒"}</span><div><b>${esc(m.title)}</b><small>${money(Math.round(b.price*m.fraction))} · ${esc(m.state)}</small></div>${m.state==="Held"&&!b.dispute?button("Review release","booking-milestone","outline",`data-id="${i}"`):""}</div>`).join("")}
+ ${b.dispute?info("Dispute raised. Remaining demo releases are paused until review."):button("Raise a dispute","booking-dispute","secondary")}
  ${b.milestones.every(x=>x.state==="Released")?button("Continue to completion →","booking-complete"):""}
  ${info("Milestones are local demo records. No provider holds or transfers funds.")}`;
  if(stage==="completion")body=`<div class="hj-success-icon">✓</div><h2>Service marked completed</h2><p class="hj-lead">The demo milestones were confirmed. A real booking would be recorded, invoiced and reconciled.</p>
@@ -187,7 +187,7 @@ function renderModal(){
 }
 function render(){
  if(root.hidden)return;
- root.innerHTML=screenContent();
+ root.innerHTML=screenContent()+((state.screen==="Report")?renderModal():"");
  root.scrollTop=0;
  const active=root.querySelector(".hj-page");
  if(active){active.classList.remove("hj-arrive");void active.offsetWidth;active.classList.add("hj-arrive")}
@@ -225,7 +225,7 @@ function onAction(action,value="",id=""){
  case "booking-revise":data.booking.stage="quote";renderToast("Quote returned to review");render();break;
  case "payment-method":data.purchase.method=value;render();break;
  case "booking-pay":{data.booking.paymentConfirmed=true;data.booking.stage="work";addNotice("Money","Protected payment initiated · demo",data.booking.service,"Escrow");render();break}
- case "booking-milestone":state.info=id;state.modal="release";render();break;
+ case "booking-milestone":if(!data.booking.dispute){state.info=id;state.modal="release";render()}else renderToast("Milestone frozen during dispute");break;
  case "release-confirm":{const m=data.booking.milestones[Number(state.info)];if(m&&m.state==="Held"&&!data.booking.dispute){m.state="Released";addNotice("Money","Milestone released · demo",m.title,"Escrow")}state.modal="";render();break}
  case "booking-dispute":state.modal="dispute";render();break;
  case "dispute-confirm":data.booking.dispute=true;state.modal="";addNotice("Money","Demo dispute submitted","Remaining milestones are frozen","Escrow");renderToast("Demo dispute marked; releases paused");render();break;
@@ -255,7 +255,7 @@ function onSubmit(name,form){
  if(name==="onboard"){const i=state.onboardStep;
  if(i===1){data.onboarding.name=get("name");data.onboarding.handle=get("handle");if(!data.onboarding.name){renderToast("A display name is needed");return}}
  if(i===2){data.onboarding.skill=get("skill");data.onboarding.area=get("area")}
- if(i===3){data.onboarding.notifications=!!form.querySelector('input[name="updates"]')?.checked;state.signedIn=true;state.guest=false;state.user={...data.onboarding};addNotice("System","Your demo profile is ready",data.onboarding.name,"Explore");close();return}
+ if(i===3){data.onboarding.notifications=!!form.querySelector('input[name="updates"]')?.checked;state.signedIn=true;state.guest=false;state.user={...data.onboarding};window.HustleFlowsPreview?.updateDemoUser?.(state.user);addNotice("System","Your demo profile is ready",data.onboarding.name,"Explore");close();return}
  state.onboardStep++;render();return}
  if(name==="report"){state.reportReason=get("reason");state.reportText=get("reportDetails");state.modal="report-confirm";render();return}
  if(name==="booking-request"){data.booking.requirements=get("requirements");data.booking.location=get("location");if(data.booking.requirements.length<10||!data.booking.location){renderToast("Add at least 10 characters and a work area");return}data.booking.stage="consultation";render();return}
