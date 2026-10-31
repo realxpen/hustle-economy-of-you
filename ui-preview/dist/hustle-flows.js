@@ -842,6 +842,7 @@ function triggerLive(){
 phone.addEventListener("click",e=>{
  const btn=e.target.closest("button");
  if(!btn)return;
+ if(btn.dataset.homeLive!==undefined){e.preventDefault();e.stopImmediatePropagation();state.liveHubTab="For You";state.liveCategory="All";state.liveSlideId=null;push("LiveHub");return}
  if(btn.closest(".bottom-nav")&&btn.dataset.nav){
   e.preventDefault();e.stopImmediatePropagation();setNav(btn.dataset.nav);return;
  }
