@@ -174,7 +174,7 @@ function updateBookingPreview(){
 }
 
 function localISO(offset=0){const d=new Date();d.setDate(d.getDate()+offset);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
-function niceDate(day){if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(day||""))return esc(day||"");const d=new Date(day+"T12:00:00");return d.toLocaleDateString("en-NG",{weekday:"short",day:"numeric",month:"short",year:"numeric"})}
+function niceDate(day){if(!/^\d{4}-\d{2}-\d{2}$/.test(day||""))return esc(day||"");const d=new Date(day+"T12:00:00");return d.toLocaleDateString("en-NG",{weekday:"short",day:"numeric",month:"short",year:"numeric"})}
 function renderBooking(){
  const b=data.booking,p=policyFor(),paid=Number(b.consultPaid||0),due=payable(),group=!!b.customQuote,estimate=b.quoteLines||window.HustleBookingRules?.quote({id:p.id,provider:b.professional,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:paid});
  const visible=["Your request","Review & approval","Secure payment","Complete"];
