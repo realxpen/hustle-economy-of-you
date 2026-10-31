@@ -12,6 +12,65 @@ const templates={
 };
 const samples=[{id:"barber",title:"Signature haircut",name:"Tobi Adeyemi"},{id:"tailor",title:"Custom wedding outfit",name:"Zara Okafor"},{id:"shoemaker",title:"Shoe repair or handmade pair",name:"The Shoe Studio"},{id:"cook",title:"Meal boxes and event catering",name:"Chef Amara"},{id:"education",title:"Educational consultation",name:"Education Adviser"},{id:"home",title:"Home repair visit",name:"Home Services Pro"},{id:"photo",title:"Event photography",name:"Photo Studio"}];
 const overrides=new Map();const reservations=new Map();
+
+/* Example business roster + hours. UI-only and never a source of real availability. */
+const businesses=new Map();
+const asDate=d=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(d))?new Date(d+"T12:00:00"):null;
+const hoursToMinutes=v=>{const m=String(v).match(/^(\\d{2}):(\\d{2})$/);return m?Number(m[1])*60+Number(m[2]):NaN};
+const timeToMinutes=v=>{const m=String(v).match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)/i);return m?(Number(m[1])%12+(m[3].toUpperCase()==="PM"?12:0))*60+Number(m[2]):NaN};
+function business(id,provider="default"){
+ const k=providerKey(id,provider);
+ if(!businesses.has(k)){
+  const demo=id==="barber"&&provider==="Tobi Adeyemi";
+  const staff=demo?["Tobi Adeyemi","Bisi (barber)","Kelechi (barber)","Emeka (barber)"].map((name,i)=>({id:"team-"+(i+1),name,status:"active",timeOff:[]})):null;
+  businesses.set(k,{name:provider,mode:demo?"team":"solo",staff:staff||[],start:"09:00",end:"20:00",days:[0,1,2,3,4,5,6],setupCompleted:false});
+ }
+ return businesses.get(k);
+}
+function getTeam(id,provider="default"){const b=business(id,provider);return {...b,staff:b.staff.map(x=>({...x,timeOff:[...x.timeOff]})),days:[...b.days]}}
+function setBusiness(id,provider,patch={}){
+ const b=business(id,provider),clean={};
+ if(["solo","team"].includes(patch.mode))clean.mode=patch.mode;
+ if(typeof patch.name==="string"&&patch.name.trim())clean.name=patch.name.trim().slice(0,80);
+ if(patch.start!==undefined||patch.end!==undefined){
+  const start=patch.start??b.start,end=patch.end??b.end;
+  if(!Number.isFinite(hoursToMinutes(start))||!Number.isFinite(hoursToMinutes(end))||hoursToMinutes(start)>=hoursToMinutes(end))return false;
+  clean.start=start;clean.end=end;
+ }
+ if(patch.days!==undefined){if(!Array.isArray(patch.days)||!patch.days.every(x=>Number.isInteger(x)&&x>=0&&x<=6))return false;clean.days=[...new Set(patch.days)]}
+ if(patch.setupCompleted!==undefined)clean.setupCompleted=!!patch.setupCompleted;
+ Object.assign(b,clean);return true;
+}
+function addMember(id,provider,name){
+ const b=business(id,provider),v=String(name||"").trim();
+ if(v.length<2||v.length>70||b.staff.some(x=>x.name.toLowerCase()===v.toLowerCase())||b.staff.length>=50)return null;
+ const member={id:"staff-"+(++memberSerial),name:v,status:"active",timeOff:[]};
+ b.staff.push(member);return {...member};
+}
+let memberSerial=0;
+function setMemberStatus(id,provider,memberId,status){
+ const b=business(id,provider),m=b.staff.find(x=>x.id===memberId);
+ if(!m||!["active","away","departed"].includes(status))return false;
+ m.status=status;return true;
+}
+function setMemberOff(id,provider,memberId,day,on=true){
+ const date=asDate(day),m=business(id,provider).staff.find(x=>x.id===memberId);
+ if(!date||!m)return false;
+ m.timeOff=m.timeOff.filter(x=>x!==day);if(on)m.timeOff.push(day);
+ return true;
+}
+function effectiveCapacity(id,day,provider="default"){
+ const b=business(id,provider),configured=get(id,provider).capacity;
+ if(b.mode!=="team")return b.staff.length?Math.min(1,configured):Math.max(1,configured);
+ const active=b.staff.filter(x=>x.status==="active"&&!x.timeOff.includes(day)).length;
+ return Math.min(configured,active);
+}
+function isOpen(id,day,time,provider="default"){
+ const b=business(id,provider),d=asDate(day),start=timeToMinutes(time);
+ if(d&&!b.days.includes(d.getDay()))return false;
+ return Number.isFinite(start)&&start>=hoursToMinutes(b.start)&&start+60<=hoursToMinutes(b.end);
+}
+
 const providerKey=(id,provider)=>[id,String(provider||"default")].join("|");
 // Reservation keys are scoped by professional, not a global skill category.
 const key=(id,day,time,provider="default")=>[provider,id,day,time].join("|");
@@ -31,8 +90,8 @@ function update(id,patch,provider="default"){if(!templates[id])return false;cons
  if(clean.consultation==="off"){clean.consultFee=0;clean.creditConsultation=false}
  const k=providerKey(id,provider);overrides.set(k,{...(overrides.get(k)||{}),...clean});return true}
 function held(id,day,time,provider="default"){return reservations.get(key(id,day,time,provider))||0}
-function left(id,day,time,provider="default"){const cap=get(id,provider).capacity;return Math.max(0,cap-held(id,day,time,provider))}
-function reserve(id,day,time,units=1,provider="default"){if(!Number.isSafeInteger(units)||units<1||units>get(id,provider).capacity||left(id,day,time,provider)<units)return false;const k=key(id,day,time,provider);reservations.set(k,held(id,day,time,provider)+units);return true}
+function left(id,day,time,provider="default"){const cap=isOpen(id,day,time,provider)?effectiveCapacity(id,day,provider):0;return Math.max(0,cap-held(id,day,time,provider))}
+function reserve(id,day,time,units=1,provider="default"){if(!Number.isSafeInteger(units)||units<1||units>effectiveCapacity(id,day,provider)||left(id,day,time,provider)<units)return false;const k=key(id,day,time,provider);reservations.set(k,held(id,day,time,provider)+units);return true}
 function release(id,day,time,units=1,provider="default"){const k=key(id,day,time,provider);reservations.set(k,Math.max(0,held(id,day,time,provider)-Math.max(0,units)))}
 function slotAt(start,offset){
  const m=String(start).match(/^(\d{1,2}):(\d{2})\s*(AM|PM)/i);if(!m)return offset?null:start;
@@ -44,10 +103,11 @@ function slotAt(start,offset){
 function reservePlan(id,day,time,people=1,provider="default"){
  const p=get(id,provider),count=Number(people);
  if(!Number.isSafeInteger(count)||count<1||count>50)return null;
- const slotsPerRound=Math.ceil(p.duration/60),rounds=Math.ceil(count/p.capacity);
+ const cap=effectiveCapacity(id,day,provider);if(cap<1)return null;
+ const slotsPerRound=Math.ceil(p.duration/60),rounds=Math.ceil(count/cap);
  const allocations=new Map(),starting=slotAt(time,0);if(!starting)return null;
  for(let round=0;round<rounds;round++){
-  const units=Math.min(p.capacity,count-round*p.capacity);
+  const units=Math.min(cap,count-round*cap);
   for(let slot=0;slot<slotsPerRound;slot++){
    const name=slotAt(time,round*slotsPerRound+slot);if(!name)return null;
    allocations.set(name,(allocations.get(name)||0)+units);
@@ -63,12 +123,12 @@ function releasePlan(plan){
  return true;
 }
 function quote({id="generic",provider="default",basePrice,people=1,venue="",consultPaid=0}={}){
- const p=get(id,provider),n=Math.max(1,Math.min(50,Number(people)||1));const unit=Number.isFinite(Number(basePrice))?Math.max(0,Math.round(Number(basePrice))):p.basePrice;
+ const p=get(id,provider),n=Math.max(1,Math.min(50,Number(people)||1)),cap=Math.max(1,effectiveCapacity(id,"",provider));const unit=Number.isFinite(Number(basePrice))?Math.max(0,Math.round(Number(basePrice))):p.basePrice;
  const service=unit*n,travel=/home|at my location|pickup|delivery|at event|outdoor|site assessment/i.test(venue)?(p.travelFee||0):0;
  const event=/event|group|cater|wedding/i.test(venue)?(p.eventFee||0):0;
  const full=service+travel+event,credit=p.creditConsultation?Math.min(full,Math.max(0,Math.round(Number(consultPaid)||0))):0;
- return {unit,people:n,service,travel,event,total:full,credit,due:Math.max(0,full-credit),duration:Math.ceil(n/p.capacity)*p.duration};
+ return {unit,people:n,service,travel,event,total:full,credit,due:Math.max(0,full-credit),duration:Math.ceil(n/cap)*p.duration};
 }
 const finalDue=(amount,paid,enabled)=>Math.max(0,Math.round(amount)-(enabled?Math.min(Math.round(amount),Math.max(0,Math.round(paid))):0));
-window.HustleBookingRules={templates,samples,get,getForService,hasOverride,detect,update,held,left,reserve,release,reservePlan,releasePlan,quote,finalDue,_testing:{overrides,reservations}};
+window.HustleBookingRules={templates,samples,get,getForService,hasOverride,detect,update,held,left,reserve,release,reservePlan,releasePlan,quote,finalDue,getTeam,setBusiness,addMember,setMemberStatus,setMemberOff,effectiveCapacity,isOpen,_testing:{overrides,reservations,businesses}};
 })();
