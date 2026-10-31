@@ -47,10 +47,14 @@ for(const text of [
  "node scripts/payment-sandbox/check-payment-preview-api-edge.mjs",
  "wrangler deploy",
  "test \"$DENIED\" = 401",
- "test \"$WEBHOOK_GET\" = 403"
+ "test \"$WEBHOOK_GET\" = 403",
+ "configured-test-only",
+ "Dedicated payment preview secret is INACTIVE"
 ]) assert.ok(workflow.includes(text), "Missing protected deployment policy: "+text);
 assert.doesNotMatch(workflow,/^  push:|^  pull_request:|^  schedule:/m);
 assert.doesNotMatch(workflow,/hustle-isolated-lambda-staging|hustle-isolated-staging-api@sha256/);
+assert.doesNotMatch(workflow,/ecr-public get-login-password/);
+
 assert.match(worker,/PREVIEW_UPSTREAM_ORIGIN/);
 assert.match(worker,/headers = new Headers\(request.headers\)/);
 console.log("PASS: isolated AWS preview stack, immutable image, dedicated identity, manual-only guarded release and separate Cloudflare edge; no deployment.");
