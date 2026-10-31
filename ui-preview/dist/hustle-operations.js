@@ -34,7 +34,7 @@ const store={
  agents:[{id:"APP-20",name:"Sample agent",category:"Talent management",state:"Pending"}],
  audit:[{date:"Sample",action:"Sandbox initialized",context:"No production data"}]
 };
-const state={page:"Wallet",previous:[],walletTab:"Overview",hustlerTab:"Overview",agentTab:"Overview",adminTab:"Dashboard",activityTab:"All",escrowId:"HES-2401",milestoneId:1,confirmAction:null,fundingMethod:"Card",agentPreview:false,adminPreview:false,adminInspect:false,agentApplied:false,hustlerAvailable:true,modal:"",formDraft:{}};
+const state={page:"Wallet",previous:[],walletTab:"Overview",hustlerTab:"Overview",agentTab:"Overview",adminTab:"Dashboard",activityTab:"All",escrowId:"HES-2401",milestoneId:1,confirmAction:null,fundingMethod:"Card",agentPreview:false,adminPreview:false,adminInspect:false,agentApplied:false,hustlerAvailable:true,bookingConfigSkill:"barber",modal:"",formDraft:{}};
 let root=document.getElementById("hustleOpsLayer");if(!root){root=document.createElement("section");root.id="hustleOpsLayer";root.className="ho-root";root.hidden=true;phone.appendChild(root)}
 function audit(action,context){store.audit.unshift({date:dateNow(),action,context});}
 const escrow=id=>store.escrow.find(x=>x.id===id);
@@ -147,18 +147,43 @@ function renderActivityHistory(){
  return header("Escrow timeline",e?.id||"Demo")+`<div class="ho-screen">${visibleStatus()}${section("Timeline")}${(e?.log||[]).map((x,i)=>line("✦",esc(x),i===0?esc(e.created):"Demo event","✓")).join("")}</div>`;
 }
 function renderHustler(){
- const tabsArr=["Overview","Bookings","Listings","Insights","Earnings"];
+ const tabsArr=["Overview","Bookings","Booking setup","Listings","Insights","Earnings"];
  let content="";
  if(state.hustlerTab==="Overview"){
   content=`<div class="ho-studio-hero"><span>YOUR PROFESSIONAL SPACE · DEMO</span><h2>Your skills. Your business.</h2><p>Manage consultations, availability, listings, payments and customer relationships in one place.</p></div>
    <div class="ho-stats-two">${stat("New enquiries","6","Example this week")}${stat("Completed jobs","24","Example this month")}${stat("Average rating","4.9","Sample reviews")}${stat("Earnings",money(store.earnings),"Demo amount")}</div>
-   ${section("Quick actions")}<div class="ho-quick-grid"><button data-op="studio-tab" data-value="Bookings"><span>▤</span><b>Bookings</b><small>Jobs & consultations</small></button><button data-op="create-service"><span>＋</span><b>Create listing</b><small>Service or product</small></button><button data-op="Wallet"><span>₦</span><b>Wallet</b><small>Escrows & earnings</small></button><button data-op="studio-tab" data-value="Insights"><span>↗</span><b>Insights</b><small>Your performance</small></button></div>
+   ${section("Quick actions")}<div class="ho-quick-grid"><button data-op="studio-tab" data-value="Bookings"><span>▤</span><b>Bookings</b><small>Jobs & requests</small></button><button data-op="create-service"><span>＋</span><b>Create listing</b><small>Service or product</small></button><button data-op="Wallet"><span>₦</span><b>Wallet</b><small>Escrows & earnings</small></button><button data-op="studio-tab" data-value="Booking setup"><span>⚙</span><b>Booking setup</b><small>Slots · Consultation</small></button></div>
    ${section("Upcoming work",`<button class="ho-text-action" data-op="studio-tab" data-value="Bookings">See all →</button>`)}
    ${store.bookings.slice(0,2).map(b=>line("✳",esc(b.service),`${esc(b.person)} · ${esc(b.day)}`,badge(b.state),"booking",b.id)).join("")}
    <div class="ho-availability"><div><b>Accepting new enquiries</b><small>Your preview availability status</small></div><button class="ho-switch ${state.hustlerAvailable?"on":""}" data-op="availability" role="switch" aria-checked="${state.hustlerAvailable}" aria-label="Toggle availability"><span></span></button></div>`;
  }else if(state.hustlerTab==="Bookings"){
   content=`${section("Bookings & consultations")}${store.bookings.map(b=>line("◷",esc(b.service),`${esc(b.person)} · ${esc(b.day)}`,badge(b.state),"booking",b.id)).join("")}
   ${banner("Quotes & milestones","Each booking progresses through consultation → quote → client-approved milestones → protected payment → completion and release. Only clients authorize escrow release.","quiet")}`;
+ }else if(state.hustlerTab==="Booking setup"){
+  const rules=window.HustleBookingRules,skill=state.bookingConfigSkill,p=rules?.get(skill);
+  if(!p){content=banner("Booking engine unavailable","This preview must load the service booking rules before opening the studio.","quiet")}
+  else {
+   content=`${visibleStatus()}${section("Configure a service journey")}
+   <p class="ho-copy">Every skill has a starting template; the professional controls whether consultations are offered, staff capacity, prices and added services. Saving affects this browser demo only.</p>
+   <div class="ho-policy-skills">${Object.values(rules.templates).map(x=>`<button data-op="booking-config-skill" data-value="${x.id}" class="${x.id===skill?"on":""}">${x.icon} ${esc(x.label)}</button>`).join("")}</div>
+   <form class="ho-form ho-booking-policy" data-ho-form="booking-policy">
+    <div class="ho-field"><label for="hoPolicyConsult">Consultation policy</label><select id="hoPolicyConsult" name="consultation">
+     ${[["off","No consultation"],["optional","Optional (client chooses)"],["required","Required for this service"]].map(([val,title])=>`<option value="${val}" ${p.consultation===val?"selected":""}>${title}</option>`).join("")}</select></div>
+    <div class="ho-policy-grid">
+     <div class="ho-field"><label for="hoPolicyFee">Consultation fee (₦)</label><input id="hoPolicyFee" type="number" name="consultFee" min="0" max="100000" step="100" value="${p.consultFee}"></div>
+     <div class="ho-field"><label for="hoPolicyPrice">Starting service price (₦)</label><input id="hoPolicyPrice" type="number" name="basePrice" min="0" max="2000000" step="100" value="${p.basePrice}"></div>
+     <div class="ho-field"><label for="hoPolicyCap">Appointments per slot</label><input id="hoPolicyCap" type="number" name="capacity" min="1" max="50" step="1" value="${p.capacity}"></div>
+     <div class="ho-field"><label for="hoPolicyDur">Minutes per appointment</label><input id="hoPolicyDur" type="number" name="duration" min="15" max="480" step="15" value="${p.duration}"></div>
+     <div class="ho-field"><label for="hoPolicyTravel">Home-service/travel fee (₦)</label><input id="hoPolicyTravel" type="number" name="travelFee" min="0" max="250000" step="100" value="${p.travelFee||0}"></div>
+     <div class="ho-field"><label for="hoPolicyEvent">Event/group fee (₦)</label><input id="hoPolicyEvent" type="number" name="eventFee" min="0" max="250000" step="100" value="${p.eventFee||0}"></div>
+    </div>
+    <label class="ho-policy-check"><input type="checkbox" name="creditConsultation" value="yes" ${p.creditConsultation?"checked":""}><span><b>Credit consultation fee toward service</b><small>Example: ₦1,000 consultation + ₦5,000 haircut → ₦4,000 service balance after consultation payment</small></span></label>
+    <div class="ho-booking-example"><b>Current journey</b><span>${p.consultation==="off"?"Direct request":p.consultation==="optional"?"Direct request OR consultation":"Consultation first"} · ${p.capacity} booking${p.capacity===1?"":"s"}/slot</span><small>For event groups, travel and extra team time must be reviewed in a professional quote.</small></div>
+    <button type="submit" class="ho-btn ho-lime ho-full">Save demo booking settings</button>
+   </form>
+   <button class="ho-btn ho-outline ho-full" data-op="booking-config-preview">Try this booking journey →</button>
+   ${banner("Real scheduling requires a calendar backend","The demo slot counter is isolated and resets with the page. Production must allocate individual staff or equivalent resources, avoid conflicting reservations, and enforce deadlines and capacity server-side.","quiet")}`;
+  }
  }else if(state.hustlerTab==="Listings"){
   content=`${section("Your listings",btn("+ New listing","create-service","outline"))}
   ${[["Signature haircut","Service · from ₦8,000","💈"],["Grooming workshop","Training · from ₦30,000","🎓"],["Finishing kit","Product · sample","🛍️"]].map(([a,b,i])=>line(i,a,b,badge("Active"))).join("")}
@@ -180,8 +205,8 @@ function renderBooking(){
  const b=store.bookings.find(x=>x.id===state.formDraft.booking);
  return header("Booking workspace",b?.id||"Demo booking")+`<div class="ho-screen">${visibleStatus()}<div class="ho-detail-hero"><h2>${esc(b?.service)}</h2><p>${esc(b?.person)} · ${esc(b?.day)}</p>${badge(b?.state||"Pending")}</div>
  ${section("Next steps")}
- <div class="ho-payment-step"><span>1</span><div><b>Consult with customer</b><small>Clarify scope, references, availability and price.</small></div></div>
- <div class="ho-payment-step"><span>2</span><div><b>Prepare a quote</b><small>Invoice terms and agreed service milestones.</small></div></div>
+ <div class="ho-payment-step"><span>1</span><div><b>Review the booking request</b><small>Confirm service references, team capacity, timing and whether an optional consultation is necessary.</small></div></div>
+ <div class="ho-payment-step"><span>2</span><div><b>Accept a fixed price or prepare a custom quote</b><small>Group, home visit and event jobs may need separate travel, staffing and milestone terms.</small></div></div>
  <div class="ho-payment-step"><span>3</span><div><b>Complete work</b><small>Client confirms agreed completion before payment release.</small></div></div>
  <div class="ho-actions">${btn("Mark as quoted","booking-progress","lime")}${btn("View escrow","Wallet","outline")}</div>
  ${banner("No real customer action","Changing this booking stage affects only the sample studio.","quiet")}</div>`;
@@ -332,6 +357,8 @@ function handle(op,id,value,node){
   case "Admin":state.adminPreview=false;nav("AdminGate");break;
   case "wallet-tab":state.walletTab=value;render();break;
   case "studio-tab":state.hustlerTab=value;render();break;
+  case "booking-config-skill":state.bookingConfigSkill=value;render();break;
+  case "booking-config-preview":{const rules=window.HustleBookingRules,caseData=rules?.samples?.find(x=>x.id===state.bookingConfigSkill);if(!caseData){toast("Booking example unavailable");break}close();window.HustleJourneys?.open("BookingJourney",{service:caseData.title,professional:caseData.name,category:caseData.id,price:rules.get(caseData.id).basePrice});break}
   case "agent-tab":state.agentTab=value;render();break;
   case "admin-tab":if(state.adminPreview){state.adminTab=value;render()}break;
   case "activity-tab":state.activityTab=value;render();break;
@@ -374,6 +401,7 @@ root.addEventListener("click",e=>{
 root.addEventListener("submit",e=>{
  const form=e.target;const type=form.dataset.hoForm;if(!type)return;
  e.preventDefault();
+ if(type==="booking-policy"){const f=new FormData(form),skill=state.bookingConfigSkill,patch={consultation:String(f.get("consultation")||"optional"),consultFee:Number(f.get("consultFee")),basePrice:Number(f.get("basePrice")),capacity:Number(f.get("capacity")),duration:Number(f.get("duration")),travelFee:Number(f.get("travelFee")),eventFee:Number(f.get("eventFee")),creditConsultation:f.get("creditConsultation")==="yes"};if(!window.HustleBookingRules?.update(skill,patch)){toast("Please check fee, price and capacity limits");return}audit("Demo service booking policy changed",skill);render();toast("Booking rules saved for this preview session");return}
  if(type==="deposit")submitFunding(form);
  if(type==="withdraw")submitWithdraw(form);
  if(type==="escrow")submitEscrow(form);
