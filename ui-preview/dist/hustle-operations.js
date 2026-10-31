@@ -361,7 +361,7 @@ function handle(op,id,value,node){
   case "agent-verify":toast("Blocked: hustler must personally complete face verification in the real app");break;
   case "admin-enter":state.adminPreview=true;state.page="Admin";audit("Entered internal design sandbox","No production credentials");render();break;
   case "admin-tab-target":if(state.adminPreview){state.adminTab=id;state.page="Admin";render()}break;
-  case "moderate-approve":case "moderate-flag":if(state.adminPreview){const m=store.moderation.find(x=>x.id===id);if(m){m.state=op==="moderate-approve"?"Approved":"Flagged";audit("Admin sample content decision",id+" · "+m.state);render()}}break;
+  case "moderate-approve":case "moderate-flag":if(state.adminPreview){const m=store.moderation.find(x=>x.id===id);if(m){m.state=m.type==="User report"?(op==="moderate-approve"?"Reviewed":"Escalated"):(op==="moderate-approve"?"Approved":"Flagged");audit("Admin sample content decision",id+" · "+m.state);if(m.type==="User report")window.HustleJourneys?.updateReportStatus?.(id,m.state);render()}}break;
   case "admin-refund":case "admin-release":if(state.adminPreview){state.formDraft={action:op,id};state.modal="adminConfirm";render()}break;
   case "admin-decide":adminResolution();break;
  }
@@ -380,6 +380,11 @@ root.addEventListener("submit",e=>{
  if(type==="invite"){const f=new FormData(form),name=String(f.get("name")||"").trim(),skill=String(f.get("skill")||"").trim();if(!name||!skill)return;store.talent.push({id:"AG-"+Date.now().toString().slice(-5),name,skill,city:"Not set",status:"Pending invite",earnings:0,avatar:"✳"});state.modal="";state.agentTab="Talent";render();toast("Demo invitation created · Not sent");}
 });
 
+function addDemoReport(r){
+ const id=String(r.id||"");if(!id||store.moderation.some(x=>x.id===id))return false;
+ store.moderation.unshift({id,type:"User report",person:String(r.subject||"Content").slice(0,100),description:String(r.reason||"Concern").slice(0,200),state:"Pending"});
+ audit("New demo user report",id);return true;
+}
 function addJourneyEscrow(entry){
  const amount=Number(entry.amount||0),service=String(entry.service||"Service preview").slice(0,100),professional=String(entry.professional||"Professional").slice(0,100);
  if(!Number.isSafeInteger(amount)||amount<1||amount>10000000)return null;
@@ -415,5 +420,5 @@ function acceptDemoTalent(name){
  const p=store.talent.find(t=>t.name===name&&t.status==="Pending invite");
  if(!p)return false;p.status="Accepted demo";audit("Simulated hustler consent",name);render();return true;
 }
-window.HustleOperations={open,close,openEscrow,addJourneyEscrow,updateJourneyEscrow,addDemoTalent,acceptDemoTalent,getState:()=>({screen:state.page,wallet:store.wallet,earnings:store.earnings,escrows:store.escrow.map(x=>({id:x.id,status:x.status,held:held(x)})),agentPreview:state.agentPreview,adminPreview:state.adminPreview}),_testing:{store,state,handle,render}};
+window.HustleOperations={open,close,openEscrow,addJourneyEscrow,updateJourneyEscrow,addDemoReport,addDemoTalent,acceptDemoTalent,getState:()=>({screen:state.page,wallet:store.wallet,earnings:store.earnings,escrows:store.escrow.map(x=>({id:x.id,status:x.status,held:held(x)})),agentPreview:state.agentPreview,adminPreview:state.adminPreview}),_testing:{store,state,handle,render}};
 })();
