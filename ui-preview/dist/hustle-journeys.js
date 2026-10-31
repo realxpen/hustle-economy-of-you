@@ -22,6 +22,13 @@ function info(message){return `<div class="hj-info" role="note">${message}</div>
 function progress(keys,index){return `<div class="hj-progress" aria-label="Step ${index+1} of ${keys.length}">${keys.map((v,i)=>`<span class="${i<=index?"on":""}" title="${esc(v)}"></span>`).join("")}</div><p class="hj-progress-label">Step ${index+1} of ${keys.length} · ${esc(keys[index])}</p>`}
 function field(name,label,placeholder="",type="text",value="",extra=""){return `<div class="hj-field"><label for="hj-${name}">${esc(label)}</label>${type==="textarea"?`<textarea name="${name}" id="hj-${name}" placeholder="${esc(placeholder)}" rows="3" maxlength="500" ${extra}>${esc(value)}</textarea>`:`<input id="hj-${name}" name="${name}" placeholder="${esc(placeholder)}" type="${type}" value="${esc(value)}" ${extra}>`}</div>`}
 function formBody(type,body,submit,back=""){return `<form class="hj-form" data-hj-form="${type}">${body}<div class="hj-action-row">${back?button("← Back",back,"secondary"):""}<button class="hj-btn hj-primary" type="submit">${submit}</button></div></form>`}
+const introKey="hustle_preview_intro_seen_v1";
+function rememberIntro(){try{window.sessionStorage?.setItem(introKey,"1")}catch(e){}}
+function introSeen(){try{return window.sessionStorage?.getItem(introKey)==="1"}catch(e){return false}}
+function playSplash(){
+ if(root.hidden||state.screen!=="Splash")return;
+ setTimeout(()=>{if(!root.hidden&&state.screen==="Splash"){state.screen="Welcome";render()}},1150);
+}
 function screenContent(){
  switch(state.screen){
  case "Splash":return `<main class="hj-splash"><div class="hj-splash-orb"><span>✦</span></div><div class="hj-splash-word">hustle<span>.</span></div><p>Where skills meet opportunity.</p><span class="hj-splash-progress"></span><button data-hj="guest" class="hj-splash-skip">Skip intro</button></main>`;
@@ -176,7 +183,7 @@ function renderAgentInvite(){
  return heading("Invitation created","AWAITING PROFESSIONAL CONSENT")+`<div class="hj-page"><div class="hj-success-icon">✓</div><h2>Invitation prepared.</h2>
  <div class="hj-status-card"><span>Reference</span><b>${esc(inv?.id)}</b><span>Professional</span><b>${esc(inv?.name)}</b><span>Status</span><b>${esc(inv?.status)}</b></div>
  <h3>What happens next?</h3><div class="hj-roadmap">${["Share an invitation link, QR or code through a trusted channel (disabled in demo)","Hustler reviews the role, permissions and service terms themselves","Hustler verifies their identity/phone through a provider-managed login","Hustler explicitly accepts or declines agency access"].map((x,i)=>`<p><span>${i+1}</span>${esc(x)}</p>`).join("")}</div>
- ${button("Show professional confirmation →","agent-handoff")}${button("Done for now","close","secondary")}
+ ${inv?.status==="Pending acceptance"?button("Show professional confirmation →","agent-handoff"):""}${button("Done","close","secondary")}
  ${info("Even when accepted, an agent cannot access this person's funds or complete their identity checks.")}</div>`;
 }
 function renderAgentConsent(){
@@ -203,11 +210,12 @@ function render(){
  if(active){active.classList.remove("hj-arrive");void active.offsetWidth;active.classList.add("hj-arrive")}
 }
 function open(screen="Welcome",opts={}){
+ if(screen==="Splash")state.guest=true;
  if(screen==="Report"){state.reportSubject=opts.subject||"Content";state.reportId=opts.id||"Sample content";state.reportText="";state.reportReason="Misleading or fraudulent"}
  if(screen==="BookingJourney"&&opts.service){data.booking={...data.booking,service:opts.service,professional:opts.professional||data.booking.professional,price:Number(opts.price)||data.booking.price,stage:"request",quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}]}}
  if(screen==="PaymentJourney"&&opts.item){data.purchase={...data.purchase,item:opts.item,price:Number(opts.price)||data.purchase.price,method:opts.method||data.purchase.method,delivery:opts.delivery||data.purchase.delivery,stage:"details",status:"Not placed"}}
  if(screen==="AgentAdd"){state.agentStep=0;state.agentMode="Existing";state.agentSelected="";state.agentConsent=false;state.agentTerms=false;state.agentLanguage="English";state.agentHandoff="In-person handover"}
- state.stack=[];state.screen=screen;state.modal="";root.hidden=false;phone.classList.add("hj-open");render();
+ state.stack=[];state.screen=screen;state.modal="";root.hidden=false;phone.classList.add("hj-open");render();if(screen==="Splash")playSplash();
 }
 function go(screen){state.stack.push(state.screen);state.screen=screen;state.modal="";render()}
 function back(){if(state.modal){state.modal="";render();return}if(state.stack.length){state.screen=state.stack.pop();render()}else close()}
@@ -216,7 +224,7 @@ function addNotice(type,title,detail,route){data.notifications.unshift({id:uid("
 function onAction(action,value="",id=""){
  switch(action){
  case "close":close();break;case "back":back();break;
- case "guest":state.guest=true;state.signedIn=false;data.auth.contact="";close();break;
+ case "guest":state.guest=true;state.signedIn=false;data.auth.contact="";rememberIntro();close();break;
  case "auth-start":data.auth.contact="";data.auth.method="phone";go("Auth");break;
  case "auth-method":data.auth.method=value;render();break;
  case "onboard-back":state.onboardStep=Math.max(0,state.onboardStep-1);render();break;
@@ -256,7 +264,7 @@ function onAction(action,value="",id=""){
  state.agentStep=Math.min(3,state.agentStep+1);render();break}
  case "agent-back":state.agentStep=Math.max(0,state.agentStep-1);render();break;
  case "agent-submit":{const name=state.agentMode==="Existing"?state.agentSelected:state.agentName;if(!name||!state.agentConsent||!state.agentTerms){renderToast("Complete permissions first");return}const invite={id:uid("HAG"),name,skill:state.agentSkill||"Existing profile",mode:state.agentMode,language:state.agentLanguage,handoff:state.agentHandoff,status:"Pending acceptance"};data.agentInvites.unshift(invite);state.agentInviteId=invite.id;if(window.HustleOperations?.addDemoTalent)window.HustleOperations.addDemoTalent({name,skill:invite.skill,status:"Pending invite"});addNotice("System","Agent invite created · demo",name,"Explore");go("AgentInvite");break}
- case "agent-handoff":go("AgentConsent");break;
+ case "agent-handoff":if(data.agentInvites.find(x=>x.id===state.agentInviteId)?.status==="Pending acceptance")go("AgentConsent");break;
  case "agent-accept":{
   if(state.screen!=="AgentConsent"||!root.querySelector("#hjHustlerAgree")?.checked){renderToast("The professional must review and confirm consent first");break}
   const invite=data.agentInvites.find(x=>x.id===state.agentInviteId);
@@ -286,7 +294,7 @@ function onSubmit(name,form){
  if(name==="onboard"){const i=state.onboardStep;
  if(i===1){data.onboarding.name=get("name");data.onboarding.handle=get("handle");if(!data.onboarding.name){renderToast("A display name is needed");return}}
  if(i===2){data.onboarding.skill=get("skill");data.onboarding.area=get("area")}
- if(i===3){data.onboarding.notifications=!!form.querySelector('input[name="updates"]')?.checked;state.signedIn=true;state.guest=false;state.user={...data.onboarding};window.HustleFlowsPreview?.updateDemoUser?.(state.user);addNotice("System","Your demo profile is ready",data.onboarding.name,"Explore");close();return}
+ if(i===3){data.onboarding.notifications=!!form.querySelector('input[name="updates"]')?.checked;state.signedIn=true;state.guest=false;state.user={...data.onboarding};window.HustleFlowsPreview?.updateDemoUser?.(state.user);addNotice("System","Your demo profile is ready",data.onboarding.name,"Explore");rememberIntro();close();return}
  state.onboardStep++;render();return}
  if(name==="report"){state.reportReason=get("reason");state.reportText=get("reportDetails");state.modal="report-confirm";render();return}
  if(name==="booking-request"){data.booking.requirements=get("requirements");data.booking.location=get("location");if(data.booking.requirements.length<10||!data.booking.location){renderToast("Add at least 10 characters and a work area");return}data.booking.stage="consultation";render();return}
@@ -305,6 +313,5 @@ function updateReportStatus(id,status){
  return true;
 }
 window.HustleJourneys={open,close,notify:addNotice,updateReportStatus,getState:()=>({screen:state.screen,guest:state.guest,signedIn:state.signedIn,user:state.user,booking:{stage:data.booking.stage,milestones:data.booking.milestones.map(x=>x.state),dispute:data.booking.dispute},payment:{stage:data.purchase.stage,status:data.purchase.status},reports:data.reports.map(x=>({id:x.id,status:x.status})),agentInvites:data.agentInvites.map(x=>({name:x.name,status:x.status})),notifications:data.notifications.map(x=>({id:x.id,read:x.read}))}),_test:{data,state,onAction,onSubmit,render}};
-open("Splash");
-setTimeout(()=>{if(!root.hidden&&state.screen==="Splash"){state.screen="Welcome";render()}},1150);
+if(!introSeen())open("Splash");
 })();
