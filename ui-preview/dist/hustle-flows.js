@@ -606,7 +606,7 @@ layer.addEventListener("change",e=>{
  }
 });
 layer.addEventListener("input",e=>{
- if(e.target.id==="hfExploreQuery"){state.query=e.target.value;const result=layer.querySelector("#hfSearchResults");if(result)result.innerHTML=exploreResults()}
+ if(e.target.id==="hfExploreQuery"){state.query=e.target.value;const result=layer.querySelector("#hfSearchResults");if(result){if(mapInstance)disposeMap();result.innerHTML=exploreResults();if(state.exploreTab==="Map")initializeMapAfterRender()}}
  if(e.target.id==="hfInboxSearch"){state.inboxQuery=e.target.value;const active=document.activeElement;const cursor=e.target.selectionStart;render();const search=layer.querySelector("#hfInboxSearch");if(search){search.focus();search.setSelectionRange(cursor,cursor)}}
 });
 layer.addEventListener("submit",e=>{
@@ -630,5 +630,5 @@ layer.addEventListener("submit",e=>{
  t.last=message;t.when="Now";render();
  layer.querySelector(".hf-chat-input input")?.focus();
 });
-window.HustleFlowsPreview={open:(screen,params)=>push(screen,params),home,people,services,products};
+window.HustleFlowsPreview={open:(screen,params)=>push(screen,params),home,people,services,products,postIds:()=>samplePosts.map(p=>p.id)};
 })();
