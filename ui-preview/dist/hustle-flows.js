@@ -250,7 +250,7 @@ function renderExplore(){
  const tabs=["Top","People","Posts","Services","Products","Training","Requests","Map","Stories","Live"];
  return `${head("Explore","People, skills, work and opportunities",false,`<button class="hf-live-mini" data-hf="live-hub" aria-label="Explore Live feeds">● LIVE</button><button class="hf-icbtn" data-hf="cart" aria-label="Open shopping cart">🛒${cartItemCount()?`<span class="hf-cart-count">${cartItemCount()}</span>`:""}</button>`)}
  <div class="hf-page"><div id="hfMapPresearchHost">${state.exploreTab==="Top"&&!state.query.trim()?mapPreSearchCard():""}</div><div class="hf-searchbox"><span>⌕</span><input id="hfExploreQuery" type="search" value="${esc(state.query)}" placeholder="Barber in Lekki, fashion in Yaba..." aria-label="Search Hustle"/><button data-hf="search-clear" aria-label="Clear search">×</button></div>
- <div class="hf-discovery-shopping"><button data-hf="market" aria-label="Browse the Marketplace"><span>🛍️</span><b>Marketplace</b><small>Products · Services</small><strong>→</strong></button><button data-hf="cart" aria-label="Open cart"><span>🛒</span><b>Cart${cartItemCount()?` · ${cartItemCount()}`:""}</b><small>Review items</small><strong>→</strong></button></div>
+ <div class="hf-discovery-shopping"><button data-hf="adaptive-requests" aria-label="Describe a need and discover professional services"><span>✳</span><b>Describe a need</b><small>Find the right skills</small><strong>→</strong></button><button data-hf="market" aria-label="Browse the Marketplace"><span>🛍️</span><b>Marketplace</b><small>Products · Services</small><strong>→</strong></button><button data-hf="cart" aria-label="Open cart"><span>🛒</span><b>Cart${cartItemCount()?` · ${cartItemCount()}`:""}</b><small>Review items</small><strong>→</strong></button></div>
  <div class="hf-tabs" role="tablist" aria-label="Search sections">${tabs.map(x=>`<button data-hf="explore-tab" data-value="${x}" class="${state.exploreTab===x?"on":""}" role="tab" aria-selected="${state.exploreTab===x}">${x}</button>`).join("")}</div>
  ${categoryChips()}
  <div id="hfSearchResults">${mapSearchPreview()}${exploreResults()}</div>
@@ -681,7 +681,7 @@ function renderOwn(){
  <button data-hf="orders"><span>▤</span><b>My orders</b><small>Purchases & bookings</small></button>
  <button data-hf="payments"><span>₦</span><b>Wallet & escrow</b><small>Fund · Milestones · Payouts</small></button>
  </div></div>
- <div class="hf-profile-commerce hf-profile-studios"><div class="hf-section-row"><h2>Workspaces</h2><small>Creator & agent tools</small></div><div class="hf-profile-commerce-grid"><button data-hf="hustler-studio"><span>✳</span><b>Hustler Studio</b><small>Bookings · Insights</small></button><button data-hf="agent-studio"><span>♙</span><b>Agent Studio</b><small>Apply · Manage talent</small></button></div></div>
+ <div class="hf-profile-commerce hf-profile-studios"><div class="hf-section-row"><h2>Workspaces</h2><small>Creator & agent tools</small></div><div class="hf-profile-commerce-grid"><button data-hf="adaptive-hub"><span>▦</span><b>My Economy</b><small>Work · Businesses · Skills</small></button><button data-hf="hustler-studio"><span>✳</span><b>Hustler Studio</b><small>Bookings · Insights</small></button><button data-hf="agent-studio"><span>♙</span><b>Agent Studio</b><small>Apply · Manage talent</small></button></div></div>
  <div class="hf-notice hf-own-notice">Preview account only. No real identity, followers, posts, or account data is connected.</div>
  <div class="hf-tabs" role="tablist" aria-label="Your profile sections">${tabs.map(x=>`<button data-hf="own-tab" data-value="${x}" class="${state.ownTab===x?"on":""}" role="tab" aria-selected="${state.ownTab===x}">${x}</button>`).join("")}</div>
  <div class="hf-own-tab-content">${content}</div></div>`;
@@ -1007,6 +1007,8 @@ layer.addEventListener("click",e=>{
  case "own-settings":push("Settings");break;
  case "payments":if(window.HustleOperations)window.HustleOperations.open("Wallet");else push("Payments");break;
  case "escrow-demo":window.HustleOperations?.open("NewEscrow");break;
+ case "adaptive-hub":window.HustleAdaptiveUI?.open("Spaces");break;
+ case "adaptive-requests":window.HustleAdaptiveUI?.open("Requests");break;
  case "hustler-studio":window.HustleOperations?.open("Hustler");break;
  case "agent-studio":window.HustleOperations?.open("Agent");break;
  case "admin-preview":window.HustleOperations?.open("Admin");break;
