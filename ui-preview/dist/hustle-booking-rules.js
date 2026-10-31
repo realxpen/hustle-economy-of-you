@@ -1,14 +1,14 @@
 (function hustleBookingRules(){
 "use strict";
 const templates={
- barber:{id:"barber",label:"Barber / grooming",icon:"💈",consultation:"optional",consultFee:1000,creditConsultation:true,capacity:4,duration:60,travelFee:2500,eventFee:5000,approval:"manual",basePrice:5000,locationModes:["At the shop","Home service","Event / group"],fields:[["style","Hairstyle / cut","Describe the haircut or style you want"],["notes","Extra details (optional)","e.g. beard trim, children, preferred barber"]],groupQuote:true},
- tailor:{id:"tailor",label:"Tailor / fashion",icon:"🧵",consultation:"optional",consultFee:2000,creditConsultation:true,capacity:1,duration:90,travelFee:3000,eventFee:5000,approval:"manual",basePrice:18000,locationModes:["At the studio","Home measurement","Event / group"],fields:[["style","Outfit or alteration","What would you like made or adjusted?"],["measurements","Measurements / fitting details","Share sizes or say 'Need measurement session'"],["deadline","Needed by","e.g. 15 November"]],groupQuote:true},
- shoemaker:{id:"shoemaker",label:"Shoemaker / repairs",icon:"👞",consultation:"off",consultFee:0,creditConsultation:false,capacity:3,duration:60,approval:"manual",basePrice:6000,locationModes:["Drop off","Pickup / delivery","Custom order"],fields:[["style","Repair or new shoe","e.g. replace sole, handmade loafers"],["size","Shoe size / material","e.g. size 43 leather"],["deadline","Required by","e.g. next Friday"]],groupQuote:true},
- cook:{id:"cook",label:"Chef / catering",icon:"🍳",consultation:"optional",consultFee:0,creditConsultation:false,capacity:2,duration:120,travelFee:3000,eventFee:10000,approval:"manual",basePrice:12500,locationModes:["Pickup","Delivery","Cater an event"],fields:[["style","Meals or menu","What would you like prepared?"],["diet","Dietary needs","e.g. no peanuts, vegetarian"],["guests","Guests / portions","How many people are you feeding?"]],groupQuote:true},
- education:{id:"education",label:"Tutor / consultant",icon:"📚",consultation:"required",consultFee:3000,creditConsultation:false,capacity:1,duration:45,approval:"manual",basePrice:10000,locationModes:["Video call","Phone call","In person"],fields:[["style","What do you need help with?","e.g. school application or maths lesson"],["level","Student / situation","e.g. university admissions, SS3"]],groupQuote:false},
- home:{id:"home",label:"Home / technical service",icon:"🔧",consultation:"required",consultFee:1500,creditConsultation:true,capacity:2,duration:90,approval:"manual",basePrice:15000,locationModes:["At my location","Remote diagnosis","Site assessment"],fields:[["style","Problem / service needed","e.g. leaking tap, faulty socket"],["urgency","Urgency","e.g. today, this week"]],groupQuote:true},
- photo:{id:"photo",label:"Photographer / events",icon:"📷",consultation:"optional",consultFee:0,creditConsultation:false,capacity:1,duration:120,travelFee:5000,eventFee:7000,approval:"manual",basePrice:30000,locationModes:["Studio","At event / venue","Outdoor shoot"],fields:[["style","Shoot type","e.g. wedding, graduation, portraits"],["guests","People / event size","e.g. 30 guests"],["deadline","Event date","e.g. 14 November"]],groupQuote:true},
- generic:{id:"generic",label:"Other professional",icon:"✳",consultation:"optional",consultFee:0,creditConsultation:false,capacity:1,duration:60,approval:"manual",basePrice:8000,locationModes:["At provider","At my location","Remote"],fields:[["style","What do you need?","Describe the work and any references"]],groupQuote:true}
+ barber:{id:"barber",label:"Barber / grooming",icon:"💈",consultation:"optional",consultFee:1000,creditConsultation:true,capacity:4,duration:60,travelFee:2500,eventFee:5000,approval:"manual",basePrice:5000,locationModes:["At the shop","Home service","Event / group"],fields:[["style","Hairstyle / cut","Describe the haircut or style you want"],["notes","Extra details (optional)","e.g. beard trim, children, preferred barber"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"},
+ tailor:{id:"tailor",label:"Tailor / fashion",icon:"🧵",consultation:"optional",consultFee:2000,creditConsultation:true,capacity:1,duration:90,travelFee:3000,eventFee:5000,approval:"manual",basePrice:18000,locationModes:["At the studio","Home measurement","Event / group"],fields:[["style","Outfit or alteration","What would you like made or adjusted?"],["measurements","Measurements / fitting details","Share sizes or say 'Need measurement session'"],["deadline","Needed by","e.g. 15 November"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"},
+ shoemaker:{id:"shoemaker",label:"Shoemaker / repairs",icon:"👞",consultation:"off",consultFee:0,creditConsultation:false,capacity:3,duration:60,approval:"manual",basePrice:6000,locationModes:["Drop off","Pickup / delivery","Custom order"],fields:[["style","Repair or new shoe","e.g. replace sole, handmade loafers"],["size","Shoe size / material","e.g. size 43 leather"],["deadline","Required by","e.g. next Friday"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"},
+ cook:{id:"cook",label:"Chef / catering",icon:"🍳",consultation:"optional",consultFee:0,creditConsultation:false,capacity:2,duration:120,travelFee:3000,eventFee:10000,approval:"manual",basePrice:12500,locationModes:["Pickup","Delivery","Cater an event"],fields:[["style","Meals or menu","What would you like prepared?"],["diet","Dietary needs","e.g. no peanuts, vegetarian"],["guests","Guests / portions","How many people are you feeding?"]],groupQuote:true,deliveryMode:"batch",batchSize:10,pricingMode:"perPerson"},
+ education:{id:"education",label:"Tutor / consultant",icon:"📚",consultation:"required",consultFee:3000,creditConsultation:false,capacity:1,duration:45,approval:"manual",basePrice:10000,locationModes:["Video call","Phone call","In person"],fields:[["style","What do you need help with?","e.g. school application or maths lesson"],["level","Student / situation","e.g. university admissions, SS3"]],groupQuote:true,deliveryMode:"shared",pricingMode:"perPerson"},
+ home:{id:"home",label:"Home / technical service",icon:"🔧",consultation:"required",consultFee:1500,creditConsultation:true,capacity:2,duration:90,approval:"manual",basePrice:15000,locationModes:["At my location","Remote diagnosis","Site assessment"],fields:[["style","Problem / service needed","e.g. leaking tap, faulty socket"],["urgency","Urgency","e.g. today, this week"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"},
+ photo:{id:"photo",label:"Photographer / events",icon:"📷",consultation:"optional",consultFee:0,creditConsultation:false,capacity:1,duration:120,travelFee:5000,eventFee:7000,approval:"manual",basePrice:30000,locationModes:["Studio","At event / venue","Outdoor shoot"],fields:[["style","Shoot type","e.g. wedding, graduation, portraits"],["guests","People / event size","e.g. 30 guests"],["deadline","Event date","e.g. 14 November"]],groupQuote:true,deliveryMode:"shared",pricingMode:"flat"},
+ generic:{id:"generic",label:"Other professional",icon:"✳",consultation:"optional",consultFee:0,creditConsultation:false,capacity:1,duration:60,approval:"manual",basePrice:8000,locationModes:["At provider","At my location","Remote"],fields:[["style","What do you need?","Describe the work and any references"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"}
 };
 const samples=[{id:"barber",title:"Signature haircut",name:"Tobi Adeyemi"},{id:"tailor",title:"Custom wedding outfit",name:"Zara Okafor"},{id:"shoemaker",title:"Shoe repair or handmade pair",name:"The Shoe Studio"},{id:"cook",title:"Meal boxes and event catering",name:"Chef Amara"},{id:"education",title:"Educational consultation",name:"Education Adviser"},{id:"home",title:"Home repair visit",name:"Home Services Pro"},{id:"photo",title:"Event photography",name:"Photo Studio"}];
 const overrides=new Map();const reservations=new Map();
@@ -82,6 +82,9 @@ function update(id,patch,provider="default"){if(!templates[id])return false;cons
  if(["off","optional","required"].includes(patch.consultation))clean.consultation=patch.consultation;
  if(patch.consultFee!==undefined){const n=Number(patch.consultFee);if(!Number.isSafeInteger(n)||n<0||n>100000)return false;clean.consultFee=n}
  if(typeof patch.creditConsultation==="boolean")clean.creditConsultation=patch.creditConsultation;
+ if(["individual","shared","batch"].includes(patch.deliveryMode))clean.deliveryMode=patch.deliveryMode;
+ if(["flat","perPerson"].includes(patch.pricingMode))clean.pricingMode=patch.pricingMode;
+ if(patch.batchSize!==undefined){const n=Number(patch.batchSize);if(!Number.isSafeInteger(n)||n<1||n>100)return false;clean.batchSize=n}
  if(patch.capacity!==undefined){const n=Number(patch.capacity);if(!Number.isSafeInteger(n)||n<1||n>50)return false;clean.capacity=n}
  if(patch.basePrice!==undefined){const n=Number(patch.basePrice);if(!Number.isSafeInteger(n)||n<0||n>2000000)return false;clean.basePrice=n}
  for(const k of ["travelFee","eventFee"]){if(patch[k]!==undefined){const n=Number(patch[k]);if(!Number.isSafeInteger(n)||n<0||n>250000)return false;clean[k]=n}}
@@ -104,10 +107,11 @@ function reservePlan(id,day,time,people=1,provider="default"){
  const p=get(id,provider),count=Number(people);
  if(!Number.isSafeInteger(count)||count<1||count>50)return null;
  const cap=effectiveCapacity(id,day,provider);if(cap<1)return null;
- const slotsPerRound=Math.ceil(p.duration/60),rounds=Math.ceil(count/cap);
+ const unitsNeeded=p.deliveryMode==="shared"?1:p.deliveryMode==="batch"?Math.ceil(count/(p.batchSize||10)):count;
+ const slotsPerRound=Math.ceil(p.duration/60),rounds=Math.ceil(unitsNeeded/cap);
  const allocations=new Map(),starting=slotAt(time,0);if(!starting)return null;
  for(let round=0;round<rounds;round++){
-  const units=Math.min(cap,count-round*cap);
+  const units=Math.min(cap,unitsNeeded-round*cap);
   for(let slot=0;slot<slotsPerRound;slot++){
    const name=slotAt(time,round*slotsPerRound+slot);if(!name)return null;
    allocations.set(name,(allocations.get(name)||0)+units);
@@ -115,7 +119,7 @@ function reservePlan(id,day,time,people=1,provider="default"){
  }
  for(const [name,units] of allocations)if(left(id,day,name,provider)<units)return null;
  for(const [name,units] of allocations){const k=key(id,day,name,provider);reservations.set(k,held(id,day,name,provider)+units)}
- return {id,day,time,provider,people:count,minutes:rounds*slotsPerRound*60,allocations:[...allocations].map(([time,units])=>({time,units}))};
+ return {id,day,time,provider,people:count,workUnits:unitsNeeded,minutes:rounds*slotsPerRound*60,allocations:[...allocations].map(([time,units])=>({time,units}))};
 }
 function releasePlan(plan){
  if(!plan||!Array.isArray(plan.allocations))return false;
@@ -134,10 +138,11 @@ function slotsFor(id,day,provider="default"){
 }
 function quote({id="generic",provider="default",day="",basePrice,people=1,venue="",consultPaid=0}={}){
  const p=get(id,provider),n=Math.max(1,Math.min(50,Number(people)||1)),cap=Math.max(1,effectiveCapacity(id,day,provider));const unit=Number.isFinite(Number(basePrice))?Math.max(0,Math.round(Number(basePrice))):p.basePrice;
- const service=unit*n,travel=/home|at my location|pickup|delivery|at event|outdoor|site assessment/i.test(venue)?(p.travelFee||0):0;
+ const unitsNeeded=p.deliveryMode==="shared"?1:p.deliveryMode==="batch"?Math.ceil(n/(p.batchSize||10)):n;
+ const service=unit*(p.pricingMode==="flat"?1:n),travel=/home|at my location|pickup|delivery|at event|outdoor|site assessment/i.test(venue)?(p.travelFee||0):0;
  const event=/event|group|cater|wedding/i.test(venue)?(p.eventFee||0):0;
  const full=service+travel+event,credit=p.creditConsultation?Math.min(full,Math.max(0,Math.round(Number(consultPaid)||0))):0;
- return {unit,people:n,service,travel,event,total:full,credit,due:Math.max(0,full-credit),duration:Math.ceil(n/cap)*p.duration};
+ return {unit,people:n,service,travel,event,total:full,credit,due:Math.max(0,full-credit),duration:Math.ceil(unitsNeeded/cap)*p.duration,workUnits:unitsNeeded,deliveryMode:p.deliveryMode||"individual",pricingMode:p.pricingMode||"perPerson"};
 }
 const finalDue=(amount,paid,enabled)=>Math.max(0,Math.round(amount)-(enabled?Math.min(Math.round(amount),Math.max(0,Math.round(paid))):0));
 window.HustleBookingRules={templates,samples,get,getForService,hasOverride,detect,update,held,left,reserve,release,reservePlan,releasePlan,quote,finalDue,getTeam,setBusiness,addMember,setMemberStatus,setMemberOff,effectiveCapacity,isOpen,slotsFor,_testing:{overrides,reservations,businesses}};
