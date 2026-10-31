@@ -33,6 +33,34 @@ function held(id,day,time,provider="default"){return reservations.get(key(id,day
 function left(id,day,time,provider="default"){const cap=get(id,provider).capacity;return Math.max(0,cap-held(id,day,time,provider))}
 function reserve(id,day,time,units=1,provider="default"){if(!Number.isSafeInteger(units)||units<1||units>get(id,provider).capacity||left(id,day,time,provider)<units)return false;const k=key(id,day,time,provider);reservations.set(k,held(id,day,time,provider)+units);return true}
 function release(id,day,time,units=1,provider="default"){const k=key(id,day,time,provider);reservations.set(k,Math.max(0,held(id,day,time,provider)-Math.max(0,units)))}
+function slotAt(start,offset){
+ const m=String(start).match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)/i);if(!m)return offset?null:start;
+ const hour=(Number(m[1])%12)+(m[3].toUpperCase()==="PM"?12:0),minute=Number(m[2]);
+ if(!Number.isInteger(minute)||minute<0||minute>59)return null;
+ const format=n=>{const h=(n+24)%24;return (h%12||12)+":"+String(minute).padStart(2,"0")+" "+(h<12?"AM":"PM")};
+ const h=hour+offset;return format(h)+" – "+format(h+1);
+}
+function reservePlan(id,day,time,people=1,provider="default"){
+ const p=get(id,provider),count=Number(people);
+ if(!Number.isSafeInteger(count)||count<1||count>50)return null;
+ const slotsPerRound=Math.ceil(p.duration/60),rounds=Math.ceil(count/p.capacity);
+ const allocations=new Map(),starting=slotAt(time,0);if(!starting)return null;
+ for(let round=0;round<rounds;round++){
+  const units=Math.min(p.capacity,count-round*p.capacity);
+  for(let slot=0;slot<slotsPerRound;slot++){
+   const name=slotAt(time,round*slotsPerRound+slot);if(!name)return null;
+   allocations.set(name,(allocations.get(name)||0)+units);
+  }
+ }
+ for(const [name,units] of allocations)if(left(id,day,name,provider)<units)return null;
+ for(const [name,units] of allocations){const k=key(id,day,name,provider);reservations.set(k,held(id,day,name,provider)+units)}
+ return {id,day,time,provider,people:count,minutes:rounds*slotsPerRound*60,allocations:[...allocations].map(([time,units])=>({time,units}))};
+}
+function releasePlan(plan){
+ if(!plan||!Array.isArray(plan.allocations))return false;
+ for(const a of plan.allocations)release(plan.id,plan.day,a.time,a.units,plan.provider);
+ return true;
+}
 function quote({id="generic",provider="default",basePrice,people=1,venue="",consultPaid=0}={}){
  const p=get(id,provider),n=Math.max(1,Math.min(50,Number(people)||1));const unit=Number.isFinite(Number(basePrice))?Math.max(0,Math.round(Number(basePrice))):p.basePrice;
  const service=unit*n,travel=/home|at my location|pickup|delivery|at event|outdoor|site assessment/i.test(venue)?(p.travelFee||0):0;
@@ -41,5 +69,5 @@ function quote({id="generic",provider="default",basePrice,people=1,venue="",cons
  return {unit,people:n,service,travel,event,total:full,credit,due:Math.max(0,full-credit),duration:Math.ceil(n/p.capacity)*p.duration};
 }
 const finalDue=(amount,paid,enabled)=>Math.max(0,Math.round(amount)-(enabled?Math.min(Math.round(amount),Math.max(0,Math.round(paid))):0));
-window.HustleBookingRules={templates,samples,get,getForService,detect,update,held,left,reserve,release,quote,finalDue,_testing:{overrides,reservations}};
+window.HustleBookingRules={templates,samples,get,getForService,detect,update,held,left,reserve,release,reservePlan,releasePlan,quote,finalDue,_testing:{overrides,reservations}};
 })();
