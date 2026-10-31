@@ -69,6 +69,10 @@ export class AdaptiveController {
     @Body() body: unknown) {
     return this.bookingOps.myHandover(identity,bookingId,body);
   }
+  @Get("workspaces/:workspaceId/staffing-alerts")
+  staffingAlerts(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") spaceId: string) {
+    return this.bookingOps.staffingAlerts(identity,spaceId);
+  }
   @Get("workspaces/:workspaceId/assignments")
   assignments(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") spaceId: string) {
     return this.bookingOps.assignments(identity,spaceId);
