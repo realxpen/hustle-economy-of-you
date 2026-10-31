@@ -516,7 +516,7 @@ function captionAndOffer(p){
 }
 function openPostMore(id){
  const p=posts.find(x=>x.id===id);
- openSheet('Post options',`<button class="choice" data-save="${id}">Save to collection</button><button class="choice" data-share="${id}">Share post</button><button class="choice" data-profile="${p?.creator||''}">View professional</button>${p?.type==='video'?`<button class="choice" data-video-upload="${id}">Choose a video from my phone</button><button class="choice" data-video-mute="${id}">${videoMuted?'Unmute':'Mute'} video</button><p>Sample footage for video testing. Your selected clip remains on this device.</p>`:''}`,'options');
+ openSheet('Post options',`<button class="choice" data-save="${id}">Save to collection</button><button class="choice" data-share="${id}">Share post</button><button class="choice" data-profile="${p?.creator||''}">View professional</button><button class="choice" data-report-feed="${id}">⚑ Report this post</button>${p?.type==='video'?`<button class="choice" data-video-upload="${id}">Choose a video from my phone</button><button class="choice" data-video-mute="${id}">${videoMuted?'Unmute':'Mute'} video</button><p>Sample footage for video testing. Your selected clip remains on this device.</p>`:''}`,'options');
 }
 function renderPost(p,index){const c=creator(p.creator),page=slideFor[p.id]||0;
 const media=p.type==='video'?videoMedia(p):`<img src="${p.images[page]}" alt="${ec(c.full)}'s ${ec(p.category.toLowerCase())} work">`;
@@ -752,12 +752,13 @@ if(d.exploreCategory){exploreCategory=d.exploreCategory;updateExploreResults();r
 if(d.consultFinish!==undefined){close();flash('Consultation preview finished — request not sent');return}
 if(d.cta){openHire(d.cta);return}
 if(d.more){openPostMore(d.more);return}
+if(d.reportFeed){close();window.HustleJourneys?.open("Report",{subject:"Feed post",id:d.reportFeed});return}
 if(d.day||d.time){let key=d.day?'day':'time';selection[key]=d[key];t.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b===t));return}
 if(d.done!==undefined){close();flash('Demo only — nothing submitted');return}
 if(d.reply!==undefined){const inp=global.querySelector('[name=comment]');if(inp){inp.value='@lagos_creative ';inp.focus()}return}
 if(d.nav){if(activeProfessional)closeProfile();if(d.nav==='Explore')exploreCategory='All';nav(d.nav);return}
 if(d.action==='theme'){root.classList.toggle('dark');return}
-if(d.action==='notifications'){flash('No notifications in this demo');return}
+if(d.action==='notifications'){window.HustleJourneys?.open("Notifications");return}
 });
 root.addEventListener('input',e=>{if(e.target.matches('[data-explore-search]'))updateExploreResults()});
 root.addEventListener('change',e=>{if(!e.target.matches('[data-video-file]'))return;const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith('video/')){flash('Choose a video file');return}if(localVideoSrc)URL.revokeObjectURL(localVideoSrc);localVideoSrc=URL.createObjectURL(f);videoUserPaused=false;close();renderPosts();flash('Video preview only — not uploaded')});
