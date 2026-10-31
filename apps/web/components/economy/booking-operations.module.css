@@ -16,3 +16,10 @@
 .notice{background:#eff9e0;color:#365f24;border-color:#b7d990}
 .root :is(button,select,a):focus-visible{outline:3px solid #8ab84e;outline-offset:2px}
 @media(max-width:390px){.selectRow{grid-template-columns:1fr}}
+
+.alerts{border:1px solid #dfc392;background:#fff9e9;color:#5b4928;border-radius:15px;padding:14px;display:grid;gap:10px}
+.alerts>strong{font-size:13px}
+.alertItem{border-top:1px solid #e9ddc3;padding:10px 0 0;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.alertItem span{font-size:11px;line-height:1.6}
+.alertItem a{color:#664d18;font-weight:850;font-size:11px}
+.card{scroll-margin-top:95px}
