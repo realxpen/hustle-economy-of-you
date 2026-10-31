@@ -97,7 +97,7 @@ function newWork(title,blueprint,description="",spaceId=state.currentSpace,sourc
  state.orders.unshift(x);log("work.request",x.id);return copy(x)
 }
 function advanceWork(id,to,expectedVersion){
- const x=state.orders.find(w=>w.id===id);if(!x||!can("work.manage",x.spaceId)||!allowedTransitions[x.state]?.includes(to)||expectedVersion!==x.version)return false;
+ const x=state.orders.find(w=>w.id===id);if(!x||x.externalRef||!can("work.manage",x.spaceId)||!allowedTransitions[x.state]?.includes(to)||expectedVersion!==x.version)return false;
  x.state=to;x.version++;x.steps.push({state:to,at:new Date().toISOString(),by:"demo professional"});
  log("work.transition",id,to);window.HustleJourneys?.notify?.("Orders","Work status updated · demo",x.title+" · "+to.replaceAll("_"," ")+" (no real message sent)","AdaptiveHub");return true
 }
