@@ -100,3 +100,19 @@ test("New draft revision is represented in Prisma and migration proposal",()=>{
   assert.match(sql,/"revision" INTEGER NOT NULL DEFAULT 1/);
   assert.match(sql,/AdaptiveServiceDraft_revision_positive/);
 });
+
+test("Canonical service handoff reuses Booking authority and stays owner only",()=>{
+  assert.match(service,/async prepareCanonicalService/);
+  assert.match(service,/workspace\.ownerUserId !== user\.id/);
+  assert.match(service,/approved\?\.status !== CapabilityStatus\.ACTIVE/);
+  assert.match(service,/FOR UPDATE/);
+  assert.match(service,/status: ServiceStatus\.DRAFT/);
+  assert.match(service,/weeklyHours: \[\]/);
+  assert.match(ctrl,/@Post\("workspaces\/:workspaceId\/services\/:draftId\/prepare-canonical"\)/);
+  assert.doesNotMatch(service.slice(service.indexOf("async prepareCanonicalService"),service.indexOf("async draftWork")),/tx\.booking\.create|tx\.paymentAttempt\.create|tx\.escrowRecord\.create/);
+});
+test("One-to-one canonical link is proposed but not activated",()=>{
+  assert.match(schema,/canonicalServiceId\s+String\?\s+@unique/);
+  assert.match(sql,/"canonicalServiceId" TEXT/);
+  assert.match(sql,/AdaptiveServiceDraft_canonicalServiceId_fkey/);
+});
