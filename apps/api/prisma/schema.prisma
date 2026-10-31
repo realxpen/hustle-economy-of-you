@@ -119,6 +119,13 @@ enum BookingOperationMode {
   CONSULTATION
 }
 
+// Consultation is independent of appointment/work-queue scheduling mode.
+enum ConsultationPolicy {
+  OFF
+  OPTIONAL
+  REQUIRED
+}
+
 enum ProductType {
   PHYSICAL
   DIGITAL
@@ -681,6 +688,10 @@ model Service {
   deliveryTime          String?
   requirements          String?
   bookingMode           BookingOperationMode @default(APPOINTMENT)
+  consultationPolicy    ConsultationPolicy @default(OPTIONAL)
+  consultationFeeMinor  Int @default(0)
+  consultationCreditEnabled Boolean @default(false)
+  maxPartySize          Int @default(1)
   bookingTimezone       String               @default("Africa/Lagos")
   resourcePoolKey       String               @default("primary")
   defaultDurationMinutes Int                 @default(60)
@@ -964,6 +975,10 @@ model Booking {
   requirements         String
   location             String?
   notes                String?
+  partySize            Int                @default(1)
+  venueType            String?
+  referenceUrls        String[]           @default([])
+  consultationRequested Boolean           @default(false)
   serviceTitleSnapshot String
   agreedPriceMinor     Int
   currency             String             @default("NGN")
