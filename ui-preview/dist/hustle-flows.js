@@ -50,12 +50,55 @@ const threads=[
 const samplePosts=[{"id":"post-tobi-1","seller":"tobi","kind":"video","image":"barber","caption":"A quiet morning at the chair. Getting the details right, one cut at a time.","related":"s-barber","tag":"Barbering"},{"id":"post-tobi-2","seller":"tobi","kind":"photo","image":"hair","caption":"The tools and people behind the finished look.","related":null,"tag":"Daily life"},{"id":"post-zara-1","seller":"zara","kind":"carousel","image":"fashion","caption":"From sketch to fitting. Here's a little behind the scenes of the making.","related":"s-fashion","tag":"Fashion"},{"id":"post-zara-2","seller":"zara","kind":"photo","image":"fabric","caption":"Mood board from this week's fabric hunt. What would you make with this?","related":null,"tag":"Creative process"},{"id":"post-maya-1","seller":"maya","kind":"photo","image":"photo","caption":"It's not just the camera. It's making people comfortable in front of it.","related":"s-photo","tag":"Photography"},{"id":"post-amara-1","seller":"amara","kind":"photo","image":"food","caption":"Cooking with family today. Good memories start in the kitchen.","related":null,"tag":"Life"},{"id":"post-amara-2","seller":"amara","kind":"photo","image":"meal","caption":"Weekend meal boxes are ready. Ask me anything about the menu.","related":"p-meal","tag":"Food"},{"id":"post-nora-1","seller":"nora","kind":"photo","image":"house","caption":"Small changes, completely different room. Before-and-after inspiration.","related":"s-interior","tag":"Home"},{"id":"post-femi-1","seller":"femi","kind":"photo","image":"style","caption":"Two ways to style pieces you already own.","related":"s-stylist","tag":"Fashion"},{"id":"post-flora-1","seller":"flora","kind":"video","image":"flowers","caption":"The way flowers open always makes me pause for a second.","related":"s-floral","tag":"Creative"},{"id":"post-you-1","seller":"self","kind":"photo","image":"photo","caption":"Learning, creating, and documenting the process. This is a sample post on my Hustle profile.","related":null,"tag":"Everyday"},{"id":"post-you-2","seller":"self","kind":"photo","image":"fashion","caption":"A sample of work I can share with the community.","related":null,"tag":"My work"}].map(p=>({...p,image:pics[p.image]}));
 const signedIn={name:"Your name",handle:"@yourhustle",bio:"A little about you, your interests, and the skills you want to share.",primary:"Your primary skill",secondary:"Your other skills",location:"Lagos, Nigeria",avatar:pics.style,cover:pics.photo,following:83,followers:128};
 const ownSavedPosts=new Set();
-const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Posts",post:"post-tobi-1",postLikes:new Set(),postComments:{},ownTab:"Posts",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},draftType:"Post",draftText:"",draftImageSrc:null,draftForms:{},draftFiles:[],draftPostKind:"Photo",draftServiceType:"In person",draftAttach:"",marketSort:"Featured",marketSearch:"",marketSlide:0,liveHubTab:"For You",liveCategory:"All",liveSlideId:null,livePreviewLikes:new Set(),liveSetup:{title:"",category:"Cooking",audience:"Public",offer:"p-meal"},liveComments:[],liveHearts:0,liveGifts:0,liveStarted:false,request:"",postSlide:0};
+const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Posts",post:"post-tobi-1",postLikes:new Set(),postComments:{},ownTab:"Posts",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},financeTab:"Overview",draftType:"Post",draftText:"",draftImageSrc:null,draftForms:{},draftFiles:[],draftPostKind:"Photo",draftServiceType:"In person",draftAttach:"",marketSort:"Featured",marketSearch:"",marketSlide:0,liveHubTab:"For You",liveCategory:"All",liveSlideId:null,livePreviewLikes:new Set(),liveSetup:{title:"",category:"Cooking",audience:"Public",offer:"p-meal"},liveComments:[],liveHearts:0,liveGifts:0,liveStarted:false,request:"",postSlide:0};
 const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money=n=>"₦"+Number(n||0).toLocaleString("en-NG");
 const person=id=>id==="self"?{id:"self",name:signedIn.name,handle:signedIn.handle,avatar:signedIn.avatar,cover:signedIn.cover,primary:signedIn.primary,secondary:signedIn.secondary,location:signedIn.location,tag:"All",rating:"—",followers:String(signedIn.followers),bio:signedIn.bio,work:[],reviews:0}:people.find(p=>p.id===id)||people[0];
 const item=id=>allItems.find(p=>p.id===id)||services[0];
 const layer=document.createElement("section");layer.id="hfFlowLayer";layer.className="hf-layer";layer.hidden=true;phone.appendChild(layer);
+function cartItemCount(){return state.cart.reduce((sum,x)=>sum+x.qty,0)}
+function syncCartBadge(){
+ const badge=phone.querySelector("[data-hf-home-cart-count]");
+ if(badge){const count=cartItemCount();badge.hidden=count===0;badge.textContent=String(count);const cart=phone.querySelector("[data-home-cart]");if(cart)cart.setAttribute("aria-label",count?"Open shopping cart, "+count+" items":"Open shopping cart")}
+}
+function openShopping(tab="All"){
+ state.marketTab=tab;state.category="All";state.marketSearch="";
+ if(state.screen==="Marketplace"){render();return}
+ push("Marketplace");
+}
+function renderPayments(){
+ const tabs=["Overview","Activity","Payouts"],selected=state.financeTab;
+ const body=selected==="Overview"?`
+ <div class="hf-money-dashboard"><div class="hf-money-figure"><small>Available earnings</small><strong>—</strong><span>Not connected to a payment provider</span></div>
+ <div class="hf-money-summary"><div><b>Escrow in progress</b><strong>—</strong><small>Service milestones and releases</small></div><div><b>Pending payouts</b><strong>—</strong><small>Transfer status will appear here</small></div></div></div>
+ <div class="hf-section-row"><h2>How Hustle payments work</h2></div>
+ <div class="hf-payment-step"><span>1</span><div><b>Customer pays at checkout</b><small>Card or bank transfer through an approved provider—no required wallet top-up</small></div></div>
+ <div class="hf-payment-step"><span>2</span><div><b>Protected service payment</b><small>Escrow/payment protection should track milestones and disputes using an authorized partner</small></div></div>
+ <div class="hf-payment-step"><span>3</span><div><b>Professional receives earnings</b><small>After the agreed release conditions, eligible earnings become available for payout</small></div></div>`:
+ selected==="Activity"?`<div class="hf-empty">No real payment activity connected. When transactions are enabled, you'll see purchases, protected service payments, refunds, fees and earnings here.</div>`:
+ `<div class="hf-empty">No payout account connected. Provider-supported identity checks and bank-account setup will be required before actual withdrawals.</div>
+ <button class="hf-soft-button" disabled style="width:100%;margin-top:12px;opacity:.6">Connect payout account · Coming later</button>`;
+ return `${head("Payments & earnings","Financial overview · UI preview",true)}
+ <div class="hf-page hf-payments-page"><div class="hf-notice">This is a prototype, not an active financial account. No wallet funds are stored, and no real balances are displayed.</div>
+ <div class="hf-tabs" role="tablist" aria-label="Payment sections">${tabs.map(x=>`<button data-hf="finance-tab" data-value="${x}" class="${selected===x?"on":""}" role="tab" aria-selected="${selected===x}">${x}</button>`).join("")}</div>
+ ${body}
+ <div class="hf-actions"><button class="hf-soft-button" data-hf="orders">My purchases</button><button class="hf-lime-button" data-hf="market">Shop marketplace</button></div>
+ <p class="hf-demo-footnote">Real money movement, merchant payouts and escrow require a reviewed payment-provider integration, account authorization and compliance checks.</p>
+ </div>`;
+}
+function renderOrders(){
+ return `${head("My orders","Purchases and service bookings",true)}<div class="hf-page"><div class="hf-empty"><strong>Nothing ordered in this preview</strong><p>No real orders or bookings are connected yet. Cart and checkout actions are UI demonstrations only.</p></div>
+ <div class="hf-actions"><button class="hf-lime-button" data-hf="market">Browse marketplace</button><button class="hf-soft-button" data-hf="cart">View cart${cartItemCount()?` (${cartItemCount()})`:""}</button></div>
+ <button class="hf-story-banner" data-hf="payments"><span>₦</span><div><b>Payments & earnings</b><small>Future receipts, escrow, releases and payouts</small></div><strong>→</strong></button></div>`;
+}
+function renderSettings(){
+ return `${head("Settings","Your account and app preferences",true)}<div class="hf-page">
+ <button class="hf-person" data-hf="own-edit"><span class="hf-person-icon">♙</span><span class="hf-person-data"><b>Edit profile</b><small>Name, bio, skill and location</small></span><span class="hf-chevron">›</span></button>
+ <button class="hf-person" data-hf="appearance"><span class="hf-person-icon">☾</span><span class="hf-person-data"><b>Appearance</b><small>Toggle light or dark theme</small></span><span class="hf-chevron">›</span></button>
+ <button class="hf-person" data-hf="notifications"><span class="hf-person-icon">♧</span><span class="hf-person-data"><b>Notifications</b><small>No notifications connected in the preview</small></span><span class="hf-chevron">›</span></button>
+ <button class="hf-person" data-hf="payments"><span class="hf-person-icon">₦</span><span class="hf-person-data"><b>Payments & earnings</b><small>Protected payments, earnings and payout overview</small></span><span class="hf-chevron">›</span></button>
+ <p class="hf-demo-footnote">These preferences and account screens are demonstration-only.</p></div>`;
+}
 function head(title,subtitle="",back=true,action=""){
  return `<header class="hf-page-head"><div class="hf-headrow">${back?'<button class="hf-icbtn" data-hf="back" aria-label="Go back">←</button>':''}<div><h1>${esc(title)}<em>.</em></h1>${subtitle?`<small>${esc(subtitle)}</small>`:''}</div>${action}</div></header>`;
 }
@@ -75,6 +118,7 @@ function home(){
  state.screen="Home";state.stack=[];layer.hidden=true;layer.innerHTML="";phone.classList.remove("hf-flow-active","hf-flow-detail-active");phone.classList.remove("chrome-hidden");
  const legacy=phone.querySelector(".full-page");if(legacy)legacy.remove();
  updateNav("Home");
+ syncCartBadge();
  const v=phone.querySelector("video.hp-feed-video");if(v&&v.getBoundingClientRect().top>=0&&v.getBoundingClientRect().top<phone.clientHeight*.6)v.play().catch(()=>{});
 }
 function back(){
@@ -95,7 +139,7 @@ function render(){
  layer.className="hf-layer"+(detail?" hf-detail":"")+(state.screen==="Chat"?" hf-chat-screen":"");
  phone.classList.add("hf-flow-active");
  phone.classList.toggle("hf-flow-detail-active",detail);
- updateNav(detail?(state.screen==="Chat"?"Inbox":"Explore"):state.screen);
+ updateNav(detail?(state.screen==="Chat"?"Inbox":["Payments","Orders","Settings","EditProfile"].includes(state.screen)?"Profile":"Explore"):state.screen);
  let html="";
  switch(state.screen){
   case "Explore":html=renderExplore();break;
@@ -116,10 +160,14 @@ function render(){
   case "Request":html=renderRequest();break;
   case "Post":html=renderPostDetail();break;
   case "EditProfile":html=renderProfileEdit();break;
+  case "Payments":html=renderPayments();break;
+  case "Orders":html=renderOrders();break;
+  case "Settings":html=renderSettings();break;
   default:html=renderExplore();
  }
  if(mapInstance)disposeMap();
  layer.innerHTML=html;
+ syncCartBadge();
  layer.scrollTop=0;
  if(state.screen==="Explore"&&state.exploreTab==="Map")initializeMapAfterRender();
  if(state.screen==="LiveWatch"||state.screen==="LiveStudio")layer.querySelector("#hfLiveMessages")?.scrollTo?.(0,100000);
@@ -865,6 +913,8 @@ function triggerLive(){
 phone.addEventListener("click",e=>{
  const btn=e.target.closest("button");
  if(!btn)return;
+ if(btn.dataset.homeShop!==undefined){e.preventDefault();e.stopImmediatePropagation();openShopping();return}
+ if(btn.dataset.homeCart!==undefined){e.preventDefault();e.stopImmediatePropagation();push("Cart");return}
  if(btn.dataset.homeLive!==undefined){e.preventDefault();e.stopImmediatePropagation();state.liveHubTab="For You";state.liveCategory="All";state.liveSlideId=null;push("LiveHub");return}
  if(btn.closest(".bottom-nav")&&btn.dataset.nav){
   e.preventDefault();e.stopImmediatePropagation();setNav(btn.dataset.nav);return;
@@ -887,9 +937,9 @@ layer.addEventListener("click",e=>{
  case "back":back();break;
  case "home":home();break;
  case "explore":setNav("Explore");break;
- case "market":state.category="All";state.marketTab="All";go("Marketplace");break;
- case "market-services":state.category="All";state.marketTab="Services";go("Marketplace");break;
- case "market-products":state.category="All";state.marketTab="Products";go("Marketplace");break;
+ case "market":openShopping();break;
+ case "market-services":openShopping("Services");break;
+ case "market-products":openShopping("Products");break;
  case "market-tab":state.marketTab=value;render();break;
  case "market-search-clear":state.marketSearch="";render();layer.querySelector("#hfMarketSearch")?.focus();break;
  case "market-promo-next":state.marketSlide=(state.marketSlide+1)%3;render();break;
@@ -918,7 +968,12 @@ layer.addEventListener("click",e=>{
  case "profile":openProfile(id);break;
  case "own":go("OwnProfile");break;
  case "own-edit":push("EditProfile");break;
- case "own-settings":push("EditProfile");break;
+ case "own-settings":push("Settings");break;
+ case "payments":push("Payments");break;
+ case "orders":push("Orders");break;
+ case "finance-tab":state.financeTab=value;render();break;
+ case "appearance":phone.classList.toggle("dark");notify("Appearance updated for this preview");break;
+ case "notifications":notify("No notifications in this demo");break;
  case "own-tab":state.ownTab=value;render();break;
  case "post-detail":openPost(id);break;
  case "post-photo-next":state.postSlide=(state.postSlide+1)%(postById(state.post).images?.length||1);render();break;
