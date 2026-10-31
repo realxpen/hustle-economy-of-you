@@ -49,7 +49,7 @@ const threads=[
 const samplePosts=[{"id":"post-tobi-1","seller":"tobi","kind":"video","image":"barber","caption":"A quiet morning at the chair. Getting the details right, one cut at a time.","related":"s-barber","tag":"Barbering"},{"id":"post-tobi-2","seller":"tobi","kind":"photo","image":"hair","caption":"The tools and people behind the finished look.","related":null,"tag":"Daily life"},{"id":"post-zara-1","seller":"zara","kind":"carousel","image":"fashion","caption":"From sketch to fitting. Here's a little behind the scenes of the making.","related":"s-fashion","tag":"Fashion"},{"id":"post-zara-2","seller":"zara","kind":"photo","image":"fabric","caption":"Mood board from this week's fabric hunt. What would you make with this?","related":null,"tag":"Creative process"},{"id":"post-maya-1","seller":"maya","kind":"photo","image":"photo","caption":"It's not just the camera. It's making people comfortable in front of it.","related":"s-photo","tag":"Photography"},{"id":"post-amara-1","seller":"amara","kind":"photo","image":"food","caption":"Cooking with family today. Good memories start in the kitchen.","related":null,"tag":"Life"},{"id":"post-amara-2","seller":"amara","kind":"photo","image":"meal","caption":"Weekend meal boxes are ready. Ask me anything about the menu.","related":"p-meal","tag":"Food"},{"id":"post-nora-1","seller":"nora","kind":"photo","image":"house","caption":"Small changes, completely different room. Before-and-after inspiration.","related":"s-interior","tag":"Home"},{"id":"post-femi-1","seller":"femi","kind":"photo","image":"style","caption":"Two ways to style pieces you already own.","related":"s-stylist","tag":"Fashion"},{"id":"post-flora-1","seller":"flora","kind":"video","image":"flowers","caption":"The way flowers open always makes me pause for a second.","related":"s-floral","tag":"Creative"},{"id":"post-you-1","seller":"self","kind":"photo","image":"photo","caption":"Learning, creating, and documenting the process. This is a sample post on my Hustle profile.","related":null,"tag":"Everyday"},{"id":"post-you-2","seller":"self","kind":"photo","image":"fashion","caption":"A sample of work I can share with the community.","related":null,"tag":"My work"}].map(p=>({...p,image:pics[p.image]}));
 const signedIn={name:"Your name",handle:"@yourhustle",bio:"A little about you, your interests, and the skills you want to share.",primary:"Your primary skill",secondary:"Your other skills",location:"Lagos, Nigeria",avatar:pics.style,cover:pics.photo,following:83,followers:128};
 const ownSavedPosts=new Set();
-const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Posts",post:"post-tobi-1",postLikes:new Set(),postComments:{},ownTab:"Posts",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},draftType:"Post",draftText:""};
+const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Posts",post:"post-tobi-1",postLikes:new Set(),postComments:{},ownTab:"Posts",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},draftType:"Post",draftText:"",draftImageSrc:null};
 const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money=n=>"₦"+Number(n||0).toLocaleString("en-NG");
 const person=id=>people.find(p=>p.id===id)||people[0];
@@ -272,6 +272,7 @@ function initMap(){
  if(!el||!window.L)return;
  disposeMap();
  const L=window.L;
+ el.innerHTML="";
  mapInstance=L.map(el,{zoomControl:true,scrollWheelZoom:false,attributionControl:true}).setView([6.515,3.388],11);
  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
   maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>'
@@ -439,8 +440,9 @@ function renderCreate(){
  <p class="hf-subtitle">Every account can share work, buy, hire and offer skills. These forms are previews, not publishing tools.</p>
  <div class="hf-chips">${["Post","Service","Product","Request"].map(x=>`<button data-hf="draft-type" data-value="${x}" class="${state.draftType===x?"on":""}">${x}</button>`).join("")}</div>
  <div class="hf-section-row"><h2>New ${state.draftType.toLowerCase()}</h2></div><div class="hf-field"><label for="hfDraft">Tell people about it</label><textarea id="hfDraft" maxlength="500" placeholder="${state.draftType==="Post"?"Show the work behind the skill":state.draftType==="Request"?"What skill are you looking for?":"Describe your offer or product"}">${esc(state.draftText)}</textarea></div>
- <div class="hf-notice">The real creator will be able to attach photos, video, services, products and training. No content is published here.</div>
- <button class="hf-lime-button" style="width:100%" data-hf="draft-preview">Preview draft</button></div>`;
+ ${state.draftType==="Post"?`<div class="hf-field"><label for="hfDraftImage">Optional photo for this demo post</label><input id="hfDraftImage" type="file" accept="image/*" aria-label="Choose photo from your device" style="font-size:11px">${state.draftImageSrc?`<img class="hf-draft-photo" src="${state.draftImageSrc}" alt="Preview of selected photo">`:''}</div>`:''}
+ <div class="hf-notice">This is a local UI demonstration. No content is uploaded or published to real Hustle accounts.</div>
+ <button class="hf-lime-button" style="width:100%" data-hf="draft-preview">${state.draftType==="Post"?"Add demo post to my profile →":"Preview draft"}</button></div>`;
 }
 function notify(s){
  const container=phone.querySelector("#toastArea");
@@ -577,8 +579,30 @@ layer.addEventListener("click",e=>{
  case "inbox-tab":state.inboxTab=value;render();break;
  case "create":setNav("Create");break;
  case "draft-type":state.draftText=layer.querySelector("#hfDraft")?.value||state.draftText;state.draftType=value;render();break;
- case "draft-preview":state.draftText=layer.querySelector("#hfDraft")?.value||"";notify(state.draftText.trim()?"Draft preview only · nothing published":"Write something to preview");break;
+ case "draft-preview":{
+  state.draftText=layer.querySelector("#hfDraft")?.value||"";
+  if(!state.draftText.trim()){notify("Write a caption first");break}
+  if(state.draftType==="Post"){
+   samplePosts.unshift({id:"post-you-"+Date.now(),seller:"self",kind:"photo",image:state.draftImageSrc||pics.photo,caption:state.draftText.trim(),related:null,tag:"Everyday"});
+   state.draftText="";state.draftImageSrc=null;state.ownTab="Posts";
+   go("OwnProfile");notify("Added to your demo profile — not published");break
+  }
+  notify("Draft preview only — nothing published");break;
+ }
  default:break;
+ }
+});
+layer.addEventListener("change",e=>{
+ if(e.target.id!=="hfDraftImage")return;
+ const file=e.target.files?.[0];
+ if(!file)return;
+ if(!file.type.startsWith("image/")||file.size>15*1024*1024){notify("Choose an image up to 15 MB");return}
+ state.draftImageSrc=URL.createObjectURL(file);
+ const existing=layer.querySelector(".hf-draft-photo");
+ if(existing)existing.src=state.draftImageSrc;
+ else {
+  const preview=document.createElement("img");preview.className="hf-draft-photo";preview.src=state.draftImageSrc;preview.alt="Selected photo preview";
+  e.target.parentNode.appendChild(preview);
  }
 });
 layer.addEventListener("input",e=>{
