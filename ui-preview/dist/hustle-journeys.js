@@ -222,7 +222,7 @@ function renderAgentConsent(){
 }
 function renderModal(){
  if(!state.modal)return "";
- if(state.modal==="release"){const b=data.booking,m=b.milestones[Number(state.info)];return `<div class="hj-modal-scrim"><div class="hj-modal"><span>🔒</span><h2>Release this milestone?</h2><p>Confirm that ${esc(m.title)} is complete. Amount: ${money(Math.round(b.price*m.fraction))}. This is a local demonstration only.</p><div class="hj-action-row">${button("Cancel","modal-close","secondary")}${button("Confirm demo release","release-confirm")}</div></div></div>`}
+ if(state.modal==="release"){const b=data.booking,m=b.milestones[Number(state.info)];return `<div class="hj-modal-scrim"><div class="hj-modal"><span>🔒</span><h2>Release this milestone?</h2><p>Confirm that ${esc(m.title)} is complete. Amount: ${money(Math.round(payable()*m.fraction))}. This is a local demonstration only.</p><div class="hj-action-row">${button("Cancel","modal-close","secondary")}${button("Confirm demo release","release-confirm")}</div></div></div>`}
  if(state.modal==="dispute")return `<div class="hj-modal-scrim"><div class="hj-modal"><span>⚑</span><h2>Open a dispute?</h2><p>This pauses remaining demo milestone releases. In production, evidence and an independent resolution process would be required.</p><div class="hj-action-row">${button("Cancel","modal-close","secondary")}${button("Raise demo dispute","dispute-confirm")}</div></div></div>`;
  if(state.modal==="report-confirm")return `<div class="hj-modal-scrim"><div class="hj-modal"><span>⚑</span><h2>Submit report?</h2><p>Preview report reason: ${esc(state.reportReason)}. No real moderator is contacted.</p><div class="hj-action-row">${button("Edit report","modal-close","secondary")}${button("Submit demo report","report-confirm")}</div></div></div>`;
  return "";
@@ -264,10 +264,23 @@ function onAction(action,value="",id=""){
  case "report-block":renderToast("Demo block applied for this session");break;
  case "modal-close":state.modal="";render();break;
  case "report-confirm":{const r={id:uid("HREP"),subject:state.reportSubject,reference:state.reportId,reason:state.reportReason,details:state.reportText,status:"Submitted"};data.reports.unshift(r);window.HustleOperations?.addDemoReport?.(r);state.reportIdActive=r.id;state.modal="";addNotice("System","Report submitted · demo",r.id,"Explore");go("ReportSent");break}
- case "booking-accept":data.booking.quoteAccepted=true;data.booking.stage="payment";render();break;
- case "booking-revise":data.booking.stage="quote";renderToast("Quote returned to review");render();break;
+ case "booking-example":{const sample=window.HustleBookingRules?.samples?.find(x=>x.id===value);if(sample)open("BookingJourney",{service:sample.title,professional:sample.name,category:sample.id,price:window.HustleBookingRules?.get(sample.id)?.basePrice});break}
+ case "booking-provider-accept":{const b=data.booking,p=policyFor();
+  if(b.stage!=="awaiting")break;
+  if(!b.customQuote&&!b.slotReserved){if(!window.HustleBookingRules?.reserve(p.id,b.day,b.time,1)){renderToast("This sample slot is full. Choose another time.");b.stage="request";render();break}b.slotReserved=true}
+  b.price=b.customQuote?b.basePrice*Math.max(1,b.people):b.basePrice;
+  b.consultCredit=b.consultPaid&&p.creditConsultation?Math.min(b.price,b.consultPaid):0;
+  b.stage="quote";addNotice("Booking","Professional accepted sample request",b.service,"BookingJourney");render();break}
+ case "booking-consult-pay":{const b=data.booking,p=policyFor();if(b.stage!=="consultPayment"||!b.consultChoice)break;
+  b.consultPaid=p.consultFee;b.stage="awaiting";addNotice("Money","Consultation fee simulated",money(b.consultPaid)+" · no charge","BookingJourney");render();break}
+ case "booking-reschedule":{const b=data.booking;if(b.slotReserved)window.HustleBookingRules?.release(b.category,b.day,b.time,1);b.slotReserved=false;b.stage="request";render();break}
+ case "booking-cancel":{const b=data.booking;if(b.paymentConfirmed){renderToast("Use the dispute process for funded work");break}if(b.slotReserved)window.HustleBookingRules?.release(b.category,b.day,b.time,1);b.slotReserved=false;b.stage="cancelled";addNotice("Booking","Booking request cancelled · demo",b.service,"BookingJourney");render();break}
+ case "booking-accept":{const b=data.booking;if(b.stage!=="quote")break;b.quoteAccepted=true;b.stage="payment";render();break}
+ case "booking-revise":{const b=data.booking;if(b.slotReserved)window.HustleBookingRules?.release(b.category,b.day,b.time,1);b.slotReserved=false;b.stage="awaiting";b.quoteAccepted=false;renderToast("Requested a revised quote · demo");render();break}
+ case "booking-back-quote":data.booking.stage="quote";render();break;
  case "payment-method":data.purchase.method=value;render();break;
- case "booking-pay":{if(!data.booking.paymentConfirmed){data.booking.escrowRef=window.HustleOperations?.addJourneyEscrow?.({service:data.booking.service,professional:data.booking.professional,amount:data.booking.price})||null}
+ case "booking-pay":{if(data.booking.stage!=="payment"||!data.booking.quoteAccepted)break;
+ if(!data.booking.paymentConfirmed){const due=payable();data.booking.escrowRef=due>0?window.HustleOperations?.addJourneyEscrow?.({service:data.booking.service,professional:data.booking.professional,amount:due})||null:null}
  data.booking.paymentConfirmed=true;data.booking.stage="work";addNotice("Money","Protected payment preview created · demo",data.booking.service,"Escrow");render();break}
  case "booking-milestone":if(!data.booking.dispute){state.info=id;state.modal="release";render()}else renderToast("Milestone frozen during dispute");break;
  case "release-confirm":{const m=data.booking.milestones[Number(state.info)];if(m&&m.state==="Held"&&!data.booking.dispute){m.state="Released";if(data.booking.escrowRef)window.HustleOperations?.updateJourneyEscrow?.(data.booking.escrowRef,"release",Number(state.info));addNotice("Money","Milestone released · demo",m.title,"Escrow")}state.modal="";render();break}
@@ -322,15 +335,21 @@ function onSubmit(name,form){
  if(i===3){data.onboarding.notifications=!!form.querySelector('input[name="updates"]')?.checked;state.signedIn=true;state.guest=false;state.user={...data.onboarding};window.HustleFlowsPreview?.updateDemoUser?.(state.user);addNotice("System","Your demo profile is ready",data.onboarding.name,"Explore");rememberIntro();close();return}
  state.onboardStep++;render();return}
  if(name==="report"){state.reportReason=get("reason");state.reportText=get("reportDetails");state.modal="report-confirm";render();return}
- if(name==="booking-request"){data.booking.requirements=get("requirements");data.booking.location=get("location");if(data.booking.requirements.length<10||!data.booking.location){renderToast("Add at least 10 characters and a work area");return}data.booking.stage="consultation";render();return}
- if(name==="booking-consult"){data.booking.mode=get("mode");data.booking.day=get("day");data.booking.time=get("time");data.booking.stage="quote";render();return}
+ if(name==="booking-request"){const b=data.booking,p=policyFor();b.fields={};for(const [key] of p.fields)b.fields[key]=get(key);
+ b.requirements=b.fields.style||"";b.location=get("location");b.venue=get("venue")||p.locationModes[0];b.day=get("day")||"Tomorrow";b.time=get("time")||"1:00 PM – 2:00 PM";b.people=Number(get("people")||1);
+ if(b.requirements.length<5||!b.location||!Number.isSafeInteger(b.people)||b.people<1||b.people>50){renderToast("Describe the service, add your area, and choose 1–50 people");return}
+ b.consultChoice=p.consultation==="required"||p.consultation==="optional"&&get("consultChoice")==="consult";
+ b.customQuote=b.people>1||/home|event|at my location|cater|custom order|site assessment/i.test(b.venue);
+ if(!b.customQuote&&(window.HustleBookingRules?.left(p.id,b.day,b.time)??p.capacity)<1){renderToast("That sample time is full. Choose another slot.");return}
+ b.stage=b.consultChoice?"consultation":"awaiting";render();return}
+ if(name==="booking-consult"){const b=data.booking,p=policyFor();if(!b.consultChoice){b.stage="awaiting";render();return}b.mode=get("mode")||"Video call";b.stage=p.consultFee>0?"consultPayment":"awaiting";render();return}
  if(name==="order-details"){data.purchase.delivery=get("delivery");if(!data.purchase.delivery){renderToast("Add a delivery area");return}data.purchase.stage="review";render();return}
  if(name==="agent-details"){state.agentName=get("agentName");state.agentSkill=get("agentSkill");state.agentArea=get("agentArea");state.agentLanguage=get("language")||"English";state.agentHandoff=get("handoff")||"In-person handover";if(!state.agentName||!state.agentSkill){renderToast("Name and skill are required");return}state.agentStep=2;render()}
 }
 root.addEventListener("click",e=>{const target=e.target.closest("[data-hj]");if(!target||!root.contains(target))return;if(target.type==="submit")return;e.preventDefault();onAction(target.dataset.hj,target.dataset.value,target.dataset.id)});
 root.addEventListener("submit",e=>{const f=e.target;if(!f.dataset.hjForm)return;e.preventDefault();onSubmit(f.dataset.hjForm,f)});
 root.addEventListener("input",e=>{if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}});
-root.addEventListener("change",e=>{if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}});
+root.addEventListener("change",e=>{if(e.target.id==="hj-bookingMedia"){const file=e.target.files?.[0];if(file){if(!/^(image|video)\//.test(file.type)||file.size>15*1024*1024){renderToast("Select a photo or video under 15 MB");e.target.value="";return}data.booking.mediaName=file.name;renderToast("Reference selected locally · not uploaded")}}if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}});
 function updateReportStatus(id,status){
  const report=data.reports.find(x=>x.id===id);if(!report)return false;
  report.status=status;addNotice("System","Report review updated · demo",id+" · "+status,"Explore");
