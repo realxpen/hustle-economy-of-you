@@ -74,7 +74,7 @@ export class AdaptiveService {
     const slug = name.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"")
       .replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,72);
     if (slug.length < 3) throw new BadRequestException("Use a readable business name");
-    const category = d.category == null ? null : this.text(d.category, "category", 2, 80);
+    const category = d.category == null || d.category === "" ? null : this.text(d.category, "category", 2, 80);
     try {
       return await this.db.adaptiveWorkspace.create({
         data: { ownerUserId: user.id, name, slug, kind: d.kind, category,
