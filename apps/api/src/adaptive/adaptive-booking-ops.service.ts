@@ -106,11 +106,17 @@ export class AdaptiveBookingOpsService {
           updatedAt:true }
       })
     ]);
-    return { bookingId, assignment, fulfillment };
+    const itemPolicy = b.service.adaptiveDraft?.blueprint.slug === "item"
+      ? validateAdaptiveServicePolicy("item",b.service.adaptiveDraft.policy) : null;
+    return { bookingId, assignment, fulfillment, bookingStatus:b.status,
+      viewerRole:user.id===b.clientUserId?"CLIENT":user.id===b.hustlerUserId?"HUSTLER":"TEAM",
+      offeredMethods:itemPolicy ? {
+        handoverMethods:itemPolicy.handoverMethods,returnMethods:itemPolicy.returnMethods
+      } : null };
   }
   async workspaceBookings(identity: AuthIdentity, workspaceId: string) {
     const user=await this.actor(identity);
-    await this.access(user.id,workspaceId);
+    await this.access(user.id,workspaceId,"work.manage");
     const workspace=await this.db.adaptiveWorkspace.findUnique({
       where:{id:workspaceId},select:{ownerUserId:true}
     });
@@ -285,7 +291,10 @@ export class AdaptiveBookingOpsService {
       if(changed.count!==1)throw new ConflictException("Item workflow changed; refresh");
       await tx.adaptiveItemEvent.create({data:{fulfillmentId:current.id,
         revision:version+1,eventType:"item."+next.toLowerCase(),actorUserId:user.id}});
-      if([AdaptiveItemStage.READY,AdaptiveItemStage.OUT_FOR_DELIVERY,
+      const notifyReady = b.service.adaptiveDraft?.blueprint.slug==="item" ?
+        validateAdaptiveServicePolicy("item",b.service.adaptiveDraft.policy).notifyWhenReady!==false : true;
+      if((next!==AdaptiveItemStage.READY || notifyReady) &&
+         [AdaptiveItemStage.READY,AdaptiveItemStage.OUT_FOR_DELIVERY,
           AdaptiveItemStage.DELIVERED,AdaptiveItemStage.COLLECTED].includes(next)){
         const labels:Partial<Record<AdaptiveItemStage,[string,string]>>={
           READY:["Your item is ready","Your service provider has marked the work ready for pickup or delivery."],
