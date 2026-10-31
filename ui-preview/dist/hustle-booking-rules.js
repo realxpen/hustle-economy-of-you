@@ -12,12 +12,13 @@ const templates={
 };
 const samples=[{id:"barber",title:"Signature haircut",name:"Tobi Adeyemi"},{id:"tailor",title:"Custom wedding outfit",name:"Zara Okafor"},{id:"shoemaker",title:"Shoe repair or handmade pair",name:"The Shoe Studio"},{id:"cook",title:"Meal boxes and event catering",name:"Chef Amara"},{id:"education",title:"Educational consultation",name:"Education Adviser"},{id:"home",title:"Home repair visit",name:"Home Services Pro"},{id:"photo",title:"Event photography",name:"Photo Studio"}];
 const overrides=new Map();const reservations=new Map();
+const providerKey=(id,provider)=>[id,String(provider||"default")].join("|");
 // Reservation keys are scoped by professional, not a global skill category.
 const key=(id,day,time,provider="default")=>[provider,id,day,time].join("|");
 const detect=title=>{const v=String(title||"").toLowerCase();if(/barber|haircut|groom|fade|beard/.test(v))return "barber";if(/tailor|outfit|fashion|sewing|alteration|dress/.test(v))return "tailor";if(/shoe|cobbl|footwear/.test(v))return "shoemaker";if(/chef|meal|food|cook|cater|bake/.test(v))return "cook";if(/education|tutor|school|lesson|consult|admission/.test(v))return "education";if(/photo|film|wedding shoot|video shoot/.test(v))return "photo";if(/repair|plumb|electri|home service|clean|technician/.test(v))return "home";return "generic"};
-const get=id=>{const v=templates[id]||templates.generic;return {...v,...(overrides.get(v.id)||{}),fields:v.fields.map(x=>x.slice()),locationModes:v.locationModes.slice()}};
-const getForService=(title,id)=>get(id&&templates[id]?id:detect(title));
-function update(id,patch){if(!templates[id])return false;const policy=get(id);const clean={};
+const get=(id,provider="default")=>{const v=templates[id]||templates.generic;return {...v,...(overrides.get(providerKey(v.id,"default"))||{}),...(overrides.get(providerKey(v.id,provider))||{}),fields:v.fields.map(x=>x.slice()),locationModes:v.locationModes.slice()}};
+const getForService=(title,id,provider="default")=>get(id&&templates[id]?id:detect(title),provider);
+function update(id,patch,provider="default"){if(!templates[id])return false;const policy=get(id,provider);const clean={};
  if(["off","optional","required"].includes(patch.consultation))clean.consultation=patch.consultation;
  if(patch.consultFee!==undefined){const n=Number(patch.consultFee);if(!Number.isSafeInteger(n)||n<0||n>100000)return false;clean.consultFee=n}
  if(typeof patch.creditConsultation==="boolean")clean.creditConsultation=patch.creditConsultation;
@@ -27,13 +28,13 @@ function update(id,patch){if(!templates[id])return false;const policy=get(id);co
  if(patch.duration!==undefined){const n=Number(patch.duration);if(!Number.isSafeInteger(n)||n<15||n>480)return false;clean.duration=n}
  if(["manual","auto"].includes(patch.approval))clean.approval=patch.approval;
  if(clean.consultation==="off"){clean.consultFee=0;clean.creditConsultation=false}
- overrides.set(id,{...(overrides.get(id)||{}),...clean});return true}
+ const k=providerKey(id,provider);overrides.set(k,{...(overrides.get(k)||{}),...clean});return true}
 function held(id,day,time,provider="default"){return reservations.get(key(id,day,time,provider))||0}
-function left(id,day,time,provider="default"){const cap=get(id).capacity;return Math.max(0,cap-held(id,day,time,provider))}
-function reserve(id,day,time,units=1,provider="default"){if(!Number.isSafeInteger(units)||units<1||units>get(id).capacity||left(id,day,time,provider)<units)return false;const k=key(id,day,time,provider);reservations.set(k,held(id,day,time,provider)+units);return true}
+function left(id,day,time,provider="default"){const cap=get(id,provider).capacity;return Math.max(0,cap-held(id,day,time,provider))}
+function reserve(id,day,time,units=1,provider="default"){if(!Number.isSafeInteger(units)||units<1||units>get(id,provider).capacity||left(id,day,time,provider)<units)return false;const k=key(id,day,time,provider);reservations.set(k,held(id,day,time,provider)+units);return true}
 function release(id,day,time,units=1,provider="default"){const k=key(id,day,time,provider);reservations.set(k,Math.max(0,held(id,day,time,provider)-Math.max(0,units)))}
-function quote({id="generic",basePrice,people=1,venue="",consultPaid=0}={}){
- const p=get(id),n=Math.max(1,Math.min(50,Number(people)||1));const unit=Number.isFinite(Number(basePrice))?Math.max(0,Math.round(Number(basePrice))):p.basePrice;
+function quote({id="generic",provider="default",basePrice,people=1,venue="",consultPaid=0}={}){
+ const p=get(id,provider),n=Math.max(1,Math.min(50,Number(people)||1));const unit=Number.isFinite(Number(basePrice))?Math.max(0,Math.round(Number(basePrice))):p.basePrice;
  const service=unit*n,travel=/home|at my location|pickup|delivery|at event|outdoor|site assessment/i.test(venue)?(p.travelFee||0):0;
  const event=/event|group|cater|wedding/i.test(venue)?(p.eventFee||0):0;
  const full=service+travel+event,credit=p.creditConsultation?Math.min(full,Math.max(0,Math.round(Number(consultPaid)||0))):0;
