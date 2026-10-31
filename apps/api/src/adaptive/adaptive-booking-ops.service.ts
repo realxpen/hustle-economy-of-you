@@ -76,8 +76,16 @@ export class AdaptiveBookingOpsService {
     });
     if (!b || b.service.adaptiveDraft?.workspaceId !== workspaceId)
       throw new NotFoundException("Booking not found in this workspace");
-    if (b.clientUserId !== userId && b.hustlerUserId !== userId)
-      await this.access(userId, workspaceId);
+    if (b.clientUserId !== userId && b.hustlerUserId !== userId) {
+      const member=await this.db.adaptiveMembership.findUnique({
+        where:{workspaceId_userId:{workspaceId,userId}},
+        select:{role:true,status:true,permissions:true}
+      });
+      if(!member||member.status!==AdaptiveMemberStatus.ACTIVE||
+         member.role!==AdaptiveMemberRole.OWNER &&
+         !member.permissions.some(p=>p==="work.manage"||p==="schedule.manage"))
+        throw new ForbiddenException("Booking operations are restricted to authorized participants");
+    }
     return b;
   }
   private async locked<T>(ownerId: string, work: (tx: Prisma.TransactionClient) => Promise<T>) {
