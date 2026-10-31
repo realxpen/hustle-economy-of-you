@@ -7,6 +7,8 @@ on:
       - ".github/workflows/payment-sandbox.yml"
       - ".github/workflows/paystack-hosted-test-checkout.yml"
       - "scripts/payment-sandbox/**"
+      - "scripts/payment-preview/**"
+      - ".github/workflows/hustle-payment-preview-neon-schema.yml"
       - "infra/aws/lambda/payment-preview-template.yaml"
       - "infra/cloudflare/payment-preview-api-worker.mjs"
       - ".github/workflows/hustle-payment-preview-api-deploy.yml"
@@ -63,6 +65,10 @@ jobs:
         run: node scripts/payment-sandbox/check-payment-preview-api-edge.mjs
       - name: Verify independently named AWS preview resources and protected deployment intent (offline)
         run: node scripts/payment-sandbox/check-payment-preview-infra.cjs
+      - name: Reject unsafe Neon payment-preview schema targets and unauthorized runs (offline)
+        run: |
+          node --check scripts/payment-preview/migrate.mjs
+          node scripts/payment-preview/check-guard.mjs
       - name: Syntax-check protected provider runner without running it
         run: node --check scripts/payment-sandbox/real-paystack-test-preflight.mjs
       - name: Validate protected real-provider preflight denies unsafe contexts without network
