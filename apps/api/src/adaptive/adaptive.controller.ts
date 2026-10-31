@@ -68,6 +68,11 @@ export class AdaptiveController {
     @Body() body: unknown) {
     return this.adaptive.updateServiceDraft(user, workspaceId, draftId, body);
   }
+  @Post("workspaces/:workspaceId/services/:draftId/prepare-canonical")
+  prepareCanonical(@CurrentIdentity() identity: AuthIdentity,
+    @Param("workspaceId") workspaceId: string, @Param("draftId") draftId: string) {
+    return this.adaptive.prepareCanonicalService(identity, workspaceId, draftId);
+  }
   @Post("workspaces/:workspaceId/work-drafts")
   draftWork(@CurrentIdentity() user: AuthIdentity, @Param("workspaceId") id: string,
     @Body() body: unknown) {
