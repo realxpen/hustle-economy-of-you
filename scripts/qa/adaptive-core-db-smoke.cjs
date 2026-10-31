@@ -239,9 +239,18 @@ async function run(){
    endAt:new Date(Date.parse(later+"T00:00:00Z")+86400000).toISOString().slice(0,10)+"T00:00:00+01:00"
  });
  assert.ok(leaveAgain.affectedExistingBookings>=1);
+ const reviewAfterLeave=await ops.staffingAlerts(own,business.id);
+ assert.equal(reviewAfterLeave.rosterEnabled,true);
+ assert.ok(reviewAfterLeave.items.some(x=>x.bookingId===third.id&&
+   x.reason==="SHIFT_OR_LEAVE_CONFLICT"),"leave must flag a confirmed booking");
+ await expectForbidden(ops.staffingAlerts(other,business.id));
+ await expectForbidden(ops.staffingAlerts(member,business.id));
  assert.equal((await db.booking.findUniqueOrThrow({where:{id:third.id}})).status,"ACCEPTED");
  const reassigned=await ops.assign(own,business.id,third.id,{staffId:worker2.id,expectedRevision:1});
  assert.equal(reassigned.revision,2);
+ const reviewAfterReassign=await ops.staffingAlerts(own,business.id);
+ assert.equal(reviewAfterReassign.items.some(x=>x.bookingId===third.id),false,
+   "manual reassignment resolves the specific worker conflict");
  await expectForbidden(ops.assign(own,business.id,third.id,{staffId:worker1.id,expectedRevision:2}),409);
  assert.equal((await ops.assign(own,business.id,third.id,{staffId:worker2.id,expectedRevision:1})).revision,2);
  assert.equal((await ops.myBookingSummary(other,third.id)).assignment.staff.displayName,worker2.displayName);
@@ -267,6 +276,17 @@ async function run(){
  const choices=await ops.myHandover(other,garment.id,{intakeMethod:"drop_off",returnMethod:"shop_pickup"});
  assert.equal(choices.status,"AWAITING_INTAKE");
  assert.equal(choices.policySnapshot.turnaroundHours,96);
+ const revisedHandover=await ops.myHandover(other,garment.id,{
+  intakeMethod:"home_pickup",returnMethod:"home_delivery",expectedRevision:1
+ });
+ assert.equal(revisedHandover.revision,2);
+ assert.equal(revisedHandover.policySnapshot.turnaroundHours,96);
+ await expectForbidden(ops.myHandover(other,garment.id,{
+  intakeMethod:"drop_off",returnMethod:"shop_pickup",expectedRevision:1
+ }),409);
+ await ops.myHandover(other,garment.id,{
+  intakeMethod:"drop_off",returnMethod:"shop_pickup",expectedRevision:2
+ });
  // The client agreement is snapshotted; later unsynchronized business-draft
  // edits cannot silently change an accepted item's ETA or ready-notice policy.
  await db.adaptiveServiceDraft.update({where:{id:template.id},data:{
@@ -274,6 +294,7 @@ async function run(){
  }});
 
  assert.equal((await ops.myBookingSummary(other,garment.id)).fulfillment.intakeMethod,"drop_off");
+ assert.equal((await ops.myBookingSummary(other,garment.id)).fulfillment.policySnapshot.turnaroundHours,96);
  await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"RECEIVED",expectedRevision:1}),409);
  await db.booking.update({where:{id:garment.id},data:{status:"FUNDED"}});
  await ops.itemProgress(own,business.id,garment.id,{to:"RECEIVED",expectedRevision:1});
