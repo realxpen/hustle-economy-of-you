@@ -360,6 +360,69 @@ button{ -webkit-tap-highlight-color:transparent}
 @media(max-width:550px){.hp-video-bubble{top:calc(98px + env(safe-area-inset-top))}.hp-video-controls{top:calc(151px + env(safe-area-inset-top))}.hp-video-error{top:calc(201px + env(safe-area-inset-top))}.hp-live-join{top:calc(110px + env(safe-area-inset-top))}}
 @media(prefers-reduced-motion:reduce){.hp-video-progress span{transition:none}}
 
+
+/* Feed refinement V5 — keep the work central, not the overlays */
+#feedPosts>.post .post-badge{display:none!important}
+#feedPosts>.post .hp-video-bubble,#feedPosts>.post .hp-video-controls{display:none!important}
+.hp-video-sample{
+ position:absolute;z-index:3;top:calc(115px + env(safe-area-inset-top));left:15px;
+ color:#f7f9f0e6;background:#131d16a3;border:1px solid #ffffff55;
+ border-radius:7px;padding:5px 8px;font-size:9px;font-weight:750;pointer-events:none;
+}
+.hp-video-surface{
+ position:absolute;z-index:2;inset:27% 22% 29% 12%;
+ background:transparent;border:0;color:white;display:grid;place-items:center;touch-action:pan-y;
+}
+.hp-video-paused-symbol{
+ display:grid;place-items:center;width:57px;height:57px;border-radius:50%;
+ background:#101b13bc;border:1px solid #ffffff8a;color:white;
+ font-size:23px;text-shadow:0 2px 4px #000;
+ opacity:0;transform:scale(.91);transition:opacity .15s ease,transform .15s ease;pointer-events:none;
+}
+.post.hp-is-paused .hp-video-paused-symbol,.hp-video-surface:focus-visible .hp-video-paused-symbol{opacity:1;transform:scale(1)}
+.hp-video-error{top:calc(160px + env(safe-area-inset-top));max-width:260px}
+.hp-caption-wrap{display:flex;align-items:flex-end;gap:6px;min-width:0}
+.hp-caption-wrap .post-caption{
+ flex:1;min-width:0;max-width:none;line-height:1.4;font-size:12px;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
+}
+.hp-caption-wrap .post-caption.hp-caption-expanded{
+ display:block;-webkit-line-clamp:unset;max-height:105px;overflow-y:auto;
+}
+.hp-caption-more{
+ flex:none;border:0;background:transparent;color:#f0f4e9dc;
+ font-size:10px;font-weight:900;padding:0 0 1px;text-shadow:0 1px 3px #000;
+}
+.mini-offer.hp-minimal-offer{
+ display:flex;align-items:center;min-height:43px;padding:5px 5px 5px 9px;gap:6px;
+ border:1px solid #ffffff5c;border-radius:13px;
+ background:#122018c2;color:#f8fff5;backdrop-filter:blur(5px);
+ box-shadow:none;
+}
+.hp-service-info{
+ flex:1;min-width:0;display:flex;align-items:center;gap:6px;
+ color:#f7faf1;background:transparent;border:0;text-align:left;padding:4px 0;
+}
+.hp-service-spark{font-size:13px;color:#dfff77;flex:none}
+.hp-service-title{font-size:10px;font-weight:850;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hp-service-price{font-size:9px;font-weight:700;color:#dbe8d5;flex:none;white-space:nowrap}
+.hp-minimal-offer>.offer-btn{
+ border:0;background:var(--acid);color:#172219;border-radius:9px;
+ font-size:11px;font-weight:900;min-width:54px;min-height:32px;padding:8px 10px;flex:none;
+}
+@media(max-width:550px){
+ .hp-video-sample{top:calc(96px + env(safe-area-inset-top))}
+ .hp-video-error{top:calc(136px + env(safe-area-inset-top))}
+ .post-foot{gap:7px}
+ .hp-caption-wrap .post-caption{font-size:12px}
+}
+@media(max-width:355px){
+ .hp-service-title{font-size:9px}
+ .hp-service-price{font-size:9px}
+ .hp-minimal-offer>.offer-btn{min-width:48px;padding:8px}
+}
+@media(prefers-reduced-motion:reduce){.hp-video-paused-symbol{transition:none}}
+
 </style>
 </head>
 <body>
@@ -431,7 +494,7 @@ function storiesMarkup(){return creators.slice(0,5).map((c,i)=>`<button class="s
 function videoMedia(p){
   return `<video class="hp-feed-video" data-video-post="${p.id}" src="${localVideoSrc||videoSampleUrl}" poster="${p.images[0]}" ${videoMuted?'muted':''} playsinline webkit-playsinline loop preload="metadata" aria-label="Sample creative video"></video>
   <button class="hp-video-surface" data-video-toggle="${p.id}" aria-label="Pause or play video"><span class="hp-video-paused-symbol" aria-hidden="true">▶</span></button>
-  <span class="hp-video-sample">Sample footage</span>
+  <span class="hp-video-sample">${localVideoSrc?'Local clip · preview':'Sample footage'}</span>
   <div class="hp-video-progress"><span data-video-progress="${p.id}"></span></div>
   <input class="hp-video-file" data-video-file="${p.id}" type="file" accept="video/*" aria-label="Choose a video from your device"/>
   <div class="hp-video-error" hidden>Video unavailable. Use the three-dot menu to choose a clip from your phone.</div>`;
