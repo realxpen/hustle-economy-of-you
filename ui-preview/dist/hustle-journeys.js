@@ -116,6 +116,43 @@ function setExampleQuote(b,p){
  b.stage="quote";
  addNotice("Booking","Professional accepted sample request",b.service,"BookingJourney");render();
 }
+function clearBookingMedia(){
+ const b=data.booking;
+ if(b?.mediaUrl){try{window.URL?.revokeObjectURL?.(b.mediaUrl)}catch(e){}}
+ if(b){b.mediaUrl="";b.mediaType="";b.mediaName=""}
+}
+function showBookingMedia(){
+ const b=data.booking,holder=root.querySelector("#hjReferencePreview");
+ if(!holder||!b.mediaName)return;
+ holder.hidden=false;
+ const label=esc(b.mediaName);
+ if(b.mediaUrl&&b.mediaType.startsWith("image/"))holder.innerHTML='<img src="'+esc(b.mediaUrl)+'" alt="Your selected reference image"><span>'+label+' · Local preview only</span>';
+ else if(b.mediaUrl&&b.mediaType.startsWith("video/"))holder.innerHTML='<video src="'+esc(b.mediaUrl)+'" controls playsinline preload="metadata" aria-label="Your selected reference video"></video><span>'+label+' · Local preview only</span>';
+ else holder.textContent=b.mediaName+" · Local only";
+}
+function updateBookingPreview(){
+ if(state.screen!=="BookingJourney"||data.booking.stage!=="request")return;
+ const box=root.querySelector("#hjLiveQuote");
+ const form=root.querySelector('form[data-hj-form="booking-request"]');
+ if(!box||!form)return;
+ const b=data.booking,p=policyFor(),raw=Number(form.querySelector('[name="people"]')?.value||1);
+ const people=Number.isFinite(raw)?Math.max(1,Math.min(50,Math.trunc(raw))):1;
+ const venue=form.querySelector('[name="venue"]')?.value||b.venue;
+ const choice=p.consultation==="required"?"consult":form.querySelector('input[name="consultChoice"]:checked')?.value||"direct";
+ const quote=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,basePrice:b.basePrice,people,venue,consultPaid:0});
+ if(!quote)return;
+ const possibleCredit=choice==="consult"&&p.creditConsultation?Math.min(quote.total,p.consultFee):0;
+ const custom=people>1||/home|event|at my location|pickup|delivery|cater|custom order|site assessment|outdoor/i.test(venue);
+ const consult=choice==="consult"&&p.consultation!=="off";
+ box.innerHTML='<div class="hj-live-quote-top"><span>ESTIMATED BOOKING</span><strong>'+money(quote.total)+'</strong></div>'
+ +'<div class="hj-live-quote-row"><span>'+people+' × '+money(quote.unit)+'</span><b>'+money(quote.service)+'</b></div>'
+ +(quote.travel?'<div class="hj-live-quote-row"><span>Home / travel</span><b>'+money(quote.travel)+'</b></div>':"")
+ +(quote.event?'<div class="hj-live-quote-row"><span>Event / group</span><b>'+money(quote.event)+'</b></div>':"")
+ +(consult?'<div class="hj-live-quote-row"><span>Consult first</span><b>'+(p.consultFee?money(p.consultFee):"Free")+'</b></div>':"")
+ +(possibleCredit?'<div class="hj-live-quote-credit">If you pay for consultation and proceed, '+money(possibleCredit)+' can be credited; estimated service balance '+money(quote.total-possibleCredit)+'.</div>':"")
+ +'<p>'+(custom?"Custom scope: final amount and staffing must be agreed with the professional.":"Fixed-price example: subject to professional acceptance.")+' No charge or confirmed reservation in this preview.</p>';
+ showBookingMedia();
+}
 function renderBooking(){
  const b=data.booking,p=policyFor(),paid=Number(b.consultPaid||0),due=payable(),group=!!b.customQuote,estimate=b.quoteLines||window.HustleBookingRules?.quote({id:p.id,provider:b.professional,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:paid});
  const visible=["Your request","Review & approval","Secure payment","Complete"];
@@ -373,8 +410,8 @@ function onSubmit(name,form){
 }
 root.addEventListener("click",e=>{const target=e.target.closest("[data-hj]");if(!target||!root.contains(target))return;if(target.type==="submit")return;e.preventDefault();onAction(target.dataset.hj,target.dataset.value,target.dataset.id)});
 root.addEventListener("submit",e=>{const f=e.target;if(!f.dataset.hjForm)return;e.preventDefault();onSubmit(f.dataset.hjForm,f)});
-root.addEventListener("input",e=>{if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}});
-root.addEventListener("change",e=>{if(e.target.id==="hj-bookingMedia"){const file=e.target.files?.[0];if(file){if(!/^(image|video)\//.test(file.type)||file.size>15*1024*1024){renderToast("Select a photo or video under 15 MB");e.target.value="";return}data.booking.mediaName=file.name;renderToast("Reference selected locally · not uploaded")}}if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}});
+root.addEventListener("input",e=>{if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
+root.addEventListener("change",e=>{if(e.target.id==="hj-bookingMedia"){const file=e.target.files?.[0];if(file){if(!/^(image|video)\//.test(file.type)||file.size>15*1024*1024){renderToast("Select a photo or video under 15 MB");e.target.value="";return}clearBookingMedia();data.booking.mediaName=file.name;data.booking.mediaType=file.type;try{data.booking.mediaUrl=window.URL?.createObjectURL?.(file)||""}catch(e){data.booking.mediaUrl=""}showBookingMedia();renderToast("Reference selected locally · not uploaded")}}if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
 function updateReportStatus(id,status){
  const report=data.reports.find(x=>x.id===id);if(!report)return false;
  report.status=status;addNotice("System","Report review updated · demo",id+" · "+status,"Explore");
