@@ -167,3 +167,13 @@
 .hj-toast{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom) + 25px);left:50%;transform:translateX(-50%);max-width:88%;min-width:180px;padding:11px 15px;text-align:center;background:#1b3120;color:white;border-radius:11px;box-shadow:0 10px 25px #0002;font-size:11px;font-weight:800;pointer-events:none;animation:hj-arrive .2s ease both}
 @media(max-width:350px){.hj-page{padding-left:12px;padding-right:12px}.hj-heading{padding-left:12px;padding-right:12px}.hj-welcome-copy h1{font-size:31px}.hj-action-row{gap:6px}.hj-btn{padding:10px 9px}.hj-status-card{grid-template-columns:minmax(72px,.5fr) 1fr}}
 @media(prefers-reduced-motion:reduce){.hj-root *, .hj-root *:before,.hj-root *:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+
+/* Adaptive booking guidance and staffing-aware quote surfaces */
+.hj-booking-advice{margin:10px 0 0;padding:12px 14px;border:1px solid var(--hj-line,#d9e2d5);border-radius:13px;background:#f1f9e7;color:#304a30;font-size:11px;line-height:1.55}
+.hj-booking-advice b{font-weight:850}
+.phone.dark .hj-booking-advice{background:#25372a;color:#e7f3d8;border-color:#425d42}
+.hj-capacity-note{border-radius:12px;background:var(--hj-card,#f8faf4);border:1px solid var(--hj-line,#e0e6db);padding:12px;display:flex;flex-direction:column;gap:5px;margin:11px 0}
+.hj-capacity-note b{font-size:11px}.hj-capacity-note span,.hj-capacity-note small{font-size:10px;line-height:1.4;opacity:.78}
+.hj-skill-examples summary{cursor:pointer}
+@media(prefers-reduced-motion:reduce){.hj-capacity-note,.hj-booking-advice{transition:none}}
