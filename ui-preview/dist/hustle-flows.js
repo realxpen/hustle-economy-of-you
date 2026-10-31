@@ -97,6 +97,7 @@ function renderSettings(){
  <button class="hf-person" data-hf="appearance"><span class="hf-person-icon">☾</span><span class="hf-person-data"><b>Appearance</b><small>Toggle light or dark theme</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="notifications"><span class="hf-person-icon">♧</span><span class="hf-person-data"><b>Notifications</b><small>Bookings, escrow, orders & messages</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="auth-start"><span class="hf-person-icon">✳</span><span class="hf-person-data"><b>Sign in or create account</b><small>Frictionless demo onboarding · no real OTP sent</small></span><span class="hf-chevron">›</span></button>
+ <button class="hf-person" data-hf="splash-preview"><span class="hf-person-icon">✦</span><span class="hf-person-data"><b>Preview welcome & splash</b><small>Replay the first-launch experience</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="reports"><span class="hf-person-icon">⚑</span><span class="hf-person-data"><b>My reports</b><small>Report status & safety follow-up</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="payments"><span class="hf-person-icon">₦</span><span class="hf-person-data"><b>Payments & earnings</b><small>Protected payments, earnings and payout overview</small></span><span class="hf-chevron">›</span></button>
  <div class="hf-section-row"><h2>Internal tools</h2><small>Restricted demo</small></div>
@@ -996,6 +997,7 @@ layer.addEventListener("click",e=>{
  case "appearance":phone.classList.toggle("dark");notify("Appearance updated for this preview");break;
  case "notifications":window.HustleJourneys?.open("Notifications");break;
  case "auth-start":window.HustleJourneys?.open("Auth");break;
+ case "splash-preview":window.HustleJourneys?.open("Splash");break;
  case "reports":window.HustleJourneys?.open("Reports");break;
  case "report-post":window.HustleJourneys?.open("Report",{subject:"Post",id});break;
  case "report-listing":window.HustleJourneys?.open("Report",{subject:"Listing",id});break;
