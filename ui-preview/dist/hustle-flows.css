@@ -335,3 +335,15 @@
 .hf-person-icon{height:48px;width:48px;border:1px solid var(--hf-line);border-radius:13px;background:var(--hf-bg);display:grid;place-items:center;color:#739c38;font-size:23px;flex:none}
 @media(max-width:390px){.phone .top-head{padding-left:12px;padding-right:10px}.phone .brand{font-size:23px}.phone .top-actions{gap:5px}.phone .stories-entry{padding-right:7px}.hf-home-shop{padding:6px 7px;gap:4px}.hf-home-cart{width:34px;height:34px}}
 @media(max-width:340px){.phone .brand{font-size:20px}.phone .stories-entry>span:last-child{display:none}.phone .stories-entry{padding-right:5px}.hf-discovery-shopping button{padding:9px 7px}.hf-discovery-shopping button>b{font-size:10px}}
+
+
+/* Connected onboarding, reporting, and notifications entry points */
+.hf-auth-entry{display:flex;gap:10px;justify-content:space-between;align-items:center;border:1px solid var(--hf-line);background:var(--hf-surface);border-radius:13px;padding:11px;margin:15px 0}
+.hf-auth-entry>div{min-width:0;flex:1}
+.hf-auth-entry b{display:block;font-size:11px}
+.hf-auth-entry small{display:block;margin-top:4px;font-size:10px;color:var(--hf-muted);line-height:1.4}
+.hf-auth-entry button{flex:none;background:var(--hf-lime);color:#223519;border:0;border-radius:9px;padding:10px;font-size:10px;font-weight:900}
+.hf-profile-safety{display:flex;justify-content:flex-end;margin:8px 0 11px}
+.hf-profile-safety button{color:var(--hf-muted);font-size:10px;font-weight:800;border:1px solid var(--hf-line);background:var(--hf-surface);border-radius:20px;padding:7px 9px}
+.hf-post-interactions button:last-child{font-size:10px}
+@media(max-width:355px){.hf-auth-entry{gap:6px;padding:9px}.hf-auth-entry button{padding:8px;font-size:9px}}
