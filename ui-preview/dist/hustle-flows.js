@@ -46,7 +46,10 @@ const threads=[
 {id:"amara",person:"amara",status:"Order question",unread:0,last:"Weekend meal boxes are listed.",when:"Tue",about:"p-meal",messages:[{from:"them",text:"Weekend meal boxes are listed. Let me know your questions.",time:"Tue"}]},
 {id:"maya",person:"maya",status:"Inquiry",unread:0,last:"What date is your shoot?",when:"Mon",about:"s-photo",messages:[{from:"them",text:"What date is your shoot?",time:"Mon"}]}
 ];
-const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Work",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},draftType:"Post",draftText:""};
+const samplePosts=[{"id":"post-tobi-1","seller":"tobi","kind":"video","image":"barber","caption":"A quiet morning at the chair. Getting the details right, one cut at a time.","related":"s-barber","tag":"Barbering"},{"id":"post-tobi-2","seller":"tobi","kind":"photo","image":"hair","caption":"The tools and people behind the finished look.","related":null,"tag":"Daily life"},{"id":"post-zara-1","seller":"zara","kind":"carousel","image":"fashion","caption":"From sketch to fitting. Here's a little behind the scenes of the making.","related":"s-fashion","tag":"Fashion"},{"id":"post-zara-2","seller":"zara","kind":"photo","image":"fabric","caption":"Mood board from this week's fabric hunt. What would you make with this?","related":null,"tag":"Creative process"},{"id":"post-maya-1","seller":"maya","kind":"photo","image":"photo","caption":"It's not just the camera. It's making people comfortable in front of it.","related":"s-photo","tag":"Photography"},{"id":"post-amara-1","seller":"amara","kind":"photo","image":"food","caption":"Cooking with family today. Good memories start in the kitchen.","related":null,"tag":"Life"},{"id":"post-amara-2","seller":"amara","kind":"photo","image":"meal","caption":"Weekend meal boxes are ready. Ask me anything about the menu.","related":"p-meal","tag":"Food"},{"id":"post-nora-1","seller":"nora","kind":"photo","image":"house","caption":"Small changes, completely different room. Before-and-after inspiration.","related":"s-interior","tag":"Home"},{"id":"post-femi-1","seller":"femi","kind":"photo","image":"style","caption":"Two ways to style pieces you already own.","related":"s-stylist","tag":"Fashion"},{"id":"post-flora-1","seller":"flora","kind":"video","image":"flowers","caption":"The way flowers open always makes me pause for a second.","related":"s-floral","tag":"Creative"},{"id":"post-you-1","seller":"self","kind":"photo","image":"photo","caption":"Learning, creating, and documenting the process. This is a sample post on my Hustle profile.","related":null,"tag":"Everyday"},{"id":"post-you-2","seller":"self","kind":"photo","image":"fashion","caption":"A sample of work I can share with the community.","related":null,"tag":"My work"}].map(p=>({...p,image:pics[p.image]}));
+const signedIn={name:"Your name",handle:"@yourhustle",bio:"A little about you, your interests, and the skills you want to share.",primary:"Your primary skill",secondary:"Your other skills",location:"Lagos, Nigeria",avatar:pics.style,cover:pics.photo,following:83,followers:128};
+const ownSavedPosts=new Set();
+const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Posts",post:"post-tobi-1",postLikes:new Set(),postComments:{},ownTab:"Posts",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},draftType:"Post",draftText:""};
 const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money=n=>"₦"+Number(n||0).toLocaleString("en-NG");
 const person=id=>people.find(p=>p.id===id)||people[0];
@@ -101,6 +104,8 @@ function render(){
   case "Cart":html=renderCart();break;
   case "Checkout":html=renderCheckout();break;
   case "Create":html=renderCreate();break;
+  case "Post":html=renderPostDetail();break;
+  case "EditProfile":html=renderProfileEdit();break;
   default:html=renderExplore();
  }
  layer.innerHTML=html;
@@ -117,7 +122,7 @@ function categoryChips(){
  return `<div class="hf-chips" role="group" aria-label="Categories">${["All","Beauty","Fashion","Creative","Food","Home"].map(x=>`<button data-hf="cat" data-value="${x}" class="${state.category===x?"on":""}">${x}</button>`).join("")}</div>`;
 }
 function renderExplore(){
- const tabs=["Top","People","Services","Products","Training","Stories","Live"];
+ const tabs=["Top","People","Posts","Services","Products","Training","Map","Stories","Live"];
  return `${head("Explore","People, skills, work and opportunities",false,`<button class="hf-icbtn" data-hf="cart" aria-label="Open cart">♧${state.cart.length?`<span class="hf-cart-count">${state.cart.length}</span>`:""}</button>`)}
  <div class="hf-page"><div class="hf-searchbox"><span>⌕</span><input id="hfExploreQuery" type="search" value="${esc(state.query)}" placeholder="Barber in Lekki, fashion in Yaba..." aria-label="Search Hustle"/><button data-hf="search-clear" aria-label="Clear search">×</button></div>
  <div class="hf-tabs" role="tablist" aria-label="Search sections">${tabs.map(x=>`<button data-hf="explore-tab" data-value="${x}" class="${state.exploreTab===x?"on":""}" role="tab" aria-selected="${state.exploreTab===x}">${x}</button>`).join("")}</div>
@@ -133,12 +138,15 @@ function matches(p){
  return cat&&q.every(w=>text.includes(w));
 }
 function exploreResults(){
+ if(state.exploreTab==="Map")return renderMapResults();
  if(state.exploreTab==="Stories")return `<button class="hf-story-banner" data-hf="stories"><span>✦</span><div><b>Friends and recommended Stories</b><small>Circles for people you follow; square Stories for discovery</small></div><strong>→</strong></button>`;
  if(state.exploreTab==="Live")return `<div class="hf-hero-card"><div style="flex:1"><h3>See creators at work</h3><p>Visit a simulated Live room with comments, reactions and pinned products.</p><button class="hf-lime-button" data-hf="live">Explore Live demo →</button></div><img src="${pics.food}" alt="" loading="lazy"></div>`;
  const ppl=people.filter(p=>matches({...p,title:p.primary,description:p.secondary,category:p.tag,seller:p.id}));
+ const foundPosts=samplePosts.filter(postMatches);
  const productsFound=products.filter(matches),servicesFound=services.filter(matches),trainingFound=training.filter(matches);
  const blocks=[];
  if(["Top","People"].includes(state.exploreTab)&&ppl.length)blocks.push(`<div class="hf-section-row"><h2>Professionals</h2><small>${ppl.length} examples</small></div>${ppl.slice(0,state.exploreTab==="Top"?3:20).map(personCard).join("")}`);
+ if(["Top","Posts"].includes(state.exploreTab)&&foundPosts.length)blocks.push(`<div class="hf-section-row"><h2>Posts from the community</h2><small>${foundPosts.length} demo posts</small></div>${renderPostsGrid(foundPosts.slice(0,state.exploreTab==="Top"?4:30))}`);
  if(["Top","Services"].includes(state.exploreTab)&&servicesFound.length)blocks.push(`<div class="hf-section-row"><h2>Services</h2>${state.exploreTab==="Top"?'<button class="hf-link" data-hf="market-services">View all →</button>':""}</div><div class="hf-two">${servicesFound.slice(0,state.exploreTab==="Top"?4:20).map(listingCard).join("")}</div>`);
  if(["Top","Products"].includes(state.exploreTab)&&productsFound.length)blocks.push(`<div class="hf-section-row"><h2>Products</h2>${state.exploreTab==="Top"?'<button class="hf-link" data-hf="market-products">View all →</button>':""}</div><div class="hf-two">${productsFound.slice(0,state.exploreTab==="Top"?2:20).map(listingCard).join("")}</div>`);
  if(["Top","Training"].includes(state.exploreTab)&&trainingFound.length)blocks.push(`<div class="hf-section-row"><h2>Learn from professionals</h2></div><div class="hf-two">${trainingFound.map(listingCard).join("")}</div>`);
@@ -167,9 +175,11 @@ function renderMarket(){
 function renderProfile(){
  const p=person(state.profile);
  const sellerItems=allItems.filter(x=>x.seller===p.id);
- const tabs=["Work","Services","Products","Training","Reviews"];
+ const tabs=["Posts","Work","Services","Products","Training","Reviews"];
  let inner="";
- if(state.profileTab==="Work"){
+ if(state.profileTab==="Posts"){
+  inner=`<p class="hf-profile-tab-copy">Posts and everyday moments shared by ${esc(p.name)}.</p>${renderPostsGrid(samplePosts.filter(x=>x.seller===p.id))}`;
+ }else if(state.profileTab==="Work"){
   inner=`<p class="hf-profile-tab-copy">Work by ${esc(p.name)}. Tap a listing to see its full details.</p><div class="hf-profile-work-grid">${p.work.map((src,i)=>`<button data-hf="profile-work" data-value="${i}" aria-label="View featured work ${i+1}"><img src="${src}" alt="Sample work by ${esc(p.name)}" loading="lazy"></button>`).join("")}</div>`;
  }else if(state.profileTab==="Reviews"){
   inner=`<p class="hf-profile-tab-copy">The following reviews are illustrations, not verified customer feedback.</p><div class="hf-review"><strong>★★★★★</strong><p>“Clear communication and really thoughtful work.”</p><small>Sample review · demonstration only</small></div><div class="hf-review"><strong>★★★★★</strong><p>“The consultation helped me explain what I needed.”</p><small>Sample review · demonstration only</small></div>`;
@@ -291,8 +301,9 @@ function notify(s){
  const container=phone.querySelector("#toastArea");
  if(container){container.innerHTML=`<div class="toast">${esc(s)}</div>`;clearTimeout(notify.timer);notify.timer=setTimeout(()=>container.innerHTML="",2400)}
 }
+function openPost(id){push("Post",{post:id})}
 function openListing(id){state.photoIndex=0;push("Listing",{item:id})}
-function openProfile(id){push("Profile",{profile:id,profileTab:"Work"})}
+function openProfile(id){push("Profile",{profile:id,profileTab:"Posts"})}
 function booking(id){
  const l=item(id);
  if(l.type==="product"){openListing(id);return}
@@ -321,7 +332,7 @@ function setNav(name){
  if(name==="Home"){home();return}
  if(name==="Explore"){state.category="All";state.exploreTab="Top";go("Explore");return}
  if(name==="Inbox"){state.inboxTab="All";go("Inbox");return}
- if(name==="Profile"){go("OwnProfile");return}
+ if(name==="Profile"){state.ownTab="Posts";go("OwnProfile");return}
  if(name==="Create"){go("Create");return}
 }
 function triggerStories(){
@@ -368,6 +379,14 @@ layer.addEventListener("click",e=>{
  case "stories":triggerStories();break;
  case "live":triggerLive();break;
  case "profile":openProfile(id);break;
+ case "own":go("OwnProfile");break;
+ case "own-edit":push("EditProfile");break;
+ case "own-settings":push("EditProfile");break;
+ case "own-tab":state.ownTab=value;render();break;
+ case "post-detail":openPost(id);break;
+ case "post-like":state.postLikes.has(id)?state.postLikes.delete(id):state.postLikes.add(id);render();break;
+ case "post-save":ownSavedPosts.has(id)?ownSavedPosts.delete(id):ownSavedPosts.add(id);render();break;
+ case "post-comment-focus":layer.querySelector("#hfPostCommentInput")?.focus();break;
  case "profile-tab":state.profileTab=value;render();break;
  case "profile-work":{const p=person(state.profile);const listing=allItems.find(x=>x.seller===p.id);if(listing)openListing(listing.id);break}
  case "listing":openListing(id);break;
@@ -420,6 +439,15 @@ layer.addEventListener("input",e=>{
  if(e.target.id==="hfInboxSearch"){state.inboxQuery=e.target.value;const active=document.activeElement;const cursor=e.target.selectionStart;render();const search=layer.querySelector("#hfInboxSearch");if(search){search.focus();search.setSelectionRange(cursor,cursor)}}
 });
 layer.addEventListener("submit",e=>{
+ if(e.target.id==="hfEditProfileForm"){
+  e.preventDefault();const f=e.target;
+  for(const k of ["name","handle","primary","secondary","location","bio"]){const v=f.elements.namedItem(k)?.value?.trim();if(v)signedIn[k]=v}
+  back();notify("Profile updated for this preview session");return;
+ }
+ if(e.target.id==="hfPostCommentForm"){
+  e.preventDefault();const postText=e.target.elements.namedItem("comment")?.value?.trim();
+  if(postText){(state.postComments[state.post]??=[]).push(postText);render()}return;
+ }
  if(e.target.id!=="hfChatForm")return;
  e.preventDefault();
  const input=e.target.querySelector('[name="message"]');
