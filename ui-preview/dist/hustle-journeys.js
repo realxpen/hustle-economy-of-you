@@ -195,7 +195,7 @@ function render(){
 function open(screen="Welcome",opts={}){
  if(screen==="Report"){state.reportSubject=opts.subject||"Content";state.reportId=opts.id||"Sample content";state.reportText="";state.reportReason="Misleading or fraudulent"}
  if(screen==="BookingJourney"&&opts.service){data.booking={...data.booking,service:opts.service,professional:opts.professional||data.booking.professional,price:Number(opts.price)||data.booking.price,stage:"request",quoteAccepted:false,paymentConfirmed:false,dispute:false,review:0,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}]}}
- if(screen==="PaymentJourney"&&opts.item){data.purchase={...data.purchase,item:opts.item,price:Number(opts.price)||data.purchase.price,stage:"details",status:"Not placed"}}
+ if(screen==="PaymentJourney"&&opts.item){data.purchase={...data.purchase,item:opts.item,price:Number(opts.price)||data.purchase.price,method:opts.method||data.purchase.method,delivery:opts.delivery||data.purchase.delivery,stage:"details",status:"Not placed"}}
  if(screen==="AgentAdd"){state.agentStep=0;state.agentMode="Existing";state.agentSelected="";state.agentConsent=false;state.agentTerms=false}
  state.stack=[];state.screen=screen;state.modal="";root.hidden=false;phone.classList.add("hj-open");render();
 }
@@ -216,7 +216,7 @@ function onAction(action,value="",id=""){
  case "notification-settings":go("NotificationSettings");break;
  case "notifications":go("Notifications");break;
  case "mark-all":data.notifications.forEach(n=>n.read=true);render();break;
- case "notification-open":{const n=data.notifications.find(n=>n.id===id);if(!n)return;n.read=true;render();if(n.route==="Escrow")window.HustleOperations?.open("Wallet");else if(n.route==="BookingJourney")open("BookingJourney");else if(n.route==="PaymentJourney")open("PaymentJourney");else if(n.route==="Explore"){close();window.HustleFlowsPreview?.open("Explore")}break}
+ case "notification-open":{const n=data.notifications.find(n=>n.id===id);if(!n)return;n.read=true;render();if(n.route==="Escrow"){close();window.HustleOperations?.open("Wallet")}else if(n.route==="BookingJourney")open("BookingJourney");else if(n.route==="PaymentJourney")open("PaymentJourney");else if(n.route==="Explore"){close();window.HustleFlowsPreview?.open("Explore")}break}
  case "report-start":go("Report");break;case "reports":go("Reports");break;
  case "report-block":renderToast("Demo block applied for this session");break;
  case "modal-close":state.modal="";render();break;
