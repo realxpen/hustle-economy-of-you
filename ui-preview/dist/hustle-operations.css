@@ -147,3 +147,21 @@
 .ho-demo-foot{font-size:10px;line-height:1.6;color:var(--ho-muted);border-top:1px solid var(--ho-line);padding-top:15px;margin-top:25px}
 @media(max-width:350px){.ho-header{padding-left:11px;padding-right:11px}.ho-head-row h1{font-size:19px}.ho-screen{padding-left:11px;padding-right:11px}.ho-stats-two{gap:6px}.ho-stat{padding:11px 9px}.ho-stat strong{font-size:16px}.ho-quick-grid button{padding:10px}.ho-balance>strong{font-size:28px}.ho-actions{gap:6px}.ho-btn{font-size:10px;padding:10px 8px}}
 @media(prefers-reduced-motion:reduce){.ho-root{scroll-behavior:auto}}
+
+
+/* Skill-specific booking configuration — professional-owned service controls */
+.ho-policy-skills{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:3px 0 12px;margin:8px 0}
+.ho-policy-skills button{flex:none;border:1px solid var(--ho-line);color:var(--ho-text);background:var(--ho-surface);border-radius:18px;padding:8px 11px;font-weight:800;font-size:10px;white-space:nowrap}
+.ho-policy-skills button.on{background:var(--ho-acid);color:#22301d;border-color:var(--ho-acid)}
+.ho-booking-policy{gap:13px}
+.ho-policy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ho-policy-grid .ho-field{min-width:0}
+.ho-field{display:flex;flex-direction:column;gap:6px}
+.ho-policy-check{display:flex;align-items:flex-start;gap:10px;padding:12px!important;border:1px solid var(--ho-line);border-radius:12px;background:var(--ho-surface)}
+.ho-policy-check input{width:17px;height:17px;min-height:17px;flex:none;accent-color:#8eb73f}
+.ho-policy-check span{display:flex;flex-direction:column;gap:6px}
+.ho-policy-check b{font-size:11px}.ho-policy-check small{font-size:10px;color:var(--ho-muted);line-height:1.5;font-weight:400}
+.ho-booking-example{display:flex;flex-direction:column;gap:6px;padding:13px;border-radius:13px;background:#eafaD6;color:#314e2d;border:1px solid #cce6a7}
+.ho-booking-example b{font-size:11px}.ho-booking-example span{font-size:12px;font-weight:850}.ho-booking-example small{font-size:10px}
+.phone.dark .ho-booking-example{background:#2d4832;color:#e4f5d8;border-color:#496b4a}
+@media(max-width:345px){.ho-policy-grid{gap:7px}.ho-policy-grid label{font-size:10px}}
