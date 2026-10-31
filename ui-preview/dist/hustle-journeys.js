@@ -213,6 +213,14 @@ function updateBookingPreview(){
 }
 
 function localISO(offset=0){const d=new Date();d.setDate(d.getDate()+offset);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
+function readyLabel(day,time){
+ if(!day)return "To be confirmed";
+ const v=String(time||"").split(":");
+ if(v.length!==2||!Number.isInteger(Number(v[0]))||!Number.isInteger(Number(v[1])))return niceDate(day);
+ const h=Number(v[0]);
+ if(h>23||Number(v[1])>59)return niceDate(day);
+ return niceDate(day)+" · by "+(h%12||12)+":"+v[1]+" "+(h<12?"AM":"PM");
+}
 function niceDate(day){if(!/^\d{4}-\d{2}-\d{2}$/.test(day||""))return esc(day||"");const d=new Date(day+"T12:00:00");return d.toLocaleDateString("en-NG",{weekday:"short",day:"numeric",month:"short",year:"numeric"})}
 
 function fulfillmentFields(p,b){
@@ -244,13 +252,15 @@ function renderJobTracker(b){
  +'<p><b>Return plan:</b> '+esc(b.returnMethod||"To confirm")+'. Only professional updates trigger a ready notification.</p></section>';
 }
 function showExistingBooking(){if(!data.booking.service)return false;state.stack=[];state.modal="";state.screen="BookingJourney";root.hidden=false;phone.classList.add("hj-open");render();return true}
-function updateProfessionalJob(status,readyDate){
+function updateProfessionalJob(status,readyDate,readyTime){
  const b=data.booking,p=policyFor(),allowed={awaiting_handoff:["received"],received:["processing"],processing:["ready"],ready:["out_for_delivery","completed"],out_for_delivery:["completed"],completed:[]};
  if(!p.jobFulfillment||b.stage!=="work"||!b.paymentConfirmed)return false;
  if(status&&(!allowed[b.jobStatus||"awaiting_handoff"]?.includes(status)||(status==="out_for_delivery"&&b.returnMethod!=="Deliver to my address")))return false;
- if(readyDate){
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(readyDate)||readyDate<b.day)return false;
-  if(readyDate!==b.readyDate){b.readyDate=readyDate;addNotice("Orders","Estimated ready date changed · demo",b.service+" · "+niceDate(readyDate),"BookingJourney")}
+ if(readyDate||readyTime){
+  const date=readyDate||b.readyDate,time=readyTime||b.readyTime||p.readyTime||"17:00";
+  const bits=String(time).split(":");
+  if(date<b.day||date.length!==10||bits.length!==2||Number(bits[0])>23||Number(bits[1])>59)return false;
+  if(date!==b.readyDate||time!==b.readyTime){b.readyDate=date;b.readyTime=time;addNotice("Orders","Estimated ready time updated · demo",b.service+" · "+readyLabel(date,time),"BookingJourney")}
  }
  if(status){
   if(!allowed[b.jobStatus||"awaiting_handoff"]?.includes(status))return false;
@@ -405,7 +415,7 @@ function open(screen="Welcome",opts={}){
  if(screen==="BookingJourney"){clearUnpaidReservation();clearBookingMedia()}
  if(screen==="Splash")state.guest=true;
  if(screen==="Report"){state.reportSubject=opts.subject||"Content";state.reportId=opts.id||"Sample content";state.reportText="";state.reportReason="Misleading or fraudulent"}
- if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category,opts.professional||data.booking.professional);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:localISO(1),time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,intake:"",returnMethod:"",measurementMethod:"",handoffAddress:"",readyDate:"",jobStatus:"awaiting_handoff",mediaName:"",mediaType:"",mediaUrl:"",quoteLines:null,slotReserved:false,slotPlan:null,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
+ if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category,opts.professional||data.booking.professional);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:localISO(1),time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,intake:"",returnMethod:"",measurementMethod:"",handoffAddress:"",readyDate:"",readyTime:pol?.readyTime||"17:00",jobStatus:"awaiting_handoff",mediaName:"",mediaType:"",mediaUrl:"",quoteLines:null,slotReserved:false,slotPlan:null,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
  if(screen==="PaymentJourney"&&opts.item){data.purchase={...data.purchase,item:opts.item,price:Number(opts.price)||data.purchase.price,method:opts.method||data.purchase.method,delivery:opts.delivery||data.purchase.delivery,stage:"details",status:"Not placed"}}
  if(screen==="AgentAdd"){state.agentStep=0;state.agentMode="Existing";state.agentSelected="";state.agentConsent=false;state.agentTerms=false;state.agentLanguage="English";state.agentHandoff="In-person handover"}
  state.stack=[];state.screen=screen;state.modal="";root.hidden=false;phone.classList.add("hj-open");render();if(screen==="Splash")playSplash();
