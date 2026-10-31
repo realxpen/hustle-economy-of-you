@@ -18,6 +18,7 @@ const key=(id,day,time,provider="default")=>[provider,id,day,time].join("|");
 const detect=title=>{const v=String(title||"").toLowerCase();if(/barber|haircut|groom|fade|beard/.test(v))return "barber";if(/tailor|outfit|fashion|sewing|alteration|dress/.test(v))return "tailor";if(/shoe|cobbl|footwear/.test(v))return "shoemaker";if(/chef|meal|food|cook|cater|bake/.test(v))return "cook";if(/education|tutor|school|lesson|consult|admission/.test(v))return "education";if(/photo|film|wedding shoot|video shoot/.test(v))return "photo";if(/repair|plumb|electri|home service|clean|technician/.test(v))return "home";return "generic"};
 const get=(id,provider="default")=>{const v=templates[id]||templates.generic;return {...v,...(overrides.get(providerKey(v.id,"default"))||{}),...(overrides.get(providerKey(v.id,provider))||{}),fields:v.fields.map(x=>x.slice()),locationModes:v.locationModes.slice()}};
 const getForService=(title,id,provider="default")=>get(id&&templates[id]?id:detect(title),provider);
+const hasOverride=(id,provider="default",field)=>{const entry=overrides.get(providerKey(id,provider));return !!entry&&(!field||Object.prototype.hasOwnProperty.call(entry,field))};
 function update(id,patch,provider="default"){if(!templates[id])return false;const policy=get(id,provider);const clean={};
  if(["off","optional","required"].includes(patch.consultation))clean.consultation=patch.consultation;
  if(patch.consultFee!==undefined){const n=Number(patch.consultFee);if(!Number.isSafeInteger(n)||n<0||n>100000)return false;clean.consultFee=n}
@@ -69,5 +70,5 @@ function quote({id="generic",provider="default",basePrice,people=1,venue="",cons
  return {unit,people:n,service,travel,event,total:full,credit,due:Math.max(0,full-credit),duration:Math.ceil(n/p.capacity)*p.duration};
 }
 const finalDue=(amount,paid,enabled)=>Math.max(0,Math.round(amount)-(enabled?Math.min(Math.round(amount),Math.max(0,Math.round(paid))):0));
-window.HustleBookingRules={templates,samples,get,getForService,detect,update,held,left,reserve,release,reservePlan,releasePlan,quote,finalDue,_testing:{overrides,reservations}};
+window.HustleBookingRules={templates,samples,get,getForService,hasOverride,detect,update,held,left,reserve,release,reservePlan,releasePlan,quote,finalDue,_testing:{overrides,reservations}};
 })();
