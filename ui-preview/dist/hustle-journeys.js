@@ -110,10 +110,10 @@ function bookingIndex(){return Math.max(0,steps.BookingJourney.indexOf(({request
 function policyFor(){return data.booking.policy||window.HustleBookingRules?.getForService(data.booking.service,data.booking.category,data.booking.professional)||{id:"generic",label:"Other service",consultation:"optional",consultFee:0,creditConsultation:false,capacity:1,duration:60,approval:"manual",locationModes:["At provider","At my location"],fields:[["style","What do you need?","Describe the work"]],groupQuote:true}}
 function payable(){const b=data.booking,p=policyFor();return Math.max(0,b.price-(b.consultPaid&&p.creditConsultation?Math.min(b.price,b.consultPaid):0))}
 function setExampleQuote(b,p){
- b.quoteLines=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,day:b.day,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:b.consultPaid})||null;
+ b.quoteLines=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,day:b.day,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:b.consultPaid,intake:b.intake,returnMethod:b.returnMethod,measurementMethod:b.measurementMethod})||null;
  b.price=b.quoteLines?.total??b.basePrice;
  b.consultCredit=b.quoteLines?.credit??(b.consultPaid&&p.creditConsultation?Math.min(b.price,b.consultPaid):0);
- b.stage="quote";
+ b.stage="quote";if(p.jobFulfillment&&!b.readyDate)b.readyDate=window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"";
  addNotice("Booking","Professional accepted sample request",b.service,"BookingJourney");render();
 }
 function clearBookingMedia(){
@@ -191,7 +191,9 @@ function updateBookingPreview(){
  const minutes=cap>0?Math.ceil(unitsNeeded/cap)*p.duration:0;
  infoBox.innerHTML="<b>"+cap+" active service provider"+(cap===1?"":"s")+" · "+p.duration+(p.deliveryMode==="shared"?" min per group session":p.deliveryMode==="batch"?" min per batch":" min per customer")+"</b><span>"+(people>1?(cap>0?people+(p.deliveryMode==="shared"?" participants share one session":p.deliveryMode==="batch"?" portions are prepared in batches":" individual services")+". Estimated service duration: "+minutes+" minutes with available staff.":"No available staff. Please choose another date."):"Estimated appointment: "+p.duration+" minutes.")+"</span><small>"+available+" staff place"+(available===1?"":"s")+" in "+esc(chosenTime)+" on "+niceDate(chosenDate)+" (sample only). Schedule depends on staff working days and leave.</small>";
  }
- const quote=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,day:chosenDate,basePrice:b.basePrice,people,venue,consultPaid:0});
+ const intake=form.querySelector('[name="intake"]')?.value||b.intake,returnMethod=form.querySelector('[name="returnMethod"]')?.value||b.returnMethod,measurementMethod=form.querySelector('[name="measurementMethod"]')?.value||b.measurementMethod;
+ const quote=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,day:chosenDate,basePrice:b.basePrice,people,venue,consultPaid:0,intake,returnMethod,measurementMethod});
+ const eta=root.querySelector("#hjEstimatedReady");if(eta)eta.textContent=niceDate(window.HustleBookingRules?.estimatedReadyDate(chosenDate,p.id,b.professional)||"");
  if(!quote)return;
  const possibleCredit=choice==="consult"&&p.creditConsultation?Math.min(quote.total,p.consultFee):0;
  const custom=people>1||/home|event|at my location|pickup|delivery|cater|custom order|site assessment|outdoor/i.test(venue);
@@ -200,6 +202,9 @@ function updateBookingPreview(){
  +'<div class="hj-live-quote-row"><span>'+(p.pricingMode==="flat"?"Group/session package":people+' × '+money(quote.unit))+'</span><b>'+money(quote.service)+'</b></div>'
  +(quote.travel?'<div class="hj-live-quote-row"><span>Home / travel</span><b>'+money(quote.travel)+'</b></div>':"")
  +(quote.event?'<div class="hj-live-quote-row"><span>Event / group</span><b>'+money(quote.event)+'</b></div>':"")
+ +(quote.pickup?'<div class="hj-live-quote-row"><span>Collection fee</span><b>'+money(quote.pickup)+'</b></div>':"")
+ +(quote.delivery?'<div class="hj-live-quote-row"><span>Return delivery fee</span><b>'+money(quote.delivery)+'</b></div>':"")
+ +(quote.measurement?'<div class="hj-live-quote-row"><span>Measurement visit</span><b>'+money(quote.measurement)+'</b></div>':"")
  +(consult?'<div class="hj-live-quote-row"><span>Consult first</span><b>'+(p.consultFee?money(p.consultFee):"Free")+'</b></div>':"")
  +'<div class="hj-live-quote-row"><span>Estimated service time</span><b>'+(cap?quote.duration+" min":"Not available")+"</b></div>"
  +(possibleCredit?'<div class="hj-live-quote-credit">If you pay for consultation and proceed, '+money(possibleCredit)+' can be credited; estimated service balance '+money(quote.total-possibleCredit)+'.</div>':"")
@@ -273,15 +278,15 @@ function renderBooking(){
    <div class="hj-field"><label for="hj-venue">How should this service happen?</label><select id="hj-venue" name="venue">${venues.map(x=>`<option ${b.venue===x?"selected":""}>${esc(x)}</option>`).join("")}</select></div>
    ${p.fields.map(([key,label,placeholder],i)=>field(key,label,placeholder,i===0?"textarea":"text",b.fields?.[key]||"",i===0?'required minlength="5"':"")).join("")}
    <div class="hj-field"><label for="hj-location">Service area or location</label><input name="location" id="hj-location" value="${esc(b.location)}" placeholder="e.g. Yaba or Online"><small>Exact address can be shared after acceptance.</small></div>
-   <div class="hj-booking-section"><span>02</span><h3>When should it happen?</h3></div>
+   ${fulfillmentFields(p,b)}<div class="hj-booking-section"><span>${p.jobFulfillment?"03":"02"}</span><h3>${p.jobFulfillment?"When should items be collected or dropped off?":"When should it happen?"}</h3></div>
    <div class="hj-field"><label for="hj-day">Select an exact date</label><input type="date" name="day" id="hj-day" required min="${localISO()}" max="${localISO(365)}" value="${/^\d{4}-\d{2}-\d{2}$/.test(b.day)?b.day:localISO(1)}"><small>Choose any available date in the next 12 months. Your booking is subject to professional approval.</small></div>
    <div class="hj-date-ribbon" id="hjDateRibbon" aria-label="Availability for the next seven days"></div>
    <div class="hj-field"><label for="hj-time">Preferred time</label><select name="time" id="hj-time">${(window.HustleBookingRules?.slotsFor(p.id,b.day,b.professional,b.people)||[]).map(x=>`<option value="${esc(x.time)}" ${b.time===x.time?"selected":""} ${!x.fits?"disabled":""}>${x.fits?`${esc(x.time)} · ${x.left} free`:`Full · ${esc(x.time)}`}</option>`).join("")||'<option value="" disabled>No available times on this date</option>'}</select><small>Times follow the example working hours and staffing. The professional must confirm.</small></div>
    <div class="hj-field"><label for="hj-people">${p.id==="education"?"How many learners?":p.id==="cook"?"How many portions or meals?":p.id==="photo"?"How many people are involved?":"How many clients, guests or items?"} (1 for an individual)</label><input type="number" id="hj-people" name="people" min="1" max="50" value="${b.people||1}"></div>
    <div id="hjAvailabilityHelp" class="hj-availability-help" role="status" aria-live="polite"></div><div id="hjCapacityNote" class="hj-capacity-note"></div>
-   <div class="hj-booking-section"><span>03</span><h3>Show your inspiration</h3></div>
+   <div class="hj-booking-section"><span>${p.jobFulfillment?"04":"03"}</span><h3>Show your inspiration</h3></div>
    <div class="hj-field hj-media-upload"><label for="hj-bookingMedia">Attach a reference (optional)</label><input type="file" id="hj-bookingMedia" accept="image/*,video/*"><small>Haircut photos, outfit sketches or a short video. Nothing is uploaded in this preview.</small><div id="hjReferencePreview" class="hj-media-preview" ${b.mediaName?"":"hidden"}>${b.mediaName?esc(b.mediaName):""}</div></div>
-   ${p.consultation==="off"?"":`<div class="hj-booking-section"><span>04</span><h3>Would you like to consult first?</h3></div><fieldset class="hj-consult-options"><legend>Choose a booking option</legend>
+   ${p.consultation==="off"?"":`<div class="hj-booking-section"><span>${p.jobFulfillment?"05":"04"}</span><h3>Would you like to consult first?</h3></div><fieldset class="hj-consult-options"><legend>Choose a booking option</legend>
    ${p.consultation!=="required"?`<label><input type="radio" name="consultChoice" value="direct" ${!b.consultChoice?"checked":""}><span><b>Book without consultation</b><small>Send details now for professional approval</small></span></label>`:""}
    ${p.consultation!=="off"?`<label><input type="radio" name="consultChoice" value="consult" ${b.consultChoice?"checked":""}><span><b>${p.consultFee?`Consult first · ${money(p.consultFee)}`:"Free consultation"}</b><small>${p.consultFee&&p.creditConsultation?"Fee is credited if you later book this service":p.consultFee?"Separate paid consultation, not credited":"Discuss requirements before booking"}</small></span></label>`:""}
    </fieldset>`}<div id="hjLiveQuote" class="hj-live-quote" aria-live="polite"></div>
@@ -398,7 +403,7 @@ function open(screen="Welcome",opts={}){
  if(screen==="BookingJourney"){clearUnpaidReservation();clearBookingMedia()}
  if(screen==="Splash")state.guest=true;
  if(screen==="Report"){state.reportSubject=opts.subject||"Content";state.reportId=opts.id||"Sample content";state.reportText="";state.reportReason="Misleading or fraudulent"}
- if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category,opts.professional||data.booking.professional);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:localISO(1),time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,mediaName:"",mediaType:"",mediaUrl:"",quoteLines:null,slotReserved:false,slotPlan:null,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
+ if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category,opts.professional||data.booking.professional);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:localISO(1),time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,intake:"",returnMethod:"",measurementMethod:"",handoffAddress:"",readyDate:"",jobStatus:"awaiting_handoff",mediaName:"",mediaType:"",mediaUrl:"",quoteLines:null,slotReserved:false,slotPlan:null,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
  if(screen==="PaymentJourney"&&opts.item){data.purchase={...data.purchase,item:opts.item,price:Number(opts.price)||data.purchase.price,method:opts.method||data.purchase.method,delivery:opts.delivery||data.purchase.delivery,stage:"details",status:"Not placed"}}
  if(screen==="AgentAdd"){state.agentStep=0;state.agentMode="Existing";state.agentSelected="";state.agentConsent=false;state.agentTerms=false;state.agentLanguage="English";state.agentHandoff="In-person handover"}
  state.stack=[];state.screen=screen;state.modal="";root.hidden=false;phone.classList.add("hj-open");render();if(screen==="Splash")playSplash();
@@ -458,7 +463,7 @@ function onAction(action,value="",id=""){
  case "payment-method":data.purchase.method=value;render();break;
  case "booking-pay":{if(data.booking.stage!=="payment"||!data.booking.quoteAccepted)break;
  if(!data.booking.paymentConfirmed){const due=payable();data.booking.escrowRef=due>0?window.HustleOperations?.addJourneyEscrow?.({service:data.booking.service,professional:data.booking.professional,amount:due})||null:null}
- data.booking.paymentConfirmed=true;data.booking.stage="work";addNotice("Money","Protected payment preview created · demo",data.booking.service,"Escrow");render();break}
+ data.booking.paymentConfirmed=true;data.booking.stage="work";if(policyFor().jobFulfillment)data.booking.jobStatus="awaiting_handoff";addNotice("Money","Protected payment preview created · demo",data.booking.service,"Escrow");render();break}
  case "booking-milestone":if(!data.booking.dispute){state.info=id;state.modal="release";render()}else renderToast("Milestone frozen during dispute");break;
  case "release-confirm":{const m=data.booking.milestones[Number(state.info)];if(m&&m.state==="Held"&&!data.booking.dispute){m.state="Released";if(data.booking.escrowRef)window.HustleOperations?.updateJourneyEscrow?.(data.booking.escrowRef,"release",Number(state.info));addNotice("Money","Milestone released · demo",m.title,"Escrow")}state.modal="";render();break}
  case "booking-dispute":state.modal="dispute";render();break;
@@ -521,11 +526,18 @@ function onSubmit(name,form){
  state.onboardStep++;render();return}
  if(name==="report"){state.reportReason=get("reason");state.reportText=get("reportDetails");state.modal="report-confirm";render();return}
  if(name==="booking-request"){const b=data.booking,p=policyFor();b.fields={};for(const [key] of p.fields)b.fields[key]=get(key);
- b.requirements=b.fields.style||"";b.location=get("location");b.venue=get("venue")||p.locationModes[0];b.day=get("day")||localISO(1);b.time=get("time");b.people=Number(get("people")||1);b.quoteLines=null;
+ b.requirements=b.fields.style||"";
+ const f=window.HustleBookingRules?.fulfillmentFor(p.id,b.professional);
+ b.intake=f?String(get("intake")||f.intakeModes[0]):"";
+ b.returnMethod=f?String(get("returnMethod")||f.returnModes[0]):"";
+ b.measurementMethod=f?.measurementModes.length?String(get("measurementMethod")||f.measurementModes[0]):"";
+ b.handoffAddress=f?String(get("handoffAddress")||"").trim():"";
+ if(f&&((b.intake==="Collect from my address"||b.returnMethod==="Deliver to my address"||/visits me/.test(b.measurementMethod))&&!b.handoffAddress)){renderToast("Add a general area for collection, delivery or a measurement visit.");return}
+ b.location=get("location");b.venue=get("venue")||p.locationModes[0];b.day=get("day")||localISO(1);b.time=get("time");b.people=Number(get("people")||1);b.quoteLines=null;
  if(!/^\d{4}-\d{2}-\d{2}$/.test(b.day)||b.day<localISO()||b.day>localISO(365)){renderToast("Choose a valid future booking date");return}if(!b.time){renderToast("This date is full or closed. Please select a suggested opening.");return}if(!window.HustleBookingRules?.isOpen(p.id,b.day,b.time,b.professional)){renderToast("That time is outside this professional’s working hours");return}
  if(b.requirements.length<5||!Number.isSafeInteger(b.people)||b.people<1||b.people>50){renderToast("Describe the service and choose 1–50 people or items");return}if(!b.location)b.location=/remote|video|phone/i.test(b.venue)?"Online":"Location to be confirmed";
  b.consultChoice=p.consultation==="required"||p.consultation==="optional"&&get("consultChoice")==="consult";
- b.customQuote=b.people>1||/home|event|at my location|pickup|delivery|cater|custom order|site assessment|outdoor/i.test(b.venue);
+ b.customQuote=b.people>1||/home|event|at my location|pickup|delivery|cater|custom order|site assessment|outdoor/i.test(b.venue)||!!p.jobFulfillment&&(/Collect from my address|Deliver to my address/.test(b.intake+" "+b.returnMethod)||/visits me/.test(b.measurementMethod));
  if((window.HustleBookingRules?.effectiveCapacity(p.id,b.day,b.professional)??p.capacity)<1){renderToast("No staff available on that day. Please choose a different date.");return}
  if(!b.time||!window.HustleBookingRules?.previewPlan(p.id,b.day,b.time,b.people,b.professional)){renderToast("That time is full or cannot fit everyone. Choose an available opening.");return}
  b.stage=b.consultChoice?"consultation":"awaiting";render();return}
