@@ -54,10 +54,22 @@ export function validatePaymentPreviewRuntime(env: NodeJS.ProcessEnv): void {
     "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SERVICE_ROLE_KEY",
     "MONNIFY_API_KEY", "MONIFLOW_PARTNER_HMAC_SECRET",
     "NEON_AUTH_BASE_URL", "NEON_AUTH_JWKS_URL",
-    "HUSTLE_STAGING_PROJECT_ID", "HUSTLE_STAGING_BRANCH_ID",
-    "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"
+    "HUSTLE_STAGING_PROJECT_ID", "HUSTLE_STAGING_BRANCH_ID"
   ]) {
     if (env[key]) throw new Error("Staging/production configuration forbidden in payment preview");
+  }
+  // Lambda supplies temporary AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY from its
+  // execution role automatically. Reject these credentials outside the one
+  // dedicated preview function, but don't reject the real Lambda runtime.
+  // The function's execution IAM role is logs-only, not an AWS deployer.
+  const hasAwsCredentials = Boolean(env.AWS_ACCESS_KEY_ID || env.AWS_SECRET_ACCESS_KEY ||
+    env.AWS_SESSION_TOKEN);
+  if (hasAwsCredentials &&
+      (env.AWS_LAMBDA_FUNCTION_NAME !== "hustle-payment-preview-api" ||
+       env.AWS_REGION !== "eu-west-2" ||
+       !env.AWS_ACCESS_KEY_ID || !env.AWS_SECRET_ACCESS_KEY ||
+       !env.AWS_SESSION_TOKEN)) {
+    throw new Error("Payment preview rejects AWS credentials outside its isolated Lambda runtime");
   }
   const host = env.HUSTLE_PAYMENT_PREVIEW_DB_HOST ?? "";
   if (!/^ep-[a-z0-9-]+\.c-2\.eu-west-2\.aws\.neon\.tech$/.test(host) ||
