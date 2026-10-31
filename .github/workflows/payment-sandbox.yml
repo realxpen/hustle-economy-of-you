@@ -10,6 +10,9 @@ on:
       - "scripts/experience/staging-*"
       - "scripts/experience/casework-access-check.sql"
       - "apps/api/src/payment/**"
+      - "apps/api/src/auth/staging-auth-selection.ts"
+      - "apps/api/src/main.ts"
+      - "apps/web/lib/api/isolated-web-proxy.ts"
       - "apps/api/src/commerce/**"
       - "apps/api/src/notifications/**"
       - "apps/api/prisma/**"
@@ -112,6 +115,8 @@ jobs:
             -f scripts/experience/casework-access-check.sql
       - name: Build actual Nest API
         run: npm run build --workspace=@hustle/api
+      - name: Validate separate persistent payment-preview runtime and exact route authority (offline)
+        run: node scripts/payment-sandbox/check-payment-preview-contract.mjs
       - name: Run end-to-end paid Order and notification assertions
         run: node scripts/payment-sandbox/run.mjs
       - name: Real Nest and disposable PostgreSQL Paystack Product and Booking acceptance (mock provider only)
