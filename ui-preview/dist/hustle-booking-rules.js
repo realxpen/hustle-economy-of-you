@@ -1,16 +1,17 @@
 (function hustleBookingRules(){
 "use strict";
 const templates={
+ laundry:{id:"laundry",label:"Laundry / dry cleaning",icon:"🧺",consultation:"off",consultFee:0,creditConsultation:false,capacity:3,duration:30,turnaroundDays:3,pickupFee:1500,deliveryFee:1500,approval:"manual",basePrice:2500,locationModes:["At the laundry shop","Home collection"],fields:[["style","What needs washing?","Describe the items and service (wash, iron, dry clean)"],["items","Items / quantity","e.g. 6 shirts, 2 suits, 1 duvet"],["care","Care instructions (optional)","Stains, delicate fabric or urgent turnaround"]],groupQuote:true,deliveryMode:"batch",batchSize:10,pricingMode:"flat",jobFulfillment:true},
  barber:{id:"barber",label:"Barber / grooming",icon:"💈",consultation:"optional",consultFee:1000,creditConsultation:true,capacity:4,duration:60,travelFee:2500,eventFee:5000,approval:"manual",basePrice:5000,locationModes:["At the shop","Home service","Event / group"],fields:[["style","Hairstyle / cut","Describe the haircut or style you want"],["notes","Extra details (optional)","e.g. beard trim, children, preferred barber"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"},
- tailor:{id:"tailor",label:"Tailor / fashion",icon:"🧵",consultation:"optional",consultFee:2000,creditConsultation:true,capacity:1,duration:90,travelFee:3000,eventFee:5000,approval:"manual",basePrice:18000,locationModes:["At the studio","Home measurement","Event / group"],fields:[["style","Outfit or alteration","What would you like made or adjusted?"],["measurements","Measurements / fitting details","Share sizes or say 'Need measurement session'"],["deadline","Needed by","e.g. 15 November"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"},
- shoemaker:{id:"shoemaker",label:"Shoemaker / repairs",icon:"👞",consultation:"off",consultFee:0,creditConsultation:false,capacity:3,duration:60,approval:"manual",basePrice:6000,locationModes:["Drop off","Pickup / delivery","Custom order"],fields:[["style","Repair or new shoe","e.g. replace sole, handmade loafers"],["size","Shoe size / material","e.g. size 43 leather"],["deadline","Required by","e.g. next Friday"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"},
+ tailor:{id:"tailor",label:"Tailor / fashion",icon:"🧵",jobFulfillment:true,turnaroundDays:7,pickupFee:2000,deliveryFee:2000,measurementFee:2500,consultation:"optional",consultFee:2000,creditConsultation:true,capacity:1,duration:90,travelFee:3000,eventFee:5000,approval:"manual",basePrice:18000,locationModes:["At the studio","Home measurement","Event / group"],fields:[["style","Outfit or alteration","What would you like made or adjusted?"],["measurements","Measurements / fitting details","Share sizes or say 'Need measurement session'"],["deadline","Needed by","e.g. 15 November"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"},
+ shoemaker:{id:"shoemaker",label:"Shoemaker / repairs",icon:"👞",jobFulfillment:true,turnaroundDays:5,pickupFee:1500,deliveryFee:1500,measurementFee:1500,consultation:"off",consultFee:0,creditConsultation:false,capacity:3,duration:60,approval:"manual",basePrice:6000,locationModes:["Drop off","Pickup / delivery","Custom order"],fields:[["style","Repair or new shoe","e.g. replace sole, handmade loafers"],["size","Shoe size / material","e.g. size 43 leather"],["deadline","Required by","e.g. next Friday"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"},
  cook:{id:"cook",label:"Chef / catering",icon:"🍳",consultation:"optional",consultFee:0,creditConsultation:false,capacity:2,duration:120,travelFee:3000,eventFee:10000,approval:"manual",basePrice:12500,locationModes:["Pickup","Delivery","Cater an event"],fields:[["style","Meals or menu","What would you like prepared?"],["diet","Dietary needs","e.g. no peanuts, vegetarian"],["guests","Guests / portions","How many people are you feeding?"]],groupQuote:true,deliveryMode:"batch",batchSize:10,pricingMode:"perPerson"},
  education:{id:"education",label:"Tutor / consultant",icon:"📚",consultation:"required",consultFee:3000,creditConsultation:false,capacity:1,duration:45,approval:"manual",basePrice:10000,locationModes:["Video call","Phone call","In person"],fields:[["style","What do you need help with?","e.g. school application or maths lesson"],["level","Student / situation","e.g. university admissions, SS3"]],groupQuote:true,deliveryMode:"shared",pricingMode:"perPerson"},
  home:{id:"home",label:"Home / technical service",icon:"🔧",consultation:"required",consultFee:1500,creditConsultation:true,capacity:2,duration:90,approval:"manual",basePrice:15000,locationModes:["At my location","Remote diagnosis","Site assessment"],fields:[["style","Problem / service needed","e.g. leaking tap, faulty socket"],["urgency","Urgency","e.g. today, this week"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"},
  photo:{id:"photo",label:"Photographer / events",icon:"📷",consultation:"optional",consultFee:0,creditConsultation:false,capacity:1,duration:120,travelFee:5000,eventFee:7000,approval:"manual",basePrice:30000,locationModes:["Studio","At event / venue","Outdoor shoot"],fields:[["style","Shoot type","e.g. wedding, graduation, portraits"],["guests","People / event size","e.g. 30 guests"],["deadline","Event date","e.g. 14 November"]],groupQuote:true,deliveryMode:"shared",pricingMode:"flat"},
  generic:{id:"generic",label:"Other professional",icon:"✳",consultation:"optional",consultFee:0,creditConsultation:false,capacity:1,duration:60,approval:"manual",basePrice:8000,locationModes:["At provider","At my location","Remote"],fields:[["style","What do you need?","Describe the work and any references"]],groupQuote:true,deliveryMode:"individual",pricingMode:"perPerson"}
 };
-const samples=[{id:"barber",title:"Signature haircut",name:"Tobi Adeyemi"},{id:"tailor",title:"Custom wedding outfit",name:"Zara Okafor"},{id:"shoemaker",title:"Shoe repair or handmade pair",name:"The Shoe Studio"},{id:"cook",title:"Meal boxes and event catering",name:"Chef Amara"},{id:"education",title:"Educational consultation",name:"Education Adviser"},{id:"home",title:"Home repair visit",name:"Home Services Pro"},{id:"photo",title:"Event photography",name:"Photo Studio"}];
+const samples=[{id:"laundry",title:"Wash, iron & dry-clean",name:"FreshFold Laundry"},{id:"barber",title:"Signature haircut",name:"Tobi Adeyemi"},{id:"tailor",title:"Custom wedding outfit",name:"Zara Okafor"},{id:"shoemaker",title:"Shoe repair or handmade pair",name:"The Shoe Studio"},{id:"cook",title:"Meal boxes and event catering",name:"Chef Amara"},{id:"education",title:"Educational consultation",name:"Education Adviser"},{id:"home",title:"Home repair visit",name:"Home Services Pro"},{id:"photo",title:"Event photography",name:"Photo Studio"}];
 const overrides=new Map();const reservations=new Map();
 
 /* Example business roster + hours. UI-only and never a source of real availability. */
@@ -74,7 +75,7 @@ function isOpen(id,day,time,provider="default"){
 const providerKey=(id,provider)=>[id,String(provider||"default")].join("|");
 // Reservation keys are scoped by professional, not a global skill category.
 const key=(id,day,time,provider="default")=>[provider,id,day,time].join("|");
-const detect=title=>{const v=String(title||"").toLowerCase();if(/barber|haircut|groom|fade|beard/.test(v))return "barber";if(/tailor|outfit|fashion|sewing|alteration|dress/.test(v))return "tailor";if(/shoe|cobbl|footwear/.test(v))return "shoemaker";if(/chef|meal|food|cook|cater|bake/.test(v))return "cook";if(/education|tutor|school|lesson|consult|admission/.test(v))return "education";if(/photo|film|wedding shoot|video shoot/.test(v))return "photo";if(/repair|plumb|electri|home service|clean|technician/.test(v))return "home";return "generic"};
+const detect=title=>{const v=String(title||"").toLowerCase();if(/laundry|launder|dry.clean|wash|ironing|pressing|garment care/.test(v))return "laundry";if(/barber|haircut|groom|fade|beard/.test(v))return "barber";if(/tailor|outfit|fashion|sewing|alteration|dress/.test(v))return "tailor";if(/shoe|cobbl|footwear/.test(v))return "shoemaker";if(/chef|meal|food|cook|cater|bake/.test(v))return "cook";if(/education|tutor|school|lesson|consult|admission/.test(v))return "education";if(/photo|film|wedding shoot|video shoot/.test(v))return "photo";if(/repair|plumb|electri|home service|clean|technician/.test(v))return "home";return "generic"};
 const get=(id,provider="default")=>{const v=templates[id]||templates.generic;return {...v,...(overrides.get(providerKey(v.id,"default"))||{}),...(overrides.get(providerKey(v.id,provider))||{}),fields:v.fields.map(x=>x.slice()),locationModes:v.locationModes.slice()}};
 const getForService=(title,id,provider="default")=>get(id&&templates[id]?id:detect(title),provider);
 const hasOverride=(id,provider="default",field)=>{const entry=overrides.get(providerKey(id,provider));return !!entry&&(!field||Object.prototype.hasOwnProperty.call(entry,field))};
@@ -86,6 +87,8 @@ function update(id,patch,provider="default"){if(!templates[id])return false;cons
  if(["flat","perPerson"].includes(patch.pricingMode))clean.pricingMode=patch.pricingMode;
  if(patch.batchSize!==undefined){const n=Number(patch.batchSize);if(!Number.isSafeInteger(n)||n<1||n>100)return false;clean.batchSize=n}
  if(patch.capacity!==undefined){const n=Number(patch.capacity);if(!Number.isSafeInteger(n)||n<1||n>50)return false;clean.capacity=n}
+ if(patch.turnaroundDays!==undefined){const n=Number(patch.turnaroundDays);if(!Number.isSafeInteger(n)||n<1||n>90)return false;clean.turnaroundDays=n}
+ for(const prop of ["pickupFee","deliveryFee","measurementFee"]){if(patch[prop]!==undefined){const n=Number(patch[prop]);if(!Number.isSafeInteger(n)||n<0||n>100000)return false;clean[prop]=n}}
  if(patch.basePrice!==undefined){const n=Number(patch.basePrice);if(!Number.isSafeInteger(n)||n<0||n>2000000)return false;clean.basePrice=n}
  for(const k of ["travelFee","eventFee"]){if(patch[k]!==undefined){const n=Number(patch[k]);if(!Number.isSafeInteger(n)||n<0||n>250000)return false;clean[k]=n}}
  if(patch.duration!==undefined){const n=Number(patch.duration);if(!Number.isSafeInteger(n)||n<15||n>480)return false;clean.duration=n}
@@ -157,14 +160,29 @@ function nextAvailable(id,day,provider="default",people=1,limit=5,horizon=45){
  }
  return results;
 }
-function quote({id="generic",provider="default",day="",basePrice,people=1,venue="",consultPaid=0}={}){
+function fulfillmentFor(id,provider="default"){
+ const p=get(id,provider);if(!p.jobFulfillment)return null;
+ return {intakeModes:["Drop off at shop / studio","Collect from my address"],returnModes:["I will collect at the shop","Deliver to my address"],measurementModes:p.id==="tailor"?["At tailor's studio","Tailor visits me","Measure myself with guide"]:p.id==="shoemaker"?["At shoemaker's shop","Shoemaker visits me","Measure myself with guide"]:[],turnaroundDays:p.turnaroundDays||3,pickupFee:p.pickupFee||0,deliveryFee:p.deliveryFee||0,measurementFee:p.measurementFee||0};
+}
+function estimatedReadyDate(day,id,provider="default"){
+ const b=business(id,provider),p=get(id,provider);
+ const d=asDate(day);if(!d||Number.isNaN(d.getTime()))return "";
+ const days=Math.min(90,Math.max(1,p.turnaroundDays||3));
+ let added=0;for(let guard=0;added<days&&guard<360;guard++){d.setDate(d.getDate()+1);if(b.days.includes(d.getDay()))added++}
+ if(added<days)return "";
+ return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+}
+function quote({id="generic",provider="default",day="",basePrice,people=1,venue="",consultPaid=0,intake="",returnMethod="",measurementMethod=""}={}){
  const p=get(id,provider),n=Math.max(1,Math.min(50,Number(people)||1)),cap=Math.max(1,effectiveCapacity(id,day,provider));const unit=Number.isFinite(Number(basePrice))?Math.max(0,Math.round(Number(basePrice))):p.basePrice;
  const unitsNeeded=p.deliveryMode==="shared"?1:p.deliveryMode==="batch"?Math.ceil(n/(p.batchSize||10)):n;
  const service=unit*(p.pricingMode==="flat"?1:n),travel=/home|at my location|pickup|delivery|at event|outdoor|site assessment/i.test(venue)?(p.travelFee||0):0;
  const event=/event|group|cater|wedding/i.test(venue)?(p.eventFee||0):0;
- const full=service+travel+event,credit=p.creditConsultation?Math.min(full,Math.max(0,Math.round(Number(consultPaid)||0))):0;
- return {unit,people:n,service,travel,event,total:full,credit,due:Math.max(0,full-credit),duration:Math.ceil(unitsNeeded/cap)*p.duration,workUnits:unitsNeeded,deliveryMode:p.deliveryMode||"individual",pricingMode:p.pricingMode||"perPerson"};
+ const pickup=p.jobFulfillment&&intake==="Collect from my address"?(p.pickupFee||0):0;
+ const delivery=p.jobFulfillment&&returnMethod==="Deliver to my address"?(p.deliveryFee||0):0;
+ const measurement=p.jobFulfillment&&/visits me/i.test(measurementMethod)?(p.measurementFee||0):0;
+ const full=service+(p.jobFulfillment?0:travel)+event+pickup+delivery+measurement,credit=p.creditConsultation?Math.min(full,Math.max(0,Math.round(Number(consultPaid)||0))):0;
+ return {unit,people:n,service,travel:p.jobFulfillment?0:travel,event,pickup,delivery,measurement,total:full,credit,due:Math.max(0,full-credit),duration:Math.ceil(unitsNeeded/cap)*p.duration,workUnits:unitsNeeded,deliveryMode:p.deliveryMode||"individual",pricingMode:p.pricingMode||"perPerson"};
 }
 const finalDue=(amount,paid,enabled)=>Math.max(0,Math.round(amount)-(enabled?Math.min(Math.round(amount),Math.max(0,Math.round(paid))):0));
-window.HustleBookingRules={templates,samples,get,getForService,hasOverride,detect,update,held,left,reserve,release,reservePlan,previewPlan,releasePlan,slotsFor,dayStatus,nextAvailable,quote,finalDue,getTeam,setBusiness,addMember,setMemberStatus,setMemberOff,effectiveCapacity,isOpen,_testing:{overrides,reservations,businesses}};
+window.HustleBookingRules={templates,samples,get,getForService,hasOverride,detect,fulfillmentFor,estimatedReadyDate,update,held,left,reserve,release,reservePlan,previewPlan,releasePlan,slotsFor,dayStatus,nextAvailable,quote,finalDue,getTeam,setBusiness,addMember,setMemberStatus,setMemberOff,effectiveCapacity,isOpen,_testing:{overrides,reservations,businesses}};
 })();
