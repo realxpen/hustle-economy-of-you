@@ -170,3 +170,32 @@ The user supplied two reference screenshots demonstrating the distinct TikTok Li
 ### Verification
 - Fourteen runtime checks passed for preview media, swipe behavior, preview exclusion of room chat/gifts, room entry, pinned service, chat, gift/heart/Join without media reset, back navigation, Home Live access and lack of camera permission requests.
 - Code and styles are present on preview branch. **Could not verify the latest Cloudflare deployment or actual iPhone Safari visual layout in this session.**
+
+## Shopping navigation and Payments & Earnings decision
+
+### Discoverability and navigation
+- Preserve the **five** main tabs: Home / Explore / Create / Inbox / Profile.
+- A compact **Shop** action and accessible **Cart** icon are visible in the Home header beside Stories. Home also retains the separate Live entry. To avoid crowding on small iPhones, appearance and the demo notification shortcut have moved to Profile → Settings.
+- Home Cart displays a quantity badge calculated from cart line-item quantities. Zero hides the badge; adding/removing/changing quantities updates it.
+- Explore shows **Marketplace** and **Cart** shortcuts under the search box. Marketplace remains reachable from Explore content recommendations and creator offers.
+- Marketplace header has its own Cart shortcut. Product details lead to Cart via Add to Cart. Cart has **Continue shopping** while preserving existing line items. Back navigation returns to the originating screen.
+- Signed-in Profile now includes Shopping & Earnings with **Marketplace**, **Cart**, **My orders** and **Payments & earnings**. My orders has an honest empty state, not fictional purchases.
+- All these actions route to the same local cart and listing state, not separate or duplicated carts.
+
+### Wallet architecture — decision for MVP
+- Customers **must not be required to pre-fund a Hustle wallet** to buy a product or pay for a service. Support direct provider-powered checkout at launch after technical, legal and provider review.
+- Professionals need a **Payments & earnings** view to track available earnings, settlements, pending payouts, fees and transaction history once the authorized financial systems are connected.
+- Clients need booking/payment statuses, order history, refunds/disputes and protected service-payment milestones. This is a financial **ledger/status dashboard**, not a claim that Hustle operates a stored-value account.
+- A full stored-value wallet with deposits, transfers, and withdrawals should be deferred until a specific commercial need, regulated provider architecture, KYC/AML controls and applicable approvals have been reviewed.
+- The CBN's published Mobile Money Services framework regulates mobile-money wallets and related activities; do not assume a marketplace may independently issue electronic money or custody customer funds.
+- Production escrow/payment protection is **not implemented** in this preview. Provider capabilities and compliant legal structure must be confirmed before promising financial protection or releasing real funds.
+- Prototype Payments & Earnings shows dashes and explicit 'not connected' labels instead of fabricated user balances. Payout-account connection is visibly unavailable. No payments or withdrawals are possible.
+
+### Acceptance walkthrough
+1. Home → Shop → product → Add to Cart → Cart → Continue shopping → Cart; changing item quantity updates the Home cart count.
+2. Home → Cart opens without visiting Marketplace first, including empty state.
+3. Explore → Marketplace or Cart; Back returns to Explore.
+4. Profile → Shopping & Earnings → Marketplace, Cart, My orders, Payments & earnings; Profile → Settings retains dark mode and demo notifications.
+5. Payments & earnings → Overview / Activity / Payouts displays only explicit placeholder data. Nothing is deposited or moved.
+
+The source and DOM interaction tests pass; actual iPhone visual layout and Cloudflare deployment were not confirmed in this session. Work remains isolated on `preview/hustle-v1-posts-stories`, not production.
