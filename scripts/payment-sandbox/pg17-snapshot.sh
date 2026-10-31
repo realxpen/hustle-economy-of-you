@@ -42,6 +42,23 @@ ux040_pg17_restore() {
   local archive="${1:?archive path required}"
   test -s "$archive"
   ux040_pg17_check
+  # Prisma migrations create hustle_api LOGIN during PREPARE, but roles are
+  # cluster globals and pg_dump does not include CREATE ROLE. VERIFY starts
+  # with a new disposable Postgres service, skips migrations and must recreate
+  # the exact trusted API policy principal BEFORE restoring archived policies.
+  # It has NOLOGIN in the replay, because no application connection needs this
+  # role and synthetic snapshot restoration must not enable extra login paths.
+  # This is strictly behind the fixed localhost URL/PG17 guard above.
+  PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
+    -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox <<'UX040_ROLE_SQL'
+DO $ux040$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hustle_api') THEN
+    CREATE ROLE hustle_api NOLOGIN;
+  END IF;
+END
+$ux040$;
+UX040_ROLE_SQL
   # Binary archive streams through stdin: no volume mount, extra network,
   # GitHub runner client version, or external service needed.
   docker run --rm --network host -i -e PGPASSWORD=sandbox_only postgres:17-alpine \
