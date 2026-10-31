@@ -420,5 +420,11 @@ function acceptDemoTalent(name){
  const p=store.talent.find(t=>t.name===name&&t.status==="Pending invite");
  if(!p)return false;p.status="Accepted demo";audit("Simulated hustler consent",name);render();return true;
 }
-window.HustleOperations={open,close,openEscrow,addJourneyEscrow,updateJourneyEscrow,addDemoReport,addDemoTalent,acceptDemoTalent,getState:()=>({screen:state.page,wallet:store.wallet,earnings:store.earnings,escrows:store.escrow.map(x=>({id:x.id,status:x.status,held:held(x)})),agentPreview:state.agentPreview,adminPreview:state.adminPreview}),_testing:{store,state,handle,render}};
+function declineDemoTalent(name){
+ if(!state.agentPreview)return false;
+ const p=store.talent.find(t=>t.name===name&&t.status==="Pending invite");
+ if(!p)return false;
+ p.status="Declined";audit("Hustler declined invitation",name);render();return true;
+}
+window.HustleOperations={open,close,openEscrow,addJourneyEscrow,updateJourneyEscrow,addDemoReport,addDemoTalent,acceptDemoTalent,declineDemoTalent,getState:()=>({screen:state.page,wallet:store.wallet,earnings:store.earnings,escrows:store.escrow.map(x=>({id:x.id,status:x.status,held:held(x)})),agentPreview:state.agentPreview,adminPreview:state.adminPreview}),_testing:{store,state,handle,render}};
 })();
