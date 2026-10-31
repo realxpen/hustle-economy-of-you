@@ -59,3 +59,29 @@ An abandoned service booking does not automatically imply a consultation refund.
 - Hustler Studio → Booking setup exposes editable consultation policy, fee/credit, price, duration, staff capacity, travel and event add-ons for demo professionals, and a customer journey preview shortcut.
 - Tested: 11/11 syntax/assets and source integration checks; 8/8 interactive form/estimate/media checks; 14/14 end-to-end simulated booking and scheduling checks. Actual iOS Safari visual QA and live Cloudflare deployment were not verified.
 - Assets changed exclusively inside `ui-preview/dist/` plus this preview document. No real authentication, payment provider, production API/database or production deployment was modified.
+
+
+## Staff-aware calendar and professional application UI — 31 October 2026
+
+### Customer screens
+- The request form now uses a **native exact-date picker** covering today through the next 365 days. Relative-only selectors (Tomorrow/This weekend/Next week) are removed from the visible booking form.
+- Available hourly booking windows are generated from that professional's configured open/close times, days of operation, worker status, booked capacity and minimum per-session duration. Unavailable slots are disabled; longer sessions cannot start too near closing. Real calendar inventory remains disconnected.
+- Customer quote dynamically shows head count, pricing, conditional consultation credit, team availability and estimated time. A two-person 45-minute haircut requires about 90 minutes from a solo barber, but may take 45 minutes when two barbers can work simultaneously.
+- Booking policies distinguish **individual** work (one service per customer), **shared** group sessions (e.g. one tutor teaches six students together) and **batch** work (e.g. 20 meals in batches of 10). Group-session flat pricing versus per-person/item pricing is configurable.
+- Selected booking date and time are validated against the example business's working calendar before requesting professional approval. Final appointment acceptance/escrow remains simulated.
+
+### Professional application and ongoing management
+- Signup/onboarding for users offering skills now has an optional **Set up my services** path into a four-step business application: (1) business/skill/solo vs team, (2) service pricing/consultation/duration/group model, (3) actual staff roster, and (4) operating hours/working days.
+- Profile → Hustler Studio → Team & hours exposes a workforce dashboard. A manager can add workers, mark them active, on leave, or departed, and mark specific days unavailable.
+- Active worker count limits the provider's real-time demo capacity; a team with zero active workers offers no appointment spaces. Departed staff remain in the history, not the availability pool.
+- The service-specific Booking setup page also exposes individual/shared/batch work type, batch size, and flat/per-person charging. Existing optional consultations and consultation-fee credits remain configurable.
+- Agent-assisted signup/consent remains a separate workflow; an agent cannot approve on behalf of the professional, bypass identity checks or control financial releases.
+- The current preview uses an in-memory workforce, simple hourly booking windows and example date/status controls. It does **not** persist rosters, verify staff identity, allocate actual individual worker IDs to bookings, manage cross-service shared resources, or reassign existing real jobs on departure. Those require a secure server-side schedule/permissions/notification model.
+
+### Verification
+- 21/21 rule-engine and source checks passed after introducing business staffing and the exact date picker.
+- 14/14 mocked business-onboarding interactions passed: setup steps, service policy, staff addition, completed hours, departure, leave-day capacity and closed days.
+- 21/21 additional service/duration/source checks passed including shared tutorials, batches and flat pricing.
+- 8/8 mocked booking UI checks passed: native calendar, date-responsive options, worker departure impact and shared teaching duration.
+- A final scheduling fix rejects late-day appointment windows that cannot fit the selected service duration.
+- No production DB, payment provider, real authentication, or deployment was touched. Cloudflare redeployment and physical iPhone Safari visual acceptance remain unverified.
