@@ -686,23 +686,33 @@ function renderListing(){
  const l=item(state.item),seller=person(l.seller);
  const picture=l.photos[state.photoIndex%l.photos.length]||l.img;
  const isProduct=l.type==="product",isTraining=l.type==="training";
+ const bookingPolicy=l.type==="service"?window.HustleBookingRules?.getForService(l.title,undefined,seller.name):null;
+ const consultLabel=bookingPolicy?.consultation==="off"?"No consultation required":bookingPolicy?.consultation==="required"?"Consultation required":"Consultation optional";
+ const consultPrice=bookingPolicy?.consultation==="off"?"":bookingPolicy?.consultFee?money(bookingPolicy.consultFee)+" consultation":"Free consultation available";
+ const bookingAction=bookingPolicy?.consultation==="required"?"Request consultation":"Request booking";
  return `<div class="hf-detail-hero"><img src="${picture}" alt="${esc(l.title)}"><div class="hf-detail-top"><button data-hf="back" aria-label="Back to listings">←</button><button data-hf="save" data-id="${l.id}" aria-label="Save listing">${state.save.has(l.id)?"♥":"♡"}</button></div>
  ${l.photos.length>1?`<button class="hf-tinybtn" data-hf="photo-prev" style="position:absolute;z-index:3;bottom:12px;left:12px">‹</button><span style="position:absolute;z-index:3;bottom:20px;left:50%;color:#fff;font-size:10px">${state.photoIndex%l.photos.length+1} / ${l.photos.length}</span><button class="hf-tinybtn" data-hf="photo-next" style="position:absolute;z-index:3;bottom:12px;right:12px">›</button>`:""}</div>
  <div class="hf-detail-body"><div class="hf-detail-kicker">${l.type==="service"?"Service":isProduct?"Product":"Training"} · ${esc(l.category)}</div>
  <h1>${esc(l.title)}</h1><div class="hf-detail-price">${l.type==="service"?"From ":""}${money(l.price)}</div>
  <p>${esc(l.description)}</p>
  <div class="hf-seller-row"><img src="${seller.avatar}" alt=""><div><b>${esc(seller.name)} <span class="hf-verified">✓</span></b><small>${esc(seller.primary)} · ${esc(seller.location)}</small></div><button data-hf="profile" data-id="${seller.id}">Profile →</button></div>
+ ${bookingPolicy?`<section class="hf-booking-policy-card" aria-label="How booking works">
+ <div class="hf-booking-policy-head"><div><span>HOW BOOKING WORKS</span><h2>Book it your way.</h2></div><span class="hf-booking-policy-icon">${bookingPolicy.icon||"✳"}</span></div>
+ <div class="hf-booking-policy-pills"><span>◷ ${bookingPolicy.duration} min/session</span><span>▦ Up to ${bookingPolicy.capacity} per slot</span></div>
+ <div class="hf-booking-policy-consult"><span>✳</span><div><b>${consultLabel}</b><small>${consultPrice||"Send your request with text or reference media"}${bookingPolicy.creditConsultation&&bookingPolicy.consultFee?" · credited toward service if booked":""}</small></div></div>
+ <p>Choose a time, describe the work and send a request. Home visits and groups can receive a separate quote. The professional confirms availability before payment.</p>
+ </section>`:""}
  <div class="hf-profile-safety"><button data-hf="report-listing" data-id="${l.id}">⚑ Report listing or seller</button></div>
  ${isProduct?`<div class="hf-section-row"><h2>Options</h2></div><div class="hf-picker-row">${(l.variants||["Standard"]).map(x=>`<button class="${(state.variant[l.id]||l.variants[0])===x?"on":""}" data-hf="variant" data-value="${esc(x)}">${esc(x)}</button>`).join("")}</div><div class="hf-section-row"><h2>Quantity</h2></div><div class="hf-picker-row"><button data-hf="quantity" data-value="-1">−</button><button style="pointer-events:none">${state.quantity[l.id]||1}</button><button data-hf="quantity" data-value="1">+</button></div>`:""}
  <div class="hf-section-row"><h2>${isProduct?"Product details":isTraining?"What you will learn":"What's included"}</h2></div><ul class="hf-bullets">${l.includes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
- ${l.duration?`<div class="hf-notice">◷ ${esc(l.duration)}. Dates and availability are confirmed during consultation.</div>`:""}
+ ${l.duration?`<div class="hf-notice">◷ ${esc(l.duration)}. Availability is confirmed after the professional reviews the request.</div>`:""}
  <div class="hf-section-row"><h2>Reviews & trust</h2></div><div class="hf-review"><strong>★ ${seller.rating} · example</strong><p>Review details are examples until the real reputation system is connected.</p><small>Trust indicators in this preview are illustrative</small></div>
  <div class="hf-section-row"><h2>Questions about this ${l.type}?</h2><button class="hf-link" data-hf="message" data-id="${seller.id}">Chat seller →</button></div>
- ${l.type==="service"?'<div class="hf-notice">Consultation comes before a confirmed hire. Final quotes, milestones and escrow are agreed after requirements are reviewed.</div>':isProduct?'<div class="hf-notice">Product availability, delivery and payments are not connected. You can try the cart and checkout preview.</div>':'<div class="hf-notice">This sample training listing does not enroll you or create an apprenticeship agreement.</div>'}
+ ${l.type==="service"?'<div class="hf-notice">Your booking is a request until accepted. Consultation is service-dependent; any quote, travel fees, milestone terms and protected payment are reviewed before confirmation.</div>':isProduct?'<div class="hf-notice">Product availability, delivery and payments are not connected. You can try the cart and checkout preview.</div>':'<div class="hf-notice">This sample training listing does not enroll you or create an apprenticeship agreement.</div>'}
  </div>
  <div class="hf-sticky-actions"><div class="hf-sticky-copy"><b>${money(l.price)}</b><small>${l.type==="service"?"Starting price · demo":l.type==="product"?"Sample product price":"Training fee · demo"}</small></div>
  <button class="hf-soft-button" data-hf="message" data-id="${seller.id}">Chat</button>
- <button class="hf-lime-button" data-hf="${isProduct?"add-cart":isTraining?"training-interest":"book"}" data-id="${l.id}">${isProduct?"Add to cart":isTraining?"Enquire":"Book consult"} →</button></div>`;
+ <button class="hf-lime-button" data-hf="${isProduct?"add-cart":isTraining?"training-interest":"book"}" data-id="${l.id}">${isProduct?"Add to cart":isTraining?"Enquire":bookingAction} →</button></div>`;
 }
 function bookingSteps(){
  return `<div class="hf-steps">${[0,1,2].map((x)=>`<span class="${state.bookingStep>=x?"on":""}"></span>`).join("")}</div>`;
@@ -890,7 +900,7 @@ function booking(id){
  const l=item(id);
  if(l.type==="product"){openListing(id);return}
  if(l.type==="training"){openProfile(l.seller);notify("Training enquiries are a demo");return}
- if(window.HustleJourneys){window.HustleJourneys.open("BookingJourney",{service:l.title,professional:person(l.seller).name,price:l.price});return}
+ if(window.HustleJourneys){window.HustleJourneys.open("BookingJourney",{service:l.title,professional:person(l.seller).name,price:l.price,category:window.HustleBookingRules?.detect(l.title)});return}
  state.bookingStep=0;state.bookingItem=l.id;state.booking={details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"};
  push("Booking");
 }
