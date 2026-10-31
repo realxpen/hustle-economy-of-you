@@ -52,6 +52,7 @@ jobs:
       NEON_PROJECT_ID: ${{ inputs.neon_project }}
       NEON_BRANCH_ID: ${{ inputs.neon_branch }}
       NEON_HOST: ${{ inputs.neon_host }}
+      HUSTLE_PREVIEW_SECRET_CHECK: I_AUTHORIZE_READ_ONLY_TEST_SECRET_CHECK
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,11 +72,11 @@ jobs:
           [[ "$NEON_PROJECT_ID" =~ ^[a-z][a-z0-9-]{8,60}$ ]]
           [[ "$NEON_BRANCH_ID" =~ ^br-[a-z0-9-]{8,80}$ ]]
           [[ "$NEON_HOST" =~ ^ep-[a-z0-9-]+\.c-2\.eu-west-2\.aws\.neon\.tech$ ]]
-          test "$NEON_PROJECT_ID" != 'summer-sound-54525078'
-          test "$NEON_BRANCH_ID" != 'br-dark-sunset-zay33p1s'
-          case "$NEON_HOST" in
-            ep-cold-smoke-za8u3vsm.*|ep-square-sea-zax0gyud.*) exit 1;;
-          esac
+          # The independent Neon project now exists: pin to it exactly.
+          # Refuse even other nonproduction hosts until separately reviewed.
+          test "$NEON_PROJECT_ID" = 'fragrant-field-59689896'
+          test "$NEON_BRANCH_ID" = 'br-curly-leaf-zat0ec8m'
+          test "$NEON_HOST" = 'ep-holy-block-zauxat1w.c-2.eu-west-2.aws.neon.tech'
           test -z "${DATABASE_URL:-}"
           test -z "${PAYSTACK_SECRET_KEY:-}"
           test -z "${PAYSTACK_TEST_SECRET_KEY:-}"
@@ -111,6 +112,12 @@ jobs:
           aws cloudformation validate-template --region "$AWS_REGION" \
             --template-body file://infra/aws/lambda/payment-preview-template.yaml > /dev/null
           echo 'PASS: isolated AWS identity, existing dedicated preview secret metadata, and validated stack template.'
+      - name: Privately validate exact TEST-only AWS secret before any ECR build or public AWS resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/payment-preview/check-aws-secret-readiness-tests.mjs
+          node scripts/payment-preview/check-aws-secret-readiness.mjs
       - name: Build pinned image under only dedicated payment preview ECR
         shell: bash
         run: |
