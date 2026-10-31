@@ -21,6 +21,14 @@ const BLUEPRINTS=[
  {id:"recurring",label:"Recurring service",icon:"↻",description:"Repeat jobs and renewals",steps:["Plan","Schedule","Recurring work","Review","Renew"],features:["cadence","subscription","staff","reminders"],example:"Cleaning, maintenance"},
  {id:"live",label:"Live experience",icon:"●",description:"Interactive paid or free sessions",steps:["Publish","Registration","Access","Live","Replay"],features:["stream","admission","chat","replay"],example:"Live selling and classes"}
 ];
+const SAMPLE_DIRECTORY=[
+ {id:"sample-event-photo",title:"Wedding photography coverage",provider:"Sample Lens Studio",blueprint:"event",category:"Photography",area:"Lagos",reason:"Event photography example; availability not checked"},
+ {id:"sample-event-catering",title:"Event meal preparation",provider:"Sample Kitchen Team",blueprint:"event",category:"Catering",area:"Lagos",reason:"Event catering example; quote required"},
+ {id:"sample-fashion",title:"Custom outfit creation",provider:"Sample Fashion Atelier",blueprint:"item",category:"Tailoring",area:"Lagos",reason:"Custom tailoring example; measurements required"},
+ {id:"sample-cleaning",title:"Home and office cleaning",provider:"Sample Cleaning Team",blueprint:"recurring",category:"Cleaning",area:"Lagos",reason:"Scheduled cleaning example; staffing not checked"},
+ {id:"sample-design",title:"Video and graphic design",provider:"Sample Digital Studio",blueprint:"digital",category:"Video production",area:"Online",reason:"Remote creative-work example; portfolio unverified"},
+ {id:"sample-learning",title:"Practical skills tutorial",provider:"Sample Learning Studio",blueprint:"group",category:"Education",area:"Online",reason:"Shared learning example; seats not checked"}
+];
 const PERMISSIONS=[
  {id:"services.manage",label:"Edit listings and services"},
  {id:"work.manage",label:"Manage assigned work"},
@@ -114,8 +122,11 @@ function inferServices(input){
 }
 function suggestOpportunity(id){
  const o=state.opportunities.find(x=>x.id===id);if(!o)return [];
- const picks=state.services.filter(x=>x.blueprint===o.category||o.services.some(s=>x.title.toLowerCase().includes(s.toLowerCase())));
- return picks.map(x=>({serviceId:x.id,spaceId:x.spaceId,title:x.title,provider:state.spaces.find(s=>s.id===x.spaceId)?.name||"Demo provider",reason:"Matches example service type or inferred needs"}));
+ const own=state.services.filter(x=>x.blueprint===o.category||o.services.some(n=>x.title.toLowerCase().includes(n.toLowerCase())))
+  .map(x=>({serviceId:x.id,spaceId:x.spaceId,title:x.title,provider:state.spaces.find(s=>s.id===x.spaceId)?.name||"Your business",reason:"Your matching service draft; not a public provider",sample:true}));
+ const external=SAMPLE_DIRECTORY.filter(x=>x.blueprint===o.category||o.services.some(n=>(x.category+" "+x.title).toLowerCase().includes(n.toLowerCase())))
+  .map(x=>({serviceId:x.id,spaceId:null,title:x.title,provider:x.provider,reason:x.reason,sample:true,category:x.category}));
+ return [...own,...external].slice(0,8)
 }
 function requestDelegation(spaceId,name,permissions){
  const n=String(name||"").trim();
@@ -170,7 +181,7 @@ function capabilityGuidance(){
  const tags=state.person.capabilities;return [...(tags.includes("hire")?["Explore skilled people and publish a request"]:[]),...(tags.includes("offer")?["Create services with a suitable work blueprint"]:[]),...(tags.includes("manage")?["Separate business teams and work records"]:[]),...(tags.includes("create")?["Connect useful posts to services and products"]:[]),...(tags.includes("represent")?["Request scoped delegation before acting for another person"]:[])];
 }
 window.HustleAdaptive={
- capabilities:CAPABILITIES,blueprints:BLUEPRINTS,permissions:PERMISSIONS,privateActions:PRIVATE_ACTIONS,
+ capabilities:CAPABILITIES,blueprints:BLUEPRINTS,permissions:PERMISSIONS,privateActions:PRIVATE_ACTIONS,exampleDirectory:SAMPLE_DIRECTORY,
  getState:()=>copy(state),currentSpace:()=>copy(currentSpace()),can, switchSpace,createSpace,addCapability,makeService,newWork,advanceWork,createOpportunity,suggestOpportunity,requestDelegation,consentDelegation,revokeDelegation,assignWork,attachEvidence,capabilityGuidance,
  getBlueprint:id=>BLUEPRINTS.find(x=>x.id===id),getService:serviceById,mirrorBooking,
  _test:{state,allowedTransitions}
