@@ -270,6 +270,60 @@ button{ -webkit-tap-highlight-color:transparent}
   }
 }
 
+
+/* Discovery → Professional Profile → Consultation demo milestone */
+.hp-prof-page{position:absolute;inset:0;z-index:24;background:var(--bg);color:var(--text);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.hp-prof-page::-webkit-scrollbar{display:none}
+.hp-prof-cover{position:relative;height:236px;background:#2a392d}
+.hp-prof-cover>img{display:block;width:100%;height:100%;object-fit:cover;filter:brightness(.7)}
+.hp-prof-cover:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#101b1688,transparent 58%);pointer-events:none}
+.hp-prof-top{position:absolute;z-index:2;top:calc(13px + env(safe-area-inset-top));left:14px;right:14px;display:flex;justify-content:space-between;align-items:center;color:white;gap:9px}
+.hp-prof-top span{font-size:10px;letter-spacing:1.4px;font-weight:900}
+.hp-prof-top button{border:1px solid #ffffff70;background:#0c1b11b0;color:#fff;width:37px;height:37px;border-radius:50%;display:grid;place-items:center;font-size:21px}
+.hp-prof-main{position:relative;padding:0 17px 8px;margin-top:-35px;z-index:1}
+.hp-prof-ident{display:flex;align-items:end;gap:12px;min-width:0}
+.hp-prof-ident>img{width:79px;height:79px;flex:none;border-radius:50%;border:4px solid var(--bg);background:#3e5139;object-fit:cover}
+.hp-prof-ident>div{min-width:0;flex:1;padding-bottom:6px}
+.hp-prof-ident h2{font-size:19px;line-height:1.15;letter-spacing:-.5px;margin:0;overflow-wrap:anywhere}
+.hp-prof-ident p{font-size:10px;color:var(--muted);margin:5px 0 0}
+.hp-prof-check{display:inline-grid;place-items:center;background:var(--acid);color:#21341a;font-size:12px;width:18px;height:18px;border-radius:50%;vertical-align:middle}
+.hp-prof-intro{font-size:12px;line-height:1.5;color:var(--text);margin:15px 0}
+.hp-prof-trust{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:16px}
+.hp-prof-trust span{font-size:10px;padding:8px 10px;border-radius:20px;border:1px solid var(--line);background:var(--paper);color:var(--muted);white-space:nowrap}
+.hp-prof-primary-actions{display:flex;gap:7px;align-items:center;margin:0 0 17px}
+.hp-prof-primary-actions button{border-radius:12px;border:1px solid var(--line);font-size:11px;font-weight:850;padding:12px 8px;white-space:nowrap}
+.hp-prof-primary-actions .hp-prof-cta{flex:1.2;background:var(--acid);border-color:var(--acid);color:#213119}
+.hp-prof-secondary{background:var(--paper);color:var(--text);flex:.8}
+.hp-prof-tabs{display:flex;border-bottom:1px solid var(--line);gap:24px;margin-bottom:16px}
+.hp-prof-tabs button{border:0;background:none;color:var(--muted);font-size:12px;font-weight:850;padding:10px 1px 12px;position:relative}
+.hp-prof-tabs button.on{color:var(--text)}.hp-prof-tabs button.on:after{content:"";position:absolute;height:3px;background:#a8d34e;bottom:0;left:2px;right:2px;border-radius:6px}
+.hp-prof-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.hp-prof-gallery-item{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:4/5;background:#243a29}
+.hp-prof-gallery-item img{width:100%;height:100%;object-fit:cover}
+.hp-prof-gallery-item span{position:absolute;bottom:8px;left:8px;font-size:9px;font-weight:850;background:#111c17bd;color:white;padding:6px 8px;border-radius:20px}
+.hp-prof-demo-note,.hp-prof-bottom-label{font-size:10px!important;color:var(--muted)!important;line-height:1.5;text-align:center;margin:14px}
+.hp-prof-services{display:flex;flex-direction:column;gap:9px}
+.hp-prof-service{display:flex;gap:10px;align-items:center;border-radius:14px;background:var(--paper);border:1px solid var(--line);padding:9px}
+.hp-prof-service img{width:63px;height:63px;border-radius:10px;object-fit:cover}
+.hp-prof-service div{flex:1;min-width:0}.hp-prof-service b{font-size:12px;display:block;line-height:1.4}.hp-prof-service small{color:var(--muted);font-size:10px;display:block;margin-top:5px}
+.hp-prof-service button{border:0;background:var(--acid);border-radius:9px;padding:11px 9px;font-size:11px;font-weight:900}
+.hp-prof-review{padding:13px;border:1px solid var(--line);background:var(--paper);border-radius:13px;margin:9px 0}.hp-prof-review span{color:#749d2c}.hp-prof-review p{font-size:12px;line-height:1.5}.hp-prof-review small{font-size:10px;color:var(--muted)}
+.hp-explore-search{position:relative}.hp-explore-search>span{position:absolute;top:8px;left:12px;font-size:22px;color:var(--muted)}.hp-explore-search .searchbox{padding-left:37px!important}
+.hp-explore-chips{display:flex;gap:7px;overflow:auto;scrollbar-width:none;margin:12px 0 18px}.hp-explore-chips button{white-space:nowrap;font-size:11px;border:1px solid var(--line);background:var(--paper);color:var(--text);padding:10px 12px;border-radius:24px;font-weight:800}
+.hp-explore-chips button.on{background:#1d2c22;color:#f5f8ef;border-color:#1d2c22}.hp-explore-heading{display:flex;justify-content:space-between;align-items:center;margin:11px 0}.hp-explore-heading b{font-size:13px}.hp-explore-heading span{font-size:10px;color:var(--muted)}
+.hp-explore-directory{display:flex;flex-direction:column;gap:8px}.hp-explore-provider{width:100%;display:flex;align-items:center;gap:10px;text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:11px;color:var(--text)}
+.hp-explore-provider[hidden]{display:none!important}.hp-explore-provider img{width:55px;height:55px;flex:none;border-radius:50%;object-fit:cover}
+.hp-explore-provider-copy{flex:1;min-width:0}.hp-explore-provider-copy b{display:block;font-size:12px;margin-bottom:5px}.hp-explore-provider-copy b span{color:#8db83a}.hp-explore-provider-copy small{display:block;color:var(--muted);font-size:10px}.hp-explore-arrow{font-size:19px;color:var(--accent)}
+.hp-explore-empty{padding:20px;text-align:center;border:1px dashed var(--line);border-radius:13px;color:var(--muted);font-size:11px}.hp-explore-empty[hidden]{display:none}
+.hp-consult-intro{display:flex;align-items:center;gap:11px;padding:10px;border:1px solid var(--line);background:var(--bg);border-radius:14px;margin:12px 0}.hp-consult-intro img{width:51px;height:51px;object-fit:cover;border-radius:11px}.hp-consult-intro b{display:block;font-size:12px}.hp-consult-intro small{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+.hp-consult-info{font-size:11px!important;color:var(--muted)!important}
+.hp-consult-label{display:block;font-size:11px;font-weight:850;margin:16px 0 8px}.hp-consult-choices{display:flex;gap:7px}.hp-consult-choices .choice{flex:1;margin:0;padding:11px 9px;text-align:center}
+.hp-consult-submit{width:100%;margin-top:19px;padding:14px 12px;font-weight:900}
+.hp-consult-review{border:1px solid var(--line);border-radius:15px;padding:15px;background:var(--bg);margin:12px 0}
+.hp-consult-eyebrow{font-size:9px;font-weight:900;letter-spacing:1.1px;color:#7ba331}.hp-consult-review h3{font-size:17px;margin:11px 0 5px}.hp-consult-review p{font-size:12px!important;line-height:1.55;color:var(--text)!important;overflow-wrap:anywhere}.hp-consult-review>div{border-top:1px solid var(--line);padding-top:10px;margin-top:11px}.hp-consult-review b{font-size:11px}
+.sheet textarea#hpConsultNote{width:100%;min-height:87px;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--text);background:var(--bg);font-size:12px;font-family:inherit;line-height:1.5}
+@media(max-width:550px){.hp-prof-cover{height:205px}.hp-prof-main{padding-left:15px;padding-right:15px}.hp-prof-primary-actions button{font-size:10px;padding:12px 7px}.hp-prof-ident h2{font-size:17px}.hp-prof-gallery-item{aspect-ratio:4/5}}
+
 </style>
 </head>
 <body>
@@ -379,11 +433,100 @@ global.innerHTML=`<section class="story-explore story-explore-v2" aria-label="Ex
 }
 function openComments(id){const p=posts.find(x=>x.id===id);if(!p)return;const entries=(commentsFor[id]||[]).map(x=>`<div class="comment"><b>You:</b>${ec(x)}<button data-reply style="border:0;background:none;color:#7ba137;font-size:10px"> Reply</button></div>`).join('');openSheet('Comments & replies',`<div class="comment"><b>@lagos_creative:</b> Really clean work 👏 <button data-reply style="border:0;background:none;color:#7ba137;font-size:10px">Reply</button></div><div class="comment"><b>@taiwo:</b> The attention to detail is everything.</div>${entries}<form data-comment-form="${id}" class="inline-form"><input name="comment" placeholder="Write a comment..." required aria-label="Comment"><button class="lime-btn">Post</button></form><p>Demo comments stay on this device preview only.</p>`,'comments')}
 function openSave(id){openSheet('Save to collection',`<p>Keep this work in a collection.</p><div class="collections">${['Inspiration','Hire later','Work ideas'].map(n=>`<button data-collection="${ec(n)}" data-for="${id}">${ec(n)} &nbsp; +</button>`).join('')}</div>`,'save')}
-function openProfile(id){const c=creator(id);openSheet(c.full,`<div class="profile-hero"><img src="${c.avatar}" alt=""><div><b>${ec(c.full)} ✓</b><p>${ec(c.category)} · ${ec(c.location)}</p></div></div><p>${ec(c.handle)} · Verified professional (demo)</p><button class="lime-btn" data-from-profile="${id}">Hire / Contact →</button>`,'profile')}
-function openHire(id){const p=posts.find(x=>x.id===id),c=creator(p?.creator||id);selection={day:'Tomorrow',time:'11:30 AM'};if(p?.cta==='Buy'){openSheet('Product preview',`<p>${ec(c.full)} · ${ec(p.service)}</p><p>Price: <b>${ec(p.price)}</b></p><button class="lime-btn" data-done>Continue to checkout preview →</button><p>No order or payment is created.</p>`,'buy');return}
-openSheet('Consultation with '+c.full,`<p>Discuss your requirements first. Your consultation request is only a demo.</p><p><b>Choose a day</b></p><div style="display:flex;gap:8px"><button class="choice selected" data-day="Tomorrow">Tomorrow</button><button class="choice" data-day="Saturday">Saturday</button></div><p><b>Choose a time</b></p><div style="display:flex;gap:8px"><button class="choice selected" data-time="11:30 AM">11:30 AM</button><button class="choice" data-time="2:00 PM">2:00 PM</button></div><button class="lime-btn" data-done style="width:100%;margin-top:12px">Continue with request →</button><p>No real booking is placed.</p>`,'consultation')}
+function renderProfessionalTab(c){
+ const linked=posts.filter(p=>p.creator===c.id);
+ const p=linked[0]||null;
+ if(activeProfileTab==="Work"){
+  const imgs=linked.flatMap(p=>p.images).slice(0,6);
+  if(!imgs.length)imgs.push(c.cover);
+  return `<div class="hp-prof-gallery">${imgs.map((img,i)=>`<div class="hp-prof-gallery-item"><img src="${img}" alt="${ec(c.full)} work ${i+1}" loading="lazy"/><span>${i===0?'Latest work':'Portfolio'}</span></div>`).join('')}</div><p class="hp-prof-demo-note">Sample work shown for interface testing.</p>`;
+ }
+ if(activeProfileTab==="Services"){
+  return `<div class="hp-prof-services">${linked.map(p=>`<div class="hp-prof-service"><img src="${p.images[0]||c.cover}" alt="" /><div><b>${ec(p.service)}</b><small>Starting at ${ec(p.price)}</small></div><button data-service-book="${p.id}">${p.cta==="Buy"?"View":"Consult"} →</button></div>`).join('')||'<p>Services will appear as this professional adds them.</p>'}</div>`;
+ }
+ return `<div class="hp-prof-review"><span>★★★★★</span><p>“Great attention to detail and communication.”</p><small>Example review for UI demonstration, not a verified customer review</small></div><div class="hp-prof-review"><span>★★★★★</span><p>“I enjoyed seeing the work process before deciding.”</p><small>Example review for UI demonstration</small></div>`;
+}
+function renderProfessionalPage(){
+ const c=creator(activeProfessional||"tobi");
+ const example=posts.find(p=>p.creator===c.id);
+ const old=document.querySelector("#hustleProfessionalPage");
+ if(old)old.remove();
+ const html=`<section id="hustleProfessionalPage" class="hp-prof-page" aria-label="${ec(c.full)} professional profile">
+ <div class="hp-prof-cover"><img src="${c.cover}" alt="${ec(c.full)}'s sample work"/><div class="hp-prof-top"><button data-profile-back aria-label="Go back">←</button><span>PROFESSIONAL PROFILE</span><button data-profile-share aria-label="Share profile">↗</button></div></div>
+ <div class="hp-prof-main"><div class="hp-prof-ident"><img src="${c.avatar}" alt=""/><div><h2>${ec(c.full)} <span class="hp-prof-check">✓</span></h2><p>${ec(c.handle)} · ${ec(c.location)}</p></div></div>
+ <p class="hp-prof-intro">${ec(c.category)} creator and professional. Discover the work, explore services, and get in touch through a consultation.</p>
+ <div class="hp-prof-trust"><span>✦ Profile preview</span><span>⌖ ${ec(c.location)}</span><span>◷ Consultation first</span></div>
+ <div class="hp-prof-primary-actions"><button class="hp-prof-cta" data-professional-hire="${c.id}">${example?.cta==='Buy'?"View product":"Hire / Consult"} →</button><button class="hp-prof-secondary" data-professional-message="${c.id}">Message</button><button class="hp-prof-secondary" data-professional-follow="${c.id}">${followed.has(c.id)?"✓ Following":"+ Follow"}</button></div>
+ <div class="hp-prof-tabs" role="tablist" aria-label="Profile sections">${["Work","Services","Reviews"].map(x=>`<button data-professional-tab="${x}" role="tab" aria-selected="${x===activeProfileTab}" class="${x===activeProfileTab?'on':''}">${x}</button>`).join('')}</div>
+ <div class="hp-prof-tab-body">${renderProfessionalTab(c)}</div>
+ </div><p class="hp-prof-bottom-label">Hustle UI demonstration · No real services are offered here.</p>
+ </section>`;
+ root.insertAdjacentHTML("beforeend",html);
+}
+function openProfile(id){
+ const c=creator(id);
+ activeProfessional=c.id;
+ activeProfileTab="Work";
+ renderProfessionalPage();
+}
+function closeProfile(){
+ root.querySelector("#hustleProfessionalPage")?.remove();
+ activeProfessional=null;
+}
+function openHire(id){
+ const p=posts.find(x=>x.id===id),c=creator(p?.creator||id),offering=p||posts.find(x=>x.creator===c.id);
+ const service=offering?.service||"Professional consultation";
+ selection={day:"Tomorrow",time:"11:30 AM"};
+ if(offering?.cta==="Buy"){
+  openSheet("Product preview",`<div class="hp-consult-intro"><img src="${offering.images[0]||c.cover}" alt=""/><div><b>${ec(service)}</b><small>${ec(c.full)} · ${ec(offering.price)}</small></div></div><p>This is a demonstration product. Buying is not enabled.</p><button class="lime-btn" data-done>Preview checkout →</button><p>No order or payment will be created.</p>`,"buy");
+  return;
+ }
+ openSheet("Consult with "+c.full,`<div class="hp-consult-intro"><img src="${c.avatar}" alt=""/><div><b>${ec(c.full)}</b><small>${ec(service)} · ${ec(c.location)}</small></div></div>
+ <p class="hp-consult-info">Tell the professional what you need before arranging a hire. Available times below are examples, not real availability.</p>
+ <form data-consult-form="${c.id}">
+ <label class="hp-consult-label" for="hpConsultNote">What do you need help with?</label>
+ <textarea id="hpConsultNote" name="details" required minlength="10" maxlength="500" placeholder="Describe the project, location, timing, and any references..." rows="3"></textarea>
+ <span class="hp-consult-label">Preferred day</span>
+ <div class="hp-consult-choices"><button class="choice selected" type="button" data-day="Tomorrow">Tomorrow</button><button class="choice" type="button" data-day="Saturday">Saturday</button></div>
+ <span class="hp-consult-label">Preferred time</span>
+ <div class="hp-consult-choices"><button class="choice selected" type="button" data-time="11:30 AM">11:30 AM</button><button class="choice" type="button" data-time="2:00 PM">2:00 PM</button></div>
+ <button class="lime-btn hp-consult-submit" type="submit">Review consultation request →</button>
+ </form><p class="hp-prof-demo-note">Prototype only. Nothing is sent to the professional.</p>`,"consultation");
+}
+function previewConsultRequest(cId,details){
+ const c=creator(cId);const p=posts.find(x=>x.creator===c.id);
+ openSheet("Review your request",`<div class="hp-consult-review"><span class="hp-consult-eyebrow">REQUEST PREVIEW · NOT SENT</span><h3>${ec(c.full)}</h3><p>${ec(p?.service||"Professional consultation")}</p><div><b>Your request</b><p>${ec(details)}</p></div><div><b>Preferred time</b><p>${ec(selection.day)} · ${ec(selection.time)}</p></div></div>
+ <button class="lime-btn hp-consult-submit" data-consult-finish>Finish preview</button>
+ <p class="hp-prof-demo-note">This is not a booking confirmation. The professional has not received anything.</p>`,"request-review");
+}
+function exploreContent(){
+return `<h2>Explore talent<span style="color:#9bc941">.</span></h2>
+<p>Find skilled professionals through their work. Search a skill, creator, or area.</p>
+<div class="hp-explore-search"><span aria-hidden="true">⌕</span><input class="searchbox" data-explore-search type="search" placeholder="Barber in Lekki, fashion in Yaba..." aria-label="Search professionals"/></div>
+<div class="hp-explore-chips" role="group" aria-label="Filter by skill">${["All","Beauty","Fashion","Creative","Home","Food"].map(x=>`<button data-explore-category="${x}" class="${x===exploreCategory?'on':''}">${x}</button>`).join('')}</div>
+<div class="hp-explore-heading"><b>People who can help</b><span id="hpExploreCount">${creators.length} demo profiles</span></div>
+<div class="hp-explore-directory">${creators.map(c=>`<button class="hp-explore-provider" data-jump-profile="${c.id}" data-searchable="${ec([c.full,c.handle,c.category,c.location].join(' ').toLowerCase())}" data-skill="${ec(c.category)}"><img src="${c.avatar}" alt=""/><span class="hp-explore-provider-copy"><b>${ec(c.full)} <span>✓</span></b><small>${ec(c.category)} · ${ec(c.location)}</small></span><span class="hp-explore-arrow">→</span></button>`).join('')}</div>
+<div class="hp-explore-empty" hidden>No matching professionals in this demo. Try another skill or location.</div>
+<div class="stories-discover"><span class="stories-discover-mark" aria-hidden="true">✦</span><div><b>Stories from creators</b><small>Explore work and everyday moments</small></div><button data-action="exploreStories" aria-label="Explore creator Stories">Explore →</button></div>`;
+}
+function updateExploreResults(){
+ const page=root.querySelector(".full-page");
+ if(!page||!page.querySelector("[data-explore-search]"))return;
+ const q=(page.querySelector("[data-explore-search]").value||"").toLowerCase().trim();
+ const tokens=q.split(/\s+/).filter(w=>w&&!["in","near","at","the","a","for"].includes(w));
+ let count=0;
+ page.querySelectorAll(".hp-explore-provider").forEach(b=>{
+  const corpus=b.dataset.searchable||"";
+  const matches=tokens.every(w=>corpus.includes(w))&&(exploreCategory==="All"||b.dataset.skill===exploreCategory);
+  b.hidden=!matches;
+  if(matches)count++;
+ });
+ page.querySelectorAll("[data-explore-category]").forEach(b=>b.classList.toggle("on",b.dataset.exploreCategory===exploreCategory));
+ const label=page.querySelector("#hpExploreCount");if(label)label.textContent=count+" demo profiles";
+ const empty=page.querySelector(".hp-explore-empty");if(empty)empty.hidden=count>0;
+}
 function nav(to){if(view==='Stories')close();document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===to));if(to==='Home'){let page=global.querySelector('.full-page');if(page)page.remove();return}
-const content={Explore:`<h2>Explore talent<span style="color:#9bc941">.</span></h2><p>Search for professionals, skills and services.</p><input class="searchbox" placeholder="Try barber, tailor, photographer" aria-label="Explore search"><div class="profile-hero"><img src="${photos.man}"><div><b>Tobi Adeyemi</b><p>Barbering · Lekki, Lagos</p></div><button class="lime-btn" data-jump-profile="tobi">View</button></div><div class="stories-discover"><span class="stories-discover-mark" aria-hidden="true">✦</span><div><b>Stories from creators</b><small>Quick glimpses of their work and everyday life</small></div><button data-action="exploreStories" aria-label="Explore creator Stories">Explore →</button></div>`,Create:`<h2>Create something<span style="color:#9bc941">.</span></h2><p>Share a normal photo post, carousel or short video featuring your work.</p><textarea class="searchbox" style="min-height:105px" placeholder="Tell the story behind your work..." aria-label="Post caption"></textarea><button class="lime-btn" data-done style="margin-top:12px">Preview draft</button>`,Inbox:`<h2>Inbox<span style="color:#9bc941">.</span></h2><p>Questions, requests and consultations will live here.</p><div class="profile-hero"><img src="${photos.woman}"><div><b>Zara Okafor</b><p>Tap to explore creator profile</p></div><button class="lime-btn" data-jump-profile="zara">View</button></div>`,Profile:`<h2>Your Hustle profile<span style="color:#9bc941">.</span></h2><p>Both a client and a creator—your skills and work in one place.</p><div class="profile-hero"><div style="background:#c8df9a;border-radius:50%;height:58px;width:58px;display:grid;place-items:center;font-size:25px">✳</div><div><b>Sample Hustler</b><p>Showcase work, reviews and skills</p></div></div>`};
+const content={Explore:exploreContent(),Create:`<h2>Create something<span style="color:#9bc941">.</span></h2><p>Share a normal photo post, carousel or short video featuring your work.</p><textarea class="searchbox" style="min-height:105px" placeholder="Tell the story behind your work..." aria-label="Post caption"></textarea><button class="lime-btn" data-done style="margin-top:12px">Preview draft</button>`,Inbox:`<h2>Inbox<span style="color:#9bc941">.</span></h2><p>Questions, requests and consultations will live here.</p><div class="profile-hero"><img src="${photos.woman}"><div><b>Zara Okafor</b><p>Tap to explore creator profile</p></div><button class="lime-btn" data-jump-profile="zara">View</button></div>`,Profile:`<h2>Your Hustle profile<span style="color:#9bc941">.</span></h2><p>Both a client and a creator—your skills and work in one place.</p><div class="profile-hero"><div style="background:#c8df9a;border-radius:50%;height:58px;width:58px;display:grid;place-items:center;font-size:25px">✳</div><div><b>Sample Hustler</b><p>Showcase work, reviews and skills</p></div></div>`};
 const existing=global.querySelector('.full-page');if(existing)existing.remove();root.insertAdjacentHTML('beforeend',`<section class="full-page" role="region" aria-label="${to}"><button class="round-ctl" data-nav="Home" aria-label="Back to Home">←</button>${content[to]||''}</section>`)}
 root.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;const d=t.dataset;
 if(d.rank){rank=d.rank;renderRanks();renderPosts(false);return}
@@ -404,16 +547,26 @@ if(d.slide){let p=posts.find(x=>x.id===d.slide);slideFor[d.slide]=((slideFor[d.s
 if(d.profile){openProfile(d.profile);return}
 if(d.fromProfile){openHire(posts.find(x=>x.creator===d.fromProfile)?.id||d.fromProfile);return}
 if(d.jumpProfile){openProfile(d.jumpProfile);return}
+if(d.profileBack!==undefined){closeProfile();return}
+if(d.professionalTab){activeProfileTab=d.professionalTab;renderProfessionalPage();return}
+if(d.serviceBook){openHire(d.serviceBook);return}
+if(d.professionalHire){openHire(d.professionalHire);return}
+if(d.professionalMessage){flash('Messages are a demo — no message sent');return}
+if(d.professionalFollow){followed.has(d.professionalFollow)?followed.delete(d.professionalFollow):followed.add(d.professionalFollow);renderProfessionalPage();return}
+if(d.profileShare!==undefined){flash('Share preview — no public profile link');return}
+if(d.exploreCategory){exploreCategory=d.exploreCategory;updateExploreResults();return}
+if(d.consultFinish!==undefined){close();flash('Consultation preview finished — request not sent');return}
 if(d.cta){openHire(d.cta);return}
 if(d.more){openSheet('Post options',`<button class="choice" data-save="${d.more}">Save to collection</button><button class="choice" data-share="${d.more}">Share post</button><button class="choice" data-profile="${posts.find(x=>x.id===d.more)?.creator}">View professional</button>`,'options');return}
 if(d.day||d.time){let key=d.day?'day':'time';selection[key]=d[key];t.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b===t));return}
 if(d.done!==undefined){close();flash('Demo only — nothing submitted');return}
 if(d.reply!==undefined){const inp=global.querySelector('[name=comment]');if(inp){inp.value='@lagos_creative ';inp.focus()}return}
-if(d.nav){nav(d.nav);return}
+if(d.nav){if(activeProfessional)closeProfile();if(d.nav==='Explore')exploreCategory='All';nav(d.nav);return}
 if(d.action==='theme'){root.classList.toggle('dark');return}
 if(d.action==='notifications'){flash('No notifications in this demo');return}
 });
-root.addEventListener('submit',e=>{e.preventDefault();const frm=e.target;if(frm.dataset.commentForm){let id=frm.dataset.commentForm,val=frm.querySelector('input').value.trim();if(val){(commentsFor[id]??=[]).push(val);renderPosts();openComments(id)}return}if(frm.dataset.storyForm!==undefined){close();flash('Story reply preview — not delivered');return}});
+root.addEventListener('input',e=>{if(e.target.matches('[data-explore-search]'))updateExploreResults()});
+root.addEventListener('submit',e=>{e.preventDefault();const frm=e.target;if(frm.dataset.consultForm){const v=frm.querySelector('[name=details]').value.trim();if(v.length>=10)previewConsultRequest(frm.dataset.consultForm,v);return}if(frm.dataset.commentForm){let id=frm.dataset.commentForm,val=frm.querySelector('input').value.trim();if(val){(commentsFor[id]??=[]).push(val);renderPosts();openComments(id)}return}if(frm.dataset.storyForm!==undefined){close();flash('Story reply preview — not delivered');return}});
 root.addEventListener('click',e=>{if(e.target.hasAttribute('data-shade'))close()});
 let sx=0,sy=0;root.addEventListener('touchstart',e=>{sx=e.changedTouches[0].clientX;sy=e.changedTouches[0].clientY},{passive:true});root.addEventListener('touchend',e=>{const target=e.target.closest('[data-post-image]');if(!target)return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy,p=posts.find(x=>x.id===target.dataset.postImage);if(p&&p.type==='carousel'&&Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)){slideFor[p.id]=((slideFor[p.id]||0)+(dx<0?1:-1)+p.images.length)%p.images.length;renderPosts()}},{passive:true});
 
