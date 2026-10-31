@@ -612,6 +612,7 @@ export class BookingService {
       const availability = await this.schedule.reserveWithinTransaction(tx, {
         serviceId: existing.serviceId, hustlerUserId: viewer.id,
         startAt: existing.confirmedStartAt, endAt: proposed,
+        partySize: existing.partySize,
         excludeBookingId: id, allowExistingStart: true
       });
       if (availability.endAt?.getTime() !== proposed.getTime()) {
