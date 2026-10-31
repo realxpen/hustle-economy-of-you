@@ -48,6 +48,7 @@ function screenContent(){
  case "PaymentJourney":return renderPayment();
  case "AgentAdd":return renderAgent();
  case "AgentInvite":return renderAgentInvite();
+ case "AgentConsent":return renderAgentConsent();
  default:return `<div class="hj-page">Journey unavailable. ${button("Back","back")}</div>`;
  }
 }
@@ -175,8 +176,17 @@ function renderAgentInvite(){
  return heading("Invitation created","AWAITING PROFESSIONAL CONSENT")+`<div class="hj-page"><div class="hj-success-icon">✓</div><h2>Invitation prepared.</h2>
  <div class="hj-status-card"><span>Reference</span><b>${esc(inv?.id)}</b><span>Professional</span><b>${esc(inv?.name)}</b><span>Status</span><b>${esc(inv?.status)}</b></div>
  <h3>What happens next?</h3><div class="hj-roadmap">${["Share an invitation link, QR or code through a trusted channel (disabled in demo)","Hustler reviews the role, permissions and service terms themselves","Hustler verifies their identity/phone through a provider-managed login","Hustler explicitly accepts or declines agency access"].map((x,i)=>`<p><span>${i+1}</span>${esc(x)}</p>`).join("")}</div>
- ${button("Simulate hustler accepting","agent-accept")}${button("Done","close","secondary")}
+ ${button("Show professional confirmation →","agent-handoff")}${button("Done for now","close","secondary")}
  ${info("Even when accepted, an agent cannot access this person's funds or complete their identity checks.")}</div>`;
+}
+function renderAgentConsent(){
+ const invite=data.agentInvites.find(x=>x.id===state.agentInviteId);
+ return heading("Professional confirmation","THE HUSTLER DECIDES")+ `<div class="hj-page">
+ <div class="hj-consent-card"><span>🔐</span><b>For the professional: ${esc(invite?.name||"Hustler")}</b><p>This separate screen illustrates what the professional must personally review. The agent must not enter their OTP, sign in for them, or approve access on their behalf.</p></div>
+ <div class="hj-status-card"><span>Agent request</span><b>Manage permitted bookings & listings</b><span>Can access bank balance?</span><b>No</b><span>Can withdraw earnings?</span><b>No</b><span>Can release client escrow?</span><b>No</b><span>Current status</span><b>${esc(invite?.status||"Pending")}</b></div>
+ <label class="hj-check"><input id="hjHustlerAgree" type="checkbox"><span>I am the professional and I understand what this sample agent invitation allows. In the real app, I would verify my own identity before accepting.</span></label>
+ ${button("Accept this demo invitation","agent-accept")}${button("Decline invitation","agent-decline","secondary")}
+ ${info("A real acceptance requires an authenticated action by the professional, not the agent. No account access or private data is granted here.")}</div>`;
 }
 function renderModal(){
  if(!state.modal)return "";
@@ -246,13 +256,33 @@ function onAction(action,value="",id=""){
  state.agentStep=Math.min(3,state.agentStep+1);render();break}
  case "agent-back":state.agentStep=Math.max(0,state.agentStep-1);render();break;
  case "agent-submit":{const name=state.agentMode==="Existing"?state.agentSelected:state.agentName;if(!name||!state.agentConsent||!state.agentTerms){renderToast("Complete permissions first");return}const invite={id:uid("HAG"),name,skill:state.agentSkill||"Existing profile",mode:state.agentMode,language:state.agentLanguage,handoff:state.agentHandoff,status:"Pending acceptance"};data.agentInvites.unshift(invite);state.agentInviteId=invite.id;if(window.HustleOperations?.addDemoTalent)window.HustleOperations.addDemoTalent({name,skill:invite.skill,status:"Pending invite"});addNotice("System","Agent invite created · demo",name,"Explore");go("AgentInvite");break}
- case "agent-accept":{const invite=data.agentInvites.find(x=>x.id===state.agentInviteId);if(invite){invite.status="Accepted · demo only";window.HustleOperations?.acceptDemoTalent?.(invite.name);addNotice("System","Example hustler accepted invitation",invite.name,"Explore");renderToast("Consent recorded in sample state only");render()}break}
+ case "agent-handoff":go("AgentConsent");break;
+ case "agent-accept":{
+  if(state.screen!=="AgentConsent"||!root.querySelector("#hjHustlerAgree")?.checked){renderToast("The professional must review and confirm consent first");break}
+  const invite=data.agentInvites.find(x=>x.id===state.agentInviteId);
+  if(invite?.status!=="Pending acceptance"){renderToast("Invitation is no longer pending");break}
+  invite.status="Accepted · demo only";window.HustleOperations?.acceptDemoTalent?.(invite.name);
+  addNotice("System","Example hustler accepted invitation",invite.name,"Explore");
+  state.screen="AgentInvite";render();break
+ }
+ case "agent-decline":{
+  if(state.screen!=="AgentConsent"){renderToast("Open the professional confirmation first");break}
+  const invite=data.agentInvites.find(x=>x.id===state.agentInviteId);
+  if(invite?.status!=="Pending acceptance")break;
+  invite.status="Declined · demo only";window.HustleOperations?.declineDemoTalent?.(invite.name);
+  addNotice("System","Hustler declined agent invitation",invite.name,"Explore");
+  state.screen="AgentInvite";render();break
+ }
  }
 }
 function onSubmit(name,form){
  const f=new FormData(form),get=k=>String(f.get(k)||"").trim();
  if(name==="auth"){const v=get("contact");if(data.auth.method==="phone"?!/^[+0-9 ()-]{7,18}$/.test(v):!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){renderToast("Enter a valid "+data.auth.method);return}data.auth.contact=v;go("Verify");return}
- if(name==="verify"){if(get("otp")!=="123456"){renderToast("For this demo, use 123456");return}state.onboardStep=0;go("Onboarding");return}
+ if(name==="verify"){
+  if(get("otp")!=="123456"){renderToast("For this demo, use 123456");return}
+  if(state.user){state.signedIn=true;state.guest=false;addNotice("System","Welcome back to your demo profile",state.user.name||"Creator","Explore");close();return}
+  state.onboardStep=0;go("Onboarding");return
+ }
  if(name==="onboard"){const i=state.onboardStep;
  if(i===1){data.onboarding.name=get("name");data.onboarding.handle=get("handle");if(!data.onboarding.name){renderToast("A display name is needed");return}}
  if(i===2){data.onboarding.skill=get("skill");data.onboarding.area=get("area")}
