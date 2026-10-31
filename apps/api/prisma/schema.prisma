@@ -446,6 +446,11 @@ model User {
   enforcementAppealsReviewed   EnforcementAppeal[] @relation("EnforcementAppealReviewer")
   notifications              Notification[]
   reputation                  UserReputation?
+  adaptiveWorkspaces          AdaptiveWorkspace[]           @relation("AdaptiveWorkspaceOwner")
+  adaptiveMemberships         AdaptiveMembership[]          @relation("AdaptiveMemberPrincipal")
+  adaptiveInvitationsSent     AdaptiveMembership[]          @relation("AdaptiveMemberInviter")
+  adaptiveWorkRequested       AdaptiveWorkRecord[]          @relation("AdaptiveWorkClient")
+  adaptiveEventsWritten       AdaptiveWorkEvent[]           @relation("AdaptiveEventActor")
 }
 
 model UserCapability {
@@ -989,6 +994,7 @@ model Booking {
   hustler      User          @relation("BookingHustler", fields: [hustlerUserId], references: [id], onDelete: Restrict)
   conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   scheduleRevisions BookingScheduleRevision[]
+  adaptiveWork     AdaptiveWorkRecord?
   cancelledBy  User?         @relation("BookingCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
 
   @@index([clientUserId, status, createdAt])
@@ -1075,6 +1081,7 @@ model Order {
   buyer  User        @relation("OrderBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
   seller User        @relation("OrderSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
   items  OrderItem[]
+  adaptiveWork AdaptiveWorkRecord?
 
   @@index([buyerUserId, status, createdAt])
   @@index([sellerUserId, status, createdAt])
@@ -1529,4 +1536,151 @@ model EnforcementAppeal {
   @@index([status, submittedAt])
   @@index([assignedReviewerUserId, status, updatedAt])
   @@index([originalActorUserId, createdAt])
+}
+
+
+// AED adaptive economy extension — additive to existing User, Service, Booking,
+// Order and AgentRelationship. No new auth provider or financial ledger.
+enum AdaptiveWorkspaceKind {
+  PERSONAL
+  BUSINESS
+  TEAM
+  AGENCY
+}
+enum AdaptiveMemberRole {
+  OWNER
+  MANAGER
+  WORKER
+  AGENT
+  ASSISTANT
+  ACCOUNTANT
+}
+enum AdaptiveMemberStatus {
+  INVITED
+  ACTIVE
+  REVOKED
+}
+enum AdaptiveWorkflowType {
+  APPOINTMENT
+  ITEM
+  PROJECT
+  GROUP
+  EVENT
+  PRODUCT
+  DIGITAL
+  RECURRING
+  LIVE
+}
+enum AdaptiveWorkStatus {
+  DRAFT
+  REQUESTED
+  ACCEPTED
+  IN_PROGRESS
+  READY
+  DELIVERED
+  REVIEW
+  COMPLETED
+  DISPUTED
+  CANCELLED
+}
+model AdaptiveWorkspace {
+  id            String                @id @default(cuid())
+  ownerUserId   String
+  name          String
+  slug          String
+  kind          AdaptiveWorkspaceKind @default(BUSINESS)
+  category      String?
+  city          String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  owner         User                  @relation("AdaptiveWorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  memberships   AdaptiveMembership[]
+  services      AdaptiveServiceDraft[]
+  workRecords   AdaptiveWorkRecord[]
+
+  @@unique([ownerUserId, slug])
+  @@index([ownerUserId, kind])
+}
+model AdaptiveMembership {
+  id             String               @id @default(cuid())
+  workspaceId    String
+  userId         String
+  invitedById    String
+  role           AdaptiveMemberRole
+  status         AdaptiveMemberStatus @default(INVITED)
+  permissions    String[]             @default([])
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime             @default(now())
+  workspace      AdaptiveWorkspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user           User                 @relation("AdaptiveMemberPrincipal", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy      User                 @relation("AdaptiveMemberInviter", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@unique([workspaceId, userId])
+  @@index([userId, status])
+}
+model AdaptiveBlueprint {
+  id          String               @id @default(cuid())
+  slug        String
+  version     Int
+  type        AdaptiveWorkflowType
+  definition  Json
+  createdAt   DateTime             @default(now())
+  services    AdaptiveServiceDraft[]
+
+  @@unique([slug, version])
+}
+model AdaptiveServiceDraft {
+  id             String               @id @default(cuid())
+  workspaceId    String
+  blueprintId    String
+  title          String
+  priceMinor     Int                  @default(0)
+  currency       String               @default("NGN")
+  policy         Json                 @default("{}")
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  workspace      AdaptiveWorkspace    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  blueprint      AdaptiveBlueprint    @relation(fields: [blueprintId], references: [id], onDelete: Restrict)
+  workRecords    AdaptiveWorkRecord[]
+
+  @@index([workspaceId, updatedAt])
+}
+model AdaptiveWorkRecord {
+  id             String               @id @default(cuid())
+  workspaceId    String
+  serviceDraftId String?
+  clientUserId   String
+  bookingId      String?              @unique
+  orderId        String?              @unique
+  title          String
+  status         AdaptiveWorkStatus   @default(DRAFT)
+  version        Int                  @default(1)
+  requirements   Json                 @default("{}")
+  agreement      Json?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  workspace      AdaptiveWorkspace    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  serviceDraft   AdaptiveServiceDraft? @relation(fields: [serviceDraftId], references: [id], onDelete: SetNull)
+  client         User                 @relation("AdaptiveWorkClient", fields: [clientUserId], references: [id], onDelete: Restrict)
+  booking        Booking?             @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  order          Order?               @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  events         AdaptiveWorkEvent[]
+
+  @@index([workspaceId, status, updatedAt])
+  @@index([clientUserId, createdAt])
+}
+model AdaptiveWorkEvent {
+  id          String              @id @default(cuid())
+  workId      String
+  revision    Int
+  actorUserId String
+  eventType   String
+  payload     Json                @default("{}")
+  createdAt   DateTime            @default(now())
+  work        AdaptiveWorkRecord  @relation(fields: [workId], references: [id], onDelete: Cascade)
+  actor       User                @relation("AdaptiveEventActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@unique([workId, revision])
+  @@index([actorUserId, createdAt])
 }
