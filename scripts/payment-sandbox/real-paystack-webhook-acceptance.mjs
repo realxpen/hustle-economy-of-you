@@ -34,6 +34,7 @@ class IsolatedWebhookTestModule {}
 Module({ imports: [DatabaseModule, PaymentModule, LiveModule, TrustModule,
   AnalyticsModule, FeedModule, SearchModule, BookingModule, MessagingModule] })(IsolatedWebhookTestModule);
 
+const containerName = "hustle-paystack-test-webhook-" + (process.env.GITHUB_RUN_ID ?? "unknown");
 let app, receiver, tunnel;
 try {
   app = await NestFactory.create(IsolatedWebhookTestModule, { logger: ["error"], rawBody: true });
@@ -121,7 +122,7 @@ try {
   // A quick tunnel is intentionally temporary, unprivileged, and bound only
   // to the dedicated webhook handler. Entire Nest API is NOT exposed.
   const tunnelLogs = [];
-  tunnel = spawn("docker", ["run", "--rm", "--network", "host",
+  tunnel = spawn("docker", ["run", "--rm", "--name", containerName, "--network", "host",
     "cloudflare/cloudflared:2026.10.7", "tunnel", "--no-autoupdate",
     "--url", "http://127.0.0.1:44831"], { stdio: ["ignore", "pipe", "pipe"] });
   let tunnelExited = false;
@@ -206,6 +207,15 @@ try {
     `### Verified successfully\n\nBoth real Paystack **test-mode webhook deliveries** passed the signed raw-byte check, Paystack source IP check, actual Paystack private verification and the full disposable Order/Booking/ledger/escrow transitions. No production or live funds. Restore the previous Paystack TEST webhook URL if you have not already.\n`);
 } finally {
   if (tunnel && !tunnel.killed) tunnel.kill("SIGTERM");
+  // Even when the attached Docker CLI exits first, forcibly remove the
+  // temporary tunnel container so the public webhook URL cannot survive.
+  if (tunnel) {
+    const stop = spawn("docker", ["rm", "-f", containerName], { stdio: "ignore" });
+    await Promise.race([
+      once(stop, "exit").catch(() => {}),
+      new Promise(resolve => setTimeout(resolve, 10_000))
+    ]);
+  }
   if (receiver?.server.listening) await new Promise(resolve => receiver.server.close(resolve));
   await app?.close();
 }
