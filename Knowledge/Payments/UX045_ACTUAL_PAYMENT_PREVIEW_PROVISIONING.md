@@ -18,13 +18,13 @@ The stored secret record may incur AWS Secrets Manager charges even before activ
 
 ## Neon separate test project CREATED and verified
 
-The founder created a **new, unrelated** Neon project on 31 October 2026, verified via the connected Neon API. Neon uses the default branch name `production` even for this independent, empty **nonproduction TEST** project; do not confuse its branch name with the production Hustle database.
+The founder created a **new, unrelated** Neon project on 31 October 2026, verified via the connected Neon API. Neon initially used the default branch label `production` in this independent, empty nonproduction test project. The branch was then renamed to `payment-preview-test-only` without changing its ID or moving any data.
 
 | Non-secret resource | Verified identity |
 |---|---|
 | Project | `hustle-payment-preview-isolated` |
 | Neon project ID | `fragrant-field-59689896` |
-| Branch ID | `br-curly-leaf-zat0ec8m` (branch label `production`) |
+| Branch ID | `br-curly-leaf-zat0ec8m` (renamed `payment-preview-test-only`) |
 | Region | `aws-eu-west-2`, PostgreSQL 17, Neon Free |
 | Dedicated database | `hustle_payment_preview` |
 | Separate, direct unpooled host | `ep-holy-block-zauxat1w.c-2.eu-west-2.aws.neon.tech` |
