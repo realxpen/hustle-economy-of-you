@@ -6,6 +6,7 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { getExpoStagingAuth } from "./auth/expo-staging-auth.service";
 import { toNodeHandler } from "better-auth/node";
 import { stagingRequestGate } from "./staging-request-policy";
+import { paymentPreviewRequestGate } from "./payment/payment-preview-request-policy";
 
 async function bootstrap() {
   if (process.env.NODE_ENV !== "production") {
@@ -20,8 +21,8 @@ async function bootstrap() {
   const scope = validateApiRuntimeEnvironment(process.env);
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   // Before Nest registers its JSON parser. Other routes retain Nest raw-body behavior.
-  if (scope === "isolated-staging") {
-    app.use(stagingRequestGate);
+  if (scope === "isolated-staging" || scope === "payment-preview") {
+    app.use(scope === "isolated-staging" ? stagingRequestGate : paymentPreviewRequestGate);
     app.getHttpAdapter().getInstance().all("/api/auth/*splat", toNodeHandler(getExpoStagingAuth()));
   }
   app.setGlobalPrefix("api/v1");
