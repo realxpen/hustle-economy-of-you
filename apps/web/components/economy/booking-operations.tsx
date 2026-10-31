@@ -19,6 +19,8 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
  const [roster,setRoster]=useState<AdaptiveRoster|null>(null);
  const [alerts,setAlerts]=useState<AdaptiveStaffingAlerts|null>(null);
  const [selected,setSelected]=useState<Record<string,string>>({});
+ const [etaInput,setEtaInput]=useState<Record<string,string>>({});
+ const [etaReason,setEtaReason]=useState<Record<string,string>>({});
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState("");
@@ -99,6 +101,29 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
      {!job?<p className={styles.hint}>The client must choose from this business's offered pickup and return methods before processing begins.</p>:<>
       <p><strong>Item stage:</strong> {readable(job.status)}</p>
       <p className={styles.hint}>Received via {readable(job.intakeMethod)} · Return via {readable(job.returnMethod)}</p>
+      {job.estimatedReadyAt&&<p className={styles.hint}>Estimated ready: {date(job.estimatedReadyAt)}</p>}
+      {job.clientConfirmedAt&&<p className={styles.hint}><strong>Client acknowledged receipt:</strong> {date(job.clientConfirmedAt)}</p>}
+      {canAdvance&&["RECEIVED","IN_PROGRESS"].includes(job.status)&&
+       <form className={styles.etaEditor} onSubmit={e=>{
+        e.preventDefault();
+        const parsed=new Date(etaInput[b.id]??"");
+        if(!Number.isFinite(parsed.getTime())){setError("Choose a valid new date and time.");return;}
+        void act(()=>adaptiveClient.reviseItemEta(workspaceId,b.id,parsed.toISOString(),
+           etaReason[b.id]??"",job.revision),"Updated estimate saved and the client notified.");
+       }}>
+        <strong>Change estimated ready time</strong>
+        <label>New date and time
+         <input type="datetime-local" value={etaInput[b.id]??""} disabled={busy} required
+          onChange={e=>setEtaInput({...etaInput,[b.id]:e.target.value})}/>
+        </label>
+        <label>Reason for this update
+         <input type="text" minLength={8} maxLength={180} disabled={busy} required
+          placeholder="e.g. Material delivery delayed"
+          value={etaReason[b.id]??""} onChange={e=>setEtaReason({...etaReason,[b.id]:e.target.value})}/>
+        </label>
+        <button disabled={busy||!(etaInput[b.id]??"")||(etaReason[b.id]??"").trim().length<8}
+         type="submit">Save new estimate & notify client</button>
+       </form>}
       <div className={styles.stage}>{stages.filter(x=>x!=="DELIVERED"&&x!=="COLLECTED").map(x=>
        <span key={x} className={x===job.status?styles.active:""}>{readable(x)}</span>)}</div>
       {canAdvance&&possible&&<button disabled={busy} type="button" onClick={()=>void act(
