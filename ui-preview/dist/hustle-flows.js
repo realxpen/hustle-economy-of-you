@@ -239,8 +239,9 @@ function mapSearchPreview(){
 
 function renderExplore(){
  const tabs=["Top","People","Posts","Services","Products","Training","Requests","Map","Stories","Live"];
- return `${head("Explore","People, skills, work and opportunities",false,`<button class="hf-live-mini" data-hf="live-hub" aria-label="Explore Live feeds">● LIVE</button><button class="hf-icbtn" data-hf="cart" aria-label="Open cart">♧${state.cart.length?`<span class="hf-cart-count">${state.cart.length}</span>`:""}</button>`)}
+ return `${head("Explore","People, skills, work and opportunities",false,`<button class="hf-live-mini" data-hf="live-hub" aria-label="Explore Live feeds">● LIVE</button><button class="hf-icbtn" data-hf="cart" aria-label="Open shopping cart">🛒${cartItemCount()?`<span class="hf-cart-count">${cartItemCount()}</span>`:""}</button>`)}
  <div class="hf-page"><div id="hfMapPresearchHost">${state.exploreTab==="Top"&&!state.query.trim()?mapPreSearchCard():""}</div><div class="hf-searchbox"><span>⌕</span><input id="hfExploreQuery" type="search" value="${esc(state.query)}" placeholder="Barber in Lekki, fashion in Yaba..." aria-label="Search Hustle"/><button data-hf="search-clear" aria-label="Clear search">×</button></div>
+ <div class="hf-discovery-shopping"><button data-hf="market" aria-label="Browse the Marketplace"><span>🛍️</span><b>Marketplace</b><small>Products · Services</small><strong>→</strong></button><button data-hf="cart" aria-label="Open cart"><span>🛒</span><b>Cart${cartItemCount()?` · ${cartItemCount()}`:""}</b><small>Review items</small><strong>→</strong></button></div>
  <div class="hf-tabs" role="tablist" aria-label="Search sections">${tabs.map(x=>`<button data-hf="explore-tab" data-value="${x}" class="${state.exploreTab===x?"on":""}" role="tab" aria-selected="${state.exploreTab===x}">${x}</button>`).join("")}</div>
  ${categoryChips()}
  <div id="hfSearchResults">${mapSearchPreview()}${exploreResults()}</div>
@@ -297,7 +298,7 @@ function renderMarket(){
  if(state.marketSort==="Price: low")filtered=[...filtered].sort((a,b)=>a.price-b.price);
  if(state.marketSort==="Price: high")filtered=[...filtered].sort((a,b)=>b.price-a.price);
  const featuredProducts=products.filter(l=>state.category==="All"||l.category===state.category);
- return `${head("Marketplace","Shop products · Book services · Learn skills",false,`<button class="hf-icbtn" data-hf="cart" aria-label="Shopping cart">🛍${state.cart.length?`<span class="hf-cart-count">${state.cart.reduce((n,x)=>n+x.qty,0)}</span>`:""}</button>`)}
+ return `${head("Marketplace","Shop products · Book services · Learn skills",false,`<button class="hf-icbtn" data-hf="cart" aria-label="Shopping cart">🛒${cartItemCount()?`<span class="hf-cart-count">${cartItemCount()}</span>`:""}</button>`)}
  <div class="hf-shop-page">
  <div class="hf-shop-search"><span aria-hidden="true">⌕</span><input id="hfMarketSearch" type="search" value="${esc(state.marketSearch)}" placeholder="Search products, services, stores..." aria-label="Search marketplace"><button data-hf="market-search-clear" aria-label="Clear marketplace search">×</button></div>
  <div class="hf-promo" role="region" aria-label="Featured sample promotions">
@@ -662,6 +663,13 @@ function renderOwn(){
  <p class="hf-profile-bio">${esc(signedIn.bio)}</p><div class="hf-trust"><span>Primary: ${esc(signedIn.primary)}</span><span>Secondary: ${esc(signedIn.secondary)}</span><span>Client + creator</span></div>
  <div class="hf-profile-metrics"><span><b>${signedIn.followers}</b> sample followers</span><span><b>${signedIn.following}</b> following</span><span><b>${samplePosts.filter(p=>p.seller==="self").length}</b> sample posts</span></div>
  <div class="hf-actions"><button class="hf-lime-button" data-hf="own-edit">Edit profile</button><button class="hf-soft-button" data-hf="create">+ Post</button><button class="hf-soft-button" data-hf="share">↗ Share</button></div>
+ <div class="hf-profile-commerce"><div class="hf-section-row"><h2>Shopping & earnings</h2><small>Everything in one place</small></div>
+ <div class="hf-profile-commerce-grid">
+ <button data-hf="market"><span>🛍️</span><b>Marketplace</b><small>Explore offers</small></button>
+ <button data-hf="cart"><span>🛒</span><b>Cart${cartItemCount()?` (${cartItemCount()})`:""}</b><small>Review items</small></button>
+ <button data-hf="orders"><span>▤</span><b>My orders</b><small>Purchases & bookings</small></button>
+ <button data-hf="payments"><span>₦</span><b>Payments & earnings</b><small>Escrow · Payouts</small></button>
+ </div></div>
  <div class="hf-notice hf-own-notice">Preview account only. No real identity, followers, posts, or account data is connected.</div>
  <div class="hf-tabs" role="tablist" aria-label="Your profile sections">${tabs.map(x=>`<button data-hf="own-tab" data-value="${x}" class="${state.ownTab===x?"on":""}" role="tab" aria-selected="${state.ownTab===x}">${x}</button>`).join("")}</div>
  <div class="hf-own-tab-content">${content}</div></div>`;
@@ -735,7 +743,7 @@ function renderChat(){
 }
 function renderCart(){
  const subtotal=state.cart.reduce((n,x)=>n+item(x.id).price*x.qty,0);
- return `${head("Your cart","Review products before checkout",true)}<div class="hf-page">
+ return `${head("Your cart","Review products before checkout",true,`<button class="hf-tinybtn" data-hf="market">Continue shopping</button>`)}<div class="hf-page">
  ${state.cart.length?state.cart.map(x=>{const l=item(x.id);return `<div class="hf-cart-row"><img src="${l.img}" alt="${esc(l.title)}"><div><b>${esc(l.title)}</b><small>${esc(x.variant)} · ${esc(person(l.seller).name)}</small><b>${money(l.price*x.qty)}</b><div class="hf-qty"><button data-hf="cart-qty" data-id="${l.id}" data-value="-1">−</button><span>${x.qty}</span><button data-hf="cart-qty" data-id="${l.id}" data-value="1">+</button><button class="hf-link" data-hf="cart-remove" data-id="${l.id}">Remove</button></div></div></div>`}).join("")+
  `<div class="hf-summary"><div><b>Subtotal</b><span>${money(subtotal)}</span></div><div><b>Delivery</b><span>To be agreed</span></div></div><button class="hf-lime-button" style="width:100%" data-hf="checkout">Review checkout →</button><div class="hf-notice">No payment will be made. Product availability and delivery fees are examples only.</div>`:
  `<div class="hf-empty">Your cart is empty. Browse the marketplace and add a sample product.</div><button class="hf-lime-button" data-hf="market" style="width:100%;margin-top:15px">Browse products →</button>`}</div>`;
