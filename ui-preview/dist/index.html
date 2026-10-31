@@ -420,7 +420,7 @@ const posts=[
 ];
 let rank='For you',view='Home',storyOrigin='Home',storyIndex=null,storyFilter='All',slideFor={},commentsFor={},liked=new Set(),saved=new Map(),followed=new Set(),sheetType='',selection={day:'Tomorrow',time:'11:30 AM'},noticeTimer;
 let activeProfessional=null, activeProfileTab='Work', exploreCategory='All';
-let localVideoSrc=null, videoObserver=null, videoLoadedOnce=false, liveHearts=0;
+let localVideoSrc=null, videoObserver=null, videoLoadedOnce=false, liveHearts=0, videoMuted=true, videoUserPaused=false;
 const ec=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon=(name,fill=false)=>`<svg class="ico ${fill?'filled':''}" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 const creator=id=>creators.find(c=>c.id===id)||creators[0];
@@ -428,17 +428,28 @@ const number=v=>v>=1000?(v/1000).toFixed(1)+'k':String(v);
 const flash=s=>{toastNode.innerHTML=`<div class="toast">${ec(s)}</div>`;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>toastNode.innerHTML='',2200)};
 function order(){if(rank==='Following')return [posts[1],posts[0],posts[5],posts[3],posts[6],posts[2],posts[4]];if(rank==='Nearby')return [posts[0],posts[5],posts[6],posts[3],posts[4],posts[1],posts[2]];return [posts[0],posts[5],posts[1],posts[6],posts[2],posts[3],posts[4]]}
 function storiesMarkup(){return creators.slice(0,5).map((c,i)=>`<button class="story-item" data-story="${i}" aria-label="View ${ec(c.name)}'s story"><span class="story-ring"><span class="story-initial">${ec(c.name[0])}</span><img src="${c.avatar}" alt="" onerror="this.style.display='none'"></span>${c.live?'<span class="story-live">LIVE</span>':''}<span class="story-name">${ec(c.name)}</span></button>`).join('')}
+function videoMedia(p){
+  return `<video class="hp-feed-video" data-video-post="${p.id}" src="${localVideoSrc||videoSampleUrl}" poster="${p.images[0]}" ${videoMuted?'muted':''} playsinline webkit-playsinline loop preload="metadata" aria-label="Sample creative video"></video>
+  <button class="hp-video-surface" data-video-toggle="${p.id}" aria-label="Pause or play video"><span class="hp-video-paused-symbol" aria-hidden="true">▶</span></button>
+  <span class="hp-video-sample">Sample footage</span>
+  <div class="hp-video-progress"><span data-video-progress="${p.id}"></span></div>
+  <input class="hp-video-file" data-video-file="${p.id}" type="file" accept="video/*" aria-label="Choose a video from your device"/>
+  <div class="hp-video-error" hidden>Video unavailable. Use the three-dot menu to choose a clip from your phone.</div>`;
+}
+function captionAndOffer(p){
+ return `<div class="hp-caption-wrap"><p class="post-caption" id="hpCaption-${p.id}">${ec(p.caption)}</p>${p.caption.length>74?`<button class="hp-caption-more" data-caption="${p.id}" aria-expanded="false">more</button>`:''}</div>
+ <div class="mini-offer hp-minimal-offer"><button class="hp-service-info" data-cta="${p.id}" aria-label="View ${ec(p.service)}"><span class="hp-service-spark">✦</span><span class="hp-service-title">${ec(p.service)}</span><span class="hp-service-price">${ec(p.price)}</span></button><button class="offer-btn" data-cta="${p.id}">${p.cta==='Buy'?'Buy':'Hire'} ↗</button></div>`;
+}
+function openPostMore(id){
+ const p=posts.find(x=>x.id===id);
+ openSheet('Post options',`<button class="choice" data-save="${id}">Save to collection</button><button class="choice" data-share="${id}">Share post</button><button class="choice" data-profile="${p?.creator||''}">View professional</button>${p?.type==='video'?`<button class="choice" data-video-upload="${id}">Choose a video from my phone</button><button class="choice" data-video-mute="${id}">${videoMuted?'Unmute':'Mute'} video</button><p>Sample footage for video testing. Your selected clip remains on this device.</p>`:''}`,'options');
+}
 function renderPost(p,index){const c=creator(p.creator),page=slideFor[p.id]||0;
-const media=p.type==='video'?`<video class="hp-feed-video" data-video-post="${p.id}" src="${localVideoSrc||videoSampleUrl}" poster="${p.images[0]}" muted playsinline webkit-playsinline loop preload="metadata" aria-label="Playable sample floral video"></video>
-<div class="hp-video-bubble"><span>▶ VIDEO · SAMPLE CLIP</span><span class="hp-video-bubble-note">Real playback · not a creator upload</span></div>
-<div class="hp-video-controls"><button data-video-toggle="${p.id}" aria-label="Pause or play video">Ⅱ</button><button data-video-mute="${p.id}" aria-label="Toggle video sound">♫̸</button><button data-video-upload="${p.id}" aria-label="Choose your own video">My clip</button></div>
-<div class="hp-video-progress"><span data-video-progress="${p.id}"></span></div>
-<input class="hp-video-file" data-video-file="${p.id}" type="file" accept="video/*" aria-label="Select an iPhone video for local preview"/>
-<div class="hp-video-error" hidden>Video unavailable on this connection. Tap <b>My clip</b> to preview a video stored on your phone. No upload occurs.</div>`:`<img src="${p.images[page]}" alt="${ec(c.full)}'s ${ec(p.category.toLowerCase())} work">`;
+const media=p.type==='video'?videoMedia(p):`<img src="${p.images[page]}" alt="${ec(c.full)}'s ${ec(p.category.toLowerCase())} work">`;
 return `<article class="post" id="${p.id}" aria-label="Post by ${ec(c.full)}"><div class="post-image" data-post-image="${p.id}">${media}<div class="post-badge">${p.type==='live'?'● LIVE DEMO':p.type==='video'?'▶ VIDEO · CREATIVE WORK':'✦ &nbsp; POST · '+ec(p.category)}</div>${p.type==='live'?`<button class="hp-live-join" data-join-live="${p.id}">● Enter Live demo →</button>`:''}<button class="post-top-more" aria-label="More post options" data-more="${p.id}">···</button>
 ${p.type==='carousel'?`<div class="slide-count">${page+1}/${p.images.length}</div><div class="slide-controls"><button data-slide="${p.id}" data-shift="-1" aria-label="Previous photo">‹</button><button data-slide="${p.id}" data-shift="1" aria-label="Next photo">›</button></div>`:''}
 <div class="rail"><button data-like="${p.id}" aria-label="Like ${ec(c.full)}'s post" class="${liked.has(p.id)?'active like':''}"><span class="action-ico">${icon('heart',liked.has(p.id))}</span><span>${number(p.likes+(liked.has(p.id)?1:0))}</span></button><button data-comments="${p.id}" aria-label="Comments"><span class="action-ico">${icon('chat')}</span><span>${p.comments+(commentsFor[p.id]?.length||0)}</span></button><button data-save="${p.id}" aria-label="Save"><span class="action-ico">${icon('bookmark',saved.has(p.id))}</span><span>${saved.has(p.id)?'Saved':'Save'}</span></button><button data-share="${p.id}" aria-label="Share"><span class="action-ico">${icon('share')}</span><span>Share</span></button></div>
-<div class="post-foot"><div class="creator-line"><img class="creator-avatar" src="${c.avatar}" alt=""><div class="creator-text"><button class="creator-name" data-profile="${c.id}">${ec(c.full)} <span class="verified">✓</span></button><div class="creator-meta">${ec(c.handle)} &nbsp;•&nbsp; ${ec(c.location)}</div></div></div><p class="post-caption">${ec(p.caption)}</p><div class="mini-offer"><div class="offer-copy"><b>${ec(p.service)}</b><span>From ${ec(p.price)}</span></div><button class="offer-btn" data-cta="${p.id}">${p.cta==='Buy'?'Buy product':'Hire now'} &nbsp;→</button></div></div>${p.type==='carousel'?`<div class="media-dots">${p.images.map((_,i)=>`<i class="${page===i?'on':''}"></i>`).join('')}</div>`:''}</div><div class="post-under"><span>${p.type==='carousel'?'Swipe through the work · '+p.images.length+' photos':'Photo post · '+number(p.likes+(liked.has(p.id)?1:0))+' likes'}</span><button data-comments="${p.id}">View comments →</button></div></article>`}
+<div class="post-foot"><div class="creator-line"><img class="creator-avatar" src="${c.avatar}" alt=""><div class="creator-text"><button class="creator-name" data-profile="${c.id}">${ec(c.full)} <span class="verified">✓</span></button><div class="creator-meta">${ec(c.handle)} &nbsp;•&nbsp; ${ec(c.location)}</div></div></div>${captionAndOffer(p)}</div>${p.type==='carousel'?`<div class="media-dots">${p.images.map((_,i)=>`<i class="${page===i?'on':''}"></i>`).join('')}</div>`:''}</div><div class="post-under"><span>${p.type==='carousel'?'Swipe through the work · '+p.images.length+' photos':'Photo post · '+number(p.likes+(liked.has(p.id)?1:0))+' likes'}</span><button data-comments="${p.id}">View comments →</button></div></article>`}
 function renderPosts(keepScroll=true){
  const t=scroller.scrollTop,previousVideo=scroller.querySelector('video[data-video-post]'),
  previousTime=previousVideo&&Number.isFinite(previousVideo.currentTime)?previousVideo.currentTime:0;
@@ -450,7 +461,7 @@ function renderPosts(keepScroll=true){
 }
 function pauseFeedVideos(){scroller.querySelectorAll('video.hp-feed-video').forEach(v=>v.pause())}
 function resumeVisibleVideo(){
- if(document.hidden||view!=='Home'||global.children.length||activeProfessional||root.querySelector('.full-page'))return;
+ if(document.hidden||videoUserPaused||view!=='Home'||global.children.length||activeProfessional||root.querySelector('.full-page'))return;
  const v=scroller.querySelector('video.hp-feed-video');if(!v)return;
  const rect=v.getBoundingClientRect(),area=scroller.getBoundingClientRect();
  if(Math.abs((rect.top+rect.height/2)-(area.top+area.height/2))<area.height*.37)v.play().catch(()=>{});
@@ -460,13 +471,13 @@ function initVideoPlayer(resumeAt=0,resumePaused=false){
  if(!video)return;
  video.addEventListener('loadedmetadata',()=>{if(resumeAt>0&&resumeAt<video.duration)try{video.currentTime=resumeAt}catch(e){}});
  video.addEventListener('timeupdate',()=>{const bar=scroller.querySelector('[data-video-progress]');if(bar&&video.duration)bar.style.width=Math.min(100,video.currentTime/video.duration*100)+'%'});
- video.addEventListener('play',()=>{const btn=scroller.querySelector('[data-video-toggle]');if(btn)btn.textContent='Ⅱ'});
- video.addEventListener('pause',()=>{const btn=scroller.querySelector('[data-video-toggle]');if(btn)btn.textContent='▶'});
- video.addEventListener('error',()=>{const note=scroller.querySelector('.hp-video-error');if(note)note.hidden=false;const btn=scroller.querySelector('[data-video-toggle]');if(btn)btn.textContent='▶'});
+ video.addEventListener('play',()=>{video.closest('.post')?.classList.remove('hp-is-paused');const btn=scroller.querySelector('[data-video-toggle]');if(btn)btn.setAttribute('aria-label','Pause video')});
+ video.addEventListener('pause',()=>{video.closest('.post')?.classList.add('hp-is-paused');const btn=scroller.querySelector('[data-video-toggle]');if(btn)btn.setAttribute('aria-label','Play video')});
+ video.addEventListener('error',()=>{const note=scroller.querySelector('.hp-video-error');if(note)note.hidden=false;video.closest('.post')?.classList.add('hp-is-paused')});
  if(!('IntersectionObserver' in window)){video.pause();return}
  videoObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{
   if(!entry.isIntersecting||entry.intersectionRatio<.65||global.children.length||activeProfessional||document.hidden){entry.target.pause();return}
-  if(resumePaused||window.matchMedia('(prefers-reduced-motion: reduce)').matches){entry.target.pause();resumePaused=false;return}
+  if(videoUserPaused||resumePaused||window.matchMedia('(prefers-reduced-motion: reduce)').matches){entry.target.pause();resumePaused=false;return}
   entry.target.play().catch(()=>{const b=scroller.querySelector('[data-video-toggle]');if(b)b.textContent='▶'});
  }),{root:scroller,threshold:[0,.65,.9]});
  videoObserver.observe(video);
@@ -630,9 +641,10 @@ const content={Explore:exploreContent(),Create:`<h2>Create something<span style=
 const existing=root.querySelector('.full-page');if(existing)existing.remove();root.insertAdjacentHTML('beforeend',`<section class="full-page" role="region" aria-label="${to}"><button class="round-ctl" data-nav="Home" aria-label="Back to Home">←</button>${content[to]||''}</section>`)}
 root.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;const d=t.dataset;
 if(d.rank){rank=d.rank;renderRanks();renderPosts(false);return}
-if(d.videoToggle){const v=scroller.querySelector('video[data-video-post="'+d.videoToggle+'"]');if(v)v.paused?v.play().catch(()=>flash('Tap again to play video')):v.pause();return}
-if(d.videoMute){const v=scroller.querySelector('video[data-video-post="'+d.videoMute+'"]');if(v){v.muted=!v.muted;t.textContent=v.muted?'♫̸':'♫'}return}
+if(d.videoToggle){const v=scroller.querySelector('video[data-video-post="'+d.videoToggle+'"]');if(v){if(v.paused){videoUserPaused=false;v.play().catch(()=>flash('Tap again to play video'))}else{videoUserPaused=true;v.pause()}}return}
+if(d.videoMute){const v=scroller.querySelector('video[data-video-post="'+d.videoMute+'"]');videoMuted=!videoMuted;if(v)v.muted=videoMuted;close();flash(videoMuted?'Video muted':'Video unmuted');return}
 if(d.videoUpload){const input=scroller.querySelector('[data-video-file="'+d.videoUpload+'"]');if(input)input.click();return}
+if(d.caption){const caption=root.querySelector('#hpCaption-'+d.caption);if(caption){const expanded=caption.classList.toggle('hp-caption-expanded');t.textContent=expanded?'less':'more';t.setAttribute('aria-expanded',String(expanded))}return}
 if(d.joinLive){openLiveRoom(d.joinLive);return}
 if(d.liveClose!==undefined){closeLiveRoom();return}
 if(d.liveHeart!==undefined){liveHearts++;const count=global.querySelector('#hpLiveHeartCount');if(count)count.textContent=liveHearts;return}
@@ -665,7 +677,7 @@ if(d.profileShare!==undefined){flash('Share preview — no public profile link')
 if(d.exploreCategory){exploreCategory=d.exploreCategory;updateExploreResults();return}
 if(d.consultFinish!==undefined){close();flash('Consultation preview finished — request not sent');return}
 if(d.cta){openHire(d.cta);return}
-if(d.more){openSheet('Post options',`<button class="choice" data-save="${d.more}">Save to collection</button><button class="choice" data-share="${d.more}">Share post</button><button class="choice" data-profile="${posts.find(x=>x.id===d.more)?.creator}">View professional</button>`,'options');return}
+if(d.more){openPostMore(d.more);return}
 if(d.day||d.time){let key=d.day?'day':'time';selection[key]=d[key];t.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b===t));return}
 if(d.done!==undefined){close();flash('Demo only — nothing submitted');return}
 if(d.reply!==undefined){const inp=global.querySelector('[name=comment]');if(inp){inp.value='@lagos_creative ';inp.focus()}return}
@@ -674,7 +686,7 @@ if(d.action==='theme'){root.classList.toggle('dark');return}
 if(d.action==='notifications'){flash('No notifications in this demo');return}
 });
 root.addEventListener('input',e=>{if(e.target.matches('[data-explore-search]'))updateExploreResults()});
-root.addEventListener('change',e=>{if(!e.target.matches('[data-video-file]'))return;const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith('video/')){flash('Choose a video file');return}if(localVideoSrc)URL.revokeObjectURL(localVideoSrc);localVideoSrc=URL.createObjectURL(f);renderPosts();flash('Playing video locally — not uploaded')});
+root.addEventListener('change',e=>{if(!e.target.matches('[data-video-file]'))return;const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith('video/')){flash('Choose a video file');return}if(localVideoSrc)URL.revokeObjectURL(localVideoSrc);localVideoSrc=URL.createObjectURL(f);videoUserPaused=false;close();renderPosts();flash('Video preview only — not uploaded')});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseFeedVideos();else resumeVisibleVideo()});
 window.addEventListener('pagehide',()=>{if(localVideoSrc)URL.revokeObjectURL(localVideoSrc)});
 root.addEventListener('submit',e=>{e.preventDefault();const frm=e.target;if(frm.dataset.liveForm!==undefined){const input=frm.querySelector('[name=message]');const msg=input?.value.trim();if(msg){const line=document.createElement('p');const name=document.createElement('b');name.textContent='You: ';line.appendChild(name);line.appendChild(document.createTextNode(msg));global.querySelector('#hpLiveComments')?.appendChild(line);input.value='';const box=global.querySelector('#hpLiveComments');if(box)box.scrollTop=box.scrollHeight}return}
