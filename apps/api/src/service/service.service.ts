@@ -28,6 +28,10 @@ export interface SaveServiceInput {
   deliveryTime?: unknown;
   requirements?: unknown;
   bookingMode?: unknown;
+  consultationPolicy?: unknown;
+  consultationFeeMinor?: unknown;
+  consultationCreditEnabled?: unknown;
+  maxPartySize?: unknown;
   bookingTimezone?: unknown;
   resourcePoolKey?: unknown;
   defaultDurationMinutes?: unknown;
@@ -370,7 +374,20 @@ export class ServiceService {
       }
       return value;
     };
+    const policy = input.consultationPolicy;
+    if (policy !== undefined && !["OFF","OPTIONAL","REQUIRED"].includes(String(policy))) {
+      throw new BadRequestException("consultationPolicy must be OFF, OPTIONAL or REQUIRED");
+    }
+    if (input.consultationCreditEnabled !== undefined && typeof input.consultationCreditEnabled !== "boolean") {
+      throw new BadRequestException("consultationCreditEnabled must be boolean");
+    }
+    if (policy === "OFF" && ((input.consultationFeeMinor !== undefined && input.consultationFeeMinor !== 0) ||
+      input.consultationCreditEnabled === true)) {
+      throw new BadRequestException("Disabled consultation cannot have a fee or credit");
+    }
     const numeric = {
+      consultationFeeMinor: number(input.consultationFeeMinor, "Consultation fee", 0, 2_000_000_000),
+      maxPartySize: number(input.maxPartySize, "Maximum party size", 1, 50),
       defaultDurationMinutes: number(input.defaultDurationMinutes, "Default duration", 5, 1440),
       prepMinutes: number(input.prepMinutes, "Preparation", 0, 120),
       bufferMinutes: number(input.bufferMinutes, "Recovery buffer", 0, 180),
@@ -428,6 +445,8 @@ export class ServiceService {
       ...(deliveryTime !== undefined ? { deliveryTime } : {}),
       ...(requirements !== undefined ? { requirements } : {}),
       ...(mode !== undefined ? { bookingMode: mode as "APPOINTMENT" | "WORK_QUEUE" | "CONSULTATION" } : {}),
+      ...(policy !== undefined ? { consultationPolicy: policy as "OFF" | "OPTIONAL" | "REQUIRED" } : {}),
+      ...(input.consultationCreditEnabled !== undefined ? { consultationCreditEnabled: input.consultationCreditEnabled } : {}),
       ...(timezone !== undefined ? { bookingTimezone: timezone } : {}),
       ...(pool !== undefined ? { resourcePoolKey: pool } : {}),
       ...Object.fromEntries(Object.entries(numeric).filter(([, value]) => value !== undefined)),
