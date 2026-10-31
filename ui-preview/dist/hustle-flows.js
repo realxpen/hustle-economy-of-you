@@ -108,8 +108,10 @@ function render(){
   case "EditProfile":html=renderProfileEdit();break;
   default:html=renderExplore();
  }
+ if(mapInstance)disposeMap();
  layer.innerHTML=html;
  layer.scrollTop=0;
+ if(state.screen==="Explore"&&state.exploreTab==="Map")initializeMapAfterRender();
  if(state.screen==="Chat"){const chat=layer.querySelector(".hf-chat-scroll");if(chat)chat.scrollTop=chat.scrollHeight}
 }
 function personCard(p){
@@ -158,7 +160,7 @@ function refreshSearch(){
  const input=layer.querySelector("#hfExploreQuery");
  if(input)state.query=input.value;
  const result=layer.querySelector("#hfSearchResults");
- if(result)result.innerHTML=exploreResults();
+ if(result){if(mapInstance)disposeMap();result.innerHTML=exploreResults();if(state.exploreTab==="Map")initializeMapAfterRender();}
 }
 function renderMarket(){
  const tabs=["All","Services","Products","Training"];
@@ -220,7 +222,92 @@ function renderProfileEdit(){
  <button class="hf-lime-button" type="submit" style="width:100%">Save demo profile →</button>
  <p class="hf-demo-footnote">This is not your real signed-in account. Changes last only while this preview is open.</p></form>`;
 }
-function renderMapResults(){return `<div class="hf-empty">Loading map discovery…</div>`}
+let mapInstance=null,mapLoadPromise=null,mapGpsMarker=null;
+const mapMarkers=new Map();
+function mapPeople(){
+ const coords={tobi:[6.442,3.478],zara:[6.518,3.381],maya:[6.601,3.349],amara:[6.613,3.361],nora:[6.496,3.350],femi:[6.430,3.420],flora:[6.513,3.375]};
+ const visible=people.filter(p=>matches({...p,title:p.primary,description:p.secondary,category:p.tag,seller:p.id}));
+ return visible.map(p=>({...p,coords:coords[p.id]})).filter(p=>p.coords);
+}
+function renderMapResults(){
+ const list=mapPeople();
+ return `<div class="hf-map-intro"><div><h2>Find skills on the map</h2><p>Explore sample professionals around Lagos. Pins are approximate neighborhood positions, not exact addresses.</p></div><span>⌖</span></div>
+ <div class="hf-map-tools"><button data-hf="map-locate">◎ Use my location</button><button data-hf="map-reset">↺ Reset to Lagos</button></div>
+ <div class="hf-map-stage" role="region" aria-label="Interactive professionals map">
+ <div id="hfLeafletMap" class="hf-leaflet-map"><div class="hf-map-loading">Preparing map…</div></div></div>
+ <div class="hf-map-privacy">Map tiles © OpenStreetMap contributors. Your location is off unless you tap Use my location. Demo pins are neighborhood examples only.</div>
+ <div id="hfMapSelection"></div>
+ <div class="hf-section-row"><h2>Professionals on this map</h2><small>${list.length} demo pins</small></div>
+ ${list.length?list.map(personCard).join(""):'<div class="hf-empty">No professionals match these filters. Try a different skill or location.</div>'}`;
+}
+function ensureLeaflet(){
+ if(window.L)return Promise.resolve(window.L);
+ if(mapLoadPromise)return mapLoadPromise;
+ mapLoadPromise=new Promise((resolve,reject)=>{
+  if(!document.querySelector('link[data-hf-leaflet]')){
+   const style=document.createElement("link");
+   style.rel="stylesheet";style.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";style.integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";style.crossOrigin="anonymous";style.dataset.hfLeaflet="true";document.head.appendChild(style);
+  }
+  const script=document.createElement("script");script.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";script.integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";script.crossOrigin="anonymous";
+  script.onload=()=>window.L?resolve(window.L):reject(new Error("Map library unavailable"));
+  script.onerror=()=>reject(new Error("Map library unavailable on this connection"));
+  document.head.appendChild(script);
+ }).catch(e=>{mapLoadPromise=null;throw e});
+ return mapLoadPromise;
+}
+function disposeMap(){
+ if(mapInstance){mapInstance.remove();mapInstance=null}
+ mapMarkers.clear();mapGpsMarker=null;
+}
+function renderMapSelection(){
+ const el=layer.querySelector("#hfMapSelection");
+ if(!el)return;
+ const p=people.find(x=>x.id===state.mapSelected);
+ if(!p){el.innerHTML="";return}
+ el.innerHTML=`<div class="hf-map-selected"><img src="${p.avatar}" alt=""><div><b>${esc(p.name)}</b><small>${esc(p.primary)} · ${esc(p.location)}</small><small>Example neighborhood pin</small></div><button data-hf="profile" data-id="${p.id}">View →</button></div>`;
+}
+function initMap(){
+ if(state.screen!=="Explore"||state.exploreTab!=="Map")return;
+ const el=layer.querySelector("#hfLeafletMap");
+ if(!el||!window.L)return;
+ disposeMap();
+ const L=window.L;
+ mapInstance=L.map(el,{zoomControl:true,scrollWheelZoom:false,attributionControl:true}).setView([6.515,3.388],11);
+ L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>'
+ }).addTo(mapInstance);
+ for(const p of mapPeople()){
+  const ico=L.divIcon({className:"hf-map-custom-icon",html:'<span>✦</span>',iconSize:[36,36],iconAnchor:[18,33],popupAnchor:[0,-29]});
+  const marker=L.marker(p.coords,{icon:ico,title:p.name}).addTo(mapInstance);
+  marker.bindPopup(`<div class="hf-map-popup"><b>${esc(p.name)}</b><small>${esc(p.primary)} · ${esc(p.location)}</small><button type="button" data-hf-map-profile="${esc(p.id)}">View profile →</button></div>`,{maxWidth:220});
+  marker.on("click",()=>{state.mapSelected=p.id;renderMapSelection()});
+  marker.on("popupopen",()=>{const button=marker.getPopup()?.getElement()?.querySelector("[data-hf-map-profile]");button?.addEventListener("click",()=>openProfile(p.id),{once:true})});
+  mapMarkers.set(p.id,marker);
+ }
+ if(state.mapGPS&&mapInstance){
+  mapGpsMarker=L.circleMarker(state.mapGPS,{radius:8,color:"#377ac0",weight:2,fillColor:"#72b9fb",fillOpacity:.9}).addTo(mapInstance).bindPopup("Your approximate current location (only in this session)");
+  mapInstance.setView(state.mapGPS,12);
+ }
+ renderMapSelection();
+ setTimeout(()=>{if(state.screen==="Explore"&&state.exploreTab==="Map"&&mapInstance)mapInstance.invalidateSize()},120);
+}
+function initializeMapAfterRender(){
+ if(state.screen!=="Explore"||state.exploreTab!=="Map")return;
+ ensureLeaflet().then(()=>{if(state.screen==="Explore"&&state.exploreTab==="Map")initMap()}).catch(()=>{
+  const el=layer.querySelector("#hfLeafletMap");
+  if(el)el.innerHTML='<div class="hf-map-loading">Map tiles could not load. You can still browse the professionals below. Try a better connection or reload.</div>';
+ });
+}
+function mapUseLocation(){
+ if(!navigator.geolocation){notify("Location services unavailable in this browser");return}
+ navigator.geolocation.getCurrentPosition(position=>{
+  state.mapGPS=[position.coords.latitude,position.coords.longitude];
+  if(state.screen==="Explore"&&state.exploreTab==="Map")initMap();
+  notify("Location shown only in this preview session");
+ },err=>{
+  notify(err.code===1?"Location permission was not granted":"Unable to get your location. Browse sample pins instead.");
+ },{enableHighAccuracy:false,timeout:9000,maximumAge:90000});
+}
 function renderProfile(){
  const p=person(state.profile);
  const sellerItems=allItems.filter(x=>x.seller===p.id);
@@ -436,6 +523,8 @@ layer.addEventListener("click",e=>{
  case "search-clear":state.query="";render();layer.querySelector("#hfExploreQuery")?.focus();break;
  case "stories":triggerStories();break;
  case "live":triggerLive();break;
+ case "map-locate":mapUseLocation();break;
+ case "map-reset":state.mapGPS=null;state.mapSelected=null;if(mapInstance)disposeMap();initializeMapAfterRender();break;
  case "profile":openProfile(id);break;
  case "own":go("OwnProfile");break;
  case "own-edit":push("EditProfile");break;
