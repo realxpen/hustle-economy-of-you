@@ -906,9 +906,9 @@ layer.addEventListener("click",e=>{
  case "live-watch":state.liveWatchId=id;state.liveSlideId=id;state.liveComments=[];state.liveHearts=0;state.liveGifts=0;push("LiveWatch");break;
  case "live-preview-like":state.livePreviewLikes.has(id)?state.livePreviewLikes.delete(id):state.livePreviewLikes.add(id);updateLiveReaction(id);break;
  case "live-preview-follow":state.follow.has(id)?state.follow.delete(id):state.follow.add(id);updateLiveFollow(id);break;
- case "live-heart":state.liveHearts++;render();break;
- case "live-gift":state.liveGifts++;render();notify("Demo gift sent · No charge");break;
- case "live-follow":state.follow.has(id)?state.follow.delete(id):state.follow.add(id);render();break;
+ case "live-heart":state.liveHearts++;{const count=layer.querySelector(".hf-live-room-heart small");if(count)count.textContent=String(state.liveHearts);const host=layer.querySelector('[data-hf="live-heart"]');if(host&&state.screen==="LiveStudio")host.textContent="♥ Demo hearts "+state.liveHearts}break;
+ case "live-gift":state.liveGifts++;{const count=layer.querySelector(".hf-live-room-gift small");if(count)count.textContent=String(state.liveGifts)}notify("Free demo gift · No charge");break;
+ case "live-follow":state.follow.has(id)?state.follow.delete(id):state.follow.add(id);{const button=layer.querySelector('[data-hf="live-follow"]');if(button)button.textContent=state.follow.has(id)?"✓ Following":"+ Join"}break;
  case "live-end":stopCamera();state.liveStarted=false;back();notify("Live simulation ended · No stream created");break;
  case "live-camera":toggleCamera();break;
  case "map-open":state.exploreTab="Map";render();break;
@@ -1017,8 +1017,17 @@ layer.addEventListener("submit",e=>{
  if(e.target.id==="hfCreateForm"){e.preventDefault();submitCreate(e.target);return}
  if(e.target.id==="hfGoLiveForm"){e.preventDefault();submitGoLive(e.target);return}
  if(e.target.id==="hfLiveChatForm"){
-  e.preventDefault();const msg=e.target.elements.namedItem("message")?.value.trim();
-  if(msg){state.liveComments.push(msg);render()}return;
+  e.preventDefault();const input=e.target.elements.namedItem("message"),msg=input?.value.trim();
+  if(msg){
+   state.liveComments.push(msg);
+   const container=layer.querySelector("#hfLiveMessages");
+   if(container){
+    const line=document.createElement("p"),name=document.createElement("b");
+    name.textContent="You";line.appendChild(name);line.appendChild(document.createTextNode(" "+msg));container.appendChild(line);
+    container.scrollTop=container.scrollHeight;
+   }
+   input.value="";
+  }return;
  }
  if(e.target.id==="hfEditProfileForm"){
   e.preventDefault();const f=e.target;
