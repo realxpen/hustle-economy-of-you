@@ -193,7 +193,7 @@ function updateBookingPreview(){
  }
  const intake=form.querySelector('[name="intake"]')?.value||b.intake,returnMethod=form.querySelector('[name="returnMethod"]')?.value||b.returnMethod,measurementMethod=form.querySelector('[name="measurementMethod"]')?.value||b.measurementMethod;
  const quote=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,day:chosenDate,basePrice:b.basePrice,people,venue,consultPaid:0,intake,returnMethod,measurementMethod});
- const eta=root.querySelector("#hjEstimatedReady");if(eta)eta.textContent=niceDate(window.HustleBookingRules?.estimatedReadyDate(chosenDate,p.id,b.professional)||"");
+ const eta=root.querySelector("#hjEstimatedReady");if(eta)eta.textContent=niceDate(window.HustleBookingRules?.estimatedReadyDate(chosenDate,p.id,b.professional)||"");const guide=root.querySelector("#hjMeasureGuide");if(guide)guide.hidden=!/Measure myself/.test(measurementMethod||"");
  if(!quote)return;
  const possibleCredit=choice==="consult"&&p.creditConsultation?Math.min(quote.total,p.consultFee):0;
  const custom=people>1||/home|event|at my location|pickup|delivery|cater|custom order|site assessment|outdoor/i.test(venue);
@@ -223,7 +223,7 @@ function fulfillmentFields(p,b){
  +'<p class="hj-lead">How should the professional receive your items, and how should they come back?</p>'
  +'<div class="hj-field"><label for="hj-intake">Item handover</label>'+opts("intake",f.intakeModes,b.intake||f.intakeModes[0])+'</div>'
  +'<div class="hj-field"><label for="hj-returnMethod">When the work is ready</label>'+opts("returnMethod",f.returnModes,b.returnMethod||f.returnModes[0])+'</div>'
- +(f.measurementModes.length?'<div class="hj-field"><label for="hj-measurementMethod">Measurements or sizing</label>'+opts("measurementMethod",f.measurementModes,b.measurementMethod||f.measurementModes[0])+'</div><div class="hj-measure-guide">'+esc(guidance)+'</div>':"")
+ +(f.measurementModes.length?'<div class="hj-field"><label for="hj-measurementMethod">Measurements or sizing</label>'+opts("measurementMethod",f.measurementModes,b.measurementMethod||f.measurementModes[0])+'</div><div class="hj-measure-guide" id="hjMeasureGuide" '+(/Measure myself/.test(b.measurementMethod)?'':'hidden')+'>'+esc(guidance)+'</div>':"")
  +'<div class="hj-field"><label for="hj-handoffAddress">Collection / delivery area (if required)</label><input name="handoffAddress" id="hj-handoffAddress" value="'+esc(b.handoffAddress||"")+'" placeholder="e.g. Yaba, Lagos"><small>Only a general area in this demo. Exact addresses should be shared privately after acceptance.</small></div>'
  +'<div class="hj-ready-estimate"><span>◷ ESTIMATED READY DATE</span><b id="hjEstimatedReady">'+niceDate(window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"")+'</b><small>Proposed only. The professional confirms the timeline when accepting.</small></div></section>';
 }
@@ -247,6 +247,7 @@ function showExistingBooking(){if(!data.booking.service)return false;state.stack
 function updateProfessionalJob(status,readyDate){
  const b=data.booking,p=policyFor(),allowed={awaiting_handoff:["received"],received:["processing"],processing:["ready"],ready:["out_for_delivery","completed"],out_for_delivery:["completed"],completed:[]};
  if(!p.jobFulfillment||b.stage!=="work"||!b.paymentConfirmed)return false;
+ if(status&&(!allowed[b.jobStatus||"awaiting_handoff"]?.includes(status)||(status==="out_for_delivery"&&b.returnMethod!=="Deliver to my address")))return false;
  if(readyDate){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(readyDate)||readyDate<b.day)return false;
   if(readyDate!==b.readyDate){b.readyDate=readyDate;addNotice("Orders","Estimated ready date changed · demo",b.service+" · "+niceDate(readyDate),"BookingJourney")}
@@ -255,7 +256,7 @@ function updateProfessionalJob(status,readyDate){
   if(!allowed[b.jobStatus||"awaiting_handoff"]?.includes(status))return false;
   if(status==="out_for_delivery"&&b.returnMethod!=="Deliver to my address")return false;
   b.jobStatus=status;
-  const title=status==="ready"?"Your items are ready · demo":status==="out_for_delivery"?"Out for delivery · demo":status==="completed"?"Item collection/delivery recorded · demo":"Job update · "+jobStatusName(status);
+  const title=status==="ready"?(b.returnMethod==="Deliver to my address"?"Your items are ready for dispatch · demo":"Your items are ready for pickup · demo"):status==="out_for_delivery"?"Out for delivery · demo":status==="completed"?"Item collection/delivery recorded · demo":"Job update · "+jobStatusName(status);
   addNotice("Orders",title,b.service+" · "+(status==="ready"?b.returnMethod:jobStatusName(status)),"BookingJourney");
  }
  if(!root.hidden&&state.screen==="BookingJourney")render();
@@ -283,7 +284,7 @@ function renderBooking(){
    <div class="hj-field"><label for="hj-day">Select an exact date</label><input type="date" name="day" id="hj-day" required min="${localISO()}" max="${localISO(365)}" value="${/^\d{4}-\d{2}-\d{2}$/.test(b.day)?b.day:localISO(1)}"><small>Choose any available date in the next 12 months. Your booking is subject to professional approval.</small></div>
    <div class="hj-date-ribbon" id="hjDateRibbon" aria-label="Availability for the next seven days"></div>
    <div class="hj-field"><label for="hj-time">Preferred time</label><select name="time" id="hj-time">${(window.HustleBookingRules?.slotsFor(p.id,b.day,b.professional,b.people)||[]).map(x=>`<option value="${esc(x.time)}" ${b.time===x.time?"selected":""} ${!x.fits?"disabled":""}>${x.fits?`${esc(x.time)} · ${x.left} free`:`Full · ${esc(x.time)}`}</option>`).join("")||'<option value="" disabled>No available times on this date</option>'}</select><small>Times follow the example working hours and staffing. The professional must confirm.</small></div>
-   <div class="hj-field"><label for="hj-people">${p.id==="education"?"How many learners?":p.id==="cook"?"How many portions or meals?":p.id==="photo"?"How many people are involved?":"How many clients, guests or items?"} (1 for an individual)</label><input type="number" id="hj-people" name="people" min="1" max="50" value="${b.people||1}"></div>
+   <div class="hj-field"><label for="hj-people">${p.id==="education"?"How many learners?":p.id==="laundry"?"How many bags or laundry loads?":p.id==="cook"?"How many portions or meals?":p.id==="photo"?"How many people are involved?":"How many clients, guests or items?"} (1 for an individual)</label><input type="number" id="hj-people" name="people" min="1" max="50" value="${b.people||1}"></div>
    <div id="hjAvailabilityHelp" class="hj-availability-help" role="status" aria-live="polite"></div><div id="hjCapacityNote" class="hj-capacity-note"></div>
    <div class="hj-booking-section"><span>${p.jobFulfillment?"04":"03"}</span><h3>Show your inspiration</h3></div>
    <div class="hj-field hj-media-upload"><label for="hj-bookingMedia">Attach a reference (optional)</label><input type="file" id="hj-bookingMedia" accept="image/*,video/*"><small>Haircut photos, outfit sketches or a short video. Nothing is uploaded in this preview.</small><div id="hjReferencePreview" class="hj-media-preview" ${b.mediaName?"":"hidden"}>${b.mediaName?esc(b.mediaName):""}</div></div>
