@@ -1,0 +1,173 @@
+name: Hustle Dedicated Paystack TEST API Backend + Edge (manual only)
+
+# No branch/push/pull_request can provision an API or create public infrastructure.
+# Requires an independently provisioned Neon project/database and a new dedicated
+# AWS Secrets Manager secret. Does NOT configure Paystack dashboard webhooks.
+on:
+  workflow_dispatch:
+    inputs:
+      approve_payment_api:
+        description: 'Deploy a NEW TEST-only payment API, Lambda and Cloudflare API Worker. Never existing staging/production.'
+        type: choice
+        required: true
+        options:
+          - DO_NOT_DEPLOY
+          - I_AUTHORIZE_NEW_PAYMENT_PREVIEW_API_ONLY
+        default: DO_NOT_DEPLOY
+      neon_project:
+        description: 'New, separate Neon project ID (not existing Hustle staging)'
+        type: string
+        required: true
+      neon_branch:
+        description: 'New, separate Neon branch ID (br-...)'
+        type: string
+        required: true
+      neon_host:
+        description: 'New dedicated Neon unpooled host (ep-...c-2.eu-west-2.aws.neon.tech)'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: hustle-payment-preview-api-release
+  cancel-in-progress: false
+
+jobs:
+  dedicated-test-api:
+    if: >-
+      github.repository == 'realxpen/hustle-economy-of-you' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.approve_payment_api == 'I_AUTHORIZE_NEW_PAYMENT_PREVIEW_API_ONLY'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    environment: hustle-payment-preview-api
+    env:
+      AWS_ACCOUNT_ID: '707859598737'
+      AWS_REGION: eu-west-2
+      STACK: hustle-payment-preview-api
+      ECR: hustle-payment-preview-api
+      NEON_PROJECT_ID: ${{ inputs.neon_project }}
+      NEON_BRANCH_ID: ${{ inputs.neon_branch }}
+      NEON_HOST: ${{ inputs.neon_host }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Fail closed before assuming credentials or contacting a database
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "realxpen/hustle-economy-of-you"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$STACK" = "hustle-payment-preview-api"
+          test "$ECR" = "hustle-payment-preview-api"
+          [[ "$NEON_PROJECT_ID" =~ ^[a-z][a-z0-9-]{8,60}$ ]]
+          [[ "$NEON_BRANCH_ID" =~ ^br-[a-z0-9-]{8,80}$ ]]
+          [[ "$NEON_HOST" =~ ^ep-[a-z0-9-]+\.c-2\.eu-west-2\.aws\.neon\.tech$ ]]
+          test "$NEON_PROJECT_ID" != 'summer-sound-54525078'
+          test "$NEON_BRANCH_ID" != 'br-dark-sunset-zay33p1s'
+          case "$NEON_HOST" in
+            ep-cold-smoke-za8u3vsm.*|ep-square-sea-zax0gyud.*) exit 1;;
+          esac
+          test -z "${DATABASE_URL:-}"
+          test -z "${PAYSTACK_SECRET_KEY:-}"
+          test -z "${PAYSTACK_TEST_SECRET_KEY:-}"
+          test -z "${SUPABASE_SERVICE_ROLE_KEY:-}"
+          node scripts/payment-sandbox/check-payment-preview-api-edge.mjs
+          echo 'PASS: new dedicated project/branch/host and no production/staging keys in GitHub environment.'
+      - name: Configure only separate payment-preview AWS OIDC deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::707859598737:role/hustle-github-payment-preview-deployer
+          aws-region: eu-west-2
+          role-session-name: hustle-payment-preview-only
+      - name: Validate AWS account, separate ECR and dedicated preview secret metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(aws sts get-caller-identity --query Account --output text)" = "$AWS_ACCOUNT_ID"
+          aws ecr describe-repositories --repository-names "$ECR" --region "$AWS_REGION" > /dev/null
+          SECRET_ARN="$(aws secretsmanager describe-secret --secret-id hustle-payment-preview-credentials --region "$AWS_REGION" --query ARN --output text)"
+          [[ "$SECRET_ARN" =~ ^arn:aws:secretsmanager:eu-west-2:707859598737:secret:hustle-payment-preview-[A-Za-z0-9_-]+$ ]]
+          printf 'PREVIEW_SECRET_ARN=%s\n' "$SECRET_ARN" >> "$GITHUB_ENV"
+          # Never print, retrieve, or put secret values into GitHub Actions.
+          aws cloudformation validate-template --region "$AWS_REGION" \
+            --template-body file://infra/aws/lambda/payment-preview-template.yaml > /dev/null
+          echo 'PASS: isolated AWS identity, existing dedicated preview secret metadata, and validated stack template.'
+      - name: Build pinned image under only dedicated payment preview ECR
+        shell: bash
+        run: |
+          set -euo pipefail
+          REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          URI="${REGISTRY}/${ECR}"
+          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+          if ! aws ecr describe-images --region "$AWS_REGION" --repository-name "$ECR" --image-ids "imageTag=$GITHUB_SHA" >/dev/null 2>&1; then
+            docker build --platform linux/amd64 -f infra/aws/lambda/Dockerfile -t "${URI}:${GITHUB_SHA}" .
+            docker push "${URI}:${GITHUB_SHA}"
+          fi
+          DIGEST="$(aws ecr describe-images --region "$AWS_REGION" --repository-name "$ECR" --image-ids "imageTag=$GITHUB_SHA" --query 'imageDetails[0].imageDigest' --output text)"
+          [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          echo "IMAGE_URI=${URI}@${DIGEST}" >> "$GITHUB_ENV"
+      - name: Deploy only the dedicated preview Lambda (never staging stack)
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws cloudformation deploy --region "$AWS_REGION" \
+            --stack-name "$STACK" --template-file infra/aws/lambda/payment-preview-template.yaml \
+            --capabilities CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset \
+            --parameter-overrides "ImageUri=$IMAGE_URI" "PreviewSecretArn=$PREVIEW_SECRET_ARN" \
+              "PreviewDbHost=$NEON_HOST" "PreviewNeonProjectId=$NEON_PROJECT_ID" "PreviewNeonBranchId=$NEON_BRANCH_ID"
+          API_URL="$(aws cloudformation describe-stacks --region "$AWS_REGION" --stack-name "$STACK" \
+            --query "Stacks[0].Outputs[?OutputKey=='PreviewOrigin'].OutputValue" --output text)"
+          [[ "$API_URL" =~ ^https://[a-z0-9]{10,64}\.lambda-url\.eu-west-2\.on\.aws/$ ]]
+          test "$API_URL" != 'https://hh2zi77ntrsjj3rgapko7rsjv40ztgpu.lambda-url.eu-west-2.on.aws/'
+          printf 'PREVIEW_LAMBDA_URL=%s\n' "$API_URL" >> "$GITHUB_ENV"
+      - name: Refuse to publish edge until dedicated Nest backend rejects anonymous payment reads
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEALTH="$(curl -sS --max-time 25 --output /dev/null --write-out '%{http_code}' "${PREVIEW_LAMBDA_URL}api/v1/health")"
+          test "$HEALTH" = 200
+          DENIED="$(curl -sS --max-time 25 --output /dev/null --write-out '%{http_code}' "${PREVIEW_LAMBDA_URL}api/v1/payments/preview-probe")"
+          test "$DENIED" = 401
+          WEBHOOK_GET="$(curl -sS --max-time 25 --output /dev/null --write-out '%{http_code}' "${PREVIEW_LAMBDA_URL}api/v1/payments/webhooks/paystack")"
+          test "$WEBHOOK_GET" = 403
+          echo 'PASS: separate backend health, auth denial and GET webhook gate. No money moved.'
+      - name: Publish ONLY the separate Cloudflare payment-preview API gateway
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$PREVIEW_LAMBDA_URL"
+          npm exec --yes --package=wrangler@4.45.0 -- wrangler deploy \
+            infra/cloudflare/payment-preview-api-worker.mjs \
+            --name hustle-payment-preview-api \
+            --compatibility-date 2026-10-31 \
+            --workers-dev true \
+            --var "PREVIEW_UPSTREAM_ORIGIN:${PREVIEW_LAMBDA_URL%/}"
+      - name: Verify separate public payment-preview API without checkout or provider calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORIGIN='https://hustle-payment-preview-api.realxpens.workers.dev'
+          for attempt in 1 2 3 4 5; do
+            CODE="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "$ORIGIN/api/v1/health")"
+            test "$CODE" = 200 && break
+            if test "$attempt" = 5; then exit 1; fi
+            sleep 3
+          done
+          DENIED="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "$ORIGIN/api/v1/payments/preview-probe")"
+          test "$DENIED" = 401
+          echo 'PASS: separate preview API ready for future Web preview and Paystack TEST webhook acceptance; NO dashboard change.'
