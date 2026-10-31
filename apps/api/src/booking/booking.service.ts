@@ -248,8 +248,9 @@ export class BookingService {
     if (conversationId) {
       await this.requireDirectConversationForPair(conversationId, client.id, hustlerUserId);
     }
-    if (process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging" &&
-        service.bookingMode === BookingOperationMode.CONSULTATION) {
+    if (service.consultationPolicy === "REQUIRED" ||
+        (process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging" &&
+         service.bookingMode === BookingOperationMode.CONSULTATION)) {
       if (!conversationId) {
         throw new BadRequestException("Consult this Hustler before requesting a time for this Service");
       }
