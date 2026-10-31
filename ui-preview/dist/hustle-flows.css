@@ -238,3 +238,53 @@
 .hf-layer .hf-page-head{touch-action:pan-y}
 .hf-post-grid .hf-post-tile{touch-action:manipulation}
 @media(prefers-reduced-motion:reduce){.hf-map-custom-icon span{animation:none}}
+
+
+/* Map discovery V3 — always-visible Explore shortcut and skill-specific map markers */
+.hf-map-discovery-card{position:relative;display:grid;grid-template-columns:54% 46%;min-height:159px;overflow:hidden;margin:1px 0 14px;border:1px solid #dce7d5;border-radius:18px;background:#eff5e7;color:#233321;isolation:isolate}
+.hf-map-discovery-copy{position:relative;z-index:2;padding:15px 0 13px 14px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.hf-map-kicker{font-size:8px;font-weight:950;letter-spacing:1px;color:#5e872d}
+.hf-map-discovery-copy h2{margin:7px 0 4px;font-size:19px;line-height:1.11;letter-spacing:-.65px;max-width:195px;font-weight:950}
+.hf-map-discovery-copy h2 span{color:#94bc42}
+.hf-map-discovery-copy p{font-size:10px;line-height:1.35;color:#61705c;margin:2px 0 10px;max-width:180px}
+.hf-map-cta{border:0;border-radius:10px;background:#203724;color:#f4ffe8;padding:9px 11px;font-size:11px;font-weight:900;min-height:36px}
+.hf-map-cta span{font-size:15px;margin-left:3px}
+.hf-map-discovery-copy>small{font-size:8px;color:#667e5d;margin-top:9px;max-width:200px}
+.hf-map-illustration{position:relative;min-width:0;min-height:150px;overflow:hidden;background:linear-gradient(150deg,#d6ebc4,#e8f1e1)}
+.hf-map-illustration svg{display:block;position:absolute;width:100%;height:100%;inset:0;pointer-events:none}
+.hf-map-illustration .hf-map-place{position:absolute;color:#608262;font-size:8px;font-weight:850;letter-spacing:.65px;pointer-events:none;text-shadow:0 1px #ffffffb3}
+.hf-map-place-lekki{top:87%;left:55%}.hf-map-place-yaba{top:61%;left:15%}.hf-map-place-ikeja{top:18%;left:17%}
+.hf-mini-skill-pin{display:grid;place-items:center;position:absolute;z-index:1;height:34px;width:34px;border-radius:50%;border:2px solid white;padding:0;background:var(--skill-color,#dfff77);box-shadow:0 3px 8px #1a3e2359;color:#172818;transform:translate(-50%,-50%);cursor:pointer;touch-action:manipulation;animation:hf-map-pin-enter .55s ease-out backwards;animation-delay:var(--skill-delay,0s)}
+.hf-mini-skill-pin span{display:grid;place-items:center;width:100%;height:100%;font-size:17px;transform:translateY(-1px)}
+.hf-mini-skill-pin:hover,.hf-mini-skill-pin:focus-visible{transform:translate(-50%,-50%) scale(1.15);z-index:3}
+.hf-mini-skill-pin:focus-visible{outline:2px solid #263c22;outline-offset:3px}
+.hf-map-results-feature{display:grid;grid-template-columns:56% 44%;min-height:122px;background:#eef3e8;border:1px solid #dbe9d1;border-radius:16px;overflow:hidden;margin:13px 0 15px;isolation:isolate}
+.hf-map-results-copy{z-index:2;position:relative;padding:13px 9px 13px 13px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;color:#253c25}
+.hf-map-results-copy>span{font-size:8px;color:#6d9435;letter-spacing:1px;font-weight:950}
+.hf-map-results-copy b{font-size:13px;line-height:1.2;letter-spacing:-.25px;margin-top:6px}
+.hf-map-results-copy small{font-size:9px;line-height:1.4;color:#667962;margin:5px 0 9px}
+.hf-map-results-open{font-size:10px;font-weight:900;padding:8px 10px;background:#223927;color:#fff;border:0;border-radius:9px}
+.hf-map-illustration-results{min-height:122px}
+.hf-map-illustration-results .hf-mini-skill-pin{height:32px;width:32px}
+.hf-map-illustration-results .hf-map-place{font-size:7px}
+.hf-map-skill-legend{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:8px 0 10px;max-width:100%}
+.hf-map-skill-legend span{display:flex;align-items:center;gap:5px;flex:none;white-space:nowrap;border:1px solid var(--hf-line);border-radius:20px;padding:5px 9px 5px 5px;font-size:9px;color:var(--hf-text);background:var(--hf-surface);font-weight:700}
+.hf-map-skill-legend i{display:grid;place-items:center;font-size:13px;width:25px;height:25px;border-radius:50%;font-style:normal}
+.hf-map-hint{color:var(--hf-muted);font-size:10px;line-height:1.4;margin:8px 0 1px}
+.hf-map-custom-icon{background:transparent;border:0;overflow:visible}
+.hf-map-custom-icon .hf-map-pin{display:grid;place-items:center;width:44px;height:44px;background:var(--skill-color,#dcff7d);color:#1a291b;border:3px solid #fff;border-radius:50% 50% 50% 9px;transform:rotate(-45deg);filter:drop-shadow(0 3px 4px #17331d66);transition:filter .18s ease,scale .18s ease;animation:hf-full-pin-appear .32s ease-out both}
+.hf-map-custom-icon .hf-map-pin i{font-style:normal;display:grid;place-items:center;transform:rotate(45deg);font-size:19px;height:100%;width:100%}
+.hf-map-custom-icon:hover .hf-map-pin,.hf-map-custom-icon.hf-map-pin-selected .hf-map-pin{scale:1.16;filter:drop-shadow(0 5px 7px #17331da6)}
+.hf-map-selected{gap:8px;flex-wrap:wrap}
+.hf-map-selected-icon{height:35px;width:35px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:16px}
+.hf-map-offer-link{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:var(--hf-surface);color:var(--hf-text);border:1px solid var(--hf-line);border-radius:10px;padding:10px 12px;font-size:11px;font-weight:800;margin:0 0 13px}
+.hf-map-offer-link span{color:#7ca83e;font-size:16px}
+@keyframes hf-map-pin-enter{from{opacity:0;transform:translate(-50%,-30%) scale(.65)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes hf-full-pin-appear{from{opacity:0;translate:0 -8px}to{opacity:1;translate:0 0}}
+.phone.dark .hf-map-discovery-card,.phone.dark .hf-map-results-feature{background:#213322;border-color:#53664b}
+.phone.dark .hf-map-discovery-copy,.phone.dark .hf-map-results-copy{color:#edf4e4}
+.phone.dark .hf-map-kicker,.phone.dark .hf-map-results-copy>span{color:#c3e37e}
+.phone.dark .hf-map-discovery-copy p,.phone.dark .hf-map-discovery-copy>small,.phone.dark .hf-map-results-copy small{color:#c3ceba}
+.phone.dark .hf-map-illustration{filter:brightness(.82)}
+@media(max-width:370px){.hf-map-discovery-card{grid-template-columns:58% 42%}.hf-map-discovery-copy h2{font-size:17px}.hf-map-discovery-copy p{font-size:9px}.hf-map-results-feature{grid-template-columns:58% 42%}.hf-mini-skill-pin{width:30px;height:30px}.hf-mini-skill-pin span{font-size:15px}}
+@media(prefers-reduced-motion:reduce){.hf-mini-skill-pin,.hf-map-custom-icon .hf-map-pin{animation:none!important;transition:none!important}.hf-mini-skill-pin:hover,.hf-mini-skill-pin:focus-visible{transform:translate(-50%,-50%)}}
