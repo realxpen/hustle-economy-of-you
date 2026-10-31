@@ -996,6 +996,8 @@ model Booking {
   conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   scheduleRevisions BookingScheduleRevision[]
   adaptiveWork     AdaptiveWorkRecord?
+  adaptiveAssignment AdaptiveBookingAssignment?
+  adaptiveItemFulfillment AdaptiveItemFulfillment?
   cancelledBy  User?         @relation("BookingCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
 
   @@index([clientUserId, status, createdAt])
@@ -1706,6 +1708,7 @@ model AdaptiveStaffMember {
   updatedAt    DateTime               @updatedAt
   workspace    AdaptiveWorkspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   leave        AdaptiveStaffLeave[]
+  assignments AdaptiveBookingAssignment[]
 
   @@index([workspaceId, active])
 }
@@ -1720,4 +1723,58 @@ model AdaptiveStaffLeave {
   staff       AdaptiveStaffMember  @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([staffId, startAt, endAt])
+}
+
+
+// Private operational assignments. Booking remains the source of truth for
+// dates, acceptance, funding, cancellation and disputes.
+model AdaptiveBookingAssignment {
+  id          String              @id @default(cuid())
+  bookingId   String              @unique
+  workspaceId String
+  staffId     String
+  revision    Int                 @default(1)
+  assignedAt  DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  booking     Booking             @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  staff       AdaptiveStaffMember @relation(fields: [staffId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId, staffId])
+}
+enum AdaptiveItemStage {
+  AWAITING_INTAKE
+  RECEIVED
+  IN_PROGRESS
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COLLECTED
+}
+model AdaptiveItemFulfillment {
+  id                String            @id @default(cuid())
+  bookingId         String            @unique
+  workspaceId       String
+  intakeMethod      String
+  returnMethod      String
+  status            AdaptiveItemStage @default(AWAITING_INTAKE)
+  estimatedReadyAt  DateTime?
+  actualReadyAt     DateTime?
+  revision          Int               @default(1)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  booking           Booking           @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  events            AdaptiveItemEvent[]
+
+  @@index([workspaceId, status])
+}
+model AdaptiveItemEvent {
+  id             String                  @id @default(cuid())
+  fulfillmentId  String
+  revision       Int
+  eventType      String
+  actorUserId    String
+  createdAt      DateTime                @default(now())
+  fulfillment    AdaptiveItemFulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)
+
+  @@unique([fulfillmentId, revision])
 }
