@@ -193,7 +193,7 @@ function updateBookingPreview(){
  }
  const intake=form.querySelector('[name="intake"]')?.value||b.intake,returnMethod=form.querySelector('[name="returnMethod"]')?.value||b.returnMethod,measurementMethod=form.querySelector('[name="measurementMethod"]')?.value||b.measurementMethod;
  const quote=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,day:chosenDate,basePrice:b.basePrice,people,venue,consultPaid:0,intake,returnMethod,measurementMethod});
- const eta=root.querySelector("#hjEstimatedReady");if(eta)eta.textContent=readyLabel(window.HustleBookingRules?.estimatedReadyDate(chosenDate,p.id,b.professional)||"",p.readyTime||"17:00");const guide=root.querySelector("#hjMeasureGuide");if(guide)guide.hidden=!/Measure myself/.test(measurementMethod||"");
+ const eta=root.querySelector("#hjEstimatedReady");if(eta)eta.textContent=readyLabel(window.HustleBookingRules?.estimatedReadyDate(chosenDate,p.id,b.professional)||"",p.readyTime||"17:00");const guide=root.querySelector("#hjMeasureGuide");if(guide)guide.hidden=!/(Measure myself|video)/i.test(measurementMethod||"");
  if(!quote)return;
  const possibleCredit=choice==="consult"&&p.creditConsultation?Math.min(quote.total,p.consultFee):0;
  const custom=people>1||/home|event|at my location|pickup|delivery|cater|custom order|site assessment|outdoor/i.test(venue);
@@ -226,12 +226,12 @@ function niceDate(day){if(!/^\d{4}-\d{2}-\d{2}$/.test(day||""))return esc(day||"
 function fulfillmentFields(p,b){
  const f=window.HustleBookingRules?.fulfillmentFor(p.id,b.professional);if(!f)return "";
  const opts=(name,choices,selected)=>'<select name="'+name+'" id="hj-'+name+'">'+choices.map(x=>'<option value="'+esc(x)+'" '+(selected===x?'selected':'')+'>'+esc(x)+'</option>').join("")+'</select>';
- const guidance=p.id==="tailor"?"Use a flexible tape for chest, waist, hips, shoulders, sleeves and inseam. Ask for assistance and confirm the fit with the tailor.":"Measure heel to longest toe on paper in centimetres for both feet; the shoemaker confirms their sizing chart before production.";
+ const guidance=p.id==="tailor"?"Use a flexible tape for chest, waist, hips, shoulders, sleeves and inseam. Ask for assistance and confirm the fit with the tailor. A guided video fitting may be arranged; this preview does not start a live call.":"Measure heel to longest toe on paper in centimetres for both feet; the shoemaker confirms their sizing chart before production. A guided video sizing call may be arranged; no video call starts in the preview.";
  return '<section class="hj-fulfillment-fields"><div class="hj-booking-section"><span>02</span><h3>Collection, fitting and return</h3></div>'
  +'<p class="hj-lead">How should the professional receive your items, and how should they come back?</p>'
  +'<div class="hj-field"><label for="hj-intake">Item handover</label>'+opts("intake",f.intakeModes,b.intake||f.intakeModes[0])+'</div>'
  +'<div class="hj-field"><label for="hj-returnMethod">When the work is ready</label>'+opts("returnMethod",f.returnModes,b.returnMethod||f.returnModes[0])+'</div>'
- +(f.measurementModes.length?'<div class="hj-field"><label for="hj-measurementMethod">Measurements or sizing</label>'+opts("measurementMethod",f.measurementModes,b.measurementMethod||f.measurementModes[0])+'</div><div class="hj-measure-guide" id="hjMeasureGuide" '+(/Measure myself/.test(b.measurementMethod)?'':'hidden')+'>'+esc(guidance)+'</div>':"")
+ +(f.measurementModes.length?'<div class="hj-field"><label for="hj-measurementMethod">Measurements or sizing</label>'+opts("measurementMethod",f.measurementModes,b.measurementMethod||f.measurementModes[0])+'</div><div class="hj-measure-guide" id="hjMeasureGuide" '+(/(Measure myself|video)/i.test(b.measurementMethod)?'':'hidden')+'>'+esc(guidance)+'</div>':"")
  +'<div class="hj-field"><label for="hj-handoffAddress">Collection / delivery area (if required)</label><input name="handoffAddress" id="hj-handoffAddress" value="'+esc(b.handoffAddress||"")+'" placeholder="e.g. Yaba, Lagos"><small>Only a general area in this demo. Exact addresses should be shared privately after acceptance.</small></div>'
  +'<div class="hj-ready-estimate"><span>◷ ESTIMATED READY DATE</span><b id="hjEstimatedReady">'+readyLabel(window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"",p.readyTime||"17:00")+'</b><small>Proposed only. The professional confirms the timeline when accepting.</small></div></section>';
 }
