@@ -449,6 +449,12 @@ function renderPosts(keepScroll=true){
  initVideoPlayer(previousTime,wasPaused);
 }
 function pauseFeedVideos(){scroller.querySelectorAll('video.hp-feed-video').forEach(v=>v.pause())}
+function resumeVisibleVideo(){
+ if(document.hidden||view!=='Home'||global.children.length||activeProfessional||root.querySelector('.full-page'))return;
+ const v=scroller.querySelector('video.hp-feed-video');if(!v)return;
+ const rect=v.getBoundingClientRect(),area=scroller.getBoundingClientRect();
+ if(Math.abs((rect.top+rect.height/2)-(area.top+area.height/2))<area.height*.37)v.play().catch(()=>{});
+}
 function initVideoPlayer(resumeAt=0,resumePaused=false){
  const video=scroller.querySelector('video[data-video-post]');
  if(!video)return;
@@ -460,15 +466,15 @@ function initVideoPlayer(resumeAt=0,resumePaused=false){
  if(!('IntersectionObserver' in window)){video.pause();return}
  videoObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{
   if(!entry.isIntersecting||entry.intersectionRatio<.65||global.children.length||activeProfessional||document.hidden){entry.target.pause();return}
-  if(resumePaused){entry.target.pause();resumePaused=false;return}
+  if(resumePaused||window.matchMedia('(prefers-reduced-motion: reduce)').matches){entry.target.pause();resumePaused=false;return}
   entry.target.play().catch(()=>{const b=scroller.querySelector('[data-video-toggle]');if(b)b.textContent='▶'});
  }),{root:scroller,threshold:[0,.65,.9]});
  videoObserver.observe(video);
 }
 function renderRanks(){document.querySelectorAll('[data-rank]').forEach(b=>{const on=b.dataset.rank===rank;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on))})}
-function close(){global.innerHTML='';sheetType='';storyIndex=null;document.body.style.overflow=''}
-function openSheet(title,contents,kind){sheetType=kind;global.innerHTML=`<div class="overlay" data-shade><section class="sheet" role="dialog" aria-modal="true" aria-label="${ec(title)}"><div class="sheet-top"><h3>${ec(title)}</h3><button class="close" data-close aria-label="Close">×</button></div>${contents}</section></div>`}
-function storyViewer(i){storyIndex=(i+creators.length)%creators.length;const c=creators[storyIndex];global.innerHTML=`<div class="story-view" role="dialog" aria-modal="true" aria-label="${ec(c.name)}'s story"><img src="${c.cover}" alt="Story from ${ec(c.full)}"><div class="story-shade"></div><div class="story-content"><div class="progress">${creators.map((_,j)=>`<span class="${j<=storyIndex?'on':''}"></span>`).join('')}</div><div class="story-person"><img src="${c.avatar}" alt=""><div class="sp-copy"><b>${ec(c.full)}</b><small>${ec(c.handle)} · Story demo</small></div><button data-close aria-label="Close story">×</button></div><div class="story-tap"><button data-story-prev aria-label="Previous story"></button><button data-story-next aria-label="Next story"></button></div><div class="story-bottom"><p>${ec(c.text)}</p><form class="story-reply" data-story-form><input required placeholder="Reply to story..." aria-label="Reply to story"><button type="submit" aria-label="Send reply">↑</button></form></div></div></div>`}
+function close(){global.innerHTML='';sheetType='';storyIndex=null;document.body.style.overflow='';resumeVisibleVideo()}
+function openSheet(title,contents,kind){pauseFeedVideos();sheetType=kind;global.innerHTML=`<div class="overlay" data-shade><section class="sheet" role="dialog" aria-modal="true" aria-label="${ec(title)}"><div class="sheet-top"><h3>${ec(title)}</h3><button class="close" data-close aria-label="Close">×</button></div>${contents}</section></div>`}
+function storyViewer(i){pauseFeedVideos();storyIndex=(i+creators.length)%creators.length;const c=creators[storyIndex];global.innerHTML=`<div class="story-view" role="dialog" aria-modal="true" aria-label="${ec(c.name)}'s story"><img src="${c.cover}" alt="Story from ${ec(c.full)}"><div class="story-shade"></div><div class="story-content"><div class="progress">${creators.map((_,j)=>`<span class="${j<=storyIndex?'on':''}"></span>`).join('')}</div><div class="story-person"><img src="${c.avatar}" alt=""><div class="sp-copy"><b>${ec(c.full)}</b><small>${ec(c.handle)} · Story demo</small></div><button data-close aria-label="Close story">×</button></div><div class="story-tap"><button data-story-prev aria-label="Previous story"></button><button data-story-next aria-label="Next story"></button></div><div class="story-bottom"><p>${ec(c.text)}</p><form class="story-reply" data-story-form><input required placeholder="Reply to story..." aria-label="Reply to story"><button type="submit" aria-label="Send reply">↑</button></form></div></div></div>`}
 function openStoryTray(){root.classList.remove('chrome-hidden');openSheet('Stories',`<p class="story-tray-intro">See what creators are working on. Tap a Story to watch.</p><div class="story-tray-items">${storiesMarkup()}</div><button class="story-tray-explore" data-action="exploreStories">Explore all Stories <span aria-hidden="true">→</span></button>`,'storyTray')}
 function storyExplore(){storyOrigin=view==='Stories'?storyOrigin:view;view='Stories';storyFilter='All';renderStoryExplore()}
 function renderStoryExplore(){
@@ -557,7 +563,7 @@ function renderProfessionalPage(){
  root.insertAdjacentHTML("beforeend",html);
 }
 function openProfile(id){
- const c=creator(id);
+ pauseFeedVideos();const c=creator(id);
  activeProfessional=c.id;
  activeProfileTab="Work";
  renderProfessionalPage();
@@ -565,6 +571,7 @@ function openProfile(id){
 function closeProfile(){
  root.querySelector("#hustleProfessionalPage")?.remove();
  activeProfessional=null;
+ resumeVisibleVideo();
 }
 function openHire(id){
  const p=posts.find(x=>x.id===id),c=creator(p?.creator||id),offering=p||posts.find(x=>x.creator===c.id);
@@ -618,7 +625,7 @@ function updateExploreResults(){
  const label=page.querySelector("#hpExploreCount");if(label)label.textContent=count+" demo profiles";
  const empty=page.querySelector(".hp-explore-empty");if(empty)empty.hidden=count>0;
 }
-function nav(to){if(view==='Stories')close();document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===to));if(to==='Home'){let page=root.querySelector('.full-page');if(page)page.remove();return}
+function nav(to){if(view==='Stories')close();if(to!=='Home')pauseFeedVideos();document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===to));if(to==='Home'){let page=root.querySelector('.full-page');if(page)page.remove();resumeVisibleVideo();return}
 const content={Explore:exploreContent(),Create:`<h2>Create something<span style="color:#9bc941">.</span></h2><p>Share a normal photo post, carousel or short video featuring your work.</p><textarea class="searchbox" style="min-height:105px" placeholder="Tell the story behind your work..." aria-label="Post caption"></textarea><button class="lime-btn" data-done style="margin-top:12px">Preview draft</button>`,Inbox:`<h2>Inbox<span style="color:#9bc941">.</span></h2><p>Questions, requests and consultations will live here.</p><div class="profile-hero"><img src="${photos.woman}"><div><b>Zara Okafor</b><p>Tap to explore creator profile</p></div><button class="lime-btn" data-jump-profile="zara">View</button></div>`,Profile:`<h2>Your Hustle profile<span style="color:#9bc941">.</span></h2><p>Both a client and a creator—your skills and work in one place.</p><div class="profile-hero"><div style="background:#c8df9a;border-radius:50%;height:58px;width:58px;display:grid;place-items:center;font-size:25px">✳</div><div><b>Sample Hustler</b><p>Showcase work, reviews and skills</p></div></div>`};
 const existing=root.querySelector('.full-page');if(existing)existing.remove();root.insertAdjacentHTML('beforeend',`<section class="full-page" role="region" aria-label="${to}"><button class="round-ctl" data-nav="Home" aria-label="Back to Home">←</button>${content[to]||''}</section>`)}
 root.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;const d=t.dataset;
@@ -668,7 +675,8 @@ if(d.action==='notifications'){flash('No notifications in this demo');return}
 });
 root.addEventListener('input',e=>{if(e.target.matches('[data-explore-search]'))updateExploreResults()});
 root.addEventListener('change',e=>{if(!e.target.matches('[data-video-file]'))return;const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith('video/')){flash('Choose a video file');return}if(localVideoSrc)URL.revokeObjectURL(localVideoSrc);localVideoSrc=URL.createObjectURL(f);renderPosts();flash('Playing video locally — not uploaded')});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseFeedVideos()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseFeedVideos();else resumeVisibleVideo()});
+window.addEventListener('pagehide',()=>{if(localVideoSrc)URL.revokeObjectURL(localVideoSrc)});
 root.addEventListener('submit',e=>{e.preventDefault();const frm=e.target;if(frm.dataset.liveForm!==undefined){const input=frm.querySelector('[name=message]');const msg=input?.value.trim();if(msg){const line=document.createElement('p');const name=document.createElement('b');name.textContent='You: ';line.appendChild(name);line.appendChild(document.createTextNode(msg));global.querySelector('#hpLiveComments')?.appendChild(line);input.value='';const box=global.querySelector('#hpLiveComments');if(box)box.scrollTop=box.scrollHeight}return}
 if(frm.dataset.consultForm){const v=frm.querySelector('[name=details]').value.trim();if(v.length>=10)previewConsultRequest(frm.dataset.consultForm,v);return}if(frm.dataset.commentForm){let id=frm.dataset.commentForm,val=frm.querySelector('input').value.trim();if(val){(commentsFor[id]??=[]).push(val);renderPosts();openComments(id)}return}if(frm.dataset.storyForm!==undefined){close();flash('Story reply preview — not delivered');return}});
 root.addEventListener('click',e=>{if(e.target.hasAttribute('data-shade'))close()});
