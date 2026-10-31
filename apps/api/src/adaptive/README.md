@@ -62,3 +62,16 @@ No roster exists by default and `rosterEnabled=false` on existing businesses, so
 This is a **source-aligned schema and feature-flagged implementation**; the new roster tables and station fields are added only to the UNAPPLIED migration proposal. CI runs the pure roster rules and a disposable PG17 booking-capacity integration. Production data, deployment, financial settlement, messaging and physical staff verification are untouched.
 
 Current limitations: roster shifts are same-day (overnight shifts require a future tested contract), fixed-quantity appointments only (not yet named worker assignment), and time-off entry is expressed in Africa/Lagos local calendar days. Staff changes raise a review warning for existing reservations; they do not reassign an accepted booking or auto-notify clients.
+
+## Booking operations v1 — named worker allocation and item handover
+
+Additive tables (UNAPPLIED schema proposal) hold:
+- `AdaptiveBookingAssignment`: one named/offline worker per canonical accepted appointment, optionally reassigned with compare-and-set revision. Uses the same owner-wide PostgreSQL scheduling lock as canonical booking acceptance, checks full shift + leave coverage, and rejects an overlapping booking assigned to the same person. No automatic worker assignment occurs at acceptance. Staff can remain offline without a login.
+- `AdaptiveItemFulfillment`: a *client-selected* intake method and return method from the published service draft's permitted policy; preferences freeze after the provider records receipt. Separate status machine: AWAITING_INTAKE → RECEIVED → IN_PROGRESS → READY → COLLECTED (shop pickup), or READY → OUT_FOR_DELIVERY → DELIVERED (delivery). Each version increments and an immutable item event is appended.
+- `AdaptiveItemEvent`: event history with optimistic revision constraints. Readiness estimate is calculated when the provider records item receipt, using the declared turnaround hours; it is not a guarantee.
+
+Only authenticated, authorized workspace managers can assign or advance item progress. The client selects handover. Paid work cannot progress before canonical Booking is FUNDED or IN_PROGRESS; booking cancellation or disputes also block transitions. READY, dispatch, delivery and collection generate deduplicated in-app Booking notifications to the client, subject to the optional ready-alert setting. These operational statuses **never** complete a Booking, release escrow, charge a client or claim real delivery proof.
+
+The real Next.js My Economy Work view lists that workspace's canonical bookings and shows worker allocation or item progress buttons. The existing Booking detail page gains the client's intake/return choices and progress display; if Adaptive Core is disabled, it hides the optional panel and the original booking journey continues normally.
+
+No production migration, payment integration, outbound push/SMS/email or deployment is performed by this branch. Next: resolve staffing changes against assigned upcoming bookings, provider/client approval of changed delivery terms, secure courier dispatch evidence, and scoped creator/event resource pools.
