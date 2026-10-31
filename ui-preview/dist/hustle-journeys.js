@@ -439,7 +439,7 @@ function onAction(action,value="",id=""){
  case "notification-settings":go("NotificationSettings");break;
  case "notifications":go("Notifications");break;
  case "mark-all":data.notifications.forEach(n=>n.read=true);render();break;
- case "notification-open":{const n=data.notifications.find(n=>n.id===id);if(!n)return;n.read=true;render();if(n.route==="Escrow"){close();if(data.booking.escrowRef)window.HustleOperations?.openEscrow?.(data.booking.escrowRef);else window.HustleOperations?.open("Wallet")}else if(n.route==="BookingJourney")showExistingBooking();else if(n.route==="PaymentJourney")open("PaymentJourney");else if(n.route==="Explore"){close();window.HustleFlowsPreview?.open("Explore")}break}
+ case "notification-open":{const n=data.notifications.find(n=>n.id===id);if(!n)return;n.read=true;render();if(n.route==="Escrow"){close();if(data.booking.escrowRef)window.HustleOperations?.openEscrow?.(data.booking.escrowRef);else window.HustleOperations?.open("Wallet")}else if(n.route==="BookingJourney")showExistingBooking();else if(n.route==="PaymentJourney")open("PaymentJourney");else if(n.route==="Explore"){close();window.HustleFlowsPreview?.open("Explore")}else if(n.route==="AdaptiveHub"){close();window.HustleAdaptiveUI?.open("Work")}break}
  case "report-start":go("Report");break;case "reports":go("Reports");break;
  case "report-block":renderToast("Demo block applied for this session");break;
  case "modal-close":state.modal="";render();break;
