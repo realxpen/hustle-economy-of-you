@@ -48,3 +48,17 @@ Draft capacity is a declaration, not validated worker availability. Consultation
 Verified individual staff rostering, automatically syncing adaptive draft edits, and adaptive service publishing and economic pricing, order/payment/escrow writes, customer outreach, delivery logistics, AI matching, push notifications and evidence verification are not part of this safe skeleton. Existing Booking/Order APIs remain authoritative.
 
 No production DB, payments, deployment or merge is changed by this branch.
+
+## Workforce / verified availability milestone (PR after #300)
+
+The private, workspace-scoped Staff Roster records named team members with or without accounts. Offline staff do not receive authentication, permissions, payouts or agent delegation.
+
+Authorized owners and explicitly consented `schedule.manage` members can manage shifts, off-days, active status and a shared workstation capacity. Saving schedules obtains the **same PostgreSQL transaction-scoped advisory lock** used by the canonical Booking acceptance path, preventing concurrent writes to capacity.
+
+An **explicitly enabled** roster limits appointment slots to the minimum of the existing published Service capacity, active staff who cover the entire requested appointment (including buffer), and usable chairs/stations. Workers on leave or inactive no longer contribute to new openings; accepted reservations are never automatically cancelled and the API reports how many upcoming commitments should be reviewed.
+
+No roster exists by default and `rosterEnabled=false` on existing businesses, so all legacy services retain their current FlowTime behavior. New canonical service drafts also remain closed until the professional configures actual business hours.
+
+This is a **source-aligned schema and feature-flagged implementation**; the new roster tables and station fields are added only to the UNAPPLIED migration proposal. CI runs the pure roster rules and a disposable PG17 booking-capacity integration. Production data, deployment, financial settlement, messaging and physical staff verification are untouched.
+
+Current limitations: roster shifts are same-day (overnight shifts require a future tested contract), fixed-quantity appointments only (not yet named worker assignment), and time-off entry is expressed in Africa/Lagos local calendar days. Staff changes raise a review warning for existing reservations; they do not reassign an accepted booking or auto-notify clients.
