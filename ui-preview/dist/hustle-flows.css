@@ -362,3 +362,15 @@
 .hf-booking-policy-consult b{display:block;font-size:11px}.hf-booking-policy-consult small{display:block;font-size:10px;line-height:1.5;margin-top:4px}
 .phone.dark .hf-booking-policy-consult{color:#e4f5d6;background:#2d4430}
 .hf-booking-policy-card>p{font-size:11px;line-height:1.55;margin:11px 0 0;color:var(--hf-muted)}
+
+
+/* Adaptive entry surfaces without disturbing the established Explore/Profile hierarchy */
+.hf-discovery-shopping button[data-hf="adaptive-requests"]{grid-column:1/-1;grid-template-columns:36px minmax(0,1fr) 15px;padding:12px 13px;background:#eefaDA;border-color:#b3d989;min-height:60px}
+.hf-discovery-shopping button[data-hf="adaptive-requests"]>span{font-size:23px;grid-row:1/3}
+.hf-discovery-shopping button[data-hf="adaptive-requests"]>b{font-size:12px}
+.hf-discovery-shopping button[data-hf="adaptive-requests"]>small{font-size:10px}
+.hf-profile-studios .hf-profile-commerce-grid button[data-hf="adaptive-hub"]{grid-column:1/-1;background:#eafaD8;border-color:#b9d994}
+.hf-profile-studios .hf-profile-commerce-grid button[data-hf="adaptive-hub"]>span{font-size:24px}
+.hf-profile-studios .hf-profile-commerce-grid button[data-hf="adaptive-hub"]>b{font-size:12px}
+.phone.dark .hf-discovery-shopping button[data-hf="adaptive-requests"],.phone.dark .hf-profile-studios .hf-profile-commerce-grid button[data-hf="adaptive-hub"]{background:#2d4930;border-color:#4e7045}
+@media(max-width:345px){.hf-discovery-shopping button[data-hf="adaptive-requests"]{padding:10px}}
