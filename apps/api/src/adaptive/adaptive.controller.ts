@@ -5,11 +5,13 @@ import { CurrentIdentity } from "../auth/current-identity.decorator";
 import { AdaptiveFeatureGuard } from "./adaptive-feature.guard";
 import { AdaptiveService } from "./adaptive.service";
 import { AdaptiveRosterService } from "./adaptive-roster.service";
+import { AdaptiveBookingOpsService } from "./adaptive-booking-ops.service";
 
 @Controller("adaptive")
 @UseGuards(AuthGuard, AdaptiveFeatureGuard)
 export class AdaptiveController {
-  constructor(private readonly adaptive: AdaptiveService, private readonly roster: AdaptiveRosterService) {}
+  constructor(private readonly adaptive: AdaptiveService, private readonly roster: AdaptiveRosterService,
+    private readonly bookingOps: AdaptiveBookingOpsService) {}
 
   @Get("blueprints")
   blueprints() { return this.adaptive.blueprints(); }
@@ -52,6 +54,34 @@ export class AdaptiveController {
   revoke(@CurrentIdentity() user: AuthIdentity,
     @Param("workspaceId") workspaceId: string, @Param("memberId") memberId: string) {
     return this.adaptive.revoke(user, workspaceId, memberId);
+  }
+
+  @Get("workspaces/:workspaceId/assignments")
+  assignments(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") spaceId: string) {
+    return this.bookingOps.assignments(identity,spaceId);
+  }
+  @Get("workspaces/:workspaceId/bookings/:bookingId/operations")
+  bookingOperations(@CurrentIdentity() identity: AuthIdentity,
+    @Param("workspaceId") spaceId: string,@Param("bookingId") bookingId: string) {
+    return this.bookingOps.summary(identity,spaceId,bookingId);
+  }
+  @Post("workspaces/:workspaceId/bookings/:bookingId/assign")
+  assignWorker(@CurrentIdentity() identity: AuthIdentity,
+    @Param("workspaceId") spaceId: string,@Param("bookingId") bookingId: string,
+    @Body() body: unknown) {
+    return this.bookingOps.assign(identity,spaceId,bookingId,body);
+  }
+  @Post("workspaces/:workspaceId/bookings/:bookingId/handover")
+  chooseItemHandover(@CurrentIdentity() identity: AuthIdentity,
+    @Param("workspaceId") spaceId: string,@Param("bookingId") bookingId: string,
+    @Body() body: unknown) {
+    return this.bookingOps.selectHandover(identity,spaceId,bookingId,body);
+  }
+  @Post("workspaces/:workspaceId/bookings/:bookingId/item-progress")
+  advanceItem(@CurrentIdentity() identity: AuthIdentity,
+    @Param("workspaceId") spaceId: string,@Param("bookingId") bookingId: string,
+    @Body() body: unknown) {
+    return this.bookingOps.itemProgress(identity,spaceId,bookingId,body);
   }
 
   @Get("workspaces/:workspaceId/roster")
