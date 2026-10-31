@@ -295,23 +295,27 @@ export class AdaptiveBookingOpsService {
     if(b.service.bookingMode!==BookingOperationMode.WORK_QUEUE ||
        b.service.adaptiveDraft?.blueprint.slug!=="item"||!intakeAllowed.includes(b.status))
       throw new ConflictException("Item options not available for this booking");
-    const policy=validateAdaptiveServicePolicy("item",b.service.adaptiveDraft.policy);
     const d=this.obj(raw);
-    if(typeof d.intakeMethod!=="string"||!(policy.handoverMethods as string[]).includes(d.intakeMethod)||
-       typeof d.returnMethod!=="string"||!(policy.returnMethods as string[]).includes(d.returnMethod))
-      throw new BadRequestException("Select handover and return methods offered by this business");
-    // Existing options cannot silently change after the provider receives items.
+    // Existing agreed terms remain the authority until explicit renegotiation,
+    // even if the seller edits the underlying draft while intake is pending.
     return this.db.$transaction(async tx=>{
       const prev=await tx.adaptiveItemFulfillment.findUnique({where:{bookingId}});
       if(prev&&prev.status!==AdaptiveItemStage.AWAITING_INTAKE)
         throw new ConflictException("Handover is already underway; contact the business to revise the agreement");
+      const policy=validateAdaptiveServicePolicy("item",
+        prev?.policySnapshot ?? b.service.adaptiveDraft!.policy);
+      if(typeof d.intakeMethod!=="string"||!(policy.handoverMethods as string[]).includes(d.intakeMethod)||
+         typeof d.returnMethod!=="string"||!(policy.returnMethods as string[]).includes(d.returnMethod))
+        throw new BadRequestException("Select handover and return methods agreed with this business");
       if(prev){
-        if(this.rev(d.expectedRevision)!==prev.revision)
-          throw new ConflictException("Handover changed; refresh");
-        return tx.adaptiveItemFulfillment.update({where:{id:prev.id},data:{
-          intakeMethod:d.intakeMethod as string,returnMethod:d.returnMethod as string,
-          policySnapshot:policy as Prisma.InputJsonValue,revision:{increment:1}
-        }});
+        const expected=this.rev(d.expectedRevision);
+        const changed=await tx.adaptiveItemFulfillment.updateMany({
+          where:{id:prev.id,revision:expected,status:AdaptiveItemStage.AWAITING_INTAKE},
+          data:{intakeMethod:d.intakeMethod as string,returnMethod:d.returnMethod as string,
+            revision:{increment:1}}
+        });
+        if(changed.count!==1)throw new ConflictException("Handover changed; refresh");
+        return tx.adaptiveItemFulfillment.findUniqueOrThrow({where:{id:prev.id}});
       }
       if(d.expectedRevision!==undefined)throw new ConflictException("Handover is not yet initialized");
       return tx.adaptiveItemFulfillment.create({data:{
