@@ -1,0 +1,59 @@
+name: Adaptive Core disposable database acceptance
+on:
+  pull_request:
+    paths:
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/src/adaptive/**"
+      - "backend-readiness/adaptive-v1/**"
+      - "apps/web/app/economy/**"
+      - "apps/web/lib/adaptive.ts"
+      - "scripts/qa/adaptive-core-*.cjs"
+      - ".github/workflows/adaptive-core-disposable.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  disposable-postgres:
+    name: Adaptive Core · disposable PG17
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable_only
+          POSTGRES_DB: hustle_adaptive_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hustle_adaptive_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://postgres:disposable_only@127.0.0.1:5432/hustle_adaptive_ci?schema=public
+      HUSTLE_ADAPTIVE_CORE_ENABLED: "false"
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Generate Prisma clients
+        run: npm run prisma:generate --workspace=@hustle/api
+      - name: Validate API model/type boundary
+        run: npm run typecheck --workspace=@hustle/api
+      - name: Push complete Prisma model to disposable PG17 only
+        run: npx prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
+      - name: Build actual Nest service code
+        run: npm run build --workspace=@hustle/api
+      - name: Execute authenticated-identity and data-isolation smoke
+        run: node scripts/qa/adaptive-core-db-smoke.cjs
+      - name: Check migration/history and source constraints
+        run: npm run adaptive:contract
