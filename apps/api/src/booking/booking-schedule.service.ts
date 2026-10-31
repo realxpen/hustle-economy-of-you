@@ -195,7 +195,7 @@ export class BookingScheduleService {
       const finish = (row.confirmedEndAt ??
         new Date(row.confirmedStartAt!.getTime() + row.service.defaultDurationMinutes * 60_000)).getTime() +
         row.service.bufferMinutes * 60_000;
-      const units = Math.min(b.partySize ?? 1, b.service.parallelCapacity);
+      const units = Math.min(row.partySize ?? 1, row.service.parallelCapacity);
       events.push({ at: Math.max(begin, candidateStart.getTime()), change: units });
       events.push({ at: Math.min(finish, candidateEnd.getTime()), change: -units });
     }
