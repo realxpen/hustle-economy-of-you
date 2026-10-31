@@ -46,10 +46,10 @@ function renderWork(s){
  const active=humanCtx(s),orders=s.orders.filter(x=>x.spaceId===active.id),work=s.orders.find(x=>x.id===ui.orderId&&x.spaceId===active.id);
  let detail="";
  if(work){
- const next=core()._test.allowedTransitions[work.state]||[],delegates=s.grants.filter(x=>x.spaceId===active.id&&x.state==="demo_approved"&&x.permissions.includes("work.manage"));
+ const next=work.externalRef?[]:(core()._test.allowedTransitions[work.state]||[]),delegates=s.grants.filter(x=>x.spaceId===active.id&&x.state==="demo_approved"&&x.permissions.includes("work.manage"));
  detail='<div class="ha-panel"><div class="ha-detail-head"><h3>'+esc(work.title)+'</h3><span>'+esc(work.state)+'</span></div><p>'+esc(work.description)+'</p><small>Work order '+esc(work.id)+' · agreement v'+work.agreementVersion+' · last update v'+work.version+'</small>'
  +'<div class="ha-status-steps">'+work.steps.map((x,i)=>'<div><i>✓</i><span>'+esc(x.state.replaceAll("_"," "))+'</span><small>'+esc(x.by)+'</small></div>').join("")+'</div>'
- +'<div class="ha-actions">'+next.map(x=>'<button data-ha="advance" data-id="'+work.id+'" data-value="'+x+'">'+esc(x.replaceAll("_"," "))+'</button>').join("")+'</div>'
+ +'<div class="ha-actions">'+(work.externalRef?'<button data-ha="open-existing-booking">Open connected booking tracker</button>':next.map(x=>'<button data-ha="advance" data-id="'+work.id+'" data-value="'+x+'">'+esc(x.replaceAll("_"," "))+'</button>').join(""))+'</div>'
  +(delegates.length?'<label class="ha-field"><span>Authorized assistant</span><select id="ha-assign"><option value="">Choose delegated person</option>'+delegates.map(x=>'<option value="'+x.id+'">'+esc(x.displayName)+'</option>').join("")+'</select></label>'+button("Assign scoped work","assign","ha-outline"):"")
  +(work.state==="completed"?'<div class="ha-inline-form">'+section("Add completion evidence")+formStart("new-evidence")+field("title","Evidence label","e.g. Finished outfit photo")+field("description","What was delivered?","Describe proof and consent")+button("Add claim to history","", "ha-primary","submit")+'</form><small>Self-reported in preview. Not verified customer evidence.</small></div>':"")
  +'<div class="ha-note">This work ledger is a UI simulation. No payment is collected or released, and updates are not persisted.</div></div>';
@@ -139,6 +139,7 @@ function onClick(e){
   if(!order||!m.advanceWork(id,value,order.version)){notice("That transition is not allowed or the record changed");return}
   notice("Work advanced to "+value.replaceAll("_"," ")+" · demo");return
  }
+ if(action==="open-existing-booking"){close();window.HustleJourneys?.showExistingBooking?.();return}
  if(action==="work-from-service"){
   const x=s.services.find(y=>y.id===id);if(!x)return;
   const work=m.newWork("Request: "+x.title,x.blueprint,"Client has requested a service example",x.spaceId,"service listing",x.id);
