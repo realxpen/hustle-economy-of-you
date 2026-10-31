@@ -293,6 +293,12 @@ export default function BookingDetailPage() {
           )}
         </article>
         <article className={[styles.summaryCard, "h-experience-surface"].join(" ")}>
+          <p className={styles.eyebrow}>BOOKING PREFERENCES</p>
+          <p className={styles.copy}>{booking.partySize === 1 ? "Individual booking" : `Group booking · ${booking.partySize} people`}</p>
+          <p className={styles.copy}>{booking.consultationRequested ? "Client requested a consultation before service" : "Direct booking requested"}</p>
+          {booking.referenceUrls.length > 0 && <><p className={styles.eyebrow}>CLIENT REFERENCES</p>
+            {booking.referenceUrls.map((url, index) => <p className={styles.copy} key={index}><a href={url} target="_blank" rel="noopener noreferrer nofollow">Reference {index + 1} (external link)</a></p>)}
+          </>}
           <p className={styles.eyebrow}>REQUIREMENTS</p><p className={styles.copy}>{booking.requirements}</p>
           {booking.location && <><p className={styles.eyebrow}>LOCATION</p><p className={styles.copy}>{booking.location}</p></>}
           {booking.notes && <><p className={styles.eyebrow}>NOTES</p><p className={styles.copy}>{booking.notes}</p></>}
