@@ -132,7 +132,12 @@ function slotsFor(id,day,provider="default"){
  for(let hr=start;hr<end;hr++){
   const fmt=n=>(n%12||12)+":00 "+(n<12?"AM":"PM");
   const time=fmt(hr)+" – "+fmt(hr+1);
-  if(isOpen(id,day,time,provider))out.push({time,left:left(id,day,time,provider),capacity:effectiveCapacity(id,day,provider)});
+  if(isOpen(id,day,time,provider)){
+   const blocks=Math.ceil(get(id,provider).duration/60);
+   let free=Infinity;
+   for(let offset=0;offset<blocks;offset++){const part=slotAt(time,offset);if(!part||!isOpen(id,day,part,provider)){free=0;break}free=Math.min(free,left(id,day,part,provider))}
+   out.push({time,left:Number.isFinite(free)?free:0,capacity:effectiveCapacity(id,day,provider)});
+  }
  }
  return out;
 }
