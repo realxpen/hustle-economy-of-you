@@ -55,7 +55,11 @@ export function readBookingDraft(storage: Storage | null, serviceId: string, now
       throw Error("Expired or different Service draft");
     }
     const { requestedStartAt, requestedEndAt, requirements, location, notes, partySize, consultationRequested, referenceUrlsText } = draft;
-    return { requestedStartAt, requestedEndAt, requirements, location, notes, partySize, consultationRequested, referenceUrlsText };
+    const result: BookingDraftFields = { requestedStartAt, requestedEndAt, requirements, location, notes };
+    if (partySize !== undefined) result.partySize = partySize;
+    if (consultationRequested !== undefined) result.consultationRequested = consultationRequested;
+    if (referenceUrlsText !== undefined) result.referenceUrlsText = referenceUrlsText;
+    return result;
   } catch {
     try { storage.removeItem(key); } catch { /* Storage is optional. */ }
     return null;
