@@ -82,6 +82,9 @@ for (const broken of [
     NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: "true", ...broken };
   const p = load(cfg);
   assert.equal(p.selectedIsolatedBackendOrigin(), null);
-  assert.equal(p.isIsolatedWebPreviewEnabled(), false);
+  // Existing isolated-staging deliberately returns a guarded 503 for an
+  // unknown backend target; preserving that public contract is important.
+  assert.equal(p.isIsolatedWebPreviewEnabled(),
+    cfg.HUSTLE_ISOLATED_PWA_GATE === "isolated-staging");
 }
 console.log("PASS: staged Worker still forbids finance; distinct preview proxy routes real checkout to the single reviewed API origin, denies sandbox/admin/wallet writes and rejects unsafe build flags.");
