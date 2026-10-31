@@ -13,7 +13,7 @@ This implementation adds six Prisma models and an UNAPPLIED SQL proposal under b
 - One account can provision a personal workspace, create business/team/agency workspaces, switch contexts in the web UI, and see only its authorized memberships.
 - Owner-controlled teammate invites require a separate authenticated recipient acceptance. AGENT invitees must already have approved Agent capability. Access is re-checked on each API request, and can be revoked.
 - Only allowlisted services/work/schedule/messages/finance-summary permissions may be delegated; never withdrawal, escrow release, payout change or identity control.
-- Nine versioned service blueprints; private service drafts only. Publication still uses the existing approved Hustler and published-Service system.
+- Nine versioned service blueprints with strict per-industry configuration and private draft edits. Appointment duration, declared staff/stations and capacity, paid/optional consultation credits, item intake/return and laundry ready notices, tailor sizing, group seats, event staffing, digital revisions and recurring frequency are supported as **draft policies only**. Publishing and real availability still use existing Hustler/Service/Booking systems.
 - Private work drafts with optimistic version cancellation and an appended work-event row.
 - Canonical Work Hub read projection over existing Booking and Order records, filtered by logged-in user, with no retroactive business attribution or duplicate booking/settlement records.
 - Real Next.js /economy route and /account entry use existing authenticatedFetch. No fake data fallback.
@@ -25,6 +25,7 @@ All require Bearer Auth and feature flag. Base /api/v1/adaptive:
 - GET /workspaces/:workspaceId/members, POST /workspaces/:workspaceId/invitations
 - POST /workspaces/:workspaceId/members/:memberId/revoke
 - GET /workspaces/:workspaceId/services, POST /workspaces/:workspaceId/services
+- PATCH /workspaces/:workspaceId/services/:draftId (expectedRevision); stale edits receive 409
 - POST /workspaces/:workspaceId/work-drafts
 - PATCH /work-drafts/:workId/cancel with expectedVersion
 - GET /work optionally scoped with workspaceId
@@ -37,6 +38,8 @@ All require Bearer Auth and feature flag. Base /api/v1/adaptive:
 5. Obtain founder authorization before any production schema change or deploy.
 
 ## Explicitly deferred
+Draft capacity is a declaration, not validated worker availability. Consultation credits are configuration only; no credit is applied to a payment. Booking concurrency, payment, real notifications and staff roster activation are not yet connected.
+
 Actual multi-staff resource booking, adaptive service publishing and economic pricing, order/payment/escrow writes, customer outreach, delivery logistics, AI matching, push notifications and evidence verification are not part of this safe skeleton. Existing Booking/Order APIs remain authoritative.
 
 No production DB, payments, deployment or merge is changed by this branch.
