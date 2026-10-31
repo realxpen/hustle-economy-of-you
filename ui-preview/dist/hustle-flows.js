@@ -95,7 +95,9 @@ function renderSettings(){
  return `${head("Settings","Your account and app preferences",true)}<div class="hf-page">
  <button class="hf-person" data-hf="own-edit"><span class="hf-person-icon">♙</span><span class="hf-person-data"><b>Edit profile</b><small>Name, bio, skill and location</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="appearance"><span class="hf-person-icon">☾</span><span class="hf-person-data"><b>Appearance</b><small>Toggle light or dark theme</small></span><span class="hf-chevron">›</span></button>
- <button class="hf-person" data-hf="notifications"><span class="hf-person-icon">♧</span><span class="hf-person-data"><b>Notifications</b><small>No notifications connected in the preview</small></span><span class="hf-chevron">›</span></button>
+ <button class="hf-person" data-hf="notifications"><span class="hf-person-icon">♧</span><span class="hf-person-data"><b>Notifications</b><small>Bookings, escrow, orders & messages</small></span><span class="hf-chevron">›</span></button>
+ <button class="hf-person" data-hf="auth-start"><span class="hf-person-icon">✳</span><span class="hf-person-data"><b>Sign in or create account</b><small>Frictionless demo onboarding · no real OTP sent</small></span><span class="hf-chevron">›</span></button>
+ <button class="hf-person" data-hf="reports"><span class="hf-person-icon">⚑</span><span class="hf-person-data"><b>My reports</b><small>Report status & safety follow-up</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="payments"><span class="hf-person-icon">₦</span><span class="hf-person-data"><b>Payments & earnings</b><small>Protected payments, earnings and payout overview</small></span><span class="hf-chevron">›</span></button>
  <div class="hf-section-row"><h2>Internal tools</h2><small>Restricted demo</small></div>
  <button class="hf-person" data-hf="admin-preview"><span class="hf-person-icon">🔐</span><span class="hf-person-data"><b>Admin Console</b><small>Internal, invitation-only · Sandbox preview</small></span><span class="hf-chevron">›</span></button>
@@ -512,7 +514,7 @@ function renderPostDetail(){
  <button data-hf="post-like" data-id="${p.id}" aria-pressed="${state.postLikes.has(p.id)}">${state.postLikes.has(p.id)?"♥ Liked":"♡ Like"}</button>
  <button data-hf="post-comment-focus">♧ Comment</button>
  <button data-hf="post-save" data-id="${p.id}">${ownSavedPosts.has(p.id)?"▣ Saved":"▢ Save"}</button>
- <button data-hf="share">↗ Share</button></div>
+ <button data-hf="share">↗ Share</button><button data-hf="report-post" data-id="${p.id}">⚑ Report</button></div>
  ${p.related?`<button class="hf-post-attached" data-hf="listing" data-id="${p.related}"><span>✦ Attached ${item(p.related).type}</span><b>${esc(item(p.related).title)}</b><strong>${money(item(p.related).price)} →</strong></button>`:""}
  <div class="hf-section-row"><h2>Comments</h2><small>Local preview</small></div>
  <div class="hf-post-comments"><p><b>@community</b> Love seeing the process ✨</p>${comments.map(c=>`<p><b>You</b> ${esc(c)}</p>`).join("")}</div>
@@ -648,6 +650,7 @@ function renderProfile(){
  <p class="hf-profile-bio">${esc(p.bio)}</p><div class="hf-trust"><span>✦ Profile demo</span><span>Primary: ${esc(p.primary)}</span><span>Also: ${esc(p.secondary)}</span></div>
  <div class="hf-profile-metrics"><span><b>${p.followers}</b> followers (demo)</span><span><b>★ ${p.rating}</b> example rating</span></div>
  <div class="hf-actions"><button class="hf-lime-button" data-hf="profile-hire" data-id="${p.id}">Hire / Consult</button><button class="hf-soft-button" data-hf="message" data-id="${p.id}">Message</button><button class="hf-soft-button" data-hf="follow" data-id="${p.id}">${state.follow.has(p.id)?"✓ Following":"+ Follow"}</button></div>
+ <div class="hf-profile-safety"><button data-hf="report-profile" data-id="${p.id}">⚑ Report profile</button></div>
  <div class="hf-tabs" role="tablist" aria-label="Professional profile sections">${tabs.map(x=>`<button data-hf="profile-tab" data-value="${x}" class="${state.profileTab===x?"on":""}" role="tab">${x}</button>`).join("")}</div>
  ${inner}</div>`;
 }
@@ -664,7 +667,8 @@ function renderOwn(){
  <div class="hf-profile-info"><div class="hf-profile-identity"><img src="${signedIn.avatar}" alt="Sample avatar"><div><h2>${esc(signedIn.name)}</h2><small>${esc(signedIn.handle)} · ${esc(signedIn.location)}</small></div></div>
  <p class="hf-profile-bio">${esc(signedIn.bio)}</p><div class="hf-trust"><span>Primary: ${esc(signedIn.primary)}</span><span>Secondary: ${esc(signedIn.secondary)}</span><span>Client + creator</span></div>
  <div class="hf-profile-metrics"><span><b>${signedIn.followers}</b> sample followers</span><span><b>${signedIn.following}</b> following</span><span><b>${samplePosts.filter(p=>p.seller==="self").length}</b> sample posts</span></div>
- <div class="hf-actions"><button class="hf-lime-button" data-hf="own-edit">Edit profile</button><button class="hf-soft-button" data-hf="create">+ Post</button><button class="hf-soft-button" data-hf="share">↗ Share</button></div>
+ <div class="hf-actions"><button class="hf-lime-button" data-hf="own-edit">Edit profile</button><button class="hf-soft-button" data-hf="create">+ Post</button><button class="hf-soft-button" data-hf="notifications" aria-label="View notifications">♧ Alerts</button></div>
+ <div class="hf-auth-entry"><div><b>Account journey preview</b><small>See the new sign-in & onboarding journey</small></div><button data-hf="auth-start">Get started →</button></div>
  <div class="hf-profile-commerce"><div class="hf-section-row"><h2>Shopping & earnings</h2><small>Everything in one place</small></div>
  <div class="hf-profile-commerce-grid">
  <button data-hf="market"><span>🛍️</span><b>Marketplace</b><small>Explore offers</small></button>
@@ -687,6 +691,7 @@ function renderListing(){
  <h1>${esc(l.title)}</h1><div class="hf-detail-price">${l.type==="service"?"From ":""}${money(l.price)}</div>
  <p>${esc(l.description)}</p>
  <div class="hf-seller-row"><img src="${seller.avatar}" alt=""><div><b>${esc(seller.name)} <span class="hf-verified">✓</span></b><small>${esc(seller.primary)} · ${esc(seller.location)}</small></div><button data-hf="profile" data-id="${seller.id}">Profile →</button></div>
+ <div class="hf-profile-safety"><button data-hf="report-listing" data-id="${l.id}">⚑ Report listing or seller</button></div>
  ${isProduct?`<div class="hf-section-row"><h2>Options</h2></div><div class="hf-picker-row">${(l.variants||["Standard"]).map(x=>`<button class="${(state.variant[l.id]||l.variants[0])===x?"on":""}" data-hf="variant" data-value="${esc(x)}">${esc(x)}</button>`).join("")}</div><div class="hf-section-row"><h2>Quantity</h2></div><div class="hf-picker-row"><button data-hf="quantity" data-value="-1">−</button><button style="pointer-events:none">${state.quantity[l.id]||1}</button><button data-hf="quantity" data-value="1">+</button></div>`:""}
  <div class="hf-section-row"><h2>${isProduct?"Product details":isTraining?"What you will learn":"What's included"}</h2></div><ul class="hf-bullets">${l.includes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
  ${l.duration?`<div class="hf-notice">◷ ${esc(l.duration)}. Dates and availability are confirmed during consultation.</div>`:""}
@@ -728,7 +733,7 @@ function renderBooking(){
 }
 function renderInbox(){
  const selected=threads.filter(t=>(state.inboxTab==="All"||t.status===state.inboxTab||(state.inboxTab==="Unread"&&t.unread>0))&&[person(t.person).name,t.last,t.status].join(" ").toLowerCase().includes(state.inboxQuery.toLowerCase()));
- return `${head("Inbox","Conversations, enquiries and requests",false)}<div class="hf-page">
+ return `${head("Inbox","Conversations, enquiries and requests",false,`<button class="hf-icbtn" data-hf="notifications" aria-label="Notifications">♧</button>`)}<div class="hf-page">
  <div class="hf-searchbox"><span>⌕</span><input id="hfInboxSearch" type="search" placeholder="Search messages..." value="${esc(state.inboxQuery)}" aria-label="Search inbox"/></div>
  <div class="hf-chips" aria-label="Inbox sections">${["All","Unread","Inquiry","Consultation","Order question"].map(x=>`<button data-hf="inbox-tab" data-value="${x}" class="${state.inboxTab===x?"on":""}">${x==="Order question"?"Orders":x==="Inquiry"?"Enquiries":x}</button>`).join("")}</div>
  <p class="hf-subtitle">Demo chats are stored only while this preview is open.</p>
@@ -737,7 +742,7 @@ function renderInbox(){
 }
 function renderChat(){
  const t=threads.find(x=>x.id===state.thread)||threads[0],p=person(t.person),l=item(t.about);
- return `${head(p.name,"Demo conversation · "+p.primary,true,`<button class="hf-icbtn" data-hf="profile" data-id="${p.id}" aria-label="View professional profile">♙</button>`)}
+ return `${head(p.name,"Demo conversation · "+p.primary,true,`<button class="hf-icbtn" data-hf="report-chat" data-id="${t.id}" aria-label="Report conversation">⚑</button><button class="hf-icbtn" data-hf="profile" data-id="${p.id}" aria-label="View professional profile">♙</button>`)}
  <div class="hf-chat-scroll" id="hfChatScroll"><div class="hf-chat-date">Demo messages · Not connected to other users</div>
  ${t.messages.map(m=>`<div class="hf-bubble ${m.from==="me"?"out":"in"}">${esc(m.text)}<small>${esc(m.time)}</small></div>`).join("")}
  <div class="hf-chat-attachment"><span style="font-size:23px">✦</span><div><b>${esc(l.title)}</b><small>From ${money(l.price)} · ${l.type}</small></div><button data-hf="listing" data-id="${l.id}">View →</button></div>
@@ -884,6 +889,7 @@ function booking(id){
  const l=item(id);
  if(l.type==="product"){openListing(id);return}
  if(l.type==="training"){openProfile(l.seller);notify("Training enquiries are a demo");return}
+ if(window.HustleJourneys){window.HustleJourneys.open("BookingJourney",{service:l.title,professional:person(l.seller).name,price:l.price});return}
  state.bookingStep=0;state.bookingItem=l.id;state.booking={details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"};
  push("Booking");
 }
@@ -988,7 +994,13 @@ layer.addEventListener("click",e=>{
  case "orders":push("Orders");break;
  case "finance-tab":state.financeTab=value;render();break;
  case "appearance":phone.classList.toggle("dark");notify("Appearance updated for this preview");break;
- case "notifications":notify("No notifications in this demo");break;
+ case "notifications":window.HustleJourneys?.open("Notifications");break;
+ case "auth-start":window.HustleJourneys?.open("Auth");break;
+ case "reports":window.HustleJourneys?.open("Reports");break;
+ case "report-post":window.HustleJourneys?.open("Report",{subject:"Post",id});break;
+ case "report-listing":window.HustleJourneys?.open("Report",{subject:"Listing",id});break;
+ case "report-profile":window.HustleJourneys?.open("Report",{subject:"Profile",id});break;
+ case "report-chat":window.HustleJourneys?.open("Report",{subject:"Conversation",id});break;
  case "own-tab":state.ownTab=value;render();break;
  case "post-detail":openPost(id);break;
  case "post-photo-next":state.postSlide=(state.postSlide+1)%(postById(state.post).images?.length||1);render();break;
@@ -1034,6 +1046,7 @@ layer.addEventListener("click",e=>{
    if(!name||!loc){notify("Enter a name and delivery area to preview checkout");return}
    state.checkout={name,location:loc,note:layer.querySelector("#hfCheckoutNote")?.value.trim()||""};
   }
+  if(state.checkoutStep===1&&window.HustleJourneys){const first=state.cart[0],subtotal=state.cart.reduce((n,x)=>n+item(x.id).price*x.qty,0);window.HustleJourneys.open("PaymentJourney",{item:first?item(first.id).title:"Product purchase",price:subtotal});break}
   state.checkoutStep=Math.min(2,state.checkoutStep+1);render();break;
  }
  case "thread":openThread(id);break;
@@ -1120,5 +1133,5 @@ layer.addEventListener("submit",e=>{
  t.last=message;t.when="Now";render();
  layer.querySelector(".hf-chat-input input")?.focus();
 });
-window.HustleFlowsPreview={open:(screen,params)=>push(screen,params),home,people,services,products,postIds:()=>samplePosts.map(p=>p.id)};
+window.HustleFlowsPreview={open:(screen,params)=>push(screen,params),home,people,services,products,postIds:()=>samplePosts.map(p=>p.id),updateDemoUser:p=>{if(p){signedIn.name=p.name||signedIn.name;signedIn.handle=p.handle?"@"+p.handle.replace(/^@/,""):signedIn.handle;signedIn.primary=p.skill||signedIn.primary;signedIn.location=p.area||signedIn.location;if(state.screen==="OwnProfile")render()}}};
 })();
