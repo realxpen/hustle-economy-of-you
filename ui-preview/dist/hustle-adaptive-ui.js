@@ -23,6 +23,7 @@ function renderSpaces(s){
  return '<div class="ha-hero"><span>THE ECONOMY OF YOU</span><h2>One identity. Many ways to work.</h2><p>Hire, create, sell, teach, manage and grow without starting over.</p></div>'
  +section("Current context","Separate work, team and financial records")
  +'<div class="ha-current"><small>WORKING AS</small><b>'+esc(active.name)+'</b><span>'+esc(active.type.toUpperCase())+' · '+esc(active.category)+'</span></div>'
+ +(active.type!=="personal"?'<div class="ha-actions"><button data-ha="setup-operations">Configure staff, hours and booking</button><button data-ha="create-content">Create content</button></div>':'<div class="ha-actions"><button data-ha="create-content">Create a post</button><button data-ha="agent-tools">Agent tools</button></div>')
  +'<div class="ha-space-list">'+s.spaces.map(x=>'<button class="ha-space '+(s.currentSpace===x.id?"active":"")+'" data-ha="space" data-id="'+esc(x.id)+'"><span class="ha-space-icon">'+(x.type==="personal"?"☺":x.type==="team"?"♧":"▣")+'</span><span><b>'+esc(x.name)+'</b><small>'+esc(x.category)+' · '+esc(x.status)+'</small></span><i>'+(s.currentSpace===x.id?"✓":"→")+'</i></button>').join("")+'</div>'
  +button("＋ Add another business or team","space-form","ha-primary ha-wide")
  +section("What you can do","Enable capabilities independently")
@@ -125,6 +126,12 @@ function onClick(e){
  if(action==="close"){close();return}
  if(action==="tab"){ui.tab=value;ui.notice="";render();return}
  if(action==="space"){if(!m.switchSpace(id)){notice("No access to that business");return}ui.orderId="";notice("Switched workspace context");return}
+ if(action==="setup-operations"){
+  const active=m.currentSpace(),skill=window.HustleBookingRules?.detect(active.category+" "+active.name)||"generic";
+  close();window.HustleOperations?.open("BusinessSetup",{owner:active.name,skill});return
+ }
+ if(action==="create-content"){close();window.HustleFlowsPreview?.open("Create");return}
+ if(action==="agent-tools"){close();window.HustleOperations?.open("Agent");return}
  if(action==="capability"){m.addCapability(id);notice("Capability enabled in demo");return}
  if(action==="space-form"){ui.spaceModal=!ui.spaceModal;render();return}
  if(action==="service-form"){ui.serviceModal=!ui.serviceModal;render();return}
