@@ -103,7 +103,7 @@ function slotAt(start,offset){
  const format=n=>{const h=(n+24)%24;return (h%12||12)+":"+String(minute).padStart(2,"0")+" "+(h<12?"AM":"PM")};
  const h=hour+offset;return format(h)+" – "+format(h+1);
 }
-function reservePlan(id,day,time,people=1,provider="default"){
+function planFor(id,day,time,people=1,provider="default",commit=false){
  const p=get(id,provider),count=Number(people);
  if(!Number.isSafeInteger(count)||count<1||count>50)return null;
  const cap=effectiveCapacity(id,day,provider);if(cap<1)return null;
@@ -118,28 +118,44 @@ function reservePlan(id,day,time,people=1,provider="default"){
   }
  }
  for(const [name,units] of allocations)if(left(id,day,name,provider)<units)return null;
- for(const [name,units] of allocations){const k=key(id,day,name,provider);reservations.set(k,held(id,day,name,provider)+units)}
+ if(commit)for(const [name,units] of allocations){const k=key(id,day,name,provider);reservations.set(k,held(id,day,name,provider)+units)}
  return {id,day,time,provider,people:count,workUnits:unitsNeeded,minutes:rounds*slotsPerRound*60,allocations:[...allocations].map(([time,units])=>({time,units}))};
 }
+function reservePlan(id,day,time,people=1,provider="default"){return planFor(id,day,time,people,provider,true)}
+function previewPlan(id,day,time,people=1,provider="default"){return planFor(id,day,time,people,provider,false)}
 function releasePlan(plan){
  if(!plan||!Array.isArray(plan.allocations))return false;
  for(const a of plan.allocations)release(plan.id,plan.day,a.time,a.units,plan.provider);
  return true;
 }
 
-function slotsFor(id,day,provider="default"){
+function slotsFor(id,day,provider="default",people=1){
  const b=business(id,provider),start=Math.ceil(hoursToMinutes(b.start)/60),end=Math.floor(hoursToMinutes(b.end)/60),out=[];
  for(let hr=start;hr<end;hr++){
   const fmt=n=>(n%12||12)+":00 "+(n<12?"AM":"PM");
   const time=fmt(hr)+" – "+fmt(hr+1);
   if(isOpen(id,day,time,provider)){
-   const blocks=Math.ceil(get(id,provider).duration/60);
-   let free=Infinity;
-   for(let offset=0;offset<blocks;offset++){const part=slotAt(time,offset);if(!part||!isOpen(id,day,part,provider)){free=0;break}free=Math.min(free,left(id,day,part,provider))}
-   out.push({time,left:Number.isFinite(free)?free:0,capacity:effectiveCapacity(id,day,provider)});
+   const plan=previewPlan(id,day,time,people,provider);
+   out.push({time,left:left(id,day,time,provider),capacity:effectiveCapacity(id,day,provider),fits:!!plan,minutes:plan?.minutes||null});
   }
  }
  return out;
+}
+function dayStatus(id,day,provider="default",people=1){
+ const slots=slotsFor(id,day,provider,people),open=slots.filter(x=>x.fits);
+ return {day,closed:!slots.length,fullyBooked:!!slots.length&&!open.length,openSlots:open.length,totalSlots:slots.length};
+}
+function nextAvailable(id,day,provider="default",people=1,limit=5,horizon=45){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(day)))return [];
+ const start=new Date(day+"T12:00:00"),results=[];
+ if(Number.isNaN(start.getTime()))return [];
+ for(let offset=0;offset<=Math.min(horizon,90)&&results.length<Math.min(limit,12);offset++){
+  const d=new Date(start);d.setDate(d.getDate()+offset);
+  const date=[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+  const slots=slotsFor(id,date,provider,people);
+  for(const slot of slots){if(slot.fits){results.push({day:date,time:slot.time,left:slot.left,minutes:slot.minutes});if(results.length>=limit)break}}
+ }
+ return results;
 }
 function quote({id="generic",provider="default",day="",basePrice,people=1,venue="",consultPaid=0}={}){
  const p=get(id,provider),n=Math.max(1,Math.min(50,Number(people)||1)),cap=Math.max(1,effectiveCapacity(id,day,provider));const unit=Number.isFinite(Number(basePrice))?Math.max(0,Math.round(Number(basePrice))):p.basePrice;
@@ -150,5 +166,5 @@ function quote({id="generic",provider="default",day="",basePrice,people=1,venue=
  return {unit,people:n,service,travel,event,total:full,credit,due:Math.max(0,full-credit),duration:Math.ceil(unitsNeeded/cap)*p.duration,workUnits:unitsNeeded,deliveryMode:p.deliveryMode||"individual",pricingMode:p.pricingMode||"perPerson"};
 }
 const finalDue=(amount,paid,enabled)=>Math.max(0,Math.round(amount)-(enabled?Math.min(Math.round(amount),Math.max(0,Math.round(paid))):0));
-window.HustleBookingRules={templates,samples,get,getForService,hasOverride,detect,update,held,left,reserve,release,reservePlan,releasePlan,quote,finalDue,getTeam,setBusiness,addMember,setMemberStatus,setMemberOff,effectiveCapacity,isOpen,slotsFor,_testing:{overrides,reservations,businesses}};
+window.HustleBookingRules={templates,samples,get,getForService,hasOverride,detect,update,held,left,reserve,release,reservePlan,previewPlan,releasePlan,slotsFor,dayStatus,nextAvailable,quote,finalDue,getTeam,setBusiness,addMember,setMemberStatus,setMemberOff,effectiveCapacity,isOpen,_testing:{overrides,reservations,businesses}};
 })();
