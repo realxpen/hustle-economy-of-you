@@ -11,7 +11,7 @@ const defaults=[
 {id:"n3",type:"Activity",title:"New work from Flora Studio",detail:"See a sample creator post.",time:"1 hr",read:false,route:"Explore"},
 {id:"n4",type:"Orders",title:"Sample order status updated",detail:"Your demo order is ready to review.",time:"Yesterday",read:true,route:"PaymentJourney"},
 {id:"n5",type:"System",title:"Welcome to Hustle",detail:"Discover and connect with skilled people.",time:"Yesterday",read:true,route:"Explore"}];
-const data={notifications:defaults,reports:[],agentInvites:[],onboarding:{name:"",handle:"",skill:"",secondary:"",area:"",intent:"both",notifications:false},auth:{method:"phone",contact:"",step:0},booking:{category:"barber",basePrice:8000,consultChoice:false,consultPaid:0,consultCredit:0,venue:"At the shop",people:1,fields:{},mediaName:"",slotReserved:false,customQuote:false,stage:"request",service:"Signature haircut",professional:"Tobi Adeyemi",price:8000,requirements:"",location:"",day:"Tomorrow",time:"11:30 AM",mode:"Video call",quoteAccepted:false,paymentConfirmed:false,escrowRef:null,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}],dispute:false,review:0,notes:""},purchase:{item:"Weekend meal box",price:12500,delivery:"Yaba, Lagos",method:"Card",stage:"details",status:"Not placed",reference:""},prefs:{Booking:true,Orders:true,Money:true,Activity:true,System:true}};
+const data={notifications:defaults,reports:[],agentInvites:[],waitlists:[],onboarding:{name:"",handle:"",skill:"",secondary:"",area:"",intent:"both",notifications:false},auth:{method:"phone",contact:"",step:0},booking:{category:"barber",basePrice:8000,consultChoice:false,consultPaid:0,consultCredit:0,venue:"At the shop",people:1,fields:{},mediaName:"",slotReserved:false,customQuote:false,stage:"request",service:"Signature haircut",professional:"Tobi Adeyemi",price:8000,requirements:"",location:"",day:"Tomorrow",time:"11:30 AM",mode:"Video call",quoteAccepted:false,paymentConfirmed:false,escrowRef:null,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}],dispute:false,review:0,notes:""},purchase:{item:"Weekend meal box",price:12500,delivery:"Yaba, Lagos",method:"Card",stage:"details",status:"Not placed",reference:""},prefs:{Booking:true,Orders:true,Money:true,Activity:true,System:true}};
 const state={screen:"Splash",stack:[],guest:true,signedIn:false,user:null,authStep:"contact",otp:"",onboardStep:0,notificationFilter:"All",reportSubject:"Post",reportId:"Sample post",reportReason:"Misleading or fraudulent",reportText:"",reportFile:null,reportIdActive:null,agentStep:0,agentMode:"Existing",agentSearch:"",agentSelected:"",agentName:"",agentSkill:"",agentArea:"",agentLanguage:"English",agentHandoff:"In-person handover",agentConsent:false,agentTerms:false,agentInviteId:null,modal:"",info:""};
 const steps={BookingJourney:["Request","Consultation","Quote","Payment","Work","Completion","Review"],PaymentJourney:["Details","Review","Payment","Result"],AgentAdd:["Choose","Details","Consent","Invite"]};
 const visual={Booking:"◷",Money:"₦",Activity:"♥",Orders:"▣",System:"✦"};
@@ -130,15 +130,34 @@ function showBookingMedia(){
  else if(b.mediaUrl&&b.mediaType.startsWith("video/"))holder.innerHTML='<video src="'+esc(b.mediaUrl)+'" controls playsinline preload="metadata" aria-label="Your selected reference video"></video><span>'+label+' · Local preview only</span>';
  else holder.textContent=b.mediaName+" · Local only";
 }
+function bookingSlotData(){
+ const b=data.booking,p=policyFor(),form=root.querySelector('form[data-hj-form="booking-request"]');
+ const day=root.querySelector("#hj-day")?.value||b.day;
+ const raw=Number(form?.querySelector('[name="people"]')?.value||b.people||1);
+ const people=Number.isSafeInteger(raw)?Math.max(1,Math.min(50,raw)):1;
+ const options=window.HustleBookingRules?.slotsFor(p.id,day,b.professional,people)||[];
+ return {b,p,day,people,options,valid:options.filter(x=>x.fits)};
+}
 function refreshBookingTimes(){
  if(state.screen!=="BookingJourney"||data.booking.stage!=="request")return;
- const date=root.querySelector("#hj-day")?.value,select=root.querySelector("#hj-time"),b=data.booking,p=policyFor();
- if(!select||!date)return;
- const available=window.HustleBookingRules?.slotsFor(p.id,date,b.professional)||[];
- const old=select.value;
- select.innerHTML=available.map(x=>'<option value="'+esc(x.time)+'" '+(x.left<1?"disabled":"")+'>'+esc(x.time)+' · '+x.left+' of '+x.capacity+' free</option>').join("")||'<option value="" disabled>No available times on this date</option>';
- if(available.some(x=>x.time===old&&x.left>0))select.value=old;
- else select.value=available.find(x=>x.left>0)?.time||"";
+ const select=root.querySelector("#hj-time");if(!select)return;
+ const {options,valid}=bookingSlotData(),old=select.value;
+ select.innerHTML=options.map(x=>'<option value="'+esc(x.time)+'" '+(x.fits?"":"disabled")+'>'+(x.fits?esc(x.time)+' · '+x.left+' free':'Full · '+esc(x.time))+'</option>').join("")||'<option value="" disabled>Closed — no appointments on this date</option>';
+ select.value=valid.some(x=>x.time===old)?old:(valid[0]?.time||"");
+ updateBookingAvailability();
+}
+function updateBookingAvailability(){
+ if(state.screen!=="BookingJourney"||data.booking.stage!=="request")return;
+ const box=root.querySelector("#hjAvailabilityHelp");if(!box)return;
+ const {b,p,day,people,options,valid}=bookingSlotData(),engine=window.HustleBookingRules;
+ const selected=root.querySelector("#hj-time")?.value||"",full=!valid.length,closed=!options.length;
+ const next=(engine?.nextAvailable(p.id,day,b.professional,people,4,45)||[]).filter(x=>x.day!==day||!valid.length).slice(0,4);
+ const alternatives=valid.length?valid.filter(x=>x.time!==selected).slice(0,3).map(x=>({day,time:x.time})):next;
+ const heading=closed?"Closed on this date":full?"Fully booked for your request":"Appointments available";
+ const message=closed?"This professional is not operating on this day.":full?"Every suitable time is taken or the team cannot accommodate the full service.":"Example time slots only. The professional still needs to confirm.";
+ box.innerHTML='<div class="hj-availability-state '+(full?"full":"open")+'"><span class="hj-availability-dot"></span><div><b>'+heading+'</b><small>'+message+'</small></div></div>'
+ +(alternatives.length?'<div class="hj-availability-suggestions"><strong>'+(full?"Next available openings":"Other times")+'</strong><div>'+alternatives.map(x=>'<button type="button" data-hj="booking-suggest" data-value="'+esc(x.day)+'" data-id="'+esc(x.time)+'">'+(x.day!==day?niceDate(x.day)+' · ':"")+esc(x.time)+'</button>').join("")+'</div></div>':"")
+ +(full?'<div class="hj-waitlist-row"><p>'+(next.length?"Choose a different time or ask to be considered if something opens.":"No example openings in the next 45 days.")+'</p><button type="button" class="hj-waitlist-btn" data-hj="booking-waitlist">Join demo waitlist</button><small>Demo only: no real reservation or future notification.</small></div>':"");
 }
 function updateBookingPreview(){
  if(state.screen!=="BookingJourney"||data.booking.stage!=="request")return;
@@ -152,7 +171,8 @@ function updateBookingPreview(){
  const chosenDate=form.querySelector('[name="day"]')?.value||b.day;
  const chosenTime=form.querySelector('[name="time"]')?.value||b.time;
  const cap=window.HustleBookingRules?.effectiveCapacity(p.id,chosenDate,b.professional)??p.capacity;
- const available=window.HustleBookingRules?.left(p.id,chosenDate,chosenTime,b.professional)??cap;
+ const selectedPlan=chosenTime?window.HustleBookingRules?.previewPlan(p.id,chosenDate,chosenTime,people,b.professional):null;
+ const available=selectedPlan?(window.HustleBookingRules?.left(p.id,chosenDate,chosenTime,b.professional)??cap):0;
  const infoBox=root.querySelector("#hjCapacityNote");
  if(infoBox){const waves=cap>0?Math.ceil(people/cap):0;const unitsNeeded=p.deliveryMode==="shared"?1:p.deliveryMode==="batch"?Math.ceil(people/(p.batchSize||10)):people;
  const minutes=cap>0?Math.ceil(unitsNeeded/cap)*p.duration:0;
@@ -170,7 +190,7 @@ function updateBookingPreview(){
  +(consult?'<div class="hj-live-quote-row"><span>Consult first</span><b>'+(p.consultFee?money(p.consultFee):"Free")+'</b></div>':"")
  +'<div class="hj-live-quote-row"><span>Estimated service time</span><b>'+(cap?quote.duration+" min":"Not available")+"</b></div>"
  +(possibleCredit?'<div class="hj-live-quote-credit">If you pay for consultation and proceed, '+money(possibleCredit)+' can be credited; estimated service balance '+money(quote.total-possibleCredit)+'.</div>':"")
- +'<p>'+(custom?"Custom scope: final amount and staffing must be agreed with the professional.":"Fixed-price example: subject to professional acceptance.")+' No charge or confirmed reservation in this preview.</p>';
+ +'<p>'+(selectedPlan?"Sample time can accommodate this service. ":"No suitable time currently selected. ")+(custom?"Custom scope: final amount and staffing must be agreed with the professional.":"Fixed-price example: subject to professional acceptance.")+" No charge or confirmed reservation in this preview.</p>";
  showBookingMedia();
 }
 
@@ -195,9 +215,9 @@ function renderBooking(){
    <div class="hj-field"><label for="hj-location">Service area or location</label><input name="location" id="hj-location" value="${esc(b.location)}" placeholder="e.g. Yaba or Online"><small>Exact address can be shared after acceptance.</small></div>
    <div class="hj-booking-section"><span>02</span><h3>When should it happen?</h3></div>
    <div class="hj-field"><label for="hj-day">Select an exact date</label><input type="date" name="day" id="hj-day" required min="${localISO()}" max="${localISO(365)}" value="${/^\d{4}-\d{2}-\d{2}$/.test(b.day)?b.day:localISO(1)}"><small>Choose any available date in the next 12 months. Your booking is subject to professional approval.</small></div>
-   <div class="hj-field"><label for="hj-time">Preferred time</label><select name="time" id="hj-time">${(window.HustleBookingRules?.slotsFor(p.id,b.day,b.professional)||[]).map(x=>`<option value="${esc(x.time)}" ${b.time===x.time?"selected":""} ${x.left===0?"disabled":""}>${esc(x.time)} · ${x.left} of ${x.capacity} free</option>`).join("")||'<option value="" disabled>No available times on this date</option>'}</select><small>Times follow the example working hours and staffing. The professional must confirm.</small></div>
+   <div class="hj-field"><label for="hj-time">Preferred time</label><select name="time" id="hj-time">${(window.HustleBookingRules?.slotsFor(p.id,b.day,b.professional,b.people)||[]).map(x=>`<option value="${esc(x.time)}" ${b.time===x.time?"selected":""} ${!x.fits?"disabled":""}>${x.fits?`${esc(x.time)} · ${x.left} free`:`Full · ${esc(x.time)}`}</option>`).join("")||'<option value="" disabled>No available times on this date</option>'}</select><small>Times follow the example working hours and staffing. The professional must confirm.</small></div>
    <div class="hj-field"><label for="hj-people">${p.id==="education"?"How many learners?":p.id==="cook"?"How many portions or meals?":p.id==="photo"?"How many people are involved?":"How many clients, guests or items?"} (1 for an individual)</label><input type="number" id="hj-people" name="people" min="1" max="50" value="${b.people||1}"></div>
-   <div id="hjCapacityNote" class="hj-capacity-note"></div>
+   <div id="hjAvailabilityHelp" class="hj-availability-help" role="status" aria-live="polite"></div><div id="hjCapacityNote" class="hj-capacity-note"></div>
    <div class="hj-booking-section"><span>03</span><h3>Show your inspiration</h3></div>
    <div class="hj-field hj-media-upload"><label for="hj-bookingMedia">Attach a reference (optional)</label><input type="file" id="hj-bookingMedia" accept="image/*,video/*"><small>Haircut photos, outfit sketches or a short video. Nothing is uploaded in this preview.</small><div id="hjReferencePreview" class="hj-media-preview" ${b.mediaName?"":"hidden"}>${b.mediaName?esc(b.mediaName):""}</div></div>
    ${p.consultation==="off"?"":`<div class="hj-booking-section"><span>04</span><h3>Would you like to consult first?</h3></div><fieldset class="hj-consult-options"><legend>Choose a booking option</legend>
@@ -302,7 +322,7 @@ function render(){
  if(root.hidden)return;
  root.innerHTML=screenContent()+((state.screen==="Report")?renderModal():"");
  root.scrollTop=0;
- if(state.screen==="BookingJourney"&&data.booking.stage==="request")updateBookingPreview();
+ if(state.screen==="BookingJourney"&&data.booking.stage==="request"){refreshBookingTimes();updateBookingPreview()}
  const active=root.querySelector(".hj-page");
  if(active){active.classList.remove("hj-arrive");void active.offsetWidth;active.classList.add("hj-arrive")}
 }
@@ -345,6 +365,14 @@ function onAction(action,value="",id=""){
  case "report-block":renderToast("Demo block applied for this session");break;
  case "modal-close":state.modal="";render();break;
  case "report-confirm":{const r={id:uid("HREP"),subject:state.reportSubject,reference:state.reportId,reason:state.reportReason,details:state.reportText,status:"Submitted"};data.reports.unshift(r);window.HustleOperations?.addDemoReport?.(r);state.reportIdActive=r.id;state.modal="";addNotice("System","Report submitted · demo",r.id,"Explore");go("ReportSent");break}
+ case "booking-suggest":{const b=data.booking;if(b.stage!=="request")break;const day=String(value||""),time=String(id||""),p=policyFor();
+ const count=Number(root.querySelector('[name="people"]')?.value||b.people||1);
+ if(!window.HustleBookingRules?.previewPlan(p.id,day,time,count,b.professional)){renderToast("That opening is no longer available");refreshBookingTimes();break}
+ const dayInput=root.querySelector("#hj-day"),timeInput=root.querySelector("#hj-time");if(dayInput)dayInput.value=day;refreshBookingTimes();if(timeInput)timeInput.value=time;updateBookingPreview();root.querySelector("#hjAvailabilityHelp")?.scrollIntoView?.({behavior:"smooth",block:"center"});break}
+ case "booking-waitlist":{const b=data.booking,p=policyFor();if(b.stage!=="request")break;
+ const {day,people,valid}=bookingSlotData();if(valid.length){renderToast("A time is still available. Select it instead.");break}
+ if(data.waitlists.some(x=>x.category===p.id&&x.provider===b.professional&&x.day===day&&x.people===people)){renderToast("Demo waitlist request already saved");break}
+ data.waitlists.unshift({id:uid("HWL"),category:p.id,provider:b.professional,day,people});addNotice("Booking","Demo waitlist request saved",niceDate(day)+" · not monitored","BookingJourney");renderToast("Saved as demo only — no alerts will be sent");updateBookingAvailability();break}
  case "booking-example":{const sample=window.HustleBookingRules?.samples?.find(x=>x.id===value);if(sample)open("BookingJourney",{service:sample.title,professional:sample.name,category:sample.id,price:window.HustleBookingRules?.get(sample.id,sample.name)?.basePrice});break}
  case "booking-provider-decline":{const b=data.booking;if(b.stage!=="awaiting")break;b.stage="declined";addNotice("Booking","Professional declined the sample request",b.service,"BookingJourney");render();break}
  case "booking-provider-accept":{const b=data.booking,p=policyFor();
@@ -430,13 +458,13 @@ function onSubmit(name,form){
  state.onboardStep++;render();return}
  if(name==="report"){state.reportReason=get("reason");state.reportText=get("reportDetails");state.modal="report-confirm";render();return}
  if(name==="booking-request"){const b=data.booking,p=policyFor();b.fields={};for(const [key] of p.fields)b.fields[key]=get(key);
- b.requirements=b.fields.style||"";b.location=get("location");b.venue=get("venue")||p.locationModes[0];b.day=get("day")||localISO(1);b.time=get("time")||"1:00 PM – 2:00 PM";b.people=Number(get("people")||1);b.quoteLines=null;
+ b.requirements=b.fields.style||"";b.location=get("location");b.venue=get("venue")||p.locationModes[0];b.day=get("day")||localISO(1);b.time=get("time");b.people=Number(get("people")||1);b.quoteLines=null;
  if(!/^\d{4}-\d{2}-\d{2}$/.test(b.day)||b.day<localISO()||b.day>localISO(365)){renderToast("Choose a valid future booking date");return}if(!window.HustleBookingRules?.isOpen(p.id,b.day,b.time,b.professional)){renderToast("That date or time is outside this professional’s working hours");return}
  if(b.requirements.length<5||!Number.isSafeInteger(b.people)||b.people<1||b.people>50){renderToast("Describe the service and choose 1–50 people or items");return}if(!b.location)b.location=/remote|video|phone/i.test(b.venue)?"Online":"Location to be confirmed";
  b.consultChoice=p.consultation==="required"||p.consultation==="optional"&&get("consultChoice")==="consult";
  b.customQuote=b.people>1||/home|event|at my location|pickup|delivery|cater|custom order|site assessment|outdoor/i.test(b.venue);
  if((window.HustleBookingRules?.effectiveCapacity(p.id,b.day,b.professional)??p.capacity)<1){renderToast("No staff available on that day. Please choose a different date.");return}
- if(!b.customQuote&&(window.HustleBookingRules?.left(p.id,b.day,b.time,b.professional)??p.capacity)<1){renderToast("That sample time is full. Choose another slot.");return}
+ if(!b.time||!window.HustleBookingRules?.previewPlan(p.id,b.day,b.time,b.people,b.professional)){renderToast("That time is full or cannot fit everyone. Choose an available opening.");return}
  b.stage=b.consultChoice?"consultation":"awaiting";render();return}
  if(name==="booking-consult"){const b=data.booking,p=policyFor();if(!b.consultChoice){b.stage="awaiting";render();return}b.mode=get("mode")||"Video call";b.stage="awaiting";render();return}
  if(name==="order-details"){data.purchase.delivery=get("delivery");if(!data.purchase.delivery){renderToast("Add a delivery area");return}data.purchase.stage="review";render();return}
@@ -444,8 +472,8 @@ function onSubmit(name,form){
 }
 root.addEventListener("click",e=>{const target=e.target.closest("[data-hj]");if(!target||!root.contains(target))return;if(target.type==="submit")return;e.preventDefault();onAction(target.dataset.hj,target.dataset.value,target.dataset.id)});
 root.addEventListener("submit",e=>{const f=e.target;if(!f.dataset.hjForm)return;e.preventDefault();onSubmit(f.dataset.hjForm,f)});
-root.addEventListener("input",e=>{if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
-root.addEventListener("change",e=>{if(e.target.id==="hj-day")refreshBookingTimes();if(e.target.id==="hj-bookingMedia"){const file=e.target.files?.[0];if(file){if(!/^(image|video)\//.test(file.type)||file.size>15*1024*1024){renderToast("Select a photo or video under 15 MB");e.target.value="";return}clearBookingMedia();data.booking.mediaName=file.name;data.booking.mediaType=file.type;try{data.booking.mediaUrl=window.URL?.createObjectURL?.(file)||""}catch(e){data.booking.mediaUrl=""}showBookingMedia();renderToast("Reference selected locally · not uploaded")}}if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
+root.addEventListener("input",e=>{if(e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
+root.addEventListener("change",e=>{if(e.target.id==="hj-day"||e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-bookingMedia"){const file=e.target.files?.[0];if(file){if(!/^(image|video)\//.test(file.type)||file.size>15*1024*1024){renderToast("Select a photo or video under 15 MB");e.target.value="";return}clearBookingMedia();data.booking.mediaName=file.name;data.booking.mediaType=file.type;try{data.booking.mediaUrl=window.URL?.createObjectURL?.(file)||""}catch(e){data.booking.mediaUrl=""}showBookingMedia();renderToast("Reference selected locally · not uploaded")}}if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
 function updateReportStatus(id,status){
  const report=data.reports.find(x=>x.id===id);if(!report)return false;
  report.status=status;addNotice("System","Report review updated · demo",id+" · "+status,"Explore");
