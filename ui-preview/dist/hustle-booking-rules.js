@@ -164,7 +164,7 @@ function nextAvailable(id,day,provider="default",people=1,limit=5,horizon=45){
 }
 function fulfillmentFor(id,provider="default"){
  const p=get(id,provider);if(!p.jobFulfillment)return null;
- return {intakeModes:["Drop off at shop / studio","Collect from my address"],returnModes:["I will collect at the shop","Deliver to my address"],measurementModes:p.id==="tailor"?["At tailor's studio","Tailor visits me","Measure myself with guide"]:p.id==="shoemaker"?["At shoemaker's shop","Shoemaker visits me","Measure myself with guide"]:[],turnaroundDays:p.turnaroundDays||3,readyTime:p.readyTime||"17:00",pickupFee:p.pickupFee||0,deliveryFee:p.deliveryFee||0,measurementFee:p.measurementFee||0};
+ return {intakeModes:["Drop off at shop / studio","Collect from my address"],returnModes:["I will collect at the shop","Deliver to my address"],measurementModes:p.id==="tailor"?["At tailor's studio","Tailor visits me","Guided video fitting with tailor","Measure myself with guide"]:p.id==="shoemaker"?["At shoemaker's shop","Shoemaker visits me","Guided video sizing with shoemaker","Measure myself with guide"]:[],turnaroundDays:p.turnaroundDays||3,readyTime:p.readyTime||"17:00",pickupFee:p.pickupFee||0,deliveryFee:p.deliveryFee||0,measurementFee:p.measurementFee||0};
 }
 function estimatedReadyDate(day,id,provider="default"){
  const b=business(id,provider),p=get(id,provider);
