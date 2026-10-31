@@ -243,6 +243,7 @@ function renderJobTracker(b){
  +'<div class="hj-job-steps">'+steps.map((status,i)=>'<div class="'+(i<=idx?"done":"")+'"><i>'+(i<idx?"✓":i+1)+'</i><span>'+jobStatusName(status)+'</span></div>').join("")+'</div>'
  +'<p><b>Return plan:</b> '+esc(b.returnMethod||"To confirm")+'. Only professional updates trigger a ready notification.</p></section>';
 }
+function showExistingBooking(){if(!data.booking.service)return false;state.stack=[];state.modal="";state.screen="BookingJourney";root.hidden=false;phone.classList.add("hj-open");render();return true}
 function updateProfessionalJob(status,readyDate){
  const b=data.booking,p=policyFor(),allowed={awaiting_handoff:["received"],received:["processing"],processing:["ready"],ready:["out_for_delivery","completed"],out_for_delivery:["completed"],completed:[]};
  if(!p.jobFulfillment||b.stage!=="work"||!b.paymentConfirmed)return false;
@@ -426,7 +427,7 @@ function onAction(action,value="",id=""){
  case "notification-settings":go("NotificationSettings");break;
  case "notifications":go("Notifications");break;
  case "mark-all":data.notifications.forEach(n=>n.read=true);render();break;
- case "notification-open":{const n=data.notifications.find(n=>n.id===id);if(!n)return;n.read=true;render();if(n.route==="Escrow"){close();if(data.booking.escrowRef)window.HustleOperations?.openEscrow?.(data.booking.escrowRef);else window.HustleOperations?.open("Wallet")}else if(n.route==="BookingJourney")open("BookingJourney");else if(n.route==="PaymentJourney")open("PaymentJourney");else if(n.route==="Explore"){close();window.HustleFlowsPreview?.open("Explore")}break}
+ case "notification-open":{const n=data.notifications.find(n=>n.id===id);if(!n)return;n.read=true;render();if(n.route==="Escrow"){close();if(data.booking.escrowRef)window.HustleOperations?.openEscrow?.(data.booking.escrowRef);else window.HustleOperations?.open("Wallet")}else if(n.route==="BookingJourney")showExistingBooking();else if(n.route==="PaymentJourney")open("PaymentJourney");else if(n.route==="Explore"){close();window.HustleFlowsPreview?.open("Explore")}break}
  case "report-start":go("Report");break;case "reports":go("Reports");break;
  case "report-block":renderToast("Demo block applied for this session");break;
  case "modal-close":state.modal="";render();break;
@@ -555,6 +556,6 @@ function updateReportStatus(id,status){
  if(!root.hidden&&(state.screen==="Reports"||state.screen==="ReportSent"))render();
  return true;
 }
-window.HustleJourneys={open,close,notify:addNotice,updateProfessionalJob,getFulfillmentJob:()=>{const b=data.booking,p=policyFor();return p.jobFulfillment?{stage:b.stage,professional:b.professional,service:b.service,status:b.jobStatus||"awaiting_handoff",returnMethod:b.returnMethod,readyDate:b.readyDate,day:b.day,paid:!!b.paymentConfirmed,intake:b.intake,measurementMethod:b.measurementMethod}:null},updateReportStatus,getState:()=>({screen:state.screen,guest:state.guest,signedIn:state.signedIn,user:state.user,booking:{stage:data.booking.stage,milestones:data.booking.milestones.map(x=>x.state),dispute:data.booking.dispute},payment:{stage:data.purchase.stage,status:data.purchase.status},reports:data.reports.map(x=>({id:x.id,status:x.status})),agentInvites:data.agentInvites.map(x=>({name:x.name,status:x.status})),notifications:data.notifications.map(x=>({id:x.id,read:x.read}))}),_test:{data,state,onAction,onSubmit,render}};
+window.HustleJourneys={open,close,notify:addNotice,updateProfessionalJob,showExistingBooking,getFulfillmentJob:()=>{const b=data.booking,p=policyFor();return p.jobFulfillment?{stage:b.stage,professional:b.professional,service:b.service,status:b.jobStatus||"awaiting_handoff",returnMethod:b.returnMethod,readyDate:b.readyDate,day:b.day,paid:!!b.paymentConfirmed,intake:b.intake,measurementMethod:b.measurementMethod}:null},updateReportStatus,getState:()=>({screen:state.screen,guest:state.guest,signedIn:state.signedIn,user:state.user,booking:{stage:data.booking.stage,milestones:data.booking.milestones.map(x=>x.state),dispute:data.booking.dispute},payment:{stage:data.purchase.stage,status:data.purchase.status},reports:data.reports.map(x=>({id:x.id,status:x.status})),agentInvites:data.agentInvites.map(x=>({name:x.name,status:x.status})),notifications:data.notifications.map(x=>({id:x.id,read:x.read}))}),_test:{data,state,onAction,onSubmit,render}};
 if(!introSeen())open("Splash");
 })();
