@@ -123,3 +123,13 @@ An abandoned service booking does not automatically imply a consultation refund.
 - Real implementation requires durable orders with line items, photos and measurements handled with consent, item receipts, configurable turnaround/service-level policy, actual worker allocation, signed handover proofs, pickup/delivery scheduling and exceptions, separate fulfilment tracking from payment escrow, auditable permission-scoped status changes, delayed-job notifications, notification preferences, and authenticated push/SMS/email providers with opt-in.
 - Ready estimates are indicative; they must be confirmed/revised by the professional and should never auto-mark items ready.
 - No production database, payment processor or hosted production UI is changed from this preview branch.
+
+
+### Further UX refinements — ready-by time and guided remote fitting
+
+- Professionals can configure a **ready-by time** as well as the estimated working-day turnaround in Hustler Studio and during business onboarding.
+- The active-job ETA editor supports revising both date and time; the customer gets an in-app demonstration notification with the revised time.
+- Tailoring and shoemaking each offer an additional **guided video fitting/sizing** choice alongside in-store fitting, home measurement and self-measurement instructions. The demo does not start a real call.
+- Item-based services show only the collection/return/location information relevant to fulfilment, avoiding duplicated general service-venue and address questions.
+- The demo offers an opt-in multi-day-work setting for other professional service categories, as well as separate pickup, delivery and measurement visit charges.
+- Customer notifications differentiate **ready for pickup**, **ready for dispatch**, **out for delivery**, and **delivered/collected**. Ready states require an explicit professional action; they are not triggered automatically by the estimated date/time.
