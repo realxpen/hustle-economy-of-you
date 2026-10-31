@@ -15,9 +15,9 @@ const overrides=new Map();const reservations=new Map();
 
 /* Example business roster + hours. UI-only and never a source of real availability. */
 const businesses=new Map();
-const asDate=d=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(d))?new Date(d+"T12:00:00"):null;
-const hoursToMinutes=v=>{const m=String(v).match(/^(\\d{2}):(\\d{2})$/);return m?Number(m[1])*60+Number(m[2]):NaN};
-const timeToMinutes=v=>{const m=String(v).match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)/i);return m?(Number(m[1])%12+(m[3].toUpperCase()==="PM"?12:0))*60+Number(m[2]):NaN};
+const asDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d))?new Date(d+"T12:00:00"):null;
+const hoursToMinutes=v=>{const m=String(v).match(/^(\d{2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):NaN};
+const timeToMinutes=v=>{const m=String(v).match(/^(\d{1,2}):(\d{2})\s*(AM|PM)/i);return m?(Number(m[1])%12+(m[3].toUpperCase()==="PM"?12:0))*60+Number(m[2]):NaN};
 function business(id,provider="default"){
  const k=providerKey(id,provider);
  if(!businesses.has(k)){
