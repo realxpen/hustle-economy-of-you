@@ -67,11 +67,11 @@ const variantOwned = /^api\/v1\/products\/[A-Za-z0-9_-]+\/variants\/[A-Za-z0-9_-
 
 export function isIsolatedWebPreviewEnabled() {
   if (process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH !== "true") return false;
-  const backend = selectedIsolatedBackendOrigin();
-  if (process.env.HUSTLE_ISOLATED_PWA_GATE === "isolated-staging")
-    return backend === STAGING_API_ORIGIN || backend === AWS_STAGING_API_ORIGIN;
+  // Keep existing staging behavior: a misconfigured backend is surfaced as
+  // 503 from selectedIsolatedBackendOrigin(), not a 404. Payments stay blocked.
+  if (process.env.HUSTLE_ISOLATED_PWA_GATE === "isolated-staging") return true;
   if (process.env.HUSTLE_ISOLATED_PWA_GATE === "payment-preview")
-    return backend === PAYMENT_PREVIEW_API_ORIGIN;
+    return selectedIsolatedBackendOrigin() === PAYMENT_PREVIEW_API_ORIGIN;
   return false;
 }
 
