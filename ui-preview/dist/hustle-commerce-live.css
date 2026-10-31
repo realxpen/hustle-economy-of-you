@@ -228,8 +228,8 @@
 @keyframes hf-preview-breathe{from{transform:scale(1)}to{transform:scale(1.055)}}
 .hf-live-media-hint{position:absolute;bottom:8px;left:10px;color:#ffffffe8;background:#080808a8;border:1px solid #ffffff5c;padding:5px 8px;border-radius:7px;font-size:9px;letter-spacing:.1px;z-index:1}
 .hf-live-discovery .hf-live-feed-shade{background:linear-gradient(0deg,#000 0%,#0000004d 16%,transparent 45%,#00000023 75%,#000 97%);pointer-events:none}
-.hf-live-feed-tap{position:absolute;z-index:3;left:0;right:0;top:21%;height:56%;border:0;background:transparent;color:white;display:flex;align-items:flex-end;justify-content:center;padding:0 10px 14px;touch-action:pan-y}
-.hf-live-tap-prompt{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:9px;white-space:nowrap;font-size:15px;font-weight:950;letter-spacing:-.3px;color:white;text-shadow:0 2px 7px #000;pointer-events:none}
+.hf-live-feed-tap{position:absolute;z-index:3;left:0;right:0;top:21%;height:calc(56% + 52px);border:0;background:transparent;color:white;display:flex;align-items:flex-end;justify-content:center;padding:0 10px 14px;touch-action:pan-y}
+.hf-live-tap-prompt{position:absolute;top:calc(100% - 39px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:9px;white-space:nowrap;font-size:15px;font-weight:950;letter-spacing:-.3px;color:white;text-shadow:0 2px 7px #000;pointer-events:none}
 .hf-live-tap-prompt i{font-style:normal;font-size:15px;font-weight:950;letter-spacing:-5px;padding-right:6px}
 .hf-live-preview-bottom{position:absolute;z-index:4;left:15px;right:15px;bottom:calc(env(safe-area-inset-bottom) + 44px);display:flex;align-items:flex-start;flex-direction:column;gap:10px;pointer-events:none}
 .hf-live-live-now{font-size:10px;letter-spacing:.35px;color:white;background:#f13968;padding:7px 9px;border-radius:6px;font-weight:900}
@@ -266,7 +266,7 @@
 .hf-live-room-disclaimer{text-align:center;margin:0;font-size:9px;color:#c5c9c4}
 @media(max-height:710px){
 .hf-live-preview-stage{top:23%;height:50%}
-.hf-live-feed-tap{top:23%;height:50%}
+.hf-live-feed-tap{top:23%;height:calc(50% + 52px)}
 .hf-live-preview-bottom{bottom:calc(env(safe-area-inset-bottom) + 30px);gap:7px}
 .hf-live-tap-prompt{font-size:13px}
 .hf-live-discovery .hf-live-feed-filter{padding-top:0}
