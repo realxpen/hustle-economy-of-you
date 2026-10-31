@@ -141,3 +141,35 @@ test("Roster tables and capacity flag are additive, RLS-blocked and proposed onl
  assert.match(proposal,/ENABLE ROW LEVEL SECURITY/);
  assert.match(proposal,/REVOKE ALL ON TABLE "AdaptiveStaffMember"/);
 });
+
+test("Operational booking routes enforce scoped shifts, version and owner locks",()=>{
+ const ops=read("apps/api/src/adaptive/adaptive-booking-ops.service.ts");
+ const ctrl=read("apps/api/src/adaptive/adaptive.controller.ts");
+ assert.match(ops,/pg_try_advisory_xact_lock/);
+ assert.match(ops,/staffCoversSlot/);
+ assert.match(ops,/already assigned to an overlapping appointment/);
+ assert.match(ops,/revision:\{increment:1\}/);
+ assert.match(ops,/user\.id!==b\.clientUserId/);
+ assert.match(ops,/work\.manage/);
+ assert.match(ctrl,/@Post\("bookings\/:bookingId\/handover"\)/);
+ assert.match(ctrl,/@Post\("workspaces\/:workspaceId\/bookings\/:bookingId\/assign"\)/);
+ assert.match(ctrl,/@Post\("workspaces\/:workspaceId\/bookings\/:bookingId\/item-progress"\)/);
+});
+test("Ready notifications are in-app and never modify Booking or financial state",()=>{
+ const ops=read("apps/api/src/adaptive/adaptive-booking-ops.service.ts");
+ assert.match(ops,/NotificationKind\.BOOKING/);
+ assert.match(ops,/expectedRevision/);
+ assert.match(ops,/actualReadyAt/);
+ assert.match(ops,/estimatedReadyAt/);
+ assert.match(ops,/NotificationKind\.BOOKING/);
+ assert.doesNotMatch(ops,/tx\.escrow|tx\.paymentAttempt|tx\.financialLedger|tx\.booking\.update/);
+});
+test("Assignment and item progress relations are private and additive",()=>{
+ const proposal=read("backend-readiness/adaptive-v1/prisma-migration-proposal.sql");
+ assert.match(schema,/model AdaptiveBookingAssignment/);
+ assert.match(schema,/model AdaptiveItemFulfillment/);
+ assert.match(schema,/model AdaptiveItemEvent/);
+ assert.match(proposal,/AdaptiveBookingAssignment_bookingId_key/);
+ assert.match(proposal,/AdaptiveItemFulfillment_bookingId_key/);
+ assert.match(proposal,/REVOKE ALL ON TABLE "AdaptiveBookingAssignment"/);
+});

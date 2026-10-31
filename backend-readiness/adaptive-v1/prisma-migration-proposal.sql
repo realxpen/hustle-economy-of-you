@@ -165,3 +165,58 @@ ALTER TABLE "AdaptiveStaffMember" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "AdaptiveStaffLeave" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE "AdaptiveStaffMember" FROM anon, authenticated;
 REVOKE ALL ON TABLE "AdaptiveStaffLeave" FROM anon, authenticated;
+
+
+-- Canonical booking operational assignments and item progress. ADDITIVE,
+-- UNAPPLIED proposal only. No changes to existing Booking or Payment tables.
+CREATE TYPE "AdaptiveItemStage" AS ENUM (
+ 'AWAITING_INTAKE','RECEIVED','IN_PROGRESS','READY',
+ 'OUT_FOR_DELIVERY','DELIVERED','COLLECTED'
+);
+CREATE TABLE "AdaptiveBookingAssignment" (
+ "id" TEXT PRIMARY KEY,
+ "bookingId" TEXT NOT NULL,
+ "workspaceId" TEXT NOT NULL,
+ "staffId" TEXT NOT NULL,
+ "revision" INTEGER NOT NULL DEFAULT 1,
+ "assignedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updatedAt" TIMESTAMP(3) NOT NULL
+);
+CREATE UNIQUE INDEX "AdaptiveBookingAssignment_bookingId_key" ON "AdaptiveBookingAssignment"("bookingId");
+CREATE INDEX "AdaptiveBookingAssignment_workspaceId_staffId_idx" ON "AdaptiveBookingAssignment"("workspaceId","staffId");
+ALTER TABLE "AdaptiveBookingAssignment" ADD CONSTRAINT "AdaptiveBookingAssignment_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "Booking"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "AdaptiveBookingAssignment" ADD CONSTRAINT "AdaptiveBookingAssignment_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "AdaptiveStaffMember"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "AdaptiveBookingAssignment" ADD CONSTRAINT "AdaptiveBookingAssignment_revision_positive" CHECK("revision" > 0);
+
+CREATE TABLE "AdaptiveItemFulfillment" (
+ "id" TEXT PRIMARY KEY,
+ "bookingId" TEXT NOT NULL,
+ "workspaceId" TEXT NOT NULL,
+ "intakeMethod" TEXT NOT NULL,
+ "returnMethod" TEXT NOT NULL,
+ "policySnapshot" JSONB NOT NULL DEFAULT '{}'::jsonb,
+ "status" "AdaptiveItemStage" NOT NULL DEFAULT 'AWAITING_INTAKE',
+ "estimatedReadyAt" TIMESTAMP(3),
+ "actualReadyAt" TIMESTAMP(3),
+ "revision" INTEGER NOT NULL DEFAULT 1,
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updatedAt" TIMESTAMP(3) NOT NULL
+);
+CREATE UNIQUE INDEX "AdaptiveItemFulfillment_bookingId_key" ON "AdaptiveItemFulfillment"("bookingId");
+CREATE INDEX "AdaptiveItemFulfillment_workspaceId_status_idx" ON "AdaptiveItemFulfillment"("workspaceId","status");
+ALTER TABLE "AdaptiveItemFulfillment" ADD CONSTRAINT "AdaptiveItemFulfillment_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "Booking"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "AdaptiveItemFulfillment" ADD CONSTRAINT "AdaptiveItemFulfillment_revision_positive" CHECK("revision" > 0);
+CREATE TABLE "AdaptiveItemEvent" (
+ "id" TEXT PRIMARY KEY,
+ "fulfillmentId" TEXT NOT NULL,
+ "revision" INTEGER NOT NULL,
+ "eventType" TEXT NOT NULL,
+ "actorUserId" TEXT NOT NULL,
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX "AdaptiveItemEvent_fulfillmentId_revision_key" ON "AdaptiveItemEvent"("fulfillmentId","revision");
+ALTER TABLE "AdaptiveItemEvent" ADD CONSTRAINT "AdaptiveItemEvent_fulfillmentId_fkey" FOREIGN KEY ("fulfillmentId") REFERENCES "AdaptiveItemFulfillment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AdaptiveBookingAssignment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AdaptiveItemFulfillment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AdaptiveItemEvent" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE "AdaptiveBookingAssignment","AdaptiveItemFulfillment","AdaptiveItemEvent" FROM anon, authenticated;

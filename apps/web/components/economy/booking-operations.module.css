@@ -1,0 +1,18 @@
+.root{display:grid;gap:12px;margin:14px 0}
+.heading h2{font-size:18px;margin:0 0 8px}.heading p,.hint{font-size:11px;line-height:1.6;color:var(--h-muted,#687965);margin:0}
+.card{background:var(--h-surface,#fff);border:1px solid var(--h-border-subtle,#d7e4d4);border-radius:15px;padding:15px;display:grid;gap:10px}
+.card h3{font-size:14px;margin:5px 0 0}.card a{font-size:11px;font-weight:850;color:#6a9d39}
+.top{display:flex;align-items:start;justify-content:space-between;gap:10px}.top small{font-size:9px;letter-spacing:1px;color:#679343}
+.top>span{font-size:10px;text-transform:capitalize;background:#e9f5db;color:#47682c;padding:5px 9px;border-radius:15px}
+.actions{display:grid;gap:10px}.actions p{margin:0;font-size:12px}.actions small{font-size:11px}
+.selectRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.selectRow select{min-width:0;border:1px solid var(--h-border-subtle,#c8d9c1);border-radius:10px;padding:10px;background:var(--h-surface,#fff);color:inherit;min-height:44px;font:inherit;font-size:12px}
+.root button{background:#dff4a7;color:#20351e;border:1px solid #b8d98e;border-radius:10px;padding:9px 12px;min-height:42px;font-size:11px;font-weight:800}
+.root button:disabled{opacity:.45}
+.stage{display:flex;gap:5px;overflow-x:auto;scrollbar-width:thin}
+.stage span{padding:6px 8px;border-radius:8px;background:var(--h-paper,#edf3e8);color:var(--h-muted,#637963);font-size:10px;white-space:nowrap;text-transform:capitalize}
+.stage span.active{background:#dff5b6;color:#28491b;font-weight:800}
+.error,.notice{padding:10px;font-size:12px;border:1px solid #d9a29c;border-radius:10px;background:#fff0ee;color:#873f35}
+.notice{background:#eff9e0;color:#365f24;border-color:#b7d990}
+.root :is(button,select,a):focus-visible{outline:3px solid #8ab84e;outline-offset:2px}
+@media(max-width:390px){.selectRow{grid-template-columns:1fr}}

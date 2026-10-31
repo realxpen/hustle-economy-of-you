@@ -8,6 +8,7 @@ import { adaptiveClient, type AdaptiveBlueprint, type AdaptiveInvitation, type A
 import styles from "./page.module.css";
 import { AdaptivePolicyForm } from "../../components/economy/adaptive-policy-form";
 import { StaffRoster } from "../../components/economy/staff-roster";
+import { BookingOperations } from "../../components/economy/booking-operations";
 import type { AdaptivePolicy } from "../../lib/adaptive";
 
 type Tab = "Overview" | "Services" | "Work" | "Team";
@@ -225,6 +226,9 @@ export default function EconomyPage() {
           </section>
         </>}
         {tab === "Work" && <>
+          {selected && active?.workspace.kind !== "PERSONAL" && (owner || active?.permissions.includes("work.manage")) && <BookingOperations
+            workspaceId={selected} canManageWork={!!(owner || active?.permissions.includes("work.manage"))}
+            canSchedule={!!(owner || active?.permissions.includes("schedule.manage"))}/>}
           <section className={styles.card}>
             <h2>One hub for existing work</h2>
             <p className={styles.help}>Bookings and product orders below come from their real existing records. They can only be changed through their original protected workflows.</p>

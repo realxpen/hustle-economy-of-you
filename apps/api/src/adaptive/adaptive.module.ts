@@ -4,11 +4,12 @@ import { AdaptiveController } from "./adaptive.controller";
 import { AdaptiveFeatureGuard } from "./adaptive-feature.guard";
 import { AdaptiveService } from "./adaptive.service";
 import { AdaptiveRosterService } from "./adaptive-roster.service";
+import { AdaptiveBookingOpsService } from "./adaptive-booking-ops.service";
 
 @Module({
   imports: [AuthModule],
   controllers: [AdaptiveController],
-  providers: [AdaptiveService, AdaptiveRosterService, AdaptiveFeatureGuard],
+  providers: [AdaptiveService, AdaptiveRosterService, AdaptiveBookingOpsService, AdaptiveFeatureGuard],
   exports: [AdaptiveService]
 })
 export class AdaptiveModule {}
