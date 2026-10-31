@@ -56,6 +56,19 @@ export class AdaptiveController {
     return this.adaptive.revoke(user, workspaceId, memberId);
   }
 
+  @Get("workspaces/:workspaceId/booking-operations")
+  workspaceBookingOps(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") spaceId: string) {
+    return this.bookingOps.workspaceBookings(identity,spaceId);
+  }
+  @Get("bookings/:bookingId/operations")
+  myBookingOps(@CurrentIdentity() identity: AuthIdentity, @Param("bookingId") bookingId: string) {
+    return this.bookingOps.myBookingSummary(identity,bookingId);
+  }
+  @Post("bookings/:bookingId/handover")
+  clientHandover(@CurrentIdentity() identity: AuthIdentity, @Param("bookingId") bookingId: string,
+    @Body() body: unknown) {
+    return this.bookingOps.myHandover(identity,bookingId,body);
+  }
   @Get("workspaces/:workspaceId/assignments")
   assignments(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") spaceId: string) {
     return this.bookingOps.assignments(identity,spaceId);
