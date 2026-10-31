@@ -165,3 +165,40 @@
 .ho-booking-example b{font-size:11px}.ho-booking-example span{font-size:12px;font-weight:850}.ho-booking-example small{font-size:10px}
 .phone.dark .ho-booking-example{background:#2d4832;color:#e4f5d8;border-color:#496b4a}
 @media(max-width:345px){.ho-policy-grid{gap:7px}.ho-policy-grid label{font-size:10px}}
+
+
+/* Staff-aware professional onboarding, business availability and roster */
+.ho-business-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:4px 0 22px}
+.ho-business-steps span{padding:9px 2px;border-bottom:3px solid var(--ho-line);text-align:center;color:var(--ho-muted);font-size:10px;font-weight:850}
+.ho-business-steps span.on{border-color:#a7d253;color:var(--ho-text)}
+.ho-business-content h2{font-size:23px;line-height:1.15;letter-spacing:-.6px;margin:0 0 8px}
+.ho-business-content .ho-copy{font-size:12px;line-height:1.65}
+.ho-team-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:16px;background:#1f3725;color:#fff;border-radius:17px}
+.ho-team-hero>div{flex:1;min-width:0}
+.ho-team-hero small{display:block;font-size:9px;color:#d8f3a7;letter-spacing:.6px;font-weight:950}
+.ho-team-hero h2{font-size:18px;letter-spacing:-.5px;line-height:1.25;margin:7px 0}
+.ho-team-hero p{font-size:11px;color:#d8e7d0;line-height:1.4;margin:0}
+.ho-team-hero .ho-outline{color:#1f3123;background:#e3ffab;border:0;max-width:102px;padding:9px}
+.ho-work-hours{padding:13px;background:var(--ho-surface);border:1px solid var(--ho-line);border-radius:13px;display:flex;flex-direction:column;gap:6px}
+.ho-work-hours b{font-size:13px}.ho-work-hours small{font-size:11px;color:var(--ho-muted)}
+.ho-team-person{padding:13px;background:var(--ho-surface);border:1px solid var(--ho-line);border-radius:14px;margin:10px 0}
+.ho-team-person-top{display:flex;gap:9px;align-items:center}
+.ho-team-person-top>div{flex:1;min-width:0}
+.ho-team-person-top b{font-size:12px;display:block}
+.ho-team-person-top small{display:block;color:var(--ho-muted);font-size:10px;margin-top:4px}
+.ho-team-avatar{height:36px;width:36px;display:grid;place-items:center;border-radius:11px;background:#dfff77;color:#27401d;font-weight:950}
+.ho-team-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:12px}
+.ho-team-actions button{border:1px solid var(--ho-line);border-radius:8px;padding:10px 3px;background:var(--ho-bg);color:var(--ho-text);font-size:10px;font-weight:800}
+.ho-team-actions button:disabled{background:#dfff77;color:#27401d;border-color:#dfff77;opacity:1}
+.ho-team-leave{display:flex;gap:5px;align-items:center;flex-wrap:wrap;padding:9px 0;font-size:10px;color:var(--ho-muted)}
+.ho-team-leave button{border:1px solid var(--ho-line);background:var(--ho-bg);color:var(--ho-text);padding:6px 8px;border-radius:12px;font-size:10px}
+.ho-field{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.ho-field label{font-size:11px;font-weight:850}
+.ho-field input{min-height:44px;background:var(--ho-surface);color:var(--ho-text);border:1px solid var(--ho-line);border-radius:10px;padding:10px;font-size:16px}
+.ho-team-add-row{display:flex;gap:7px}
+.ho-team-add-row input{flex:1;min-width:0}
+.ho-team-add-row button{flex:none}
+.ho-working-days{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.ho-working-days label{display:flex;align-items:center;justify-content:center;gap:4px;min-height:41px;border:1px solid var(--ho-line);border-radius:9px;background:var(--ho-surface);font-size:10px;font-weight:800}
+.ho-working-days input{width:15px;height:15px;min-height:15px;accent-color:#92bf45}
+@media(max-width:350px){.ho-business-steps span{font-size:9px}.ho-team-hero{flex-direction:column}.ho-team-hero .ho-outline{max-width:100%}.ho-working-days{grid-template-columns:repeat(4,minmax(0,1fr))}}
