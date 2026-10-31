@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { AdaptiveMemberRole, AdaptiveMemberStatus, AdaptiveWorkspaceKind, AdaptiveWorkStatus, Capability, CapabilityStatus, Prisma } from "@prisma/client";
+import { AdaptiveMemberRole, AdaptiveMemberStatus, AdaptiveWorkspaceKind, AdaptiveWorkStatus, BookingOperationMode, Capability, CapabilityStatus, Prisma, ServiceStatus, ServiceDeliveryMode } from "@prisma/client";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { PrismaService } from "../database/prisma.service";
 import { ADAPTIVE_BLUEPRINTS, allowedWorkspacePermissions } from "./adaptive-blueprints";
@@ -219,6 +219,93 @@ export class AdaptiveService {
     return this.db.adaptiveServiceDraft.findUniqueOrThrow({
       where: { id: draftId },
       include: { blueprint: { select: { slug: true, type: true, version: true } } }
+    });
+  }
+
+  /**
+   * Opt-in handoff to the existing canonical Service system.
+   * No publishing, Booking creation, customer notification or payment.
+   */
+  async prepareCanonicalService(identity: AuthIdentity, workspaceId: string, draftId: string) {
+    const user = await this.actor(identity);
+    await this.membership(user.id, workspaceId, "services.manage");
+    const workspace = await this.db.adaptiveWorkspace.findUnique({
+      where: { id: workspaceId }, select: { id: true, ownerUserId: true, category: true }
+    });
+    if (!workspace || workspace.ownerUserId !== user.id)
+      throw new ForbiddenException("Only the professional workspace owner can prepare a canonical service");
+    const approved = await this.db.userCapability.findUnique({
+      where: { userId_capability: { userId: user.id, capability: Capability.HUSTLER } },
+      select: { status: true }
+    });
+    if (approved?.status !== CapabilityStatus.ACTIVE)
+      throw new ForbiddenException("An active Hustler capability is required");
+    const profile = await this.db.professionalProfile.findUnique({
+      where: { userId: user.id }, select: { id: true }
+    });
+    if (!profile) throw new BadRequestException("Create a professional profile before preparing services");
+    return this.db.$transaction(async tx => {
+      // Parameterized, constant SQL. PostgreSQL row lock prevents duplicate handoffs.
+      const locked = await tx.$queryRawUnsafe<{ id: string }[]>(
+        'SELECT "id" FROM "AdaptiveServiceDraft" WHERE "id" = $1 AND "workspaceId" = $2 FOR UPDATE',
+        draftId, workspaceId
+      );
+      if (!locked.length) throw new NotFoundException("Service draft not found in this workspace");
+      const draft = await tx.adaptiveServiceDraft.findFirst({
+        where: { id: draftId, workspaceId },
+        include: { blueprint: { select: { slug: true } } }
+      });
+      if (!draft) throw new NotFoundException("Service draft not found");
+      const kind = draft.blueprint.slug;
+      if (kind !== "appointment" && kind !== "item")
+        throw new BadRequestException("Only appointment and item workflows currently support canonical Booking handoff");
+      if (draft.canonicalServiceId) {
+        const existing = await tx.service.findFirst({
+          where: { id: draft.canonicalServiceId, professionalProfileId: profile.id },
+          select: { id: true, status: true, bookingMode: true }
+        });
+        if (!existing) throw new ConflictException("Linked canonical service is unavailable to this owner");
+        return { serviceId: existing.id, serviceStatus: existing.status, bookingMode: existing.bookingMode,
+          created: false, next: "Complete and review the service in Hustler Studio" };
+      }
+      if (draft.title.length > 120)
+        throw new BadRequestException("Shorten service title to 120 characters before preparing");
+      const policy = validateAdaptiveServicePolicy(kind as AdaptiveServiceKind, draft.policy);
+      const appointment = kind === "appointment";
+      const canonical = await tx.service.create({
+        data: {
+          professionalProfileId: profile.id,
+          title: draft.title,
+          category: workspace.category ?? (appointment ? "Appointment" : "Item-based service"),
+          description: "Prepared from My Economy. Review all public details before publishing.",
+          priceMinor: draft.priceMinor,
+          currency: "NGN",
+          bookingMode: appointment ? BookingOperationMode.APPOINTMENT : BookingOperationMode.WORK_QUEUE,
+          deliveryMode: appointment && policy.homeService ? ServiceDeliveryMode.BOTH : ServiceDeliveryMode.PHYSICAL,
+          bookingTimezone: "Africa/Lagos",
+          resourcePoolKey: workspace.id,
+          defaultDurationMinutes: appointment ? Number(policy.durationMinutes) : 60,
+          parallelCapacity: appointment ? Number(policy.concurrentCapacity) : 1,
+          overbookingAllowance: 0,
+          turnaroundHours: appointment ? 48 : Number(policy.turnaroundHours),
+          // Appointments remain CLOSED until actual operating hours are set.
+          ...(appointment ? { weeklyHours: [] } : {}),
+          availabilityNote: "Set real operating hours and dates before publishing",
+          deliveryTime: appointment ? String(policy.durationMinutes) + " minutes" :
+            String(policy.turnaroundHours) + " hours estimated",
+          status: ServiceStatus.DRAFT
+        }
+      });
+      await tx.adaptiveServiceDraft.update({
+        where: { id: draft.id }, data: { canonicalServiceId: canonical.id }
+      });
+      await tx.systemEvent.create({ data: {
+        name: "adaptive.canonical_service_prepared", source: "api",
+        payload: { workspaceId, adaptiveDraftId: draft.id, canonicalServiceId: canonical.id, ownerUserId: user.id }
+      } });
+      return { serviceId: canonical.id, serviceStatus: canonical.status,
+        bookingMode: canonical.bookingMode, created: true,
+        next: "Complete and review the service in Hustler Studio" };
     });
   }
 
