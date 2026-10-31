@@ -288,6 +288,6 @@ jobs:
           set -euo pipefail
           export PGHOST=127.0.0.1 PGPORT=55441 PGUSER=hustle_payment_preview_owner PGPASSWORD=local_only PGDATABASE=hustle_payment_preview
           psql -v ON_ERROR_STOP=1 -f scripts/payment-preview/grants-and-check.sql
-          psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='payment_auth'" | grep -Fx 5
+          psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='payment_auth' AND tablename <> '_prisma_migrations'" | grep -Fx 5
           psql -v ON_ERROR_STOP=1 -At -c "SELECT pg_has_role('hustle_payment_preview_api','hustle_api','member')" | grep -Fx t
           echo 'PASS: fresh isolated payment-preview PG17 schemas and trusted API role, no remote Neon or Paystack calls'
