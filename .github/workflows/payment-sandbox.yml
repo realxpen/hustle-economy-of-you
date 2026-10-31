@@ -7,6 +7,9 @@ on:
       - ".github/workflows/payment-sandbox.yml"
       - ".github/workflows/paystack-hosted-test-checkout.yml"
       - "scripts/payment-sandbox/**"
+      - "infra/aws/lambda/payment-preview-template.yaml"
+      - "infra/cloudflare/payment-preview-api-worker.mjs"
+      - ".github/workflows/hustle-payment-preview-api-deploy.yml"
       - "scripts/experience/staging-*"
       - "scripts/experience/casework-access-check.sql"
       - "apps/api/src/payment/**"
@@ -56,6 +59,8 @@ jobs:
         run: npm ci
       - name: Exercise actual web proxy finance isolation and reserved paid-preview route allowlist (offline)
         run: node scripts/payment-sandbox/check-payment-preview-web-proxy.cjs
+      - name: Verify UX044 API edge source routes, exact Lambda host and raw webhook forwarding offline
+        run: node scripts/payment-sandbox/check-payment-preview-api-edge.mjs
       - name: Syntax-check protected provider runner without running it
         run: node --check scripts/payment-sandbox/real-paystack-test-preflight.mjs
       - name: Validate protected real-provider preflight denies unsafe contexts without network
