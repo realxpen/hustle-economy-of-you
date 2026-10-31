@@ -261,3 +261,31 @@
 .hj-date-ribbon button:focus-visible{outline:2px solid #8bb645;outline-offset:2px}
 .hj-waitlist-actions{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:355px){.hj-date-ribbon button{min-width:61px;padding:8px 5px}.hj-date-ribbon button small{font-size:8px}}
+
+
+/* Item-based service journeys: collection / fitting / ready notification */
+.hj-fulfillment-fields{margin-top:10px;padding:1px 0 4px}
+.hj-measure-guide{padding:11px 12px;margin:8px 0;border-radius:12px;border:1px solid #c6daac;background:var(--hj-surface);font-size:11px;line-height:1.6;color:var(--hj-text)}
+.hj-ready-estimate{display:flex;flex-direction:column;gap:5px;padding:13px 14px;margin:13px 0 17px;border-radius:14px;background:#223a29;color:#f5ffec}
+.hj-ready-estimate>span{color:#cfea9e;font-size:9px;font-weight:900;letter-spacing:1px}
+.hj-ready-estimate>b{font-size:20px;letter-spacing:-.4px}
+.hj-ready-estimate>small{font-size:10px;line-height:1.5;color:#e0ead8}
+.hj-fulfillment-summary{display:grid;gap:10px;margin:12px 0;padding:13px;border:1px solid var(--hj-line);border-radius:14px;background:var(--hj-surface)}
+.hj-fulfillment-summary>div{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid var(--hj-line);padding-bottom:8px}
+.hj-fulfillment-summary>div:last-child{padding-bottom:0;border-bottom:0}
+.hj-fulfillment-summary span{flex:1;font-size:11px;color:var(--hj-muted)}
+.hj-fulfillment-summary b{max-width:57%;text-align:right;overflow-wrap:anywhere;font-size:11px;line-height:1.4}
+.hj-job-tracker{margin:14px 0 19px;border:1px solid var(--hj-line);border-radius:16px;background:var(--hj-surface);overflow:hidden}
+.hj-job-tracker>header{background:#263d29;color:white;padding:14px;display:flex;flex-direction:column;gap:5px}
+.hj-job-tracker>header span{font-size:9px;color:#d4ebaa;letter-spacing:1px;font-weight:850}
+.hj-job-tracker>header b{font-size:16px;line-height:1.3}
+.hj-ready-banner{display:flex;flex-direction:column;gap:5px;padding:13px 14px;border-bottom:1px solid var(--hj-line)}
+.hj-ready-banner span{font-size:10px;color:var(--hj-muted)}
+.hj-ready-banner strong{font-size:19px}
+.hj-ready-banner small{font-size:10px;color:var(--hj-muted);line-height:1.5}
+.hj-job-steps{display:grid;gap:0;padding:6px 14px}
+.hj-job-steps>div{display:flex;align-items:center;gap:9px;min-height:38px;color:var(--hj-muted);font-size:11px;border-left:2px solid var(--hj-line);margin-left:13px;padding-left:17px;position:relative}
+.hj-job-steps>div i{position:absolute;left:-14px;width:26px;height:26px;border-radius:50%;border:1px solid var(--hj-line);background:var(--hj-bg);display:grid;place-items:center;font-style:normal;font-size:10px;font-weight:900}
+.hj-job-steps>div.done{color:var(--hj-text);font-weight:800;border-color:#a4ce69}
+.hj-job-steps>div.done i{background:#ddfa9f;border-color:#97b96e;color:#2b4626}
+.hj-job-tracker>p{font-size:11px;color:var(--hj-muted);line-height:1.6;padding:10px 14px 16px;margin:0}
