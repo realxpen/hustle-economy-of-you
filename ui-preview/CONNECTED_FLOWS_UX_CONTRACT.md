@@ -125,3 +125,26 @@ This branch is an isolated static Cloudflare Worker preview. All professionals, 
 - Additional 8/8 regression tests passed: demo Post creation/search, independent Live hub, local Live chat, optional camera-off state, existing product detail/cart, and existing service consultation.
 - iPhone Safari visual QA and Cloudflare's latest build/deployment remain to be verified.
 - This is an isolated **Cloudflare preview branch only**. No production app, production database, payments, livestream service, ads network or real account was changed.
+
+## Additional milestone — Discoverable Map and immersive Live Feed
+
+### Discovery-first Map placement
+- The Map is no longer discoverable only through the later **Map** tab. **Explore → Top**, before the user enters a search, includes a prominent illustrated interactive skill map card above the search field, alongside the existing Marketplace discovery entry point.
+- Miniature skill markers are clickable, distinguish categories using icons and colors (e.g. 💈 Barbering, 🧵 Fashion, 📷 Photography, 🍳 Cooking, 🏠 Home, 👗 Styling and 💐 Floral design), and have subtle entrance/selection motion. Respect reduced-motion preferences.
+- Once a user enters a search, matching map previews are included **in the results**, including Posts searches, with a direct **View map results** action.
+- The full **Map** tab continues to provide interactive OpenStreetMap/Leaflet pins, marker selection, service/profile links and opt-in geolocation. Approximate Lagos neighborhood examples are **not verified provider locations**.
+- No GPS permission is requested merely by opening Explore; live location remains opt-in.
+
+### Live entry on Home and TikTok-focused Live discovery
+- A visible small **● Live** tab sits next to Following, For You and Nearby on Home. It routes into the dedicated Live discovery experience, not Stories.
+- The separate **Live Hub** now uses **full-screen, vertically snap-scrolling creator previews** (one at a time), rather than a card grid or standard Explore listing page.
+- Full-screen previews show creator identity, sample skill, example pinned commerce offer, on-demand Like/Follow/Chat actions, and a prominent **Enter demo Live room** action.
+- Floating top navigation offers For You, Following and Nearby; compact skill filters remain available. Users can swipe to the next preview, use keyboard arrows in supported environments, and navigate to a detailed simulated Live room.
+- The bottom navigation is hidden while immersed in the Live experience; the close control returns to the originating context. Returning from a Live room restores the previously selected preview.
+- Existing interactive Live room chat, simulated hearts, pinned offers and Go Live setup/studio are preserved. No stream, viewers or realtime services are actually connected.
+- Demonstration labels make clear imagery is not live video. Production video-stream preview requires an authenticated livestream provider and genuine availability.
+
+### Quality checks
+- 18 targeted preview-runtime checks passed for Map card before search, category pins, matching Map previews in Posts search, direct Map route, Home Live entry, Live full-screen composition, snap-scroll behavior, filters, Live room navigation, back routing, camera opt-in, backend isolation and reduced-motion CSS.
+- JavaScript syntax and CSS references were validated. **The Cloudflare worker deployment and the actual iPhone Safari layout have not been visually verified by these checks.**
+- All changes are on isolated branch `preview/hustle-v1-posts-stories`, with no production deployment, database changes, real uploads, bookings or payment transactions.
