@@ -71,6 +71,11 @@ jobs:
           [[ "$NEON_PROJECT_ID" =~ ^[a-z][a-z0-9-]{8,60}$ ]]
           [[ "$NEON_BRANCH_ID" =~ ^br-[a-z0-9-]{8,80}$ ]]
           [[ "$NEON_HOST" =~ ^ep-[a-z0-9-]+\.c-2\.eu-west-2\.aws\.neon\.tech$ ]]
+          # Pin all three identifiers to the independently verified empty Neon
+          # project; generic non-staging IDs are NOT sufficient for payment APIs.
+          test "$NEON_PROJECT_ID" = 'fragrant-field-59689896'
+          test "$NEON_BRANCH_ID" = 'br-curly-leaf-zat0ec8m'
+          test "$NEON_HOST" = 'ep-holy-block-zauxat1w.c-2.eu-west-2.aws.neon.tech'
           test "$NEON_PROJECT_ID" != 'summer-sound-54525078'
           test "$NEON_BRANCH_ID" != 'br-dark-sunset-zay33p1s'
           case "$NEON_HOST" in
@@ -107,6 +112,13 @@ jobs:
             echo "::error::Dedicated payment preview secret is INACTIVE. Provision and review new database/test credentials first; no Lambda deployment attempted."
             exit 1
           }
+          # Never rely on a manually edited status tag alone. Parse and
+          # validate the secret IN-MEMORY via stdin, without logging key
+          # material or writing it to GitHub Actions artifacts.
+          aws secretsmanager get-secret-value \
+            --secret-id hustle-payment-preview-credentials --region "$AWS_REGION" \
+            --query SecretString --output text \
+            | node scripts/payment-preview/check-aws-secret-readiness.mjs
           # Never print, retrieve, or put secret values into GitHub Actions.
           aws cloudformation validate-template --region "$AWS_REGION" \
             --template-body file://infra/aws/lambda/payment-preview-template.yaml > /dev/null
