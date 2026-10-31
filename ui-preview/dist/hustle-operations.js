@@ -34,7 +34,7 @@ const store={
  agents:[{id:"APP-20",name:"Sample agent",category:"Talent management",state:"Pending"}],
  audit:[{date:"Sample",action:"Sandbox initialized",context:"No production data"}]
 };
-const state={page:"Wallet",previous:[],walletTab:"Overview",hustlerTab:"Overview",agentTab:"Overview",adminTab:"Dashboard",activityTab:"All",escrowId:"HES-2401",milestoneId:1,confirmAction:null,fundingMethod:"Card",agentPreview:false,adminPreview:false,adminInspect:false,agentApplied:false,hustlerAvailable:true,bookingConfigSkill:"barber",modal:"",formDraft:{}};
+const state={page:"Wallet",previous:[],walletTab:"Overview",hustlerTab:"Overview",agentTab:"Overview",adminTab:"Dashboard",activityTab:"All",escrowId:"HES-2401",milestoneId:1,confirmAction:null,fundingMethod:"Card",agentPreview:false,adminPreview:false,adminInspect:false,agentApplied:false,hustlerAvailable:true,bookingConfigSkill:"barber",businessOwner:"Tobi Adeyemi",businessStep:0,modal:"",formDraft:{}};
 let root=document.getElementById("hustleOpsLayer");if(!root){root=document.createElement("section");root.id="hustleOpsLayer";root.className="ho-root";root.hidden=true;phone.appendChild(root)}
 function audit(action,context){store.audit.unshift({date:dateNow(),action,context});}
 const escrow=id=>store.escrow.find(x=>x.id===id);
@@ -147,20 +147,20 @@ function renderActivityHistory(){
  return header("Escrow timeline",e?.id||"Demo")+`<div class="ho-screen">${visibleStatus()}${section("Timeline")}${(e?.log||[]).map((x,i)=>line("✦",esc(x),i===0?esc(e.created):"Demo event","✓")).join("")}</div>`;
 }
 function renderHustler(){
- const tabsArr=["Overview","Bookings","Booking setup","Listings","Insights","Earnings"];
+ const tabsArr=["Overview","Bookings","Booking setup","Team & hours","Listings","Insights","Earnings"];
  let content="";
  if(state.hustlerTab==="Overview"){
   content=`<div class="ho-studio-hero"><span>YOUR PROFESSIONAL SPACE · DEMO</span><h2>Your skills. Your business.</h2><p>Manage consultations, availability, listings, payments and customer relationships in one place.</p></div>
    <div class="ho-stats-two">${stat("New enquiries","6","Example this week")}${stat("Completed jobs","24","Example this month")}${stat("Average rating","4.9","Sample reviews")}${stat("Earnings",money(store.earnings),"Demo amount")}</div>
    ${section("Quick actions")}<div class="ho-quick-grid"><button data-op="studio-tab" data-value="Bookings"><span>▤</span><b>Bookings</b><small>Jobs & requests</small></button><button data-op="create-service"><span>＋</span><b>Create listing</b><small>Service or product</small></button><button data-op="Wallet"><span>₦</span><b>Wallet</b><small>Escrows & earnings</small></button><button data-op="studio-tab" data-value="Booking setup"><span>⚙</span><b>Booking setup</b><small>Slots · Consultation</small></button></div>
-   ${section("Upcoming work",`<button class="ho-text-action" data-op="studio-tab" data-value="Bookings">See all →</button>`)}
+   ${btn("Set up your business","business-setup","lime")} ${section("Upcoming work",`<button class="ho-text-action" data-op="studio-tab" data-value="Bookings">See all →</button>`)}
    ${store.bookings.slice(0,2).map(b=>line("✳",esc(b.service),`${esc(b.person)} · ${esc(b.day)}`,badge(b.state),"booking",b.id)).join("")}
    <div class="ho-availability"><div><b>Accepting new enquiries</b><small>Your preview availability status</small></div><button class="ho-switch ${state.hustlerAvailable?"on":""}" data-op="availability" role="switch" aria-checked="${state.hustlerAvailable}" aria-label="Toggle availability"><span></span></button></div>`;
  }else if(state.hustlerTab==="Bookings"){
   content=`${section("Bookings & consultations")}${store.bookings.map(b=>line("◷",esc(b.service),`${esc(b.person)} · ${esc(b.day)}`,badge(b.state),"booking",b.id)).join("")}
   ${banner("Quotes & milestones","Each booking progresses through consultation → quote → client-approved milestones → protected payment → completion and release. Only clients authorize escrow release.","quiet")}`;
  }else if(state.hustlerTab==="Booking setup"){
-  const rules=window.HustleBookingRules,skill=state.bookingConfigSkill,owner=rules?.samples?.find(x=>x.id===skill)?.name||"Sample professional",p=rules?.get(skill,owner);
+  const rules=window.HustleBookingRules,skill=state.bookingConfigSkill,owner=state.businessOwner||rules?.samples?.find(x=>x.id===skill)?.name||"Sample professional",p=rules?.get(skill,owner);
   if(!p){content=banner("Booking engine unavailable","This preview must load the service booking rules before opening the studio.","quiet")}
   else {
    content=`${visibleStatus()}${section("Configure a service journey")}
@@ -184,6 +184,7 @@ function renderHustler(){
    <button class="ho-btn ho-outline ho-full" data-op="booking-config-preview">Try this booking journey →</button>
    ${banner("Real scheduling requires a calendar backend","The demo slot counter is isolated and resets with the page. Production must allocate individual staff or equivalent resources, avoid conflicting reservations, and enforce deadlines and capacity server-side.","quiet")}`;
   }
+ }else if(state.hustlerTab==="Team & hours"){content=renderTeamManager();
  }else if(state.hustlerTab==="Listings"){
   content=`${section("Your listings",btn("+ New listing","create-service","outline"))}
   ${[["Signature haircut","Service · from ₦8,000","💈"],["Grooming workshop","Training · from ₦30,000","🎓"],["Finishing kit","Product · sample","🛍️"]].map(([a,b,i])=>line(i,a,b,badge("Active"))).join("")}
@@ -308,7 +309,7 @@ function renderModal(){
 }
 function render(){
  if(root.hidden)return;
- const content=state.page==="Wallet"?renderWallet():state.page==="Escrow"?renderEscrow():state.page==="Deposit"?renderDeposit():state.page==="Withdraw"?renderWithdraw():state.page==="NewEscrow"?renderNewEscrow():state.page==="EscrowHistory"?renderActivityHistory():state.page==="Hustler"?renderHustler():state.page==="Booking"?renderBooking():state.page==="AgentIntro"?renderAgentIntro():state.page==="Agent"?renderAgent():state.page==="Talent"?renderTalent():state.page==="AdminGate"?renderAdminGate():state.page==="Admin"?renderAdmin():renderWallet();
+ const content=state.page==="BusinessSetup"?renderBusinessSetup():state.page==="Wallet"?renderWallet():state.page==="Escrow"?renderEscrow():state.page==="Deposit"?renderDeposit():state.page==="Withdraw"?renderWithdraw():state.page==="NewEscrow"?renderNewEscrow():state.page==="EscrowHistory"?renderActivityHistory():state.page==="Hustler"?renderHustler():state.page==="Booking"?renderBooking():state.page==="AgentIntro"?renderAgentIntro():state.page==="Agent"?renderAgent():state.page==="Talent"?renderTalent():state.page==="AdminGate"?renderAdminGate():state.page==="Admin"?renderAdmin():renderWallet();
  root.innerHTML=content+renderModal();root.scrollTop=0;
 }
 function toast(msg){const t=root.querySelector(".ho-toast");if(t)t.remove();const tip=document.createElement("div");tip.className="ho-toast";tip.textContent=msg;root.appendChild(tip);if(typeof setTimeout==="function")setTimeout(()=>{tip.remove?.()},3000)}
@@ -357,7 +358,14 @@ function handle(op,id,value,node){
   case "Admin":state.adminPreview=false;nav("AdminGate");break;
   case "wallet-tab":state.walletTab=value;render();break;
   case "studio-tab":state.hustlerTab=value;render();break;
-  case "booking-config-skill":state.bookingConfigSkill=value;render();break;
+  case "booking-config-skill":state.bookingConfigSkill=value;state.businessOwner=window.HustleBookingRules?.samples?.find(x=>x.id===value)?.name||"Sample professional";render();break;
+  case "business-setup":state.businessStep=0;nav("BusinessSetup");break;
+  case "business-next":state.businessStep=Math.min(3,state.businessStep+1);render();break;
+  case "business-previous":state.businessStep=Math.max(0,state.businessStep-1);render();break;
+  case "staff-status":if(window.HustleBookingRules?.setMemberStatus(state.bookingConfigSkill,state.businessOwner,id,value)){audit("Staff status updated",id+" → "+value);render()}break;
+  case "staff-remove-off":if(window.HustleBookingRules?.setMemberOff(state.bookingConfigSkill,state.businessOwner,id,value,false))render();break;
+  case "team-date-off":{const day=root.querySelector("#hoTimeOffDate")?.value;if(!day){toast("Choose a leave date");break}if(window.HustleBookingRules?.setMemberOff(state.bookingConfigSkill,state.businessOwner,id,day,true)){audit("Staff leave",id+" · "+day);render()}break}
+
   case "booking-config-preview":{const rules=window.HustleBookingRules,caseData=rules?.samples?.find(x=>x.id===state.bookingConfigSkill);if(!caseData){toast("Booking example unavailable");break}close();window.HustleJourneys?.open("BookingJourney",{service:caseData.title,professional:caseData.name,category:caseData.id,price:rules.get(caseData.id,caseData.name).basePrice});break}
   case "agent-tab":state.agentTab=value;render();break;
   case "admin-tab":if(state.adminPreview){state.adminTab=value;render()}break;
@@ -401,7 +409,11 @@ root.addEventListener("click",e=>{
 root.addEventListener("submit",e=>{
  const form=e.target;const type=form.dataset.hoForm;if(!type)return;
  e.preventDefault();
- if(type==="booking-policy"){const f=new FormData(form),skill=state.bookingConfigSkill,owner=window.HustleBookingRules?.samples?.find(x=>x.id===skill)?.name||"Sample professional",patch={consultation:String(f.get("consultation")||"optional"),consultFee:Number(f.get("consultFee")),basePrice:Number(f.get("basePrice")),capacity:Number(f.get("capacity")),duration:Number(f.get("duration")),travelFee:Number(f.get("travelFee")),eventFee:Number(f.get("eventFee")),creditConsultation:f.get("creditConsultation")==="yes"};if(!window.HustleBookingRules?.update(skill,patch,owner)){toast("Please check fee, price and capacity limits");return}audit("Demo service booking policy changed",skill);render();toast("Booking rules saved for this preview session");return}
+ if(type==="business-profile"){const f=new FormData(form),skill=String(f.get("skill")||"barber"),name=String(f.get("businessName")||"").trim(),mode=String(f.get("mode")||"solo");if(!name||!window.HustleBookingRules?.templates[skill]){toast("Add a business name and skill");return}state.bookingConfigSkill=skill;state.businessOwner=name;if(!window.HustleBookingRules.setBusiness(skill,name,{name,mode})){toast("Invalid business settings");return}state.businessStep=1;render();return}
+ if(type==="business-service"){const f=new FormData(form),patch={consultation:String(f.get("consultation")||"optional"),consultFee:Number(f.get("consultFee")||0),creditConsultation:f.get("creditConsultation")==="on",basePrice:Number(f.get("price")||0),duration:Number(f.get("duration")||60),capacity:Number(f.get("capacity")||1)};if(!window.HustleBookingRules?.update(state.bookingConfigSkill,patch,state.businessOwner)){toast("Review service policy");return}state.businessStep=2;render();return}
+ if(type==="team-member"){const f=new FormData(form),name=String(f.get("memberName")||"").trim();if(!window.HustleBookingRules?.addMember(state.bookingConfigSkill,state.businessOwner,name)){toast("Use a unique worker name");return}audit("Team member added",name);render();return}
+ if(type==="business-hours"){const f=new FormData(form),days=[0,1,2,3,4,5,6].filter(i=>f.get("day"+i)==="on"),ok=window.HustleBookingRules?.setBusiness(state.bookingConfigSkill,state.businessOwner,{start:f.get("start"),end:f.get("end"),days,setupCompleted:true});if(!ok){toast("Check your opening hours");return}audit("Business setup completed",state.businessOwner);state.hustlerTab="Team & hours";state.page="Hustler";render();return}
+ if(type==="booking-policy"){const f=new FormData(form),skill=state.bookingConfigSkill,owner=state.businessOwner||window.HustleBookingRules?.samples?.find(x=>x.id===skill)?.name||"Sample professional",patch={consultation:String(f.get("consultation")||"optional"),consultFee:Number(f.get("consultFee")),basePrice:Number(f.get("basePrice")),capacity:Number(f.get("capacity")),duration:Number(f.get("duration")),travelFee:Number(f.get("travelFee")),eventFee:Number(f.get("eventFee")),creditConsultation:f.get("creditConsultation")==="yes"};if(!window.HustleBookingRules?.update(skill,patch,owner)){toast("Please check fee, price and capacity limits");return}audit("Demo service booking policy changed",skill);render();toast("Booking rules saved for this preview session");return}
  if(type==="deposit")submitFunding(form);
  if(type==="withdraw")submitWithdraw(form);
  if(type==="escrow")submitEscrow(form);
