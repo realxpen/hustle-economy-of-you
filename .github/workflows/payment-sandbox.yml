@@ -65,6 +65,8 @@ jobs:
         run: node scripts/payment-sandbox/check-payment-preview-api-edge.mjs
       - name: Verify independently named AWS preview resources and protected deployment intent (offline)
         run: node scripts/payment-sandbox/check-payment-preview-infra.cjs
+      - name: Refuse unsafe live/staging payment preview secret contents (offline)
+        run: node scripts/payment-preview/check-aws-secret-readiness-tests.mjs
       - name: Reject unsafe Neon payment-preview schema targets and unauthorized runs (offline)
         run: |
           node --check scripts/payment-preview/migrate.mjs
