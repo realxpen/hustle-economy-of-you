@@ -94,6 +94,18 @@ export class AdaptiveController {
     @Body() body: unknown) {
     return this.bookingOps.selectHandover(identity,spaceId,bookingId,body);
   }
+  @Post("workspaces/:workspaceId/bookings/:bookingId/estimate")
+  reviseItemEstimate(@CurrentIdentity() identity: AuthIdentity,
+    @Param("workspaceId") spaceId: string,@Param("bookingId") bookingId: string,
+    @Body() body: unknown) {
+    return this.bookingOps.reviseReadyEstimate(identity,spaceId,bookingId,body);
+  }
+  @Post("bookings/:bookingId/confirm-item-receipt")
+  confirmPhysicalItemReceipt(@CurrentIdentity() identity: AuthIdentity,
+    @Param("bookingId") bookingId: string,@Body() body: unknown) {
+    return this.bookingOps.confirmItemReceived(identity,bookingId,body);
+  }
+
   @Post("workspaces/:workspaceId/bookings/:bookingId/item-progress")
   advanceItem(@CurrentIdentity() identity: AuthIdentity,
     @Param("workspaceId") spaceId: string,@Param("bookingId") bookingId: string,
