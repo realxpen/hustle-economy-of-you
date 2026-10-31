@@ -286,6 +286,8 @@ export class AdaptiveBookingOpsService {
       const changed=await tx.adaptiveItemFulfillment.updateMany({
         where:{id:current.id,revision:version,status:current.status},
         data:{status:next,revision:{increment:1},
+          ...(next===AdaptiveItemStage.RECEIVED?{estimatedReadyAt:new Date(Date.now()+
+            Number(validateAdaptiveServicePolicy("item",b.service.adaptiveDraft!.policy).turnaroundHours)*3600000)}:{}),
           ...(next===AdaptiveItemStage.READY?{actualReadyAt:new Date()}:{})}
       });
       if(changed.count!==1)throw new ConflictException("Item workflow changed; refresh");
