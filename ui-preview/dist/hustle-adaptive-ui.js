@@ -29,6 +29,7 @@ function renderSpaces(s){
  +section("What you can do","Enable capabilities independently")
  +'<div class="ha-capabilities">'+caps.map(x=>'<button class="'+(s.person.capabilities.includes(x.id)?"on":"")+'" data-ha="capability" data-id="'+x.id+'"><span>'+x.icon+'</span><b>'+esc(x.label)+'</b><small>'+(s.person.capabilities.includes(x.id)?"Enabled":"Enable")+'</small></button>').join("")+'</div>'
  +'<div class="ha-note">Capabilities personalize the demo. They do not grant real identity verification, business access, agent approval or payment permissions.</div>'
+ +section("Suggested next steps","Based on your enabled capabilities")+'<div class="ha-guidance">'+core().capabilityGuidance().map((x,i)=>'<p><span>✦</span>'+esc(x)+'</p>').join("")+'</div>'
  +(ui.spaceModal?'<div class="ha-inline-form">'+section("New workspace")+formStart("new-space")+field("name","Business, team or brand name","e.g. Kunle Apparel")+select("type","Workspace type",[["business","Business"],["team","Team / agency"]],"business")+field("category","Main field","Fashion, services, commerce")+button("Create workspace","", "ha-primary ha-wide","submit")+'</form></div>':"");
 }
 function renderServices(s){
@@ -158,8 +159,8 @@ function onClick(e){
   close();window.HustleJourneys?.open("BookingJourney",{service:x.title,professional:workspace?.name||"Demo professional",category:x.category,price:x.price});return
  }
  if(action==="match-work"){
-  const x=s.services.find(y=>y.id===id);if(!x)return;
-  const work=m.newWork("Enquiry: "+x.title,x.blueprint,"Draft based on opportunity discovery",m.currentSpace().id,"opportunity",x.id);
+  const x=s.services.find(y=>y.id===id),opp=s.opportunities.find(y=>y.id===ui.opportunityId)||s.opportunities[0],match=m.suggestOpportunity(opp?.id).find(y=>y.serviceId===id);if(!x&&!match)return;
+  const work=m.newWork("Enquiry: "+(x?.title||match.title),x?.blueprint||opp?.category||"project","Draft only. Example provider: "+(match?.provider||"Your business")+"; no contact sent.",m.currentSpace().id,"opportunity",x?.id||null);
   if(!work){notice("Couldn't create that draft");return}ui.orderId=work.id;ui.tab="Work";notice("Draft only — no message was sent to the professional");return
  }
  if(action==="consent"){if(!m.consentDelegation(id)){notice("Consent cannot be confirmed");return}notice("Demo consent confirmed; no account access was granted");return}
