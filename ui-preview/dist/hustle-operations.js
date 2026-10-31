@@ -228,7 +228,7 @@ function renderHustler(){
  if(state.hustlerTab==="Overview"){
   content=`<div class="ho-studio-hero"><span>YOUR PROFESSIONAL SPACE · DEMO</span><h2>Your skills. Your business.</h2><p>Manage consultations, availability, listings, payments and customer relationships in one place.</p></div>
    <div class="ho-stats-two">${stat("New enquiries","6","Example this week")}${stat("Completed jobs","24","Example this month")}${stat("Average rating","4.9","Sample reviews")}${stat("Earnings",money(store.earnings),"Demo amount")}</div>
-   ${section("Quick actions")}<div class="ho-quick-grid"><button data-op="studio-tab" data-value="Bookings"><span>▤</span><b>Bookings</b><small>Jobs & requests</small></button><button data-op="create-service"><span>＋</span><b>Create listing</b><small>Service or product</small></button><button data-op="Wallet"><span>₦</span><b>Wallet</b><small>Escrows & earnings</small></button><button data-op="studio-tab" data-value="Booking setup"><span>⚙</span><b>Booking setup</b><small>Slots · Consultation</small></button><button data-op="studio-tab" data-value="Team & hours"><span>👥</span><b>Team & hours</b><small>Staff · Leave · Calendar</small></button></div>
+   ${section("Quick actions")}<div class="ho-quick-grid"><button data-op="studio-tab" data-value="Bookings"><span>▤</span><b>Bookings</b><small>Jobs & requests</small></button><button data-op="create-service"><span>＋</span><b>Create listing</b><small>Service or product</small></button><button data-op="Wallet"><span>₦</span><b>Wallet</b><small>Escrows & earnings</small></button><button data-op="studio-tab" data-value="Booking setup"><span>⚙</span><b>Booking setup</b><small>Slots · Consultation</small></button><button data-op="studio-tab" data-value="Team & hours"><span>👥</span><b>Team & hours</b><small>Staff · Leave · Calendar</small></button><button data-op="adaptive-hub" data-value="Work"><span>▦</span><b>Work hub</b><small>Orders · Blueprints · Team</small></button></div>
    ${btn("Set up your business","business-setup","lime")} ${section("Upcoming work",`<button class="ho-text-action" data-op="studio-tab" data-value="Bookings">See all →</button>`)}
    ${renderItemJobPanel()}${store.bookings.slice(0,2).map(b=>line("✳",esc(b.service),`${esc(b.person)} · ${esc(b.day)}`,badge(b.state),"booking",b.id)).join("")}
    <div class="ho-availability"><div><b>Accepting new enquiries</b><small>Your preview availability status</small></div><button class="ho-switch ${state.hustlerAvailable?"on":""}" data-op="availability" role="switch" aria-checked="${state.hustlerAvailable}" aria-label="Toggle availability"><span></span></button></div>`;
@@ -306,7 +306,7 @@ function renderAgent(){
  if(state.agentTab==="Overview"){
   content=`<div class="ho-studio-hero"><span>APPROVED AGENT · SAMPLE ACCESS</span><h2>Your talent, organized.</h2><p>Example agency tools, client requests and upcoming work.</p></div>
   <div class="ho-stats-two">${stat("Managed hustlers","3","Two active · one pending")}${stat("Open requests","8","Illustrative")}${stat("Agency commission",money(8600),"Example only")}${stat("Approvals","2","Require action")}</div>
-  ${section("Your professionals",`<button class="ho-text-action" data-op="agent-tab" data-value="Talent">Manage →</button>`)}<div class="ho-actions">${btn("＋ Add existing or new hustler","agent-invite","lime")}</div>
+  ${section("Your professionals",`<button class="ho-text-action" data-op="agent-tab" data-value="Talent">Manage →</button>`)}<div class="ho-actions">${btn("＋ Add existing or new hustler","agent-invite","lime")}${btn("Scoped delegation preview","adaptive-hub","outline")}</div>
   ${store.talent.slice(0,2).map(x=>line(x.avatar,esc(x.name),`${esc(x.skill)} · ${esc(x.city)}`,badge(x.status),"talent",x.id)).join("")}`;
  }else if(state.agentTab==="Talent"){
   content=`${section("Managed hustlers",btn("+ Add a hustler","agent-invite","outline"))}
@@ -438,6 +438,7 @@ function handle(op,id,value,node){
   case "Agent":nav(state.agentPreview?"Agent":"AgentIntro");break;
   case "Admin":state.adminPreview=false;nav("AdminGate");break;
   case "wallet-tab":state.walletTab=value;render();break;
+  case "adaptive-hub":close();window.HustleAdaptiveUI?.open(value||"Spaces");break;
   case "studio-tab":state.hustlerTab=value;render();break;
   case "booking-config-skill":state.bookingConfigSkill=value;state.businessOwner=window.HustleBookingRules?.samples?.find(x=>x.id===value)?.name||"Sample professional";render();break;
   case "business-setup":state.businessStep=0;nav("BusinessSetup");break;
