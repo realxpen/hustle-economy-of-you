@@ -199,3 +199,49 @@ The user supplied two reference screenshots demonstrating the distinct TikTok Li
 5. Payments & earnings → Overview / Activity / Payouts displays only explicit placeholder data. Nothing is deposited or moved.
 
 The source and DOM interaction tests pass; actual iPhone visual layout and Cloudflare deployment were not confirmed in this session. Work remains isolated on `preview/hustle-v1-posts-stories`, not production.
+
+
+## Wallet, Escrow, Hustler Studio, Agent Studio and internal Admin — Isolated milestone
+
+### Connected preview
+- New standalone assets: ui-preview/dist/hustle-operations.js and ui-preview/dist/hustle-operations.css, included in the static preview.
+- Profile → Shopping & earnings → Wallet & escrow; Profile → Workspaces → Hustler Studio or Agent Studio; Create → Hustler Studio; Profile → Settings → Internal tools → Admin Console design sandbox.
+- Five-tab primary navigation, Feed, Stories, Live, Marketplace, Cart and Booking remain intact. Closing a workspace returns to the originating screen.
+
+### Wallet and protected payments
+- Wallet overview with **SIMULATED DATA** label, sample NGN balance, example escrow totals, earnings and transaction history.
+- Add Money with a sample Card or Bank transfer choice, amount presets and validation. Changes are only in-memory demo transactions, with no real bank credentials or payment network.
+- Withdraw Earnings previews a payout request subject to sample available earnings. Payout account, KYC and real transfers are not connected.
+- Escrow management shows held/disputed/completed states, milestones, amounts held versus released, agreement details and timeline.
+- New demo escrow checks simulated wallet funds, deducts a sample amount and creates two milestones. Client-side release requires confirmation; dispute freezes remaining held milestones. An Admin inspecting an escrow cannot use client controls.
+- Admin sandbox dispute decision can simulate a refund or release with explicit confirmation and in-memory audit trail; refunds return remaining held demo funds to the sample client balance.
+- Consultation completion links into the protected-payment demo. Checkout offers Card, Bank transfer and Wallet (demo) interfaces without charging or submitting orders.
+- Direct customer checkout should remain possible without wallet prefunding.
+
+### Hustler Studio
+- Overview, Bookings, Listings, Insights, and Earnings.
+- Sample enquiries, job/quote status, accepting-enquiries toggle, creator listings, performance metrics, and wallet shortcut.
+- Professionals cannot authorize their own client escrow releases.
+
+### Agent Studio
+- Agent application stays pending after submission. A separate explicit action previews an approved-agent dashboard.
+- Talent management, invitation workflow, delegated bookings, contract-based commissions and approval queue.
+- Agent permission does not mean shared wallet custody. Hustler withdrawals remain blocked pending that hustler's own face/identity verification with a suitable real provider.
+
+### Internal Admin Console
+- Accessible only as an explicitly labelled internal *design sandbox*, not as a normal main tab and not as real authentication.
+- Dashboard, Moderation, Escrows, Users, Finance and Audit views.
+- Content moderation sample decisions, flagged listings, identity checks, agent applications, dispute handling and auditable sample actions.
+- Production admin must use server-side authorization, MFA, least privilege, immutable audits, evidence review and controlled release approvals. The frontend sandbox role switch is not a security mechanism.
+
+### Real-money architecture deferred
+- None of the preview actions sends transactions, publishes content, changes production DB records, makes transfers, or provides real escrow protection.
+- Production financial handling requires a suitable regulated payment/custody partner, legal review, provider-controlled settlement, idempotent APIs, authenticated webhooks, double-entry ledger, reconciliation, KYC/AML as applicable, dispute evidence and carefully scoped release permissions.
+- Do not deploy or merge the static concept code into the real app as though it were a working wallet.
+
+### Verification
+- 9/9 script/asset and basic safety checks passed.
+- 25/26 mocked workflow assertions passed; one failed solely because the test searched for an unescaped ampersand rather than the correctly escaped HTML entity.
+- 11/11 cross-module navigation, studio entry and checkout checks passed.
+- 12/12 Admin read-only, agent authorization and dispute regression checks passed.
+- Latest preview branch code is committed. Cloudflare deployment and actual iPhone Safari visual QA are not yet verified.
