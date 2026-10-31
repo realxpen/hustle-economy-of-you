@@ -92,7 +92,7 @@ export class AdaptiveBookingOpsService {
   }
   async summary(identity: AuthIdentity, workspaceId: string, bookingId: string) {
     const user = await this.actor(identity);
-    await this.booking(user.id, this.id(bookingId,"bookingId"),workspaceId);
+    const b=await this.booking(user.id, this.id(bookingId,"bookingId"),workspaceId);
     const [assignment,fulfillment] = await Promise.all([
       this.db.adaptiveBookingAssignment.findUnique({
         where: { bookingId }, select: {
@@ -295,9 +295,9 @@ export class AdaptiveBookingOpsService {
         revision:version+1,eventType:"item."+next.toLowerCase(),actorUserId:user.id}});
       const notifyReady = b.service.adaptiveDraft?.blueprint.slug==="item" ?
         validateAdaptiveServicePolicy("item",b.service.adaptiveDraft.policy).notifyWhenReady!==false : true;
-      if((next!==AdaptiveItemStage.READY || notifyReady) &&
-         [AdaptiveItemStage.READY,AdaptiveItemStage.OUT_FOR_DELIVERY,
-          AdaptiveItemStage.DELIVERED,AdaptiveItemStage.COLLECTED].includes(next)){
+      const notifyStages:AdaptiveItemStage[]=[AdaptiveItemStage.READY,AdaptiveItemStage.OUT_FOR_DELIVERY,
+        AdaptiveItemStage.DELIVERED,AdaptiveItemStage.COLLECTED];
+      if((next!==AdaptiveItemStage.READY || notifyReady) && notifyStages.includes(next)){
         const labels:Partial<Record<AdaptiveItemStage,[string,string]>>={
           READY:["Your item is ready","Your service provider has marked the work ready for pickup or delivery."],
           OUT_FOR_DELIVERY:["Your item is on its way","Your provider has marked your item out for delivery."],
