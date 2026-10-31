@@ -102,12 +102,13 @@ export class AdaptiveBookingOpsService {
       }),
       this.db.adaptiveItemFulfillment.findUnique({
         where: { bookingId }, select: { id:true,revision:true,status:true,
-          intakeMethod:true,returnMethod:true,estimatedReadyAt:true,actualReadyAt:true,
+          intakeMethod:true,returnMethod:true,policySnapshot:true,estimatedReadyAt:true,actualReadyAt:true,
           updatedAt:true }
       })
     ]);
     const itemPolicy = b.service.adaptiveDraft?.blueprint.slug === "item"
-      ? validateAdaptiveServicePolicy("item",b.service.adaptiveDraft.policy) : null;
+      ? validateAdaptiveServicePolicy("item",fulfillment?.policySnapshot ??
+          b.service.adaptiveDraft.policy) : null;
     return { bookingId, assignment, fulfillment, bookingStatus:b.status,
       viewerRole:user.id===b.clientUserId?"CLIENT":user.id===b.hustlerUserId?"HUSTLER":"TEAM",
       offeredMethods:itemPolicy ? {
@@ -249,12 +250,13 @@ export class AdaptiveBookingOpsService {
           throw new ConflictException("Handover changed; refresh");
         return tx.adaptiveItemFulfillment.update({where:{id:prev.id},data:{
           intakeMethod:d.intakeMethod as string,returnMethod:d.returnMethod as string,
-          revision:{increment:1}
+          policySnapshot:policy as Prisma.InputJsonValue,revision:{increment:1}
         }});
       }
       if(d.expectedRevision!==undefined)throw new ConflictException("Handover is not yet initialized");
       return tx.adaptiveItemFulfillment.create({data:{
-        bookingId,workspaceId,intakeMethod:d.intakeMethod as string,returnMethod:d.returnMethod as string
+        bookingId,workspaceId,intakeMethod:d.intakeMethod as string,returnMethod:d.returnMethod as string,
+        policySnapshot:policy as Prisma.InputJsonValue
       }});
     });
   }
@@ -287,14 +289,14 @@ export class AdaptiveBookingOpsService {
         where:{id:current.id,revision:version,status:current.status},
         data:{status:next,revision:{increment:1},
           ...(next===AdaptiveItemStage.RECEIVED?{estimatedReadyAt:new Date(Date.now()+
-            Number(validateAdaptiveServicePolicy("item",b.service.adaptiveDraft!.policy).turnaroundHours)*3600000)}:{}),
+            Number(validateAdaptiveServicePolicy("item",current.policySnapshot).turnaroundHours)*3600000)}:{}),
           ...(next===AdaptiveItemStage.READY?{actualReadyAt:new Date()}:{})}
       });
       if(changed.count!==1)throw new ConflictException("Item workflow changed; refresh");
       await tx.adaptiveItemEvent.create({data:{fulfillmentId:current.id,
         revision:version+1,eventType:"item."+next.toLowerCase(),actorUserId:user.id}});
       const notifyReady = b.service.adaptiveDraft?.blueprint.slug==="item" ?
-        validateAdaptiveServicePolicy("item",b.service.adaptiveDraft.policy).notifyWhenReady!==false : true;
+        validateAdaptiveServicePolicy("item",current.policySnapshot).notifyWhenReady!==false : true;
       const notifyStages:AdaptiveItemStage[]=[AdaptiveItemStage.READY,AdaptiveItemStage.OUT_FOR_DELIVERY,
         AdaptiveItemStage.DELIVERED,AdaptiveItemStage.COLLECTED];
       if((next!==AdaptiveItemStage.READY || notifyReady) && notifyStages.includes(next)){
