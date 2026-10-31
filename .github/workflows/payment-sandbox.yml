@@ -222,3 +222,72 @@ jobs:
             -c "SELECT rolcanlogin::text FROM pg_roles WHERE rolname='hustle_api'" \
             | grep -Fx false
           echo "PASS: full migrated PostgreSQL 17 snapshot restored with trusted RLS policy and NOLOGIN role; no provider access"
+
+  neon-preview-schema-contract:
+    name: Fresh PG17 payment-preview app and Better Auth migrations (disposable only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local_only
+          POSTGRES_DB: hustle_payment_preview
+        ports:
+          - 127.0.0.1:55441:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hustle_payment_preview"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgresql://hustle_payment_preview_owner:local_only@127.0.0.1:55441/hustle_payment_preview?sslmode=require&schema=public
+      STAGING_AUTH_DATABASE_URL: postgresql://hustle_payment_preview_owner:local_only@127.0.0.1:55441/hustle_payment_preview?sslmode=require&schema=payment_auth
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies and Postgres test client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          npm ci --include=dev
+          node scripts/payment-preview/check-guard.mjs
+      - name: Create ONLY throwaway PG17 owner and runtime principals
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=55441 PGUSER=postgres PGPASSWORD=local_only PGDATABASE=hustle_payment_preview
+          psql -v ON_ERROR_STOP=1 -c "CREATE ROLE hustle_payment_preview_owner LOGIN PASSWORD 'local_only' CREATEROLE"
+          psql -v ON_ERROR_STOP=1 -c "CREATE ROLE hustle_payment_preview_api LOGIN PASSWORD 'local_api_only'"
+          psql -v ON_ERROR_STOP=1 -c "ALTER DATABASE hustle_payment_preview OWNER TO hustle_payment_preview_owner"
+          psql -v ON_ERROR_STOP=1 -c "CREATE SCHEMA payment_auth AUTHORIZATION hustle_payment_preview_owner"
+          psql -v ON_ERROR_STOP=1 -c "GRANT CREATE ON SCHEMA public TO hustle_payment_preview_owner"
+      - name: Run actual fresh PG17 owner-target preflight and compatibility DDL
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=55441 PGUSER=hustle_payment_preview_owner PGPASSWORD=local_only PGDATABASE=hustle_payment_preview
+          psql -v ON_ERROR_STOP=1 -f scripts/payment-preview/preflight.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/payment-preview/neon-compat.sql
+      - name: Apply all real Hustle source migrations on disposable PG17
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx prisma migrate resolve --applied 20260917130500_phase16b_story_rls_hardening --schema=apps/api/prisma/schema.prisma
+          npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+          npx prisma migrate deploy --schema=apps/api/staging-auth/prisma/schema.prisma
+      - name: Apply and test real isolated app-role handoff and auth table access
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=55441 PGUSER=hustle_payment_preview_owner PGPASSWORD=local_only PGDATABASE=hustle_payment_preview
+          psql -v ON_ERROR_STOP=1 -f scripts/payment-preview/grants-and-check.sql
+          psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='payment_auth'" | grep -Fx 5
+          psql -v ON_ERROR_STOP=1 -At -c "SELECT pg_has_role('hustle_payment_preview_api','hustle_api','member')" | grep -Fx t
+          echo 'PASS: fresh isolated payment-preview PG17 schemas and trusted API role, no remote Neon or Paystack calls'
