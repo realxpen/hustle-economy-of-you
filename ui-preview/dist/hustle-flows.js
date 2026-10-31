@@ -172,6 +172,55 @@ function renderMarket(){
  <div class="hf-two">${filtered.map(listingCard).join("")||'<div class="hf-empty">No listings in this category yet.</div>'}</div>
  </div>`;
 }
+function poster(id){return id==="self"?{id:"self",name:signedIn.name,handle:signedIn.handle,avatar:signedIn.avatar,primary:signedIn.primary,location:signedIn.location,tag:"All"}:person(id)}
+function postById(id){return samplePosts.find(p=>p.id===id)||samplePosts[0]}
+function postMatches(p){
+ const who=poster(p.seller);
+ const terms=state.query.toLowerCase().split(/\s+/).filter(x=>x&&!["in","near","at","for","the","a"].includes(x));
+ const corpus=[p.caption,p.tag,p.kind,who.name,who.handle,who.primary,who.location,p.related?item(p.related).title:""].join(" ").toLowerCase();
+ const category=state.category==="All"||who.tag===state.category||p.tag.toLowerCase()===state.category.toLowerCase();
+ return category&&terms.every(t=>corpus.includes(t));
+}
+function postCard(p){
+ const who=poster(p.seller);
+ return `<button class="hf-post-tile" data-hf="post-detail" data-id="${esc(p.id)}" aria-label="View post by ${esc(who.name)}">
+ <img src="${p.image}" alt="Post by ${esc(who.name)}" loading="lazy">
+ <span class="hf-post-tile-type">${p.kind==="video"?"▶ Video":p.kind==="carousel"?"▧ Carousel":"Photo"}</span>
+ <span class="hf-post-tile-foot"><b>${esc(who.name)}</b><small>${esc(p.caption)}</small></span></button>`;
+}
+function renderPostsGrid(posts,empty="No posts in this section yet."){
+ return posts.length?`<div class="hf-post-grid">${posts.map(postCard).join("")}</div>`:`<div class="hf-empty">${esc(empty)}</div>`;
+}
+function renderPostDetail(){
+ const p=postById(state.post),who=poster(p.seller),comments=state.postComments[p.id]||[];
+ return `${head("Post","A moment from "+who.name,true)}
+ <div class="hf-post-view">
+ <div class="hf-post-detail-photo"><img src="${p.image}" alt="${esc(p.caption)}"><span class="hf-post-kind">${p.kind==="video"?"Video preview":p.kind==="carousel"?"Carousel preview":"Photo post"}</span></div>
+ <div class="hf-post-author"><img src="${who.avatar}" alt=""><div><b>${esc(who.name)}</b><small>${esc(who.handle)} · ${esc(who.location)}</small></div>
+ <button data-hf="${p.seller==="self"?"own":"profile"}" ${p.seller!=="self"?`data-id="${p.seller}"`:""}>Profile →</button></div>
+ <p class="hf-post-full-caption">${esc(p.caption)}</p>
+ <div class="hf-post-interactions">
+ <button data-hf="post-like" data-id="${p.id}" aria-pressed="${state.postLikes.has(p.id)}">${state.postLikes.has(p.id)?"♥ Liked":"♡ Like"}</button>
+ <button data-hf="post-comment-focus">♧ Comment</button>
+ <button data-hf="post-save" data-id="${p.id}">${ownSavedPosts.has(p.id)?"▣ Saved":"▢ Save"}</button>
+ <button data-hf="share">↗ Share</button></div>
+ ${p.related?`<button class="hf-post-attached" data-hf="listing" data-id="${p.related}"><span>✦ Attached ${item(p.related).type}</span><b>${esc(item(p.related).title)}</b><strong>${money(item(p.related).price)} →</strong></button>`:""}
+ <div class="hf-section-row"><h2>Comments</h2><small>Local preview</small></div>
+ <div class="hf-post-comments"><p><b>@community</b> Love seeing the process ✨</p>${comments.map(c=>`<p><b>You</b> ${esc(c)}</p>`).join("")}</div>
+ <form id="hfPostCommentForm" class="hf-post-comment-form"><input id="hfPostCommentInput" name="comment" maxlength="280" required placeholder="Add a demo comment…" aria-label="Comment"/><button type="submit">Post</button></form>
+ <p class="hf-demo-footnote">Sample content only. Likes, comments and saves stay in this demo session.</p></div>`;
+}
+function renderProfileEdit(){
+ const fields=[["Name","name",signedIn.name],["Username","handle",signedIn.handle],["Primary skill","primary",signedIn.primary],["Secondary skill","secondary",signedIn.secondary],["Location","location",signedIn.location]];
+ return `${head("Edit profile","Signed-in account preview",true)}
+ <form class="hf-form" id="hfEditProfileForm">
+ <div class="hf-profile-edit-avatar"><img src="${signedIn.avatar}" alt="Sample avatar"><span>Demo avatar · change in the real app</span></div>
+ ${fields.map(([label,name,value])=>`<div class="hf-field"><label for="hf-edit-${name}">${label}</label><input id="hf-edit-${name}" name="${name}" value="${esc(value)}" maxlength="70" required></div>`).join("")}
+ <div class="hf-field"><label for="hf-edit-bio">Bio</label><textarea id="hf-edit-bio" name="bio" maxlength="250" required>${esc(signedIn.bio)}</textarea></div>
+ <button class="hf-lime-button" type="submit" style="width:100%">Save demo profile →</button>
+ <p class="hf-demo-footnote">This is not your real signed-in account. Changes last only while this preview is open.</p></form>`;
+}
+function renderMapResults(){return `<div class="hf-empty">Loading map discovery…</div>`}
 function renderProfile(){
  const p=person(state.profile);
  const sellerItems=allItems.filter(x=>x.seller===p.id);
@@ -196,13 +245,22 @@ function renderProfile(){
  ${inner}</div>`;
 }
 function renderOwn(){
- return `${head("Your profile","Your skills, work and opportunities",false)}
- <div class="hf-page"><div class="hf-person" style="pointer-events:none"><span style="height:57px;width:57px;background:#d9ecb5;border-radius:50%;display:grid;place-items:center;font-size:26px">✳</span><div class="hf-person-data"><b>Your Hustle identity</b><small>Client and creator in one account</small></div></div>
- <p class="hf-subtitle">This preview doesn't connect to your real Hustle account. When connected, your profile will show your primary skill, secondary skills, work, reviews, listings and apprenticeship badges.</p>
- <div class="hf-section-row"><h2>Build your presence</h2></div>
- <div class="hf-actions"><button data-hf="create" class="hf-lime-button">Create a post</button><button data-hf="market" class="hf-soft-button">Explore marketplace</button></div>
- <div class="hf-notice">Nothing you do here publishes to Hustle. All accounts will be able to discover, buy, hire and demonstrate their own skills.</div>
- <button class="hf-story-banner" data-hf="profile" data-id="tobi"><span>✦</span><div><b>Preview a professional profile</b><small>See how work, services and reviews connect</small></div><strong>→</strong></button></div>`;
+ const tabs=["Posts","Work","Services","Products","Reposts","Saved","Reviews"];
+ let content="";
+ if(state.ownTab==="Posts")content=renderPostsGrid(samplePosts.filter(p=>p.seller==="self"),"Your own posts will appear here.");
+ else if(state.ownTab==="Work")content=renderPostsGrid(samplePosts.filter(p=>p.seller==="self"&&p.tag==="My work"),"Showcase your skills here.");
+ else if(state.ownTab==="Saved")content=renderPostsGrid(samplePosts.filter(p=>ownSavedPosts.has(p.id)),"Only you can see saved posts.");
+ else if(state.ownTab==="Reposts")content='<div class="hf-empty">Posts you repost can appear here. Privacy controls come with your real account.</div>';
+ else if(state.ownTab==="Reviews")content='<div class="hf-empty">Reviews from real customers will appear once your account is connected.</div>';
+ else content='<div class="hf-empty">No demo listings under your profile yet. Create a listing draft to see this flow.</div><button class="hf-lime-button hf-listing-draft" data-hf="create">+ Create listing draft</button>';
+ return `<div class="hf-profile-cover hf-own-cover"><img src="${signedIn.cover}" alt="Sample profile cover"><div class="hf-profile-head"><span>HUSTLE · YOUR PROFILE</span><button data-hf="own-settings" aria-label="Profile settings">⚙</button></div></div>
+ <div class="hf-profile-info"><div class="hf-profile-identity"><img src="${signedIn.avatar}" alt="Sample avatar"><div><h2>${esc(signedIn.name)}</h2><small>${esc(signedIn.handle)} · ${esc(signedIn.location)}</small></div></div>
+ <p class="hf-profile-bio">${esc(signedIn.bio)}</p><div class="hf-trust"><span>Primary: ${esc(signedIn.primary)}</span><span>Secondary: ${esc(signedIn.secondary)}</span><span>Client + creator</span></div>
+ <div class="hf-profile-metrics"><span><b>${signedIn.followers}</b> sample followers</span><span><b>${signedIn.following}</b> following</span><span><b>${samplePosts.filter(p=>p.seller==="self").length}</b> sample posts</span></div>
+ <div class="hf-actions"><button class="hf-lime-button" data-hf="own-edit">Edit profile</button><button class="hf-soft-button" data-hf="create">+ Post</button><button class="hf-soft-button" data-hf="share">↗ Share</button></div>
+ <div class="hf-notice hf-own-notice">Preview account only. No real identity, followers, posts, or account data is connected.</div>
+ <div class="hf-tabs" role="tablist" aria-label="Your profile sections">${tabs.map(x=>`<button data-hf="own-tab" data-value="${x}" class="${state.ownTab===x?"on":""}" role="tab" aria-selected="${state.ownTab===x}">${x}</button>`).join("")}</div>
+ <div class="hf-own-tab-content">${content}</div></div>`;
 }
 function renderListing(){
  const l=item(state.item),seller=person(l.seller);
