@@ -1,0 +1,77 @@
+name: Hustle Isolated Payment Preview Neon Schema (manual only)
+
+# UX046: NO public deployment, payment gateway calls or shared database writes.
+# This initializes ONLY the independently created, empty PG17 Neon project.
+on:
+  workflow_dispatch:
+    inputs:
+      approve_schema:
+        description: 'One-time schema initialization for independent TEST ONLY Neon project; never production/staging'
+        required: true
+        type: choice
+        options:
+          - DO_NOT_APPLY
+          - I_AUTHORIZE_ISOLATED_TEST_SCHEMA_ONLY
+        default: DO_NOT_APPLY
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-payment-preview-db-initialize
+  cancel-in-progress: false
+
+jobs:
+  prepare-independent-neon:
+    if: >-
+      github.repository == 'realxpen/hustle-economy-of-you' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.approve_schema == 'I_AUTHORIZE_ISOLATED_TEST_SCHEMA_ONLY'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    environment: hustle-payment-preview-api
+    env:
+      HUSTLE_PREVIEW_SCHEMA_APPROVAL: ${{ inputs.approve_schema }}
+      HUSTLE_NEON_PROJECT_ID: fragrant-field-59689896
+      HUSTLE_NEON_BRANCH_ID: br-curly-leaf-zat0ec8m
+      HUSTLE_PREVIEW_MIGRATION_URL: ${{ secrets.HUSTLE_PREVIEW_NEON_OWNER_URL }}
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Validate exact preview schema authority before installing or contacting Neon
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = 'realxpen/hustle-economy-of-you'
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "$HUSTLE_NEON_PROJECT_ID" = 'fragrant-field-59689896'
+          test "$HUSTLE_NEON_BRANCH_ID" = 'br-curly-leaf-zat0ec8m'
+          test "$HUSTLE_PREVIEW_SCHEMA_APPROVAL" = 'I_AUTHORIZE_ISOLATED_TEST_SCHEMA_ONLY'
+          test -n "$HUSTLE_PREVIEW_MIGRATION_URL" || { echo "::error::Protected Neon OWNER database URL missing; no changes made"; exit 1; }
+          node --input-type=module -e 'import { validateMigrationTarget } from "./scripts/payment-preview/migrate.mjs"; validateMigrationTarget(process.env.HUSTLE_PREVIEW_MIGRATION_URL); console.log("PASS: reviewed Neon direct owner target, no value printed");'
+          test -z "${PAYSTACK_SECRET_KEY:-}"
+          test -z "${PAYSTACK_TEST_SECRET_KEY:-}"
+          test -z "${DATABASE_URL:-}"
+          test -z "${STAGING_AUTH_DATABASE_URL:-}"
+      - name: Install locked repository tooling and PostgreSQL client
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          npm ci --include=dev
+          node scripts/payment-preview/check-guard.mjs
+      - name: Apply reviewed Hustle application schema and separate Better Auth schema to NEW empty Neon only
+        shell: bash
+        run: node scripts/payment-preview/migrate.mjs
+      - name: Keep isolated preview API and Paystack TEST disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'PASS: schema-only activation completed. No Cloudflare/Paystack/AWS Lambda resource deployed.'
