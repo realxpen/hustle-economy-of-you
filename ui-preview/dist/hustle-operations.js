@@ -438,7 +438,7 @@ function handle(op,id,value,node){
   case "Agent":nav(state.agentPreview?"Agent":"AgentIntro");break;
   case "Admin":state.adminPreview=false;nav("AdminGate");break;
   case "wallet-tab":state.walletTab=value;render();break;
-  case "adaptive-hub":close();window.HustleAdaptiveUI?.open(value||"Spaces");break;
+  case "adaptive-hub":{const tab=value||(state.page==="Agent"?"Team":"Spaces");close();window.HustleAdaptiveUI?.open(tab);break}
   case "studio-tab":state.hustlerTab=value;render();break;
   case "booking-config-skill":state.bookingConfigSkill=value;state.businessOwner=window.HustleBookingRules?.samples?.find(x=>x.id===value)?.name||"Sample professional";render();break;
   case "business-setup":state.businessStep=0;nav("BusinessSetup");break;
