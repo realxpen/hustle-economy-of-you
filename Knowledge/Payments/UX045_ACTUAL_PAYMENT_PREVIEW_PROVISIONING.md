@@ -16,19 +16,27 @@ The approved AWS setup **did not** create the CloudFormation stack, IAM Lambda e
 
 The stored secret record may incur AWS Secrets Manager charges even before activation; AWS lists pricing by secret-month and API usage (see https://aws.amazon.com/secrets-manager/pricing/). The ECR repository currently has no images; future storage and compute may incur separate costs.
 
-## Neon project NOT CREATED
+## Neon separate test project CREATED and verified
 
-Connected Neon organization `org-gentle-math-72719637` is on **Free**. Project creation with a custom idle suspend interval was rejected by Neon (`[HTTP 412] modifying the suspend interval is not permitted on this account`). A subsequent creation call was blocked by the tool's safety controls. **No alternate creation channel or unauthorized staging branch was used.** Re-verify in the Neon console before any manual provisioning; do not bypass account restrictions.
+The founder created a **new, unrelated** Neon project on 31 October 2026, verified via the connected Neon API. Neon uses the default branch name `production` even for this independent, empty **nonproduction TEST** project; do not confuse its branch name with the production Hustle database.
 
-The required *new, independent* Neon project must use:
+| Non-secret resource | Verified identity |
+|---|---|
+| Project | `hustle-payment-preview-isolated` |
+| Neon project ID | `fragrant-field-59689896` |
+| Branch ID | `br-curly-leaf-zat0ec8m` (branch label `production`) |
+| Region | `aws-eu-west-2`, PostgreSQL 17, Neon Free |
+| Dedicated database | `hustle_payment_preview` |
+| Separate, direct unpooled host | `ep-holy-block-zauxat1w.c-2.eu-west-2.aws.neon.tech` |
+| Dedicated role | `hustle_payment_preview_api`, created and verified |
+| Application schema | `public`, empty |
+| Dedicated Better Auth schema | `payment_auth`, created and empty |
 
-- Name `hustle-payment-preview-isolated`; region `aws-eu-west-2` (London); PostgreSQL 17; an **empty new project**, not branched from the existing Hustle staging or production database
-- New default branch, dedicated database `hustle_payment_preview` and role `hustle_payment_preview_api`
-- Nonpooled SSL-enforced database URL on the new host with `?sslmode=require&schema=public`
-- Independently isolated `payment_auth` schema for Better Auth; no customer/staging data
-- Exact new project ID, branch ID, and host are required as inputs to `hustle-payment-preview-api-deploy.yml`. Never paste passwords or Paystack keys into workflow inputs or PR comments
+Postgres permissions were checked live: dedicated role can CONNECT and CREATE in both schemas. **No production/staging data, migrations or application users were imported.**
 
-Open the [Neon console](https://console.neon.tech/) for manual project creation if allowed by the account; a new project's default settings may differ from requested low-resource choices. Review free-tier quota before proceeding.
+Neon's generated connection-string API defaults to a **pooler** host and may append `channel_binding=require`; UX042's startup contract intentionally needs the **direct** host above and only the `sslmode=require&schema=public` / `schema=payment_auth` URL parameters. A secure operator must copy the dedicated role password within the Neon console and configure exact **unpooled** URLs in AWS Secrets Manager. Do not paste connection strings/passwords into GitHub, chat or a PR.
+
+A programmatic transfer of Neon credentials to AWS Secrets Manager was **blocked by safety controls**. No retry/workaround was used. The AWS secret was rechecked and is still tagged `status=not-configured`, with its original single inactive version. The application migrations and authentication-table initialization **have not yet been applied** to this fresh test database.
 
 ## Deployment credentials — still INACTIVE
 
@@ -47,8 +55,8 @@ The UX044 manual deploy also previously requested unnecessary public ECR credent
 
 ## Still blocked — do not dispatch deployment
 
-1. Create/review new Neon test project, dedicated database role/auth schema. Run migrations only on that NEW project after separate approval.
-2. Configure the new AWS secret with valid test-only credentials through protected channels. Confirm metadata tag `configured-test-only` only after validation.
+1. **Completed:** verify new Neon test project, database, dedicated API role and empty `public` / `payment_auth` schemas. **Still pending:** apply the existing reviewed Prisma app and Better Auth migrations to this fresh test database using a protected credential channel.
+2. Configure the new AWS secret with two nonpooled database URLs, a unique random Better Auth secret, invited internal test email addresses and a private `sk_test_` key **through AWS's protected console**. Confirm the `configured-test-only` metadata tag only after all values and isolated schema migrations are verified.
 3. Configure **GitHub environment `hustle-payment-preview-api`**, main-branch deployment policy, human reviewers, and separate narrow Cloudflare deployment credentials. The AWS OIDC role cannot be assumed using an ordinary PR token.
 4. Review CloudFormation's public Function URL model and costs; explicit separate founder deployment approval remains mandatory. Do not modify Paystack TEST webhook URL yet, and never change Live settings.
 5. Only then dispatch the manual `Hustle Dedicated Paystack TEST API Backend + Edge` workflow with the new project/branch/host IDs.
