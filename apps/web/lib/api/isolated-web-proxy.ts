@@ -7,9 +7,17 @@ import { NextRequest, NextResponse } from "next/server";
  */
 const STAGING_API_ORIGIN = "https://hustle-isolated-staging-api.vercel.app";
 const AWS_STAGING_API_ORIGIN = "https://hh2zi77ntrsjj3rgapko7rsjv40ztgpu.lambda-url.eu-west-2.on.aws";
+const PAYMENT_PREVIEW_API_ORIGIN = "https://hustle-payment-preview-api.realxpens.workers.dev";
 /** Only these two literal, vetted isolated runtimes may be used. */
 export function selectedIsolatedBackendOrigin(): string | null {
   const choice = process.env.HUSTLE_API_BACKEND_TARGET;
+  if (choice === "payment-preview") {
+    return process.env.HUSTLE_ISOLATED_PWA_GATE === "payment-preview" &&
+      process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH === "true" &&
+      process.env.HUSTLE_PAYMENT_PREVIEW_API_ORIGIN === PAYMENT_PREVIEW_API_ORIGIN
+      ? PAYMENT_PREVIEW_API_ORIGIN : null;
+  }
+  if (process.env.HUSTLE_ISOLATED_PWA_GATE === "payment-preview") return null;
   if (choice === "aws-lambda-isolated-staging") return AWS_STAGING_API_ORIGIN;
   if (!choice || choice === "vercel-isolated-staging") return STAGING_API_ORIGIN;
   return null; // Invalid/missing preview target fails closed, never arbitrary forwarding.
@@ -58,8 +66,13 @@ const productOwned = /^api\/v1\/products\/[A-Za-z0-9_-]+$/;
 const variantOwned = /^api\/v1\/products\/[A-Za-z0-9_-]+\/variants\/[A-Za-z0-9_-]+$/;
 
 export function isIsolatedWebPreviewEnabled() {
-  return process.env.HUSTLE_ISOLATED_PWA_GATE === "isolated-staging"
-    && process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH === "true";
+  if (process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH !== "true") return false;
+  // Keep existing staging behavior: a misconfigured backend is surfaced as
+  // 503 from selectedIsolatedBackendOrigin(), not a 404. Payments stay blocked.
+  if (process.env.HUSTLE_ISOLATED_PWA_GATE === "isolated-staging") return true;
+  if (process.env.HUSTLE_ISOLATED_PWA_GATE === "payment-preview")
+    return selectedIsolatedBackendOrigin() === PAYMENT_PREVIEW_API_ORIGIN;
+  return false;
 }
 
 export function stagingProxyAllowed(method: string, segments: string[]) {
@@ -79,6 +92,28 @@ export function stagingProxyAllowed(method: string, segments: string[]) {
     method === "DELETE" && (postDelete.test(route) || route === cartRead || cartItem.test(route) || followAction.test(route) || safetyBlock.test(route) || productOwned.test(route) || variantOwned.test(route)) ||
     method === "PATCH" && route === "api/v1/auth/profile";
 }
+/** A separately deployed paid-preview Worker. Never widen current staging. */
+export function paymentPreviewProxyAllowed(method: string, segments: string[]): boolean {
+  if (!segments.length || segments.some(s => !/^[A-Za-z0-9_-]+$/.test(s))) return false;
+  const route = segments.join("/");
+  if (route.startsWith("api/v1/sandbox/")) return false;
+  const id = "[A-Za-z0-9_-]+";
+  if (method === "GET") {
+    return new RegExp(`^api/v1/orders/(?:buyer|seller|${id})$`).test(route) ||
+      stagingProxyAllowed(method, segments);
+  }
+  if (method === "POST") {
+    return new Set(["api/v1/cart/checkout", "api/v1/cart/checkout/preview",
+      "api/v1/payments/initialize"]).has(route) ||
+      new RegExp(`^api/v1/payments/attempts/${id}/verify$`).test(route) ||
+      new RegExp(`^api/v1/bookings/${id}/(?:start|complete)$`).test(route) ||
+      new RegExp(`^api/v1/orders/${id}/(?:process|ship|deliver|complete|cancel)$`).test(route) ||
+      new RegExp(`^api/v1/wallet/(?:escrows/bookings|settlements/orders)/${id}/release$`).test(route) ||
+      stagingProxyAllowed(method, segments);
+  }
+  return stagingProxyAllowed(method, segments);
+}
+
 const privateHeaders = ["authorization", "cookie"];
 function copyCookies(source: Headers, target: Headers) {
   // A host-only cookie issued via this same-origin proxy is stored on the PWA
@@ -92,7 +127,11 @@ function copyCookies(source: Headers, target: Headers) {
 }
 export async function proxyIsolatedRequest(req: NextRequest, segments: string[]) {
   if (!isIsolatedWebPreviewEnabled()) return NextResponse.json({message:"Not found"}, {status:404});
-  if (!stagingProxyAllowed(req.method, segments)) return NextResponse.json({message:"Staging route disabled"}, {status:403});
+  const paymentMode = process.env.HUSTLE_ISOLATED_PWA_GATE === "payment-preview";
+  if (!(paymentMode ? paymentPreviewProxyAllowed(req.method, segments) :
+        stagingProxyAllowed(req.method, segments))) {
+    return NextResponse.json({message:"Preview route disabled"}, {status:403});
+  }
 
   // CSRF boundary for credential-bearing writes: only same-origin JSON fetch.
   if (req.method !== "GET") {
@@ -133,7 +172,8 @@ export async function proxyIsolatedRequest(req: NextRequest, segments: string[])
   }
   // Only sandbox withdrawal reservations may carry a financial idempotency key.
   // Preserve it end-to-end so a retried iPhone request cannot double-reserve funds.
-  if (req.method === "POST" && segments.join("/") === "api/v1/sandbox/wallet/withdrawals") {
+  if (req.method === "POST" && (segments.join("/") === "api/v1/sandbox/wallet/withdrawals" ||
+      (paymentMode && segments.join("/") === "api/v1/payments/initialize"))) {
     const idempotencyKey = req.headers.get("idempotency-key");
     if (!idempotencyKey || !/^[A-Za-z0-9._:-]{8,200}$/.test(idempotencyKey)) {
       return NextResponse.json({message:"Valid sandbox withdrawal Idempotency-Key required"}, {status:400});
