@@ -245,3 +245,64 @@ The source and DOM interaction tests pass; actual iPhone visual layout and Cloud
 - 11/11 cross-module navigation, studio entry and checkout checks passed.
 - 12/12 Admin read-only, agent authorization and dispute regression checks passed.
 - Latest preview branch code is committed. Cloudflare deployment and actual iPhone Safari visual QA are not yet verified.
+
+
+## End-to-end journey milestone — Auth, Onboarding, Booking, Payment, Reports, Notifications, Agent Assisted Setup
+
+### Navigation and design
+- New isolated preview modules: ui-preview/dist/hustle-journeys.js and ui-preview/dist/hustle-journeys.css.
+- Preserves V1 feed, Stories, immersive Live, Explore Map, Marketplace, Cart, Profile, Wallet/Escrow, Agent/Hustler Studios and Admin sandbox.
+- UI components share the approved tactile-soft lime visual language: consistent headers, inputs, buttons, progress indicators, status cards, confirmation dialogs, safe-area padding, loading/splash animation, touch target sizes and reduced-motion behavior.
+- No deployment or changes to the production application or production database.
+
+### Splash, guest access and authentication
+1. On first visit in a browser session, show brief animated Hustle splash and simple welcome.
+2. Welcome offers Start, or **Explore as guest** without requiring a contact or account.
+3. Unified sign-in/new-account entry accepts phone or email (not passwords) and simulated six-digit OTP. The preview openly displays code 123456 and sends no SMS/email; it is *not authentication*.
+4. First-time preview account personalization: choose Discover, Hire, Offer Skills or Both (one account can do both), display name, optional username, skill and area, optional future notification preferences. No precise location permission at signup.
+5. Successful onboarding updates the local demo user's display and routes to Hustle. Returning demo user in the same page session does not repeat onboarding.
+6. After dismissing the intro, reload within the browser session skips first-launch splash to avoid repeated friction. It can be replayed from Profile → Settings → Preview welcome & splash.
+7. Real deployment needs verified login session issuance, safe OTP rate-limiting/expiry, replay protection, device/session revocation, consent recording, privacy controls and account recovery.
+
+### Booking / consultation / quote / payment / escrow / review
+1. Service detail or chat → Book consultation.
+2. Customer describes work, references and area → chooses demo consultation mode/day/time.
+3. Preview professional quote → accept or request changes; never pretend the professional has actually confirmed a slot or quote.
+4. Choose a demo payment method. Protected-payment preview creates a matching example escrow record in Wallet.
+5. Work progresses through separate 40/60 demo milestones; client release requires confirmation and affects the matching escrow milestone.
+6. Raise dispute to freeze remaining demo milestones; internal sandbox review can simulate adjudication.
+7. Once milestones are released, mark completion and leave an optional demo review. Notifications show example status events.
+8. Production needs provider confirmed bookings, consultation scheduling, quotation versions/acceptance, itemized milestones, payment authorization, dispute evidence, client/server role scopes, release controls and reconciled double-entry ledger.
+
+### Product payment journey
+- Product detail / Cart → delivery details → review → choose Card, Bank transfer or Wallet (demo) → simulated result / tracking reference.
+- No actual product is purchased, stock is reserved, payment is charged, wallet is debited, or seller notified. Wallet prefunding should remain optional.
+- Production must handle tax, delivery estimate, fees, inventory reservation, order idempotency, settlement, refund, tracking and reliable notifications.
+
+### Report / safety journey
+- Report actions from Feed post, creator post, profile, listing, conversation and Live room.
+- Select reason → optional contextual detail and local screenshot selection → review/confirm → receive case reference → My reports case tracking.
+- New demo report also creates an internal Admin moderation queue item. Admin's sample decision updates the report's demo case status and adds a local notification.
+- Production requires secure evidence upload, abuse controls, privacy, case state machine, severity/safety routing, appeals and immutable moderation audit log. Do not expose reporter identity to reported accounts without appropriate legal/policy grounds.
+
+### Notifications
+- Accessible from Inbox and Profile Settings. Categories: Booking, Money/Escrow, Orders, Activity, System.
+- Unread/read states, Mark all read, per-category preferences and deep links to journey screens.
+- Journey events such as quote/payment, escrow milestones, dispute, onboarding, report submission and agent invitations add local sample notifications.
+- No real push permission request or message delivery occurs. Production requires event-driven notifications with user preferences, deduplication, consent and unread synchronization.
+
+### Agent onboarding (existing professional vs new low-tech professional)
+- Approved agent enters Agent Studio → Add talent → select Existing user or New/assisted onboarding.
+- Existing: search and select an existing Hustle profile without revealing contacts → review permissions → generate invitation that user independently accepts or declines.
+- New: collect only minimum provisional information (name, skill, optional area), choose explanation language (English, Yoruba, Pidgin, Igbo, Hausa, Other) and handoff method (in person, voice assisted, printed card).
+- Agent explicitly acknowledges explanation and anti-impersonation rules before preview invitation.
+- Invitation remains Pending; a separate **Professional confirmation** screen shows exactly what access is requested and prohibits funds, withdrawals and escrow releases.
+- Professional accepts with explicit acknowledgement or declines. Agent-side attempt to accept directly is blocked in preview.
+- Agent cannot collect or use the professional's OTP, impersonate them, withdraw their money, access their wallet balances or release client escrow. Actual account ownership/verification must remain with the professional.
+- In production invitation issuance must be server verified, time limited, one-use and limited to per-user delegated permissions, with revoke/expiry controls and hustler-owned identity/face verification on sensitive actions.
+
+### Quality verification
+- 22 simulated journey assertions passed for guest/auth/onboarding, notifications, report queue, booking/escrow milestone, dispute, checkout and new-agent consent.
+- 11 additional updated journey assertions passed for one-time splash, repeat sign-in, existing/new agent invitations, professional approval and decline.
+- Source syntax, module references, iPhone safe-area/reduced-motion rules, demo-only financial/auth safeguards and report/notification hooks passed 14/14 static checks.
+- These checks are mocked DOM and source validations. **They do not confirm Cloudflare finished deploying or that all screens have been visually tested on iPhone Safari.**
