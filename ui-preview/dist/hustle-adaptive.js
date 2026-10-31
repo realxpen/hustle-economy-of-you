@@ -109,7 +109,7 @@ function createOpportunity(title,description,category,location="",budget=0){
 }
 function inferServices(input){
  const text=String(input||"").toLowerCase(),terms=[
- ["barber","Barbering"],["hair","Hair and beauty"],["wedding","Event services"],["photograph","Photography"],["cater","Catering"],["food","Food preparation"],["cloth","Tailoring"],["outfit","Tailoring"],["shoe","Shoemaking"],["laundry","Laundry"],["clean","Cleaning"],["design","Design"],["video","Video production"],["tutor","Tutoring"],["lesson","Education"]];
+ ["barber","Barbering"],["hair","Hair and beauty"],["wedding","Event services"],["photograph","Photography"],["photo","Photography"],["cater","Catering"],["makeup","Makeup"],["decorate","Event decoration"],["food","Food preparation"],["cloth","Tailoring"],["outfit","Tailoring"],["shoe","Shoemaking"],["laundry","Laundry"],["clean","Cleaning"],["design","Design"],["video","Video production"],["tutor","Tutoring"],["lesson","Education"]];
  const found=[...new Set(terms.filter(([term])=>text.includes(term)).map(x=>x[1]))];return found.length?found:["General professional services"];
 }
 function suggestOpportunity(id){
@@ -134,7 +134,7 @@ function revokeDelegation(id){
 }
 function assignWork(workId,grantId){
  const work=state.orders.find(x=>x.id===workId),grant=state.grants.find(x=>x.id===grantId);
- if(!work||!grant||grant.spaceId!==work.spaceId||grant.state!=="demo_approved"||!grant.permissions.includes("work.manage")||!can("work.manage",work.spaceId))return false;
+ if(!work||work.externalRef||!grant||grant.spaceId!==work.spaceId||grant.state!=="demo_approved"||!grant.permissions.includes("work.manage")||!can("work.manage",work.spaceId))return false;
  work.assignedTo=grant.id;work.version++;log("work.assign",work.id,grant.id);return true
 }
 function attachEvidence(workId,title,description=""){
