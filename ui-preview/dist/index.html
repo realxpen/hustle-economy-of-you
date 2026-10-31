@@ -423,6 +423,13 @@ button{ -webkit-tap-highlight-color:transparent}
 }
 @media(prefers-reduced-motion:reduce){.hp-video-paused-symbol{transition:none}}
 
+
+/* Home LIVE discoverability, while keeping the immersive post-first chrome */
+.feed-ranks .home-live-tab{display:inline-flex;align-items:center;gap:5px;color:#d74350;font-weight:900;letter-spacing:.1px}
+.feed-ranks .home-live-tab>span{font-size:10px;color:#f3505b;line-height:1}
+@media(max-width:550px){.feed-ranks{gap:18px}.feed-ranks .home-live-tab{font-size:11px}}
+@media(max-width:355px){.feed-ranks{gap:13px}.feed-ranks button{font-size:11px}.feed-ranks .home-live-tab{font-size:10px}}
+
 </style>
 <link rel="stylesheet" href="./hustle-flows.css">
 <link rel="stylesheet" href="./hustle-commerce-live.css">
@@ -431,7 +438,7 @@ button{ -webkit-tap-highlight-color:transparent}
 <div class="demo-shell" id="app"><div class="phone" id="phone">
 <div class="feed-chrome-top" id="feedChromeTop"><div class="status"><span>9:41</span><span class="status-icons">▂ ▆ ● ▰</span></div>
 <header class="top-head"><div class="brand">hustle<i>.</i></div><div class="top-actions"><button class="stories-entry" data-action="openStories" aria-label="Browse creator Stories"><span class="stories-entry-ring" aria-hidden="true"><span>✦</span></span><span>Stories</span></button><button class="round-ctl" data-action="notifications" aria-label="Notifications"><svg class="ico"><use href="#icon-bell"/></svg></button><button class="round-ctl" data-action="theme" aria-label="Toggle dark mode"><svg class="ico"><use href="#icon-moon"/></svg></button></div></header>
-<div class="feed-ranks" role="tablist" aria-label="Feed ranking"><button data-rank="Following">Following</button><button data-rank="For you" class="active" aria-selected="true">For you</button><button data-rank="Nearby">Nearby</button></div>
+<div class="feed-ranks" role="tablist" aria-label="Feed ranking"><button data-rank="Following">Following</button><button data-rank="For you" class="active" aria-selected="true">For you</button><button data-rank="Nearby">Nearby</button><button class="home-live-tab" data-home-live aria-label="Explore Live creator feeds"><span aria-hidden="true">●</span> Live</button></div>
 </div>
 <main class="scroll-view" id="feedScroll" aria-label="Hustle posts" tabindex="0"><div class="feed-blurb"><strong>Made by people. Built on skill.</strong><span>Swipe down for more posts</span></div><div id="feedPosts"></div></main>
 <nav class="bottom-nav" aria-label="Primary navigation"><button class="nav-button active" data-nav="Home"><svg class="ico"><use href="#icon-home"/></svg>Home</button><button class="nav-button" data-nav="Explore"><svg class="ico"><use href="#icon-search"/></svg>Explore</button><button class="nav-button" data-nav="Create"><span class="nav-plus"><svg class="ico"><use href="#icon-plus"/></svg></span>Create</button><button class="nav-button" data-nav="Inbox"><svg class="ico"><use href="#icon-chat"/></svg>Inbox</button><button class="nav-button" data-nav="Profile"><svg class="ico"><use href="#icon-user"/></svg>Profile</button></nav>
