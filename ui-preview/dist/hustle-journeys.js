@@ -11,7 +11,7 @@ const defaults=[
 {id:"n3",type:"Activity",title:"New work from Flora Studio",detail:"See a sample creator post.",time:"1 hr",read:false,route:"Explore"},
 {id:"n4",type:"Orders",title:"Sample order status updated",detail:"Your demo order is ready to review.",time:"Yesterday",read:true,route:"PaymentJourney"},
 {id:"n5",type:"System",title:"Welcome to Hustle",detail:"Discover and connect with skilled people.",time:"Yesterday",read:true,route:"Explore"}];
-const data={notifications:defaults,reports:[],agentInvites:[],onboarding:{name:"",handle:"",skill:"",secondary:"",area:"",intent:"both",notifications:false},auth:{method:"phone",contact:"",step:0},booking:{stage:"request",service:"Signature haircut",professional:"Tobi Adeyemi",price:8000,requirements:"",location:"",day:"Tomorrow",time:"11:30 AM",mode:"Video call",quoteAccepted:false,paymentConfirmed:false,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}],dispute:false,review:0,notes:""},purchase:{item:"Weekend meal box",price:12500,delivery:"Yaba, Lagos",method:"Card",stage:"details",status:"Not placed",reference:""},prefs:{Booking:true,Orders:true,Money:true,Activity:true,System:true}};
+const data={notifications:defaults,reports:[],agentInvites:[],onboarding:{name:"",handle:"",skill:"",secondary:"",area:"",intent:"both",notifications:false},auth:{method:"phone",contact:"",step:0},booking:{stage:"request",service:"Signature haircut",professional:"Tobi Adeyemi",price:8000,requirements:"",location:"",day:"Tomorrow",time:"11:30 AM",mode:"Video call",quoteAccepted:false,paymentConfirmed:false,escrowRef:null,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}],dispute:false,review:0,notes:""},purchase:{item:"Weekend meal box",price:12500,delivery:"Yaba, Lagos",method:"Card",stage:"details",status:"Not placed",reference:""},prefs:{Booking:true,Orders:true,Money:true,Activity:true,System:true}};
 const state={screen:"Splash",stack:[],guest:true,signedIn:false,user:null,authStep:"contact",otp:"",onboardStep:0,notificationFilter:"All",reportSubject:"Post",reportId:"Sample post",reportReason:"Misleading or fraudulent",reportText:"",reportFile:null,reportIdActive:null,agentStep:0,agentMode:"Existing",agentSearch:"",agentSelected:"",agentName:"",agentSkill:"",agentArea:"",agentConsent:false,agentTerms:false,agentInviteId:null,modal:"",info:""};
 const steps={BookingJourney:["Request","Consultation","Quote","Payment","Work","Completion","Review"],PaymentJourney:["Details","Review","Payment","Result"],AgentAdd:["Choose","Details","Consent","Invite"]};
 const visual={Booking:"◷",Money:"₦",Activity:"♥",Orders:"▣",System:"✦"};
@@ -194,7 +194,7 @@ function render(){
 }
 function open(screen="Welcome",opts={}){
  if(screen==="Report"){state.reportSubject=opts.subject||"Content";state.reportId=opts.id||"Sample content";state.reportText="";state.reportReason="Misleading or fraudulent"}
- if(screen==="BookingJourney"&&opts.service){data.booking={...data.booking,service:opts.service,professional:opts.professional||data.booking.professional,price:Number(opts.price)||data.booking.price,stage:"request",quoteAccepted:false,paymentConfirmed:false,dispute:false,review:0,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}]}}
+ if(screen==="BookingJourney"&&opts.service){data.booking={...data.booking,service:opts.service,professional:opts.professional||data.booking.professional,price:Number(opts.price)||data.booking.price,stage:"request",quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}]}}
  if(screen==="PaymentJourney"&&opts.item){data.purchase={...data.purchase,item:opts.item,price:Number(opts.price)||data.purchase.price,method:opts.method||data.purchase.method,delivery:opts.delivery||data.purchase.delivery,stage:"details",status:"Not placed"}}
  if(screen==="AgentAdd"){state.agentStep=0;state.agentMode="Existing";state.agentSelected="";state.agentConsent=false;state.agentTerms=false}
  state.stack=[];state.screen=screen;state.modal="";root.hidden=false;phone.classList.add("hj-open");render();
@@ -216,7 +216,7 @@ function onAction(action,value="",id=""){
  case "notification-settings":go("NotificationSettings");break;
  case "notifications":go("Notifications");break;
  case "mark-all":data.notifications.forEach(n=>n.read=true);render();break;
- case "notification-open":{const n=data.notifications.find(n=>n.id===id);if(!n)return;n.read=true;render();if(n.route==="Escrow"){close();window.HustleOperations?.open("Wallet")}else if(n.route==="BookingJourney")open("BookingJourney");else if(n.route==="PaymentJourney")open("PaymentJourney");else if(n.route==="Explore"){close();window.HustleFlowsPreview?.open("Explore")}break}
+ case "notification-open":{const n=data.notifications.find(n=>n.id===id);if(!n)return;n.read=true;render();if(n.route==="Escrow"){close();if(data.booking.escrowRef)window.HustleOperations?.openEscrow?.(data.booking.escrowRef);else window.HustleOperations?.open("Wallet")}else if(n.route==="BookingJourney")open("BookingJourney");else if(n.route==="PaymentJourney")open("PaymentJourney");else if(n.route==="Explore"){close();window.HustleFlowsPreview?.open("Explore")}break}
  case "report-start":go("Report");break;case "reports":go("Reports");break;
  case "report-block":renderToast("Demo block applied for this session");break;
  case "modal-close":state.modal="";render();break;
@@ -224,16 +224,17 @@ function onAction(action,value="",id=""){
  case "booking-accept":data.booking.quoteAccepted=true;data.booking.stage="payment";render();break;
  case "booking-revise":data.booking.stage="quote";renderToast("Quote returned to review");render();break;
  case "payment-method":data.purchase.method=value;render();break;
- case "booking-pay":{data.booking.paymentConfirmed=true;data.booking.stage="work";addNotice("Money","Protected payment initiated · demo",data.booking.service,"Escrow");render();break}
+ case "booking-pay":{if(!data.booking.paymentConfirmed){data.booking.escrowRef=window.HustleOperations?.addJourneyEscrow?.({service:data.booking.service,professional:data.booking.professional,amount:data.booking.price})||null}
+ data.booking.paymentConfirmed=true;data.booking.stage="work";addNotice("Money","Protected payment preview created · demo",data.booking.service,"Escrow");render();break}
  case "booking-milestone":if(!data.booking.dispute){state.info=id;state.modal="release";render()}else renderToast("Milestone frozen during dispute");break;
- case "release-confirm":{const m=data.booking.milestones[Number(state.info)];if(m&&m.state==="Held"&&!data.booking.dispute){m.state="Released";addNotice("Money","Milestone released · demo",m.title,"Escrow")}state.modal="";render();break}
+ case "release-confirm":{const m=data.booking.milestones[Number(state.info)];if(m&&m.state==="Held"&&!data.booking.dispute){m.state="Released";if(data.booking.escrowRef)window.HustleOperations?.updateJourneyEscrow?.(data.booking.escrowRef,"release",Number(state.info));addNotice("Money","Milestone released · demo",m.title,"Escrow")}state.modal="";render();break}
  case "booking-dispute":state.modal="dispute";render();break;
- case "dispute-confirm":data.booking.dispute=true;state.modal="";addNotice("Money","Demo dispute submitted","Remaining milestones are frozen","Escrow");renderToast("Demo dispute marked; releases paused");render();break;
+ case "dispute-confirm":data.booking.dispute=true;if(data.booking.escrowRef)window.HustleOperations?.updateJourneyEscrow?.(data.booking.escrowRef,"dispute");state.modal="";addNotice("Money","Demo dispute submitted","Remaining milestones are frozen","Escrow");renderToast("Demo dispute marked; releases paused");render();break;
  case "booking-complete":if(data.booking.milestones.every(m=>m.state==="Released")&&!data.booking.dispute){data.booking.stage="completion";addNotice("Booking","Service completed · demo",data.booking.service,"BookingJourney");render()}break;
  case "booking-review":data.booking.stage="review";render();break;
  case "booking-finish":data.booking.notes=root.querySelector("#hj-reviewText")?.value||"";addNotice("Activity","Review drafted · demo",data.booking.service,"Explore");close();break;
  case "rating":data.booking.review=Number(value);render();break;
- case "open-escrow":window.HustleOperations?.open("Wallet");break;
+ case "open-escrow":close();if(data.booking.escrowRef)window.HustleOperations?.openEscrow?.(data.booking.escrowRef);else window.HustleOperations?.open("Wallet");break;
  case "order-choose":data.purchase.stage="payment";render();break;
  case "order-edit":data.purchase.stage="details";render();break;
  case "order-pay":data.purchase.stage="result";data.purchase.status="Payment simulated · not placed";data.purchase.reference=uid("HORD");addNotice("Orders","Order preview complete · no charge",data.purchase.item,"PaymentJourney");render();break;
