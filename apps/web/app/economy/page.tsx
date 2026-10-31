@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ExperienceHeader } from "../../components/navigation/experience-header";
 import { ExperienceState } from "../../components/experience/experience-state";
 import { adaptiveClient, type AdaptiveBlueprint, type AdaptiveInvitation, type AdaptiveMembership, type AdaptiveServiceDraft, type AdaptiveWorkItem } from "../../lib/adaptive";
@@ -89,7 +89,7 @@ export default function EconomyPage() {
     } catch (reason) { setError(message(reason)); }
     finally { setBusy(false); }
   }
-  function submit(event: React.FormEvent<HTMLFormElement>, callback: () => void) {
+  function submit(event: FormEvent<HTMLFormElement>, callback: () => void) {
     event.preventDefault();
     callback();
   }
