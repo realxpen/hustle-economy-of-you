@@ -11,6 +11,8 @@ const {BookingScheduleService}=require("../../apps/api/dist/booking/booking-sche
 const url=new URL(process.env.DATABASE_URL||"postgresql://missing");
 if(!["127.0.0.1","localhost"].includes(url.hostname) || !url.pathname.endsWith("/hustle_adaptive_ci"))
  throw Error("Refusing non-disposable database");
+// Only after localhost / disposable-database guards: exercise feature-on roster reads.
+process.env.HUSTLE_ADAPTIVE_CORE_ENABLED="true";
 const db=new PrismaClient();
 const api=new AdaptiveService(db);
 const roster=new AdaptiveRosterService(db),schedule=new BookingScheduleService(db);
