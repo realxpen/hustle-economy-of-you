@@ -246,6 +246,15 @@ async function run(){
  assert.equal((await ops.assign(own,business.id,third.id,{staffId:worker2.id,expectedRevision:1})).revision,2);
  assert.equal((await ops.myBookingSummary(other,third.id)).assignment.staff.displayName,worker2.displayName);
 
+ // Explicitly configure this service's client-facing turnaround before
+ // booking. Earlier concurrent draft edit fixtures intentionally reset it
+ // to the 48-hour default; a snapshot must follow the current offer.
+ await db.adaptiveServiceDraft.update({where:{id:template.id},data:{
+  policy:{itemType:"tailoring",turnaroundHours:96,notifyWhenReady:true,
+   handoverMethods:["drop_off","home_pickup"],
+   returnMethods:["shop_pickup","home_delivery"],
+   measurementMethods:["guided_remote"]}
+ }});
  // Tailor item handover is selected by the CLIENT, not the business/agent.
  const garment=await db.booking.create({data:{
   serviceId:prepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
