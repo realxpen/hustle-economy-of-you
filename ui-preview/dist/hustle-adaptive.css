@@ -134,3 +134,8 @@
 .phone.dark .ha-demo-warning{background:#2f432c;color:#e2f2d0;border-color:#486340}
 @media(max-width:365px){.ha-body{padding:12px}.ha-header{padding-left:10px;padding-right:10px}.ha-header h1{font-size:20px}.ha-tabs button{min-width:59px;font-size:9px}.ha-capabilities{gap:6px}}
 @media(prefers-reduced-motion:reduce){.ha-root *{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+.ha-guidance{display:grid;gap:7px}
+.ha-guidance p{display:flex;gap:8px;align-items:start;background:#fff;border:1px solid var(--ha-line);border-radius:11px;padding:10px 12px;font-size:11px;line-height:1.45;margin:0}
+.ha-guidance span{color:#81b33e;flex:none;font-weight:900}
+.phone.dark .ha-guidance p{background:#1f3026;color:#e8f3e5}
