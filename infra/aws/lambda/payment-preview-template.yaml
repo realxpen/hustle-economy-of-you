@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Separate TEST-only Hustle payment-preview NestJS backend, never the existing staging or production stack.
+Parameters:
+  ImageUri:
+    Type: String
+    AllowedPattern: '^707859598737[.]dkr[.]ecr[.]eu-west-2[.]amazonaws[.]com/hustle-payment-preview-api@sha256:[0-9a-f]{64}$'
+    Description: Immutable digest of a reviewed payment-preview image only.
+  PreviewSecretArn:
+    Type: String
+    AllowedPattern: '^arn:aws:secretsmanager:eu-west-2:707859598737:secret:hustle-payment-preview-[A-Za-z0-9_-]+$'
+    Description: NEW dedicated preview secret with private sk_test ONLY; never staging credentials.
+  PreviewDbHost:
+    Type: String
+    AllowedPattern: '^ep-[a-z0-9-]+[.]c-2[.]eu-west-2[.]aws[.]neon[.]tech$'
+    Description: Independently reviewed new Neon host (not existing staging).
+  PreviewNeonProjectId:
+    Type: String
+    AllowedPattern: '^[a-z][a-z0-9-]{8,60}$'
+  PreviewNeonBranchId:
+    Type: String
+    AllowedPattern: '^br-[a-z0-9-]{8,80}$'
+Resources:
+  PreviewLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/hustle-payment-preview-api
+      RetentionInDays: 3
+  PreviewExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: hustle-payment-preview-lambda-execution
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: payment-preview-logs-only
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub 'arn:aws:logs:eu-west-2:707859598737:log-group:/aws/lambda/hustle-payment-preview-api:*'
+  PreviewFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: PreviewLogGroup
+    Properties:
+      FunctionName: hustle-payment-preview-api
+      PackageType: Image
+      Code:
+        ImageUri: !Ref ImageUri
+      Role: !GetAtt PreviewExecutionRole.Arn
+      Architectures: [x86_64]
+      MemorySize: 1024
+      Timeout: 28
+      # The account has a 10 concurrent-execution quota. No reserved concurrency,
+      # which would fail creation; this is NOT a spending cap.
+      Environment:
+        Variables:
+          NODE_ENV: production
+          PORT: '8080'
+          AWS_LWA_PORT: '8080'
+          AWS_LWA_READINESS_CHECK_PATH: /api/v1/health
+          HUSTLE_RUNTIME_SCOPE: payment-preview
+          HUSTLE_AUTH_PROVIDER: expo-better-auth
+          HUSTLE_PAYMENT_GATEWAY: paystack-test
+          HUSTLE_FINANCIAL_PROVIDERS_ENABLED: test-only
+          HUSTLE_PAYMENT_PREVIEW_APPROVAL: I_AUTHORIZE_SEPARATE_TEST_PREVIEW_ONLY
+          HUSTLE_PAYMENT_PREVIEW_DB_HOST: !Ref PreviewDbHost
+          HUSTLE_PAYMENT_PREVIEW_PROJECT_ID: !Ref PreviewNeonProjectId
+          HUSTLE_PAYMENT_PREVIEW_BRANCH_ID: !Ref PreviewNeonBranchId
+          HUSTLE_PAYMENT_PREVIEW_API_ORIGIN: https://hustle-payment-preview-api.realxpens.workers.dev
+          HUSTLE_PAYMENT_PREVIEW_WEB_ORIGIN: https://hustle-payment-preview.realxpens.workers.dev
+          WEB_ORIGIN: https://hustle-payment-preview.realxpens.workers.dev
+          BETTER_AUTH_URL: https://hustle-payment-preview-api.realxpens.workers.dev/api/auth
+          PAYSTACK_TEST_RETURN_ORIGIN: https://hustle-payment-preview.realxpens.workers.dev
+          DATABASE_URL: !Sub '{{resolve:secretsmanager:${PreviewSecretArn}:SecretString:DATABASE_URL}}'
+          STAGING_AUTH_DATABASE_URL: !Sub '{{resolve:secretsmanager:${PreviewSecretArn}:SecretString:STAGING_AUTH_DATABASE_URL}}'
+          BETTER_AUTH_SECRET: !Sub '{{resolve:secretsmanager:${PreviewSecretArn}:SecretString:BETTER_AUTH_SECRET}}'
+          HUSTLE_STAGING_TEST_EMAILS: !Sub '{{resolve:secretsmanager:${PreviewSecretArn}:SecretString:HUSTLE_STAGING_TEST_EMAILS}}'
+          PAYSTACK_TEST_SECRET_KEY: !Sub '{{resolve:secretsmanager:${PreviewSecretArn}:SecretString:PAYSTACK_TEST_SECRET_KEY}}'
+  # Dedicated Function URL is a separate origin, NEVER current staging.
+  # URL NONE is public: the Nest payment-preview route allowlist, AuthGuard,
+  # Paystack raw-body HMAC and private verifyReference are mandatory. Do not
+  # disclose this address as a user-facing app; Cloudflare API edge is preferred.
+  PreviewFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt PreviewFunction.Arn
+      AuthType: NONE
+      Cors:
+        AllowOrigins:
+          - https://hustle-payment-preview.realxpens.workers.dev
+        AllowMethods: [GET, POST, PUT, PATCH, DELETE]
+        AllowHeaders: [authorization, content-type, idempotency-key]
+        AllowCredentials: false
+  PreviewFunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PreviewFunction
+      Principal: '*'
+      Action: lambda:InvokeFunctionUrl
+      FunctionUrlAuthType: NONE
+  PreviewInvokeViaUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PreviewFunction
+      Principal: '*'
+      Action: lambda:InvokeFunction
+      InvokedViaFunctionUrl: true
+Outputs:
+  PreviewFunctionName:
+    Value: !Ref PreviewFunction
+  PreviewOrigin:
+    Description: This independent Lambda URL is not a published Hustle app URL. Protect the Cloudflare edge and perform end-to-end security acceptance.
+    Value: !GetAtt PreviewFunctionUrl.FunctionUrl
