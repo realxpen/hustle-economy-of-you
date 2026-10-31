@@ -54,6 +54,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
+      - name: Exercise actual web proxy finance isolation and reserved paid-preview route allowlist (offline)
+        run: node scripts/payment-sandbox/check-payment-preview-web-proxy.cjs
       - name: Syntax-check protected provider runner without running it
         run: node --check scripts/payment-sandbox/real-paystack-test-preflight.mjs
       - name: Validate protected real-provider preflight denies unsafe contexts without network
