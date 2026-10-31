@@ -23,7 +23,7 @@ for(const [bad,reason] of [
   [undefined,/malformed/], ["",/malformed/],
   [url.replace("postgresql:","http:"),/postgresql/],
   [url.replace("hustle_payment_preview_owner","hustle_payment_preview_api"),/owner role/],
-  [url.replace("hustle_payment_preview","staging"),/database/],
+  [url.replace("/hustle_payment_preview?","/staging?"),/database/],
   [url.replace(host,"ep-cold-smoke-za8u3vsm.c-2.eu-west-2.aws.neon.tech"),/endpoint/],
   [url.replace("sslmode=require","sslmode=disable"),/TLS/],
   [url.replace("schema=public","schema=payment_auth"),/schema/],
