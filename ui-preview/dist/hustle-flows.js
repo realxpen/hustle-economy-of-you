@@ -927,7 +927,13 @@ layer.addEventListener("input",e=>{
   const field=layer.querySelector("#hfMarketSearch");if(field){field.focus();try{field.setSelectionRange(pos,pos)}catch(err){}}
   return;
  }
- if(e.target.id==="hfExploreQuery"){state.query=e.target.value;const result=layer.querySelector("#hfSearchResults");if(result){if(mapInstance)disposeMap();result.innerHTML=exploreResults();if(state.exploreTab==="Map")initializeMapAfterRender()}}
+ if(e.target.id==="hfExploreQuery"){
+  state.query=e.target.value;
+  const result=layer.querySelector("#hfSearchResults");
+  if(result){if(mapInstance)disposeMap();result.innerHTML=mapSearchPreview()+exploreResults();if(state.exploreTab==="Map")initializeMapAfterRender()}
+  const presearch=layer.querySelector("#hfMapPresearchHost");
+  if(presearch)presearch.innerHTML=state.exploreTab==="Top"&&!state.query.trim()?mapPreSearchCard():"";
+ }
  if(e.target.id==="hfInboxSearch"){state.inboxQuery=e.target.value;const active=document.activeElement;const cursor=e.target.selectionStart;render();const search=layer.querySelector("#hfInboxSearch");if(search){search.focus();search.setSelectionRange(cursor,cursor)}}
 });
 layer.addEventListener("submit",e=>{
