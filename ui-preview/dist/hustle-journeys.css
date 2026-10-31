@@ -244,3 +244,20 @@
 .hj-waitlist-row p,.hj-waitlist-row small{font-size:10px;line-height:1.5;color:var(--hj-muted);margin:0}
 .hj-waitlist-btn{background:transparent;border:1px solid var(--hj-line);padding:10px 12px;border-radius:10px;font-weight:850;font-size:11px;color:var(--hj-text);width:fit-content;min-height:39px}
 @media(prefers-reduced-motion:reduce){.hj-availability-suggestions button:active{transform:none}}
+
+
+/* Seven-day booking availability preview */
+.hj-date-ribbon{margin:2px 0 15px;min-width:0}
+.hj-date-ribbon-label{font-size:9px;color:var(--hj-muted);font-weight:900;letter-spacing:1px;margin:0 0 9px}
+.hj-date-ribbon-scroll{display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:3px 1px 9px}
+.hj-date-ribbon-scroll::-webkit-scrollbar{display:none}
+.hj-date-ribbon button{border:1px solid var(--hj-line);background:var(--hj-surface);color:var(--hj-text);border-radius:13px;padding:9px 6px;min-width:66px;min-height:81px;display:flex;flex:none;flex-direction:column;gap:5px;align-items:center;justify-content:center}
+.hj-date-ribbon button b{font-size:10px}
+.hj-date-ribbon button span{font-size:16px;font-weight:950}
+.hj-date-ribbon button small{font-size:9px;color:#60823b;font-weight:850;white-space:nowrap}
+.hj-date-ribbon button.unavailable small{color:#a47744}
+.hj-date-ribbon button.selected{border-color:#8bb645;background:#e8f9ca;box-shadow:0 0 0 1px #8bb645}
+.phone.dark .hj-date-ribbon button.selected{background:#334e2b;color:#ecfadb}
+.hj-date-ribbon button:focus-visible{outline:2px solid #8bb645;outline-offset:2px}
+.hj-waitlist-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:355px){.hj-date-ribbon button{min-width:61px;padding:8px 5px}.hj-date-ribbon button small{font-size:8px}}
