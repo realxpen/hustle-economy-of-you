@@ -242,8 +242,8 @@ jobs:
           --health-timeout 5s
           --health-retries 15
     env:
-      DATABASE_URL: postgresql://hustle_payment_preview_owner:local_only@127.0.0.1:55441/hustle_payment_preview?sslmode=require&schema=public
-      STAGING_AUTH_DATABASE_URL: postgresql://hustle_payment_preview_owner:local_only@127.0.0.1:55441/hustle_payment_preview?sslmode=require&schema=payment_auth
+      DATABASE_URL: postgresql://hustle_payment_preview_owner:local_only@127.0.0.1:55441/hustle_payment_preview?sslmode=disable&schema=public
+      STAGING_AUTH_DATABASE_URL: postgresql://hustle_payment_preview_owner:local_only@127.0.0.1:55441/hustle_payment_preview?sslmode=disable&schema=payment_auth
     steps:
       - uses: actions/checkout@v4
         with:
