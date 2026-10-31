@@ -199,10 +199,10 @@ function renderAgent(){
  if(state.agentTab==="Overview"){
   content=`<div class="ho-studio-hero"><span>APPROVED AGENT · SAMPLE ACCESS</span><h2>Your talent, organized.</h2><p>Example agency tools, client requests and upcoming work.</p></div>
   <div class="ho-stats-two">${stat("Managed hustlers","3","Two active · one pending")}${stat("Open requests","8","Illustrative")}${stat("Agency commission",money(8600),"Example only")}${stat("Approvals","2","Require action")}</div>
-  ${section("Your professionals",`<button class="ho-text-action" data-op="agent-tab" data-value="Talent">Manage →</button>`)}
+  ${section("Your professionals",`<button class="ho-text-action" data-op="agent-tab" data-value="Talent">Manage →</button>`)}<div class="ho-actions">${btn("＋ Add existing or new hustler","agent-invite","lime")}</div>
   ${store.talent.slice(0,2).map(x=>line(x.avatar,esc(x.name),`${esc(x.skill)} · ${esc(x.city)}`,badge(x.status),"talent",x.id)).join("")}`;
  }else if(state.agentTab==="Talent"){
-  content=`${section("Managed hustlers",btn("+ Invite talent","agent-invite","outline"))}
+  content=`${section("Managed hustlers",btn("+ Add a hustler","agent-invite","outline"))}
   ${store.talent.map(x=>line(x.avatar,esc(x.name),`${esc(x.skill)} · ${esc(x.city)}`,badge(x.status),"talent",x.id)).join("")}
   ${banner("Permission required","An agent can only access accounts after the hustler accepts an invitation and grants scoped permissions.","quiet")}`;
  }else if(state.agentTab==="Bookings"){
@@ -356,7 +356,7 @@ function handle(op,id,value,node){
   case "agent-apply":state.agentApplied=true;state.agentPreview=false;audit("Sample agent application","Awaiting approval · simulated");state.page="AgentIntro";render();toast("Application submitted in demo · Still awaiting review");break;
   case "agent-preview":state.agentPreview=true;state.page="Agent";render();break;
   case "agent-tab-target":state.agentTab=id;state.page="Agent";render();break;
-  case "agent-invite":state.modal="invite";render();break;
+  case "agent-invite":if(window.HustleJourneys)window.HustleJourneys.open("AgentAdd");else{state.modal="invite";render()}break;
   case "talent":state.formDraft.talent=id;nav("Talent");break;
   case "agent-verify":toast("Blocked: hustler must personally complete face verification in the real app");break;
   case "admin-enter":state.adminPreview=true;state.page="Admin";audit("Entered internal design sandbox","No production credentials");render();break;
@@ -379,5 +379,17 @@ root.addEventListener("submit",e=>{
  if(type==="escrow")submitEscrow(form);
  if(type==="invite"){const f=new FormData(form),name=String(f.get("name")||"").trim(),skill=String(f.get("skill")||"").trim();if(!name||!skill)return;store.talent.push({id:"AG-"+Date.now().toString().slice(-5),name,skill,city:"Not set",status:"Pending invite",earnings:0,avatar:"✳"});state.modal="";state.agentTab="Talent";render();toast("Demo invitation created · Not sent");}
 });
-window.HustleOperations={open,close,getState:()=>({screen:state.page,wallet:store.wallet,earnings:store.earnings,escrows:store.escrow.map(x=>({id:x.id,status:x.status,held:held(x)})),agentPreview:state.agentPreview,adminPreview:state.adminPreview}),_testing:{store,state,handle,render}};
+function addDemoTalent(p){
+ if(!state.agentPreview)return false;
+ const name=String(p.name||"").trim(),skill=String(p.skill||"").trim();
+ if(!name||!skill||store.talent.some(t=>t.name.toLowerCase()===name.toLowerCase()))return false;
+ store.talent.push({id:"AG-"+Date.now().toString().slice(-6),name,skill,city:"Not confirmed",status:"Pending invite",earnings:0,avatar:"✳"});
+ audit("Demo agent invitation",name+" · pending consent");render();return true;
+}
+function acceptDemoTalent(name){
+ if(!state.agentPreview)return false;
+ const p=store.talent.find(t=>t.name===name&&t.status==="Pending invite");
+ if(!p)return false;p.status="Accepted demo";audit("Simulated hustler consent",name);render();return true;
+}
+window.HustleOperations={open,close,addDemoTalent,acceptDemoTalent,getState:()=>({screen:state.page,wallet:store.wallet,earnings:store.earnings,escrows:store.escrow.map(x=>({id:x.id,status:x.status,held:held(x)})),agentPreview:state.agentPreview,adminPreview:state.adminPreview}),_testing:{store,state,handle,render}};
 })();
