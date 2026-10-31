@@ -108,6 +108,43 @@ export class AdaptiveBookingOpsService {
     ]);
     return { bookingId, assignment, fulfillment };
   }
+  async workspaceBookings(identity: AuthIdentity, workspaceId: string) {
+    const user=await this.actor(identity);
+    await this.access(user.id,workspaceId);
+    const workspace=await this.db.adaptiveWorkspace.findUnique({
+      where:{id:workspaceId},select:{ownerUserId:true}
+    });
+    if (!workspace)throw new NotFoundException("Workspace not found");
+    return this.db.booking.findMany({
+      where:{hustlerUserId:workspace.ownerUserId,
+        service:{adaptiveDraft:{is:{workspaceId}}}},
+      select:{id:true,serviceTitleSnapshot:true,status:true,confirmedStartAt:true,
+        requestedStartAt:true,client:{select:{displayName:true,username:true}},
+        service:{select:{bookingMode:true}},
+        adaptiveAssignment:{select:{revision:true,staffId:true,
+          staff:{select:{displayName:true}}}},
+        adaptiveItemFulfillment:{select:{revision:true,status:true,intakeMethod:true,
+          returnMethod:true,updatedAt:true}} },
+      orderBy:{createdAt:"desc"},take:60
+    });
+  }
+  async myBookingSummary(identity: AuthIdentity, bookingId: string) {
+    const user=await this.actor(identity);
+    const b=await this.db.booking.findUnique({where:{id:bookingId},
+      select:{clientUserId:true,hustlerUserId:true,service:{select:{
+        adaptiveDraft:{select:{workspaceId:true}}}}}});
+    if(!b||(b.clientUserId!==user.id&&b.hustlerUserId!==user.id)||
+      !b.service.adaptiveDraft)throw new NotFoundException("Item operations not available");
+    return this.summary(identity,b.service.adaptiveDraft.workspaceId,bookingId);
+  }
+  async myHandover(identity: AuthIdentity, bookingId: string, input: unknown) {
+    const user=await this.actor(identity);
+    const b=await this.db.booking.findUnique({where:{id:bookingId},
+      select:{clientUserId:true,service:{select:{adaptiveDraft:{select:{workspaceId:true}}}}}});
+    if(!b||b.clientUserId!==user.id||!b.service.adaptiveDraft)
+      throw new NotFoundException("Booking item options not found");
+    return this.selectHandover(identity,b.service.adaptiveDraft.workspaceId,bookingId,input);
+  }
   async assignments(identity: AuthIdentity, workspaceId: string) {
     const user=await this.actor(identity);
     await this.access(user.id,workspaceId);
