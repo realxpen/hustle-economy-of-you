@@ -59,6 +59,11 @@ jobs:
         run: |
           node --check scripts/payment-sandbox/hosted-test-checkout.mjs
           node scripts/payment-sandbox/check-hosted-test-checkout-guard.mjs
+      - name: Verify temporary actual-provider webhook exposure safety and receiver behavior (offline)
+        run: |
+          node --check scripts/payment-sandbox/real-paystack-webhook-acceptance.mjs
+          node scripts/payment-sandbox/check-real-paystack-webhook-guard.mjs
+          node scripts/payment-sandbox/check-real-paystack-webhook-receiver.mjs
       - name: Mint throwaway webhook secret
         shell: bash
         run: |
