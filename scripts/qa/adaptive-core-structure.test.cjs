@@ -128,6 +128,8 @@ test("Staff roster is private, scope-aware and shares the Booking lock",()=>{
  assert.match(roster,/revision:\{increment:1\}/);
  assert.match(ctrl,/@Get\("workspaces\/:workspaceId\/roster"\)/);
  assert.match(ctrl,/@Post\("workspaces\/:workspaceId\/staff"\)/);
+ assert.match(scheduling,/HUSTLE_ADAPTIVE_CORE_ENABLED === "true"/);
+ assert.doesNotMatch(scheduling.slice(scheduling.indexOf("const scheduleSelect"),scheduling.indexOf("type SchedulingService")),/adaptiveDraft/);
  assert.match(scheduling,/rosterCapacity\(/);
  assert.match(scheduling,/roster\?\.rosterEnabled/);
 });
