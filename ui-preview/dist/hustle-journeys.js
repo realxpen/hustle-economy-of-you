@@ -138,6 +138,17 @@ function bookingSlotData(){
  const options=window.HustleBookingRules?.slotsFor(p.id,day,b.professional,people)||[];
  return {b,p,day,people,options,valid:options.filter(x=>x.fits)};
 }
+function renderDateRibbon(){
+ if(state.screen!=="BookingJourney"||data.booking.stage!=="request")return;
+ const box=root.querySelector("#hjDateRibbon");if(!box)return;
+ const {p,b,people,day}=bookingSlotData();
+ const engine=window.HustleBookingRules,days=[];
+ for(let i=0;i<7;i++){
+  const date=localISO(i),info=engine?.dayStatus(p.id,date,b.professional,people);
+  days.push({date,status:info?.closed?"Closed":info?.fullyBooked?"Full":info?.openSlots?info.openSlots+" openings":"Full",full:!!info?.fullyBooked,closed:!!info?.closed});
+ }
+ box.innerHTML='<div class="hj-date-ribbon-label">AT A GLANCE · NEXT 7 DAYS</div><div class="hj-date-ribbon-scroll">'+days.map(x=>'<button type="button" data-hj="booking-day" data-value="'+x.date+'" class="'+(x.date===day?"selected ":"")+(x.full||x.closed?"unavailable":"available")+'" aria-pressed="'+(x.date===day)+'"><b>'+niceDate(x.date).split(",")[0]+'</b><span>'+x.date.slice(8)+'</span><small>'+x.status+'</small></button>').join("")+'</div>';
+}
 function refreshBookingTimes(){
  if(state.screen!=="BookingJourney"||data.booking.stage!=="request")return;
  const select=root.querySelector("#hj-time");if(!select)return;
@@ -148,6 +159,7 @@ function refreshBookingTimes(){
 }
 function updateBookingAvailability(){
  if(state.screen!=="BookingJourney"||data.booking.stage!=="request")return;
+ renderDateRibbon();
  const box=root.querySelector("#hjAvailabilityHelp");if(!box)return;
  const {b,p,day,people,options,valid}=bookingSlotData(),engine=window.HustleBookingRules;
  const selected=root.querySelector("#hj-time")?.value||"",full=!valid.length,closed=!options.length;
@@ -157,7 +169,7 @@ function updateBookingAvailability(){
  const message=closed?"This professional is not operating on this day.":full?"Every suitable time is taken or the team cannot accommodate the full service.":"Example time slots only. The professional still needs to confirm.";
  box.innerHTML='<div class="hj-availability-state '+(full?"full":"open")+'"><span class="hj-availability-dot"></span><div><b>'+heading+'</b><small>'+message+'</small></div></div>'
  +(alternatives.length?'<div class="hj-availability-suggestions"><strong>'+(full?"Next available openings":"Other times")+'</strong><div>'+alternatives.map(x=>'<button type="button" data-hj="booking-suggest" data-value="'+esc(x.day)+'" data-id="'+esc(x.time)+'">'+(x.day!==day?niceDate(x.day)+' · ':"")+esc(x.time)+'</button>').join("")+'</div></div>':"")
- +(full?'<div class="hj-waitlist-row"><p>'+(next.length?"Choose a different time or ask to be considered if something opens.":"No example openings in the next 45 days.")+'</p><button type="button" class="hj-waitlist-btn" data-hj="booking-waitlist">Join demo waitlist</button><small>Demo only: no real reservation or future notification.</small></div>':"");
+ +(full?'<div class="hj-waitlist-row"><p>'+(next.length?"Choose a different time or ask to be considered if something opens.":"No example openings in the next 45 days.")+'</p><div class="hj-waitlist-actions"><button type="button" class="hj-waitlist-btn" data-hj="booking-waitlist">Join demo waitlist</button><button type="button" class="hj-waitlist-btn" data-hj="booking-explore">Explore other professionals</button></div><small>Demo only: no real reservation or future notification.</small></div>':"");
 }
 function updateBookingPreview(){
  if(state.screen!=="BookingJourney"||data.booking.stage!=="request")return;
@@ -215,6 +227,7 @@ function renderBooking(){
    <div class="hj-field"><label for="hj-location">Service area or location</label><input name="location" id="hj-location" value="${esc(b.location)}" placeholder="e.g. Yaba or Online"><small>Exact address can be shared after acceptance.</small></div>
    <div class="hj-booking-section"><span>02</span><h3>When should it happen?</h3></div>
    <div class="hj-field"><label for="hj-day">Select an exact date</label><input type="date" name="day" id="hj-day" required min="${localISO()}" max="${localISO(365)}" value="${/^\d{4}-\d{2}-\d{2}$/.test(b.day)?b.day:localISO(1)}"><small>Choose any available date in the next 12 months. Your booking is subject to professional approval.</small></div>
+   <div class="hj-date-ribbon" id="hjDateRibbon" aria-label="Availability for the next seven days"></div>
    <div class="hj-field"><label for="hj-time">Preferred time</label><select name="time" id="hj-time">${(window.HustleBookingRules?.slotsFor(p.id,b.day,b.professional,b.people)||[]).map(x=>`<option value="${esc(x.time)}" ${b.time===x.time?"selected":""} ${!x.fits?"disabled":""}>${x.fits?`${esc(x.time)} · ${x.left} free`:`Full · ${esc(x.time)}`}</option>`).join("")||'<option value="" disabled>No available times on this date</option>'}</select><small>Times follow the example working hours and staffing. The professional must confirm.</small></div>
    <div class="hj-field"><label for="hj-people">${p.id==="education"?"How many learners?":p.id==="cook"?"How many portions or meals?":p.id==="photo"?"How many people are involved?":"How many clients, guests or items?"} (1 for an individual)</label><input type="number" id="hj-people" name="people" min="1" max="50" value="${b.people||1}"></div>
    <div id="hjAvailabilityHelp" class="hj-availability-help" role="status" aria-live="polite"></div><div id="hjCapacityNote" class="hj-capacity-note"></div>
@@ -365,10 +378,12 @@ function onAction(action,value="",id=""){
  case "report-block":renderToast("Demo block applied for this session");break;
  case "modal-close":state.modal="";render();break;
  case "report-confirm":{const r={id:uid("HREP"),subject:state.reportSubject,reference:state.reportId,reason:state.reportReason,details:state.reportText,status:"Submitted"};data.reports.unshift(r);window.HustleOperations?.addDemoReport?.(r);state.reportIdActive=r.id;state.modal="";addNotice("System","Report submitted · demo",r.id,"Explore");go("ReportSent");break}
+ case "booking-day":{if(data.booking.stage!=="request")break;const input=root.querySelector("#hj-day");if(!input)break;input.value=String(value||"");refreshBookingTimes();updateBookingPreview();break}
+ case "booking-explore":close();window.HustleFlowsPreview?.open("Explore");break;
  case "booking-suggest":{const b=data.booking;if(b.stage!=="request")break;const day=String(value||""),time=String(id||""),p=policyFor();
  const count=Number(root.querySelector('[name="people"]')?.value||b.people||1);
  if(!window.HustleBookingRules?.previewPlan(p.id,day,time,count,b.professional)){renderToast("That opening is no longer available");refreshBookingTimes();break}
- const dayInput=root.querySelector("#hj-day"),timeInput=root.querySelector("#hj-time");if(dayInput)dayInput.value=day;refreshBookingTimes();if(timeInput)timeInput.value=time;updateBookingPreview();root.querySelector("#hjAvailabilityHelp")?.scrollIntoView?.({behavior:"smooth",block:"center"});break}
+ const dayInput=root.querySelector("#hj-day"),timeInput=root.querySelector("#hj-time");if(dayInput)dayInput.value=day;refreshBookingTimes();if(timeInput)timeInput.value=time;updateBookingAvailability();updateBookingPreview();root.querySelector("#hjAvailabilityHelp")?.scrollIntoView?.({behavior:"smooth",block:"center"});break}
  case "booking-waitlist":{const b=data.booking,p=policyFor();if(b.stage!=="request")break;
  const {day,people,valid}=bookingSlotData();if(valid.length){renderToast("A time is still available. Select it instead.");break}
  if(data.waitlists.some(x=>x.category===p.id&&x.provider===b.professional&&x.day===day&&x.people===people)){renderToast("Demo waitlist request already saved");break}
