@@ -253,7 +253,7 @@ async function run(){
   status:"PAYMENT_PENDING",requirements:"Synthetic dress fitting",
   serviceTitleSnapshot:"Custom festival outfit",agreedPriceMinor:1800000,pricingTypeSnapshot:"FIXED"
  }});
- await expectForbidden(ops.myHandover(own,garment.id,{intakeMethod:"drop_off",returnMethod:"shop_pickup"}));
+ await expectForbidden(ops.myHandover(own,garment.id,{intakeMethod:"drop_off",returnMethod:"shop_pickup"}),404);
  await expectForbidden(ops.myHandover(other,garment.id,{intakeMethod:"not_offered",returnMethod:"shop_pickup"}),400);
  const choices=await ops.myHandover(other,garment.id,{intakeMethod:"drop_off",returnMethod:"shop_pickup"});
  assert.equal(choices.status,"AWAITING_INTAKE");
