@@ -1,5 +1,6 @@
 import type { AuthPort } from "../infrastructure/auth/auth.port";
 import { ExpoStagingAuthService } from "./expo-staging-auth.service";
+import { validatePaymentPreviewRuntime } from "../payment/payment-preview-runtime";
 
 /**
  * Security boundary for an explicitly isolated, disposable Hustle staging API.
@@ -55,7 +56,11 @@ function validateStagingDatabase(value: string | undefined, schema: string) {
 }
 
 /** Must be executed before Nest creates any DB connection. */
-export function validateApiRuntimeEnvironment(env: NodeJS.ProcessEnv = process.env): "production" | "isolated-staging" {
+export function validateApiRuntimeEnvironment(env: NodeJS.ProcessEnv = process.env): "production" | "isolated-staging" | "payment-preview" {
+  if (env.HUSTLE_RUNTIME_SCOPE === "payment-preview") {
+    validatePaymentPreviewRuntime(env);
+    return "payment-preview";
+  }
   if (env.HUSTLE_RUNTIME_SCOPE !== "isolated-staging") {
     if (env.HUSTLE_RUNTIME_SCOPE && env.HUSTLE_RUNTIME_SCOPE !== "production") {
       throw new Error("Unsupported Hustle runtime scope");
@@ -94,7 +99,8 @@ export function validateApiRuntimeEnvironment(env: NodeJS.ProcessEnv = process.e
 
 /** No automatic fallback. Production keeps exactly the existing Supabase AuthPort. */
 export function chooseHustleAuthPort(supabase: AuthPort, env: NodeJS.ProcessEnv = process.env): AuthPort {
-  return validateApiRuntimeEnvironment(env) === "isolated-staging"
+  const scope = validateApiRuntimeEnvironment(env);
+  return scope === "isolated-staging" || scope === "payment-preview"
     ? new ExpoStagingAuthService()
     : supabase;
 }
