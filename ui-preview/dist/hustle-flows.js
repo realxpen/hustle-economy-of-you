@@ -562,6 +562,7 @@ function renderCheckout(){
  `<h2>Review your order</h2><div class="hf-summary"><div><b>Items</b><span>${state.cart.reduce((n,x)=>n+x.qty,0)}</span></div><div><b>Subtotal</b><span>${money(subtotal)}</span></div><div><b>Delivery area</b><span>${esc(state.checkout.location)}</span></div><div><b>Payment</b><span>Not connected</span></div></div><div class="hf-notice">Your order will not be submitted. Wallet and escrow are intentionally disabled in this preview.</div>`}
  <button data-hf="checkout-next" class="hf-lime-button" style="width:100%">${state.checkoutStep===0?"Review order →":"Finish checkout preview"}</button></div>`;
 }
+const categories=["Beauty","Fashion","Creative","Food","Home"];
 function createCategoryOptions(selected){
  return categories.map(k=>`<option value="${k}" ${selected===k?"selected":""}>${k}</option>`).join("");
 }
