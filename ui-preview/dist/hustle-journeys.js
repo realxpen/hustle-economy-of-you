@@ -107,10 +107,10 @@ function renderReports(){
 }
 function bookingIndex(){return Math.max(0,steps.BookingJourney.indexOf(({request: "Request",consultation:"Consultation",quote:"Quote",payment:"Payment",work:"Work",completion:"Completion",review:"Review"})[data.booking.stage]||"Request"))}
 
-function policyFor(){return data.booking.policy||window.HustleBookingRules?.getForService(data.booking.service,data.booking.category)||{id:"generic",label:"Other service",consultation:"optional",consultFee:0,creditConsultation:false,capacity:1,duration:60,approval:"manual",locationModes:["At provider","At my location"],fields:[["style","What do you need?","Describe the work"]],groupQuote:true}}
+function policyFor(){return data.booking.policy||window.HustleBookingRules?.getForService(data.booking.service,data.booking.category,data.booking.professional)||{id:"generic",label:"Other service",consultation:"optional",consultFee:0,creditConsultation:false,capacity:1,duration:60,approval:"manual",locationModes:["At provider","At my location"],fields:[["style","What do you need?","Describe the work"]],groupQuote:true}}
 function payable(){const b=data.booking,p=policyFor();return Math.max(0,b.price-(b.consultPaid&&p.creditConsultation?Math.min(b.price,b.consultPaid):0))}
 function renderBooking(){
- const b=data.booking,p=policyFor(),paid=Number(b.consultPaid||0),due=payable(),group=!!b.customQuote,estimate=b.quoteLines||window.HustleBookingRules?.quote({id:p.id,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:paid});
+ const b=data.booking,p=policyFor(),paid=Number(b.consultPaid||0),due=payable(),group=!!b.customQuote,estimate=b.quoteLines||window.HustleBookingRules?.quote({id:p.id,provider:b.professional,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:paid});
  const active=["request","consultation","consultPayment","awaiting","quote","payment","work","completion","review"];
  const visible=active.filter(x=>!["consultation","consultPayment"].includes(x)||b.consultChoice).filter(x=>x!=="consultPayment"||p.consultFee>0);
  const idx=Math.max(0,visible.indexOf(b.stage));
@@ -237,7 +237,7 @@ function render(){
 function open(screen="Welcome",opts={}){
  if(screen==="Splash")state.guest=true;
  if(screen==="Report"){state.reportSubject=opts.subject||"Content";state.reportId=opts.id||"Sample content";state.reportText="";state.reportReason="Misleading or fraudulent"}
- if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:"Tomorrow",time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,mediaName:"",quoteLines:null,slotReserved:false,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
+ if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category,opts.professional||data.booking.professional);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:"Tomorrow",time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,mediaName:"",quoteLines:null,slotReserved:false,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
  if(screen==="PaymentJourney"&&opts.item){data.purchase={...data.purchase,item:opts.item,price:Number(opts.price)||data.purchase.price,method:opts.method||data.purchase.method,delivery:opts.delivery||data.purchase.delivery,stage:"details",status:"Not placed"}}
  if(screen==="AgentAdd"){state.agentStep=0;state.agentMode="Existing";state.agentSelected="";state.agentConsent=false;state.agentTerms=false;state.agentLanguage="English";state.agentHandoff="In-person handover"}
  state.stack=[];state.screen=screen;state.modal="";root.hidden=false;phone.classList.add("hj-open");render();if(screen==="Splash")playSplash();
@@ -264,11 +264,11 @@ function onAction(action,value="",id=""){
  case "report-block":renderToast("Demo block applied for this session");break;
  case "modal-close":state.modal="";render();break;
  case "report-confirm":{const r={id:uid("HREP"),subject:state.reportSubject,reference:state.reportId,reason:state.reportReason,details:state.reportText,status:"Submitted"};data.reports.unshift(r);window.HustleOperations?.addDemoReport?.(r);state.reportIdActive=r.id;state.modal="";addNotice("System","Report submitted · demo",r.id,"Explore");go("ReportSent");break}
- case "booking-example":{const sample=window.HustleBookingRules?.samples?.find(x=>x.id===value);if(sample)open("BookingJourney",{service:sample.title,professional:sample.name,category:sample.id,price:window.HustleBookingRules?.get(sample.id)?.basePrice});break}
+ case "booking-example":{const sample=window.HustleBookingRules?.samples?.find(x=>x.id===value);if(sample)open("BookingJourney",{service:sample.title,professional:sample.name,category:sample.id,price:window.HustleBookingRules?.get(sample.id,sample.name)?.basePrice});break}
  case "booking-provider-accept":{const b=data.booking,p=policyFor();
   if(b.stage!=="awaiting")break;
   if(!b.customQuote&&!b.slotReserved){if(!window.HustleBookingRules?.reserve(p.id,b.day,b.time,1,b.professional)){renderToast("This sample slot is full. Choose another time.");b.stage="request";render();break}b.slotReserved=true;b.reservedUnits=1}
-  b.quoteLines=window.HustleBookingRules?.quote({id:p.id,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:b.consultPaid})||null;
+  b.quoteLines=window.HustleBookingRules?.quote({id:p.id,provider:b.professional,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:b.consultPaid})||null;
   b.price=b.quoteLines?.total??b.basePrice;
   b.consultCredit=b.quoteLines?.credit??(b.consultPaid&&p.creditConsultation?Math.min(b.price,b.consultPaid):0);
   b.stage="quote";addNotice("Booking","Professional accepted sample request",b.service,"BookingJourney");render();break}
