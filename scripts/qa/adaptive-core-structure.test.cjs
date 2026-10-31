@@ -6,7 +6,7 @@ const path = require("node:path");
 const repo = path.resolve(__dirname, "../..");
 const read = name => fs.readFileSync(path.join(repo,name), "utf8");
 const schema = read("apps/api/prisma/schema.prisma");
-const sql = read("apps/api/prisma/migrations/20261031130000_adaptive_core_v1/migration.sql");
+const sql = read("backend-readiness/adaptive-v1/prisma-migration-proposal.sql");
 const guard = read("apps/api/src/adaptive/adaptive-feature.guard.ts");
 const service = read("apps/api/src/adaptive/adaptive.service.ts");
 const ctrl = read("apps/api/src/adaptive/adaptive.controller.ts");
