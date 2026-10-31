@@ -306,3 +306,13 @@ The source and DOM interaction tests pass; actual iPhone visual layout and Cloud
 - 11 additional updated journey assertions passed for one-time splash, repeat sign-in, existing/new agent invitations, professional approval and decline.
 - Source syntax, module references, iPhone safe-area/reduced-motion rules, demo-only financial/auth safeguards and report/notification hooks passed 14/14 static checks.
 - These checks are mocked DOM and source validations. **They do not confirm Cloudflare finished deploying or that all screens have been visually tested on iPhone Safari.**
+
+## Adaptive service booking V2 — source-of-truth decision
+
+2026-10-31: User direction supersedes older blanket consultation-before-hiring assumptions. Consultation is controlled per hustler/service (off, optional, required); fees may be free or paid, credited or noncredited. A client can send booking details and reference media directly without consultation where allowed.
+
+Booking policy engine is loaded before journeys. Service examples include barber, tailor, shoemaker, cook, education, home technician, photographer. Hulster Studio → Booking setup allows editing one sample professional's policy (consult fee/credit, price, capacity, duration, home travel and event fees) and previewing the client journey.
+
+Individual staff-capacity slots are scoped by professional; multiple appointments in 1–2 p.m. are allowed up to configured capacity. Group/team bookings atomically allocate multiple time blocks and refund uncommitted demo holds on cancellation/abandonment. Professional approval comes before payment for paid consultations; an explicit decline route exists. Example: ₦5,000 haircut + ₦1,000 credited paid consult leaves ₦4,000 due for service. Quote displays service subtotal, travel/event additions, consulting paid, one-time credit, duration and the remaining balance. All holds, payments and approvals remain in-memory demonstration only.
+
+See `ui-preview/ADAPTIVE_BOOKING_POLICY.md` for rules, examples, edge cases, security, production scheduling gaps and acceptance criteria. Existing UI aesthetic and five main tabs remain unchanged. No production DB or deployment was modified.
