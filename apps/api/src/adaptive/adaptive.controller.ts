@@ -62,6 +62,12 @@ export class AdaptiveController {
     @Body() body: unknown) {
     return this.adaptive.draftService(user, id, body);
   }
+  @Patch("workspaces/:workspaceId/services/:draftId")
+  updateService(@CurrentIdentity() user: AuthIdentity,
+    @Param("workspaceId") workspaceId: string, @Param("draftId") draftId: string,
+    @Body() body: unknown) {
+    return this.adaptive.updateServiceDraft(user, workspaceId, draftId, body);
+  }
   @Post("workspaces/:workspaceId/work-drafts")
   draftWork(@CurrentIdentity() user: AuthIdentity, @Param("workspaceId") id: string,
     @Body() body: unknown) {

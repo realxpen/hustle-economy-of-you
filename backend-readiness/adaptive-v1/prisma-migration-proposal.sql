@@ -64,12 +64,14 @@ CREATE TABLE "AdaptiveServiceDraft" (
  "priceMinor" INTEGER NOT NULL DEFAULT 0,
  "currency" TEXT NOT NULL DEFAULT 'NGN',
  "policy" JSONB NOT NULL DEFAULT '{}'::jsonb,
+ "revision" INTEGER NOT NULL DEFAULT 1,
  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
  "updatedAt" TIMESTAMP(3) NOT NULL
 );
 CREATE INDEX "AdaptiveServiceDraft_workspaceId_updatedAt_idx" ON "AdaptiveServiceDraft" ("workspaceId","updatedAt");
 ALTER TABLE "AdaptiveServiceDraft" ADD CONSTRAINT "AdaptiveServiceDraft_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "AdaptiveWorkspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "AdaptiveServiceDraft" ADD CONSTRAINT "AdaptiveServiceDraft_blueprintId_fkey" FOREIGN KEY ("blueprintId") REFERENCES "AdaptiveBlueprint"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "AdaptiveServiceDraft" ADD CONSTRAINT "AdaptiveServiceDraft_revision_positive" CHECK ("revision" > 0);
 ALTER TABLE "AdaptiveServiceDraft" ADD CONSTRAINT "AdaptiveServiceDraft_price_nonnegative" CHECK ("priceMinor" >= 0);
 ALTER TABLE "AdaptiveServiceDraft" ADD CONSTRAINT "AdaptiveServiceDraft_title_length" CHECK (length("title") BETWEEN 3 AND 150);
 

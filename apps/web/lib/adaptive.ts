@@ -2,9 +2,12 @@
 
 import { authenticatedFetch } from "./api/authenticated-fetch";
 
+export type AdaptivePolicyValue = string | number | boolean | string[];
+export type AdaptivePolicy = Record<string, AdaptivePolicyValue>;
 export type AdaptiveBlueprint = {
   slug: string; version: number; type: string;
   label: string; steps: readonly string[]; features: readonly string[];
+  defaults: AdaptivePolicy;
 };
 export type AdaptiveWorkspace = {
   id: string; name: string; slug: string;
@@ -17,6 +20,7 @@ export type AdaptiveMembership = {
 };
 export type AdaptiveServiceDraft = {
   id: string; title: string; priceMinor: number; currency: string;
+  revision: number; policy: AdaptivePolicy;
   blueprint: { slug: string; version: number; type: string };
 };
 export type AdaptiveWorkItem = {
@@ -42,8 +46,11 @@ export const adaptiveClient = {
   createWorkspace: (name: string, kind: string, category: string) =>
     post<AdaptiveWorkspace>("/workspaces", { name, kind, category }),
   services: (id: string) => json<AdaptiveServiceDraft[]>("/workspaces/" + encodeURIComponent(id) + "/services"),
-  createService: (id: string, input: { title: string; blueprint: string; priceMinor: number }) =>
+  createService: (id: string, input: { title: string; blueprint: string; priceMinor: number; policy: AdaptivePolicy }) =>
     post<AdaptiveServiceDraft>("/workspaces/" + encodeURIComponent(id) + "/services", input),
+  updateService: (id: string, draftId: string, input: {title: string; priceMinor: number; policy: AdaptivePolicy; expectedRevision: number}) =>
+    json<AdaptiveServiceDraft>("/workspaces/" + encodeURIComponent(id) + "/services/" + encodeURIComponent(draftId),
+      { method: "PATCH", body: JSON.stringify(input) }),
   work: (scope?: string) => json<{ items: AdaptiveWorkItem[]; nextCursor: null }>(
     "/work" + (scope ? "?workspaceId=" + encodeURIComponent(scope) : "")
   ),

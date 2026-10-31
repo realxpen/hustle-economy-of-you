@@ -53,6 +53,8 @@ jobs:
         run: npx prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
       - name: Build actual Nest service code
         run: npm run build --workspace=@hustle/api
+      - name: Validate vertical service policy invariants
+        run: npm run adaptive:policy
       - name: Execute authenticated-identity and data-isolation smoke
         run: node scripts/qa/adaptive-core-db-smoke.cjs
       - name: Check migration/history and source constraints

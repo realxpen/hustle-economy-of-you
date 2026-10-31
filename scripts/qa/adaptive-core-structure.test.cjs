@@ -76,3 +76,27 @@ test("Web page uses the authenticated adapter and no browser-memory fallback",()
   assert.match(workPage,/Backend activation is still gated/);
   assert.doesNotMatch(workPage,/localStorage|sessionStorage|demoFixture/);
 });
+
+
+test("Service policy uses strict blueprint-specific server validation",()=>{
+  const rules=read("apps/api/src/adaptive/adaptive-service-policy.ts");
+  assert.match(rules,/validateAdaptiveServicePolicy/);
+  assert.match(rules,/concurrentCapacity/);
+  assert.match(rules,/availableProfessionals/);
+  assert.match(rules,/consultationFeeMinor/);
+  assert.match(rules,/turnaroundHours/);
+  assert.match(rules,/measurementMethods/);
+  assert.match(rules,/Unknown .* policy field/);
+});
+test("Service edits use scoped authorization and compare-and-set revisions",()=>{
+  assert.match(service,/async updateServiceDraft/);
+  assert.match(service,/this\.membership\(user\.id, workspaceId, "services\.manage"\)/);
+  assert.match(service,/revision: expectedRevision/);
+  assert.match(service,/revision: \{ increment: 1 \}/);
+  assert.match(ctrl,/@Patch\("workspaces\/:workspaceId\/services\/:draftId"\)/);
+});
+test("New draft revision is represented in Prisma and migration proposal",()=>{
+  assert.match(schema,/revision\s+Int\s+@default\(1\)/);
+  assert.match(sql,/"revision" INTEGER NOT NULL DEFAULT 1/);
+  assert.match(sql,/AdaptiveServiceDraft_revision_positive/);
+});

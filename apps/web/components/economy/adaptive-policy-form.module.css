@@ -1,0 +1,13 @@
+.root{display:grid;gap:13px;border-radius:16px;background:color-mix(in srgb,var(--h-surface,#fff) 93%,#b9df75 7%);border:1px solid var(--h-border-subtle,#dce6d9);padding:15px;margin:5px 0 0}
+.heading strong{font-size:13px}
+.heading p{font-size:11px;line-height:1.55;color:var(--h-muted,#647361);margin:5px 0 0}
+.group{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:11px}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700}
+.field small{font-weight:400;color:var(--h-muted,#6e7f71);font-size:10px;line-height:1.4}
+.field input,.field select{width:100%;min-height:44px;border:1px solid var(--h-border-subtle,#cdd9c9);border-radius:11px;padding:10px;background:var(--h-surface,#fff);color:var(--h-ink,#203320);font:inherit}
+.toggle{display:flex;gap:10px;align-items:flex-start;font-size:12px;line-height:1.5}
+.toggle input,.multi input{width:18px;height:18px;flex:none;accent-color:#78aa37}
+.multi{border:1px solid var(--h-border-subtle,#dce4d9);border-radius:12px;padding:10px;display:grid;gap:9px}
+.multi legend{font-size:12px;font-weight:800;padding:0 5px}
+.multi label{display:flex;gap:9px;align-items:center;font-size:12px}
+.root :is(input,select):focus-visible{outline:2px solid #739f3c;outline-offset:2px}
