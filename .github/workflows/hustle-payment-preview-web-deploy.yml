@@ -1,0 +1,132 @@
+name: Hustle Dedicated Paystack TEST Web Preview (manual only)
+
+# No push, PR or schedule can create public payment UI. The separate payment
+# preview API and database must already be provisioned with explicit consent.
+on:
+  workflow_dispatch:
+    inputs:
+      approve_test_web_preview:
+        description: 'Publish only new hustle-payment-preview Worker with TEST payment API; do not touch existing staging, Live Paystack, or production'
+        required: true
+        type: choice
+        options:
+          - DO_NOT_DEPLOY
+          - I_AUTHORIZE_SEPARATE_PAYMENT_WEB_PREVIEW_ONLY
+        default: DO_NOT_DEPLOY
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-payment-preview-web-release
+  cancel-in-progress: false
+
+jobs:
+  deploy-payment-preview:
+    if: >-
+      github.repository == 'realxpen/hustle-economy-of-you' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.approve_test_web_preview == 'I_AUTHORIZE_SEPARATE_PAYMENT_WEB_PREVIEW_ONLY'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment: hustle-payment-preview
+    env:
+      CI: 'true'
+      HUSTLE_PAYMENT_PREVIEW_BUILD: 'true'
+      HUSTLE_API_BACKEND_TARGET: payment-preview
+      HUSTLE_ISOLATED_PWA_GATE: payment-preview
+      NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: 'true'
+      HUSTLE_PAYMENT_PREVIEW_API_ORIGIN: https://hustle-payment-preview-api.realxpens.workers.dev
+      HUSTLE_PAYMENT_PREVIEW_WEB_ORIGIN: https://hustle-payment-preview.realxpens.workers.dev
+      NEXT_PUBLIC_HUSTLE_PAYMENT_PREVIEW: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Fail closed before any credentials, build or publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "realxpen/hustle-economy-of-you"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$HUSTLE_PAYMENT_PREVIEW_BUILD" = "true"
+          test "$HUSTLE_API_BACKEND_TARGET" = "payment-preview"
+          test "$HUSTLE_ISOLATED_PWA_GATE" = "payment-preview"
+          test "$NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH" = "true"
+          test "$HUSTLE_PAYMENT_PREVIEW_API_ORIGIN" = "https://hustle-payment-preview-api.realxpens.workers.dev"
+          test "$HUSTLE_PAYMENT_PREVIEW_WEB_ORIGIN" = "https://hustle-payment-preview.realxpens.workers.dev"
+          test -z "${PAYSTACK_TEST_SECRET_KEY:-}"
+          test -z "${PAYSTACK_SECRET_KEY:-}"
+          test -z "${DATABASE_URL:-}"
+          test -z "${SUPABASE_SERVICE_ROLE_KEY:-}"
+          echo "PASS: separate Web Worker; no Paystack key or database credential is present in the build"
+      - name: Install locked dependencies and validate actual Cloudflare config
+        shell: bash
+        run: |
+          npm ci --include=dev
+          node scripts/payment-sandbox/check-payment-preview-worker-config.cjs
+          node scripts/payment-sandbox/check-payment-preview-web-proxy.cjs
+          node scripts/cloudflare/check-worker-config.cjs
+          npm run typecheck --workspace=@hustle/web
+      - name: Confirm separate approved TEST API is reachable before publishing any payment UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Do not silently fallback to the existing Vercel/AWS staging API.
+          ORIGIN="https://hustle-payment-preview-api.realxpens.workers.dev"
+          HEALTH="$(curl --silent --show-error --location --max-time 20 --output /dev/null --write-out '%{http_code}' "$ORIGIN/api/v1/health")"
+          test "$HEALTH" = "200" || {
+            echo "::error::Separate payment-preview API not healthy; no Web deployment attempted."
+            exit 1
+          }
+          DENIED="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' "$ORIGIN/api/v1/payments/unrelated-preview-probe")"
+          test "$DENIED" = "401" || {
+            echo "::error::Payment-preview API is not enforcing anonymous denial; no Web deployment attempted."
+            exit 1
+          }
+          echo "PASS: dedicated API healthy and anonymous payment reads denied; no transaction or mutation performed."
+      - name: Build completely separate payment-preview iPhone PWA Worker
+        env:
+          NODE_ENV: production
+        run: npm run build:vinext --workspace=@hustle/web
+      - name: Recheck exact payment Worker output before upload
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/payment-sandbox/check-payment-preview-worker-config.cjs
+          test -d apps/web/.cloudflare/output
+          echo 'PASS: isolated Web compiled; existing staging and AWS preview Workers unaffected.'
+      - name: Deploy ONLY the separate hustle-payment-preview Cloudflare Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NODE_ENV: production
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test "$HUSTLE_PAYMENT_PREVIEW_BUILD" = "true"
+          npm run deploy:vinext --workspace=@hustle/web
+      - name: Read-only smoke of the newly published payment-preview web only
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREVIEW="https://hustle-payment-preview.realxpens.workers.dev"
+          for retry in 1 2 3 4 5; do
+            CODE="$(curl --silent --show-error --max-time 20 --output /tmp/ux043-auth.html --write-out '%{http_code}' "$PREVIEW/auth")"
+            if test "$CODE" = "200"; then break; fi
+            if test "$retry" = 5; then
+              echo "::error::Dedicated payment preview login not available; separate deployment requires investigation"
+              exit 1
+            fi
+            sleep 3
+          done
+          grep -q 'PRIVATE TEST' /tmp/ux043-auth.html
+          HEALTH="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' "$PREVIEW/api/isolated/api/v1/health")"
+          test "$HEALTH" = "200"
+          echo "PASS: separate payment-preview Worker published with private test sign-in and dedicated API. No payment charged or webhook changed."

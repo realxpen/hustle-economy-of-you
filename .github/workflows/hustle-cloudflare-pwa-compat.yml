@@ -10,6 +10,8 @@ on:
       - .github/workflows/hustle-cloudflare-staging-deploy.yml
       - .github/workflows/hustle-cloudflare-staging-aws-cutover.yml
       - .github/workflows/hustle-cloudflare-aws-preview.yml
+      - .github/workflows/hustle-payment-preview-web-deploy.yml
+      - scripts/payment-sandbox/check-payment-preview-worker-config.cjs
       - scripts/experience/check-cloudflare-aws-preview.cjs
       - scripts/experience/check-cloudflare-staging-aws-cutover.cjs
       - scripts/cloudflare/**
@@ -40,6 +42,8 @@ jobs:
       - name: Verify Cloudflare Worker preview identity and strict auth boundaries
         run: |
           node scripts/cloudflare/check-worker-config.cjs
+          node scripts/payment-sandbox/check-payment-preview-worker-config.cjs
+          node scripts/payment-sandbox/check-payment-preview-web-proxy.cjs
           node scripts/experience/check-cloudflare-aws-preview.cjs
           node scripts/experience/check-ios-pwa-parity.cjs
           node scripts/experience/check-ios-pwa-connected-staging.cjs
@@ -83,6 +87,28 @@ jobs:
           curl -fsS --max-time 20 http://127.0.0.1:4175/auth -o /tmp/hustle-aws-preview-test-auth.html
           grep -q 'aws-test.webmanifest' /tmp/hustle-aws-preview-test-auth.html
           echo 'PASS: AWS-only compiled Worker serves its static iPhone manifest and separate login UI, with no public deployment.'
+      - name: Compile independent payment-preview PWA without provider credentials or public deployment
+        env:
+          HUSTLE_PAYMENT_PREVIEW_BUILD: 'true'
+          HUSTLE_API_BACKEND_TARGET: payment-preview
+          HUSTLE_ISOLATED_PWA_GATE: payment-preview
+          NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH: 'true'
+          HUSTLE_PAYMENT_PREVIEW_API_ORIGIN: https://hustle-payment-preview-api.realxpens.workers.dev
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/payment-sandbox/check-payment-preview-worker-config.cjs
+          npm run build:vinext --workspace=@hustle/web
+          test -d apps/web/.cloudflare/output
+          npm run start:vinext --workspace=@hustle/web -- --host 127.0.0.1 --port 4177 > /tmp/hustle-payment-preview-smoke.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 5 http://127.0.0.1:4177/auth -o /tmp/hustle-payment-preview-auth.html; then break; fi
+            sleep 2
+          done
+          grep -q 'PRIVATE TEST' /tmp/hustle-payment-preview-auth.html
+          echo 'PASS: dedicated payment-preview Worker builds and serves private test login in isolated local workerd; no deploy or Paystack.'
       - name: Upload diagnostics only on failure (no provider secrets)
         if: failure()
         uses: actions/upload-artifact@v4
