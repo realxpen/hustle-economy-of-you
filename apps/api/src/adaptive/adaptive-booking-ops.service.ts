@@ -344,6 +344,7 @@ export class AdaptiveBookingOpsService {
     const d=this.obj(raw),expected=this.rev(d.expectedRevision);
     if(typeof d.reason!=="string"||d.reason.trim().length<8||d.reason.trim().length>180)
       throw new BadRequestException("Explain the change in 8–180 characters");
+    const reason=d.reason as string;
     if(typeof d.estimatedReadyAt!=="string"||
        !/([zZ]|[+-]\d\d:\d\d)$/.test(d.estimatedReadyAt))
       throw new BadRequestException("Estimated ready time must include a timezone offset");
@@ -356,7 +357,8 @@ export class AdaptiveBookingOpsService {
         tx.adaptiveItemFulfillment.findUnique({where:{bookingId}}),
         tx.booking.findUnique({where:{id:bookingId},select:{status:true,agreedPriceMinor:true}})
       ]);
-      if(!current||![AdaptiveItemStage.RECEIVED,AdaptiveItemStage.IN_PROGRESS].includes(current.status)||
+      const revisableStages:AdaptiveItemStage[]=[AdaptiveItemStage.RECEIVED,AdaptiveItemStage.IN_PROGRESS];
+      if(!current||!revisableStages.includes(current.status)||
          !latest||!assignable.includes(latest.status)||
          latest.agreedPriceMinor>0&&!([BookingStatus.FUNDED,BookingStatus.IN_PROGRESS] as BookingStatus[]).includes(latest.status))
         throw new ConflictException("Only funded, received or in-progress item work can revise readiness");
@@ -370,7 +372,7 @@ export class AdaptiveBookingOpsService {
       await tx.adaptiveItemEvent.create({data:{
         fulfillmentId:current.id,revision:expected+1,eventType:"item.eta_revised",
         actorUserId:user.id,details:{
-          reason:d.reason.trim(),previousEstimate:current.estimatedReadyAt?.toISOString()??null,
+          reason:reason.trim(),previousEstimate:current.estimatedReadyAt?.toISOString()??null,
           revisedEstimate:estimate.toISOString()
         }
       }});
@@ -400,8 +402,10 @@ export class AdaptiveBookingOpsService {
         tx.adaptiveItemFulfillment.findUnique({where:{bookingId}}),
         tx.booking.findUnique({where:{id:bookingId},select:{status:true}})
       ]);
-      if(!current||![AdaptiveItemStage.DELIVERED,AdaptiveItemStage.COLLECTED].includes(current.status)||
-         !latest||[BookingStatus.CANCELLED,BookingStatus.DISPUTED,BookingStatus.REFUNDED].includes(latest.status))
+      const receivedStages:AdaptiveItemStage[]=[AdaptiveItemStage.DELIVERED,AdaptiveItemStage.COLLECTED];
+      const invalidBookingStatuses:BookingStatus[]=[BookingStatus.CANCELLED,BookingStatus.DISPUTED,BookingStatus.REFUNDED];
+      if(!current||!receivedStages.includes(current.status)||
+         !latest||invalidBookingStatuses.includes(latest.status))
         throw new ConflictException("Receipt can only be acknowledged after delivery or collection");
       if(current.clientConfirmedAt)return current; // retry, no second audit or notice
       const changed=await tx.adaptiveItemFulfillment.updateMany({
