@@ -90,11 +90,11 @@ function renderReport(){
 function renderReportSent(){
  const r=data.reports.find(x=>x.id===state.reportIdActive);
  return heading("Report received","DEMO CASE STATUS")+`<div class="hj-page"><div class="hj-success-icon">✓</div><h2>Thank you for flagging this.</h2><p class="hj-lead">Your sample report was added to this session. No actual moderation team was notified.</p>
- <div class="hj-status-card"><span>Reference</span><b>${esc(r?.id||"Sample")}</b><span>Status</span><b>Submitted · Awaiting review</b><span>Reason</span><b>${esc(r?.reason||"Other")}</b></div>
+ <div class="hj-status-card"><span>Reference</span><b>${esc(r?.id||"Sample")}</b><span>Status</span><b>${esc(r?.status||"Submitted · Awaiting review")}</b><span>Reason</span><b>${esc(r?.reason||"Other")}</b></div>
  ${button("Track my reports","reports")}${button("Return to Hustle","close","secondary")}</div>`;
 }
 function renderReports(){
- return heading("My reports","CASE HISTORY · DEMO")+`<div class="hj-page">${data.reports.length?data.reports.map(x=>`<article class="hj-history-row"><b>${esc(x.id)} · ${esc(x.subject)}</b><small>${esc(x.reason)}</small><span>● Submitted · Awaiting review</span></article>`).join(""):'<div class="hj-empty">You haven’t submitted any demo reports yet.</div>'}
+ return heading("My reports","CASE HISTORY · DEMO")+`<div class="hj-page">${data.reports.length?data.reports.map(x=>`<article class="hj-history-row"><b>${esc(x.id)} · ${esc(x.subject)}</b><small>${esc(x.reason)}</small><span>● ${esc(x.status||"Submitted · Awaiting review")}</span></article>`).join(""):'<div class="hj-empty">You haven’t submitted any demo reports yet.</div>'}
  ${button("+ Report an issue","report-start","outline")}</div>`;
 }
 function bookingIndex(){return Math.max(0,steps.BookingJourney.indexOf(({request: "Request",consultation:"Consultation",quote:"Quote",payment:"Payment",work:"Work",completion:"Completion",review:"Review"})[data.booking.stage]||"Request"))}
@@ -220,7 +220,7 @@ function onAction(action,value="",id=""){
  case "report-start":go("Report");break;case "reports":go("Reports");break;
  case "report-block":renderToast("Demo block applied for this session");break;
  case "modal-close":state.modal="";render();break;
- case "report-confirm":{const r={id:uid("HREP"),subject:state.reportSubject,reference:state.reportId,reason:state.reportReason,details:state.reportText,status:"Submitted"};data.reports.unshift(r);state.reportIdActive=r.id;state.modal="";addNotice("System","Report submitted · demo",r.id,"Explore");go("ReportSent");break}
+ case "report-confirm":{const r={id:uid("HREP"),subject:state.reportSubject,reference:state.reportId,reason:state.reportReason,details:state.reportText,status:"Submitted"};data.reports.unshift(r);window.HustleOperations?.addDemoReport?.(r);state.reportIdActive=r.id;state.modal="";addNotice("System","Report submitted · demo",r.id,"Explore");go("ReportSent");break}
  case "booking-accept":data.booking.quoteAccepted=true;data.booking.stage="payment";render();break;
  case "booking-revise":data.booking.stage="quote";renderToast("Quote returned to review");render();break;
  case "payment-method":data.purchase.method=value;render();break;
@@ -268,7 +268,13 @@ root.addEventListener("click",e=>{const target=e.target.closest("[data-hj]");if(
 root.addEventListener("submit",e=>{const f=e.target;if(!f.dataset.hjForm)return;e.preventDefault();onSubmit(f.dataset.hjForm,f)});
 root.addEventListener("input",e=>{if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}});
 root.addEventListener("change",e=>{if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}});
-window.HustleJourneys={open,close,notify:addNotice,getState:()=>({screen:state.screen,guest:state.guest,signedIn:state.signedIn,user:state.user,booking:{stage:data.booking.stage,milestones:data.booking.milestones.map(x=>x.state),dispute:data.booking.dispute},payment:{stage:data.purchase.stage,status:data.purchase.status},reports:data.reports.map(x=>({id:x.id,status:x.status})),agentInvites:data.agentInvites.map(x=>({name:x.name,status:x.status})),notifications:data.notifications.map(x=>({id:x.id,read:x.read}))}),_test:{data,state,onAction,onSubmit,render}};
+function updateReportStatus(id,status){
+ const report=data.reports.find(x=>x.id===id);if(!report)return false;
+ report.status=status;addNotice("System","Report review updated · demo",id+" · "+status,"Explore");
+ if(!root.hidden&&(state.screen==="Reports"||state.screen==="ReportSent"))render();
+ return true;
+}
+window.HustleJourneys={open,close,notify:addNotice,updateReportStatus,getState:()=>({screen:state.screen,guest:state.guest,signedIn:state.signedIn,user:state.user,booking:{stage:data.booking.stage,milestones:data.booking.milestones.map(x=>x.state),dispute:data.booking.dispute},payment:{stage:data.purchase.stage,status:data.purchase.status},reports:data.reports.map(x=>({id:x.id,status:x.status})),agentInvites:data.agentInvites.map(x=>({name:x.name,status:x.status})),notifications:data.notifications.map(x=>({id:x.id,read:x.read}))}),_test:{data,state,onAction,onSubmit,render}};
 setTimeout(()=>{if(root.hidden&&state.screen==="Splash")open("Splash");},80);
 setTimeout(()=>{if(!root.hidden&&state.screen==="Splash"){state.screen="Welcome";render()}},1150);
 })();
