@@ -379,6 +379,30 @@ root.addEventListener("submit",e=>{
  if(type==="escrow")submitEscrow(form);
  if(type==="invite"){const f=new FormData(form),name=String(f.get("name")||"").trim(),skill=String(f.get("skill")||"").trim();if(!name||!skill)return;store.talent.push({id:"AG-"+Date.now().toString().slice(-5),name,skill,city:"Not set",status:"Pending invite",earnings:0,avatar:"✳"});state.modal="";state.agentTab="Talent";render();toast("Demo invitation created · Not sent");}
 });
+
+function addJourneyEscrow(entry){
+ const amount=Number(entry.amount||0),service=String(entry.service||"Service preview").slice(0,100),professional=String(entry.professional||"Professional").slice(0,100);
+ if(!Number.isSafeInteger(amount)||amount<1||amount>10000000)return null;
+ const part=Math.round(amount*.4),id="HES-J-"+Date.now().toString(36).slice(-7);
+ const e={id,client:"You",creator:professional,service,value:amount,created:dateNow(),status:"Held",source:"Simulated provider checkout",milestones:[{id:1,title:"Consultation & planning",amount:part,status:"Held"},{id:2,title:"Service delivery",amount:amount-part,status:"Held"}],log:["Booking journey example protected payment · no funds moved"]};
+ store.escrow.unshift(e);audit("Example checkout escrow created",id);return id;
+}
+function updateJourneyEscrow(id,action,index=0){
+ const e=escrow(id);if(!e)return false;
+ if(action==="dispute"&&e.status==="Held"){e.status="Disputed";e.log.unshift("Demo client disputed remaining funds");audit("Booking journey dispute",id);return true}
+ if(action==="release"&&e.status==="Held"){
+  const m=e.milestones[index];
+  if(!m||m.status!=="Held")return false;
+  m.status="Released";e.log.unshift("Demo client released milestone "+(index+1));
+  if(held(e)===0)e.status="Completed";
+  audit("Booking journey milestone released",id+" · "+(index+1));return true;
+ }
+ return false;
+}
+function openEscrow(id){
+ if(!escrow(id))return open("Wallet");
+ state.previous=["Wallet"];state.escrowId=id;state.adminInspect=false;state.adminPreview=false;state.modal="";state.page="Escrow";root.hidden=false;phone.classList.add("ho-open");render();
+}
 function addDemoTalent(p){
  if(!state.agentPreview)return false;
  const name=String(p.name||"").trim(),skill=String(p.skill||"").trim();
@@ -391,5 +415,5 @@ function acceptDemoTalent(name){
  const p=store.talent.find(t=>t.name===name&&t.status==="Pending invite");
  if(!p)return false;p.status="Accepted demo";audit("Simulated hustler consent",name);render();return true;
 }
-window.HustleOperations={open,close,addDemoTalent,acceptDemoTalent,getState:()=>({screen:state.page,wallet:store.wallet,earnings:store.earnings,escrows:store.escrow.map(x=>({id:x.id,status:x.status,held:held(x)})),agentPreview:state.agentPreview,adminPreview:state.adminPreview}),_testing:{store,state,handle,render}};
+window.HustleOperations={open,close,openEscrow,addJourneyEscrow,updateJourneyEscrow,addDemoTalent,acceptDemoTalent,getState:()=>({screen:state.page,wallet:store.wallet,earnings:store.earnings,escrows:store.escrow.map(x=>({id:x.id,status:x.status,held:held(x)})),agentPreview:state.agentPreview,adminPreview:state.adminPreview}),_testing:{store,state,handle,render}};
 })();
