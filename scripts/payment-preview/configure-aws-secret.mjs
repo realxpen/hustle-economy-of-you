@@ -88,6 +88,25 @@ export function configureSecret(env=process.env) {
   if(next.BETTER_AUTH_SECRET.length<32)
     throw new Error("REFUSED: invalid dedicated Better Auth secret");
   if(phase==="FINALIZE_TEST_ONLY") {
+    // This is a real read-only check with the restricted RUNTIME role. No
+    // provider credential can be activated before migrations and role access.
+    const target=new URL(app);
+    const sql=`SELECT CASE WHEN
+      (SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='public') >= 30
+      AND (SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='payment_auth'
+           AND tablename IN ('user','session','account','verification','rateLimit'))=5
+      AND has_table_privilege(current_user, 'public."User"', 'SELECT')
+      AND has_table_privilege(current_user, 'payment_auth."user"', 'SELECT')
+      THEN 'ready' ELSE 'not-ready' END;`;
+    let answer;
+    try {
+      answer=execFileSync("psql",["--no-psqlrc","-X","-At","-v","ON_ERROR_STOP=1",
+        "-c",sql],{encoding:"utf8",stdio:["ignore","pipe","pipe"],timeout:20000,
+        env:{...process.env,PGHOST:target.hostname,PGDATABASE:"hustle_payment_preview",
+          PGUSER:"hustle_payment_preview_api",PGPASSWORD:decodeURIComponent(target.password),
+          PGSSLMODE:"require"}}).trim();
+    } catch {throw new Error("REFUSED: independent migrated Neon schema not ready");}
+    if(answer!=="ready") throw new Error("REFUSED: preview app/auth tables or runtime grants not ready");
     const paystack=env.HUSTLE_PREVIEW_PAYSTACK_TEST_KEY||"";
     if(!/^sk_test_[A-Za-z0-9]{12,}$/.test(paystack))
       throw new Error("REFUSED: only valid Paystack TEST secret allowed");
@@ -118,7 +137,7 @@ export function configureSecret(env=process.env) {
   }
   if(phase==="FINALIZE_TEST_ONLY") {
     // Only after the independent PG17 schema check in the manual workflow.
-    readJson(["secretsmanager","tag-resource","--secret-id",meta.ARN,
+    aws(["secretsmanager","tag-resource","--secret-id",meta.ARN,
       "--tags","Key=status,Value=configured-test-only"]);
   }
   console.log("PASS: scoped AWS payment-preview secret updated; "+
