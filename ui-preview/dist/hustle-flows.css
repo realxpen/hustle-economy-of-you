@@ -347,3 +347,18 @@
 .hf-profile-safety button{color:var(--hf-muted);font-size:10px;font-weight:800;border:1px solid var(--hf-line);background:var(--hf-surface);border-radius:20px;padding:7px 9px}
 .hf-post-interactions button:last-child{font-size:10px}
 @media(max-width:355px){.hf-auth-entry{gap:6px;padding:9px}.hf-auth-entry button{padding:8px;font-size:9px}}
+
+
+/* Adaptive service terms on marketplace listing details */
+.hf-booking-policy-card{background:var(--hf-surface);color:var(--hf-text);border:1px solid var(--hf-line);border-radius:18px;padding:15px;margin:16px 0 12px}
+.hf-booking-policy-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hf-booking-policy-head>div>span{display:block;font-size:9px;font-weight:950;letter-spacing:1.2px;color:#86aa40}
+.hf-booking-policy-head h2{font-size:17px!important;line-height:1.2;letter-spacing:-.4px;margin:5px 0!important}
+.hf-booking-policy-icon{width:39px;height:39px;border-radius:13px;background:var(--hf-lime);display:grid;place-items:center;font-size:22px}
+.hf-booking-policy-pills{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
+.hf-booking-policy-pills span{display:inline-flex;padding:6px 8px;background:var(--hf-bg);border:1px solid var(--hf-line);border-radius:15px;font-size:10px;font-weight:800}
+.hf-booking-policy-consult{display:flex;gap:10px;align-items:flex-start;background:#eef7de;border-radius:12px;padding:11px;color:#29482a}
+.hf-booking-policy-consult>span{font-size:22px;flex:none}.hf-booking-policy-consult>div{flex:1}
+.hf-booking-policy-consult b{display:block;font-size:11px}.hf-booking-policy-consult small{display:block;font-size:10px;line-height:1.5;margin-top:4px}
+.phone.dark .hf-booking-policy-consult{color:#e4f5d6;background:#2d4430}
+.hf-booking-policy-card>p{font-size:11px;line-height:1.55;margin:11px 0 0;color:var(--hf-muted)}
