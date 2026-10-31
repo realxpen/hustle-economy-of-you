@@ -2,8 +2,8 @@
 
 import styles from "./adaptive-policy-form.module.css";
 
-export type AdaptivePolicyValue = string | number | boolean | string[];
-export type AdaptivePolicy = Record<string, AdaptivePolicyValue>;
+import type { AdaptivePolicy, AdaptivePolicyValue } from "../../lib/adaptive";
+export type { AdaptivePolicy };
 
 type Props = {
   blueprint: string;
@@ -41,7 +41,14 @@ export function AdaptivePolicyForm({ blueprint, policy, onChange, disabled }: Pr
     <label className={styles.field} key={key}>
       <span>{label}</span>
       <select disabled={disabled} value={String(policy[key] ?? values[0]?.[0] ?? "")}
-        onChange={event => set(key, event.target.value)}>
+        onChange={event => {
+          const value = event.target.value;
+          if (key === "consultationMode" && value === "disabled")
+            onChange({ ...policy, consultationMode: value, consultationFeeMinor: 0, creditConsultation: false });
+          else if (key === "itemType" && value === "laundry")
+            onChange({ ...policy, itemType: value, measurementMethods: ["not_required"] });
+          else set(key, value);
+        }}>
         {values.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
       </select>
     </label>
