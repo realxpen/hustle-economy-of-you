@@ -146,6 +146,63 @@ function renderActivityHistory(){
  const e=escrow(state.escrowId);
  return header("Escrow timeline",e?.id||"Demo")+`<div class="ho-screen">${visibleStatus()}${section("Timeline")}${(e?.log||[]).map((x,i)=>line("✦",esc(x),i===0?esc(e.created):"Demo event","✓")).join("")}</div>`;
 }
+function todayISO(offset=0){
+ const d=new Date();d.setDate(d.getDate()+offset);
+ return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+}
+function businessContext(){
+ const rules=window.HustleBookingRules,skill=state.bookingConfigSkill,owner=state.businessOwner||"Sample professional";
+ return {rules,skill,owner,b:rules?.getTeam(skill,owner),p:rules?.get(skill,owner)};
+}
+function renderTeamManager(){
+ const {rules,skill,owner,b,p}=businessContext();
+ if(!rules||!b)return banner("Setup unavailable","Booking rules are not connected");
+ const active=rules.effectiveCapacity(skill,todayISO(1),owner);
+ return `${visibleStatus()}<div class="ho-team-hero"><div><small>YOUR WORKFORCE · DEMO</small><h2>${esc(b.name)}</h2><p>${b.mode==="solo"?"Solo professional":"Team-based business"} · ${active} available service place${active===1?"":"s"} tomorrow</p></div>${btn("Edit setup","business-setup","outline")}</div>
+ ${section("Opening hours")}
+ <div class="ho-work-hours"><b>◷ ${esc(b.start)} – ${esc(b.end)}</b><small>${b.days.map(n=>["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][n]).join(", ")||"Closed all week"}</small></div>
+ ${section("Team members",`<small>${b.staff.filter(x=>x.status==="active").length} active · ${b.staff.filter(x=>x.status==="departed").length} departed</small>`)}
+ ${b.mode==="solo"?banner("Solo operation","Solo businesses can take one appointment at a time. Switch to Team to allow multiple staff members to serve customers in parallel.","quiet"):""}
+ ${b.staff.length?b.staff.map(m=>`<div class="ho-team-person"><div class="ho-team-person-top"><span class="ho-team-avatar">${esc(m.name.charAt(0).toUpperCase())}</span><div><b>${esc(m.name)}</b><small>${m.status==="active"?"Available for new bookings":m.status==="away"?"Temporarily unavailable":"Departed — history retained"}</small></div>${badge(m.status==="active"?"Active":m.status==="away"?"Away":"Departed")}</div>
+ <div class="ho-team-actions"><button data-op="staff-status" data-id="${esc(m.id)}" data-value="active" ${m.status==="active"?"disabled":""}>Active</button><button data-op="staff-status" data-id="${esc(m.id)}" data-value="away" ${m.status==="away"?"disabled":""}>On leave</button><button data-op="staff-status" data-id="${esc(m.id)}" data-value="departed" ${m.status==="departed"?"disabled":""}>Left business</button></div>
+ ${m.timeOff.length?`<div class="ho-team-leave">Unavailable: ${m.timeOff.map(day=>`<button data-op="staff-remove-off" data-id="${esc(m.id)}" data-value="${esc(day)}">${esc(day)} ×</button>`).join("")}</div>`:""}
+ <button class="ho-text-action" data-op="team-date-off" data-id="${esc(m.id)}">Unavailable on chosen date →</button></div>`).join(""):banner("No staff added","Add workers who really provide the service. A team with no active workers cannot accept bookings.","quiet")}
+ <div class="ho-field"><label for="hoTimeOffDate">Choose a date for staff leave</label><input type="date" id="hoTimeOffDate" min="${todayISO()}" value="${todayISO(1)}"></div>
+ <form data-ho-form="team-member" class="ho-form ho-staff-add"><label for="hoMemberName">Add a worker</label><div class="ho-team-add-row"><input id="hoMemberName" name="memberName" required minlength="2" maxlength="70" placeholder="Worker's name"><button class="ho-btn ho-lime" type="submit">＋ Add</button></div></form>
+ ${banner("When a worker leaves","Mark them 'Left business' to stop new allocations immediately. Previous example bookings remain recorded. Existing commitments must be reassigned or rescheduled.","quiet")}`;
+}
+function renderBusinessSetup(){
+ const {rules,skill,owner,b,p}=businessContext(),i=state.businessStep;
+ const names=["Business","Service","Team","Hours"];
+ let body="";
+ if(i===0){
+ body=`<h2>How do you work?</h2><p class="ho-copy">Tell Hustle whether you work alone or have a team. Your staffing changes the number of customers you can serve at the same time.</p>
+ <form class="ho-form" data-ho-form="business-profile"><label for="hoBusinessName">Business or professional name</label><input id="hoBusinessName" name="businessName" required value="${esc(owner)}" placeholder="Royal Cuts Barbershop">
+ <label for="hoBusinessSkill">Primary service</label><select id="hoBusinessSkill" name="skill">${Object.values(rules.templates).map(t=>`<option value="${t.id}" ${t.id===skill?"selected":""}>${t.icon} ${esc(t.label)}</option>`).join("")}</select>
+ <label for="hoBusinessMode">Do you have staff?</label><select id="hoBusinessMode" name="mode"><option value="solo" ${b?.mode==="solo"?"selected":""}>No, it's just me</option><option value="team" ${b?.mode==="team"?"selected":""}>Yes, I manage a team</option></select>
+ <div class="ho-booking-example"><b>How capacity works</b><span>Solo = one appointment at a time.</span><small>Team = parallel appointments based on staff actually present.</small></div><button type="submit" class="ho-btn ho-lime ho-full">Next: service →</button></form>`;
+ }else if(i===1){
+ body=`<h2>Set up your service</h2><p class="ho-copy">Set your normal price and appointment length. Consultation is not mandatory for every skill.</p>
+ <form class="ho-form" data-ho-form="business-service"><label for="hoSetupPrice">Starting price (₦)</label><input name="price" id="hoSetupPrice" type="number" min="0" max="2000000" value="${p.basePrice}" required>
+ <label for="hoSetupDuration">Minutes needed per person / service unit</label><input name="duration" id="hoSetupDuration" type="number" min="15" max="480" step="15" value="${p.duration}" required>
+ <label for="hoSetupConsult">Consultation policy</label><select name="consultation" id="hoSetupConsult">${[["off","No consultation"],["optional","Optional — client decides"],["required","Required"]].map(([v,n])=>`<option value="${v}" ${p.consultation===v?"selected":""}>${n}</option>`).join("")}</select>
+ <label for="hoSetupConsultFee">Consultation fee (₦; 0 = free)</label><input name="consultFee" id="hoSetupConsultFee" type="number" min="0" max="100000" value="${p.consultFee}">
+ <label class="ho-policy-check"><input name="creditConsultation" type="checkbox" ${p.creditConsultation?"checked":""}><span><b>Credit paid consultation toward booking</b><small>₦1,000 consult + ₦5,000 haircut = ₦4,000 later due.</small></span></label>
+ <label for="hoSetupCapacity">Maximum parallel appointments (team only)</label><input name="capacity" id="hoSetupCapacity" type="number" min="1" max="50" value="${p.capacity}">
+ <p class="ho-copy">Even if you enter 8, only your active staff can provide those slots.</p>
+ <button type="submit" class="ho-btn ho-lime ho-full">Next: staff →</button></form>`;
+ }else if(i===2){
+ body=`<h2>Your staff</h2><p class="ho-copy">Add workers who deliver the service. You can later mark them away or as having left.</p>${renderTeamManager()}${btn("Next: opening hours →","business-next","lime")}`;
+ }else{
+ body=`<h2>When can customers book?</h2><p class="ho-copy">Set operating hours and days. Customers can select exact dates, and their requests are checked against staffing and availability.</p>
+ <form class="ho-form" data-ho-form="business-hours"><div class="ho-policy-grid"><div class="ho-field"><label for="hoOpenStart">Opening time</label><input type="time" name="start" id="hoOpenStart" required value="${esc(b.start)}"></div><div class="ho-field"><label for="hoOpenEnd">Closing time</label><input type="time" name="end" id="hoOpenEnd" required value="${esc(b.end)}"></div></div>
+ <label>Working days</label><div class="ho-working-days">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((v,n)=>`<label><input type="checkbox" name="day${n}" ${b.days.includes(n)?"checked":""}><span>${v}</span></label>`).join("")}</div>
+ ${banner("Review your setup","Customers can request dates in your schedule. Staff time off reduces the number of appointments you can accept. These are demo rules, not live calendar availability.","quiet")}
+ <button type="submit" class="ho-btn ho-lime ho-full">Complete demo setup ✓</button></form>`;
+ }
+ return header("Business setup","Professional onboarding · sample")+
+ `<div class="ho-screen"><div class="ho-business-steps">${names.map((n,j)=>`<span class="${j<=i?"on":""}">${j+1} ${n}</span>`).join("")}</div><div class="ho-business-content">${body}</div>${i>0?btn("← Previous step","business-previous","outline"):""}</div>`;
+}
 function renderHustler(){
  const tabsArr=["Overview","Bookings","Booking setup","Team & hours","Listings","Insights","Earnings"];
  let content="";
