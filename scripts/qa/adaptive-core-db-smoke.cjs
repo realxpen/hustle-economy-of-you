@@ -7,6 +7,7 @@ const {PrismaClient}=require("@prisma/client");
 const {AdaptiveService}=require("../../apps/api/dist/adaptive/adaptive.service");
 const {AdaptiveRosterService}=require("../../apps/api/dist/adaptive/adaptive-roster.service");
 const {BookingScheduleService}=require("../../apps/api/dist/booking/booking-schedule.service");
+const {AdaptiveBookingOpsService}=require("../../apps/api/dist/adaptive/adaptive-booking-ops.service");
 
 const url=new URL(process.env.DATABASE_URL||"postgresql://missing");
 if(!["127.0.0.1","localhost"].includes(url.hostname) || !url.pathname.endsWith("/hustle_adaptive_ci"))
@@ -16,6 +17,7 @@ process.env.HUSTLE_ADAPTIVE_CORE_ENABLED="true";
 const db=new PrismaClient();
 const api=new AdaptiveService(db);
 const roster=new AdaptiveRosterService(db),schedule=new BookingScheduleService(db);
+const ops=new AdaptiveBookingOpsService(db);
 const id=(subject)=>({subject,emailVerified:true,phoneVerified:true});
 const expectForbidden=async(promise,code=403)=>{
  await assert.rejects(promise,error=>typeof error?.getStatus==="function"&&error.getStatus()===code);
@@ -205,6 +207,91 @@ async function run(){
  assert.deepEqual(event.map(x=>x.revision),[1,2]);
  await api.revoke(own,business.id,invite.id);
  await expectForbidden(api.draftWork(member,business.id,{title:"No more access"}));
+
+ // Assign exactly one eligible worker to each accepted appointment; last-slot
+ // capacity and staff/leave were verified above by the same booking engine.
+ const assigned=await ops.assign(own,business.id,accepted.id,{staffId:worker1.id});
+ assert.equal(assigned.staffId,worker1.id);
+ assert.equal((await ops.assign(own,business.id,accepted.id,{staffId:worker1.id})).revision,1);
+ await expectForbidden(ops.assign(other,business.id,accepted.id,{staffId:worker2.id,expectedRevision:1}));
+ const second=await db.booking.create({data:{
+   serviceId:salonPrepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
+   requestedStartAt:startAt,requestedEndAt:endAt,confirmedStartAt:startAt,confirmedEndAt:endAt,
+   status:"ACCEPTED",requirements:"Synthetic second haircut",serviceTitleSnapshot:"Group wedding haircuts",
+   agreedPriceMinor:800000,pricingTypeSnapshot:"FIXED"
+ }});
+ await expectForbidden(ops.assign(own,business.id,second.id,{staffId:worker1.id}),409);
+ assert.equal((await ops.assign(own,business.id,second.id,{staffId:worker2.id})).staffId,worker2.id);
+ // A future-day break invalidates the previously usable shift without
+ // silently cancelling or refunding an accepted booking.
+ const later=new Date(Date.now()+12*86400000).toISOString().slice(0,10);
+ const thirdStart=new Date(later+"T10:00:00+01:00");
+ const thirdEnd=new Date(later+"T10:30:00+01:00");
+ const third=await db.booking.create({data:{
+   serviceId:salonPrepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
+   requestedStartAt:thirdStart,requestedEndAt:thirdEnd,confirmedStartAt:thirdStart,confirmedEndAt:thirdEnd,
+   status:"ACCEPTED",requirements:"Weekend synthetic booking",serviceTitleSnapshot:"Group wedding haircuts",
+   agreedPriceMinor:800000,pricingTypeSnapshot:"FIXED"
+ }});
+ await ops.assign(own,business.id,third.id,{staffId:worker1.id});
+ const leaveAgain=await roster.leave(own,business.id,worker1.id,{
+   startAt:later+"T00:00:00+01:00",
+   endAt:new Date(Date.parse(later+"T00:00:00Z")+86400000).toISOString().slice(0,10)+"T00:00:00+01:00"
+ });
+ assert.ok(leaveAgain.affectedExistingBookings>=1);
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:third.id}})).status,"ACCEPTED");
+ const reassigned=await ops.assign(own,business.id,third.id,{staffId:worker2.id,expectedRevision:1});
+ assert.equal(reassigned.revision,2);
+ await expectForbidden(ops.assign(own,business.id,third.id,{staffId:worker1.id,expectedRevision:2}),409);
+ assert.equal((await ops.assign(own,business.id,third.id,{staffId:worker2.id,expectedRevision:1})).revision,2);
+ assert.equal((await ops.myBookingSummary(other,third.id)).assignment.staff.displayName,worker2.displayName);
+
+ // Tailor item handover is selected by the CLIENT, not the business/agent.
+ const garment=await db.booking.create({data:{
+  serviceId:prepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
+  requestedStartAt:new Date(Date.now()+86400000),
+  status:"PAYMENT_PENDING",requirements:"Synthetic dress fitting",
+  serviceTitleSnapshot:"Custom festival outfit",agreedPriceMinor:1800000,pricingTypeSnapshot:"FIXED"
+ }});
+ await expectForbidden(ops.myHandover(own,garment.id,{intakeMethod:"drop_off",returnMethod:"shop_pickup"}));
+ await expectForbidden(ops.myHandover(other,garment.id,{intakeMethod:"not_offered",returnMethod:"shop_pickup"}),400);
+ const choices=await ops.myHandover(other,garment.id,{intakeMethod:"drop_off",returnMethod:"shop_pickup"});
+ assert.equal(choices.status,"AWAITING_INTAKE");
+ assert.equal((await ops.myBookingSummary(other,garment.id)).fulfillment.intakeMethod,"drop_off");
+ await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"RECEIVED",expectedRevision:1}),409);
+ await db.booking.update({where:{id:garment.id},data:{status:"FUNDED"}});
+ await ops.itemProgress(own,business.id,garment.id,{to:"RECEIVED",expectedRevision:1});
+ await ops.itemProgress(own,business.id,garment.id,{to:"IN_PROGRESS",expectedRevision:2});
+ const ready=await ops.itemProgress(own,business.id,garment.id,{to:"READY",expectedRevision:3});
+ assert.equal(ready.status,"READY");
+ assert.ok(ready.actualReadyAt);
+ await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"OUT_FOR_DELIVERY",expectedRevision:4}),409);
+ const collected=await ops.itemProgress(own,business.id,garment.id,{to:"COLLECTED",expectedRevision:4});
+ assert.equal(collected.status,"COLLECTED");
+ await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"COLLECTED",expectedRevision:4}),409);
+ assert.ok(await db.notification.findFirst({where:{recipientUserId:outsider.id,
+  eventKey:"adaptive:item:"+garment.id+":READY:4"}}));
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:garment.id}})).status,"FUNDED",
+  "item notifications do not advance the financial Booking");
+ assert.equal((await db.adaptiveItemEvent.findMany({where:{fulfillmentId:collected.id}})).length,4);
+ // Laundry can offer home pickup and delivery, without claiming automatic courier dispatch.
+ const laundryPrepared=await api.prepareCanonicalService(own,business.id,laundry.id);
+ const wash=await db.booking.create({data:{
+  serviceId:laundryPrepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
+  requestedStartAt:new Date(Date.now()+86400000),status:"FUNDED",
+  requirements:"Synthetic wash",serviceTitleSnapshot:"Laundry pickup and delivery",
+  agreedPriceMinor:450000,pricingTypeSnapshot:"FIXED"
+ }});
+ await ops.myHandover(other,wash.id,{intakeMethod:"home_pickup",returnMethod:"home_delivery"});
+ await ops.itemProgress(own,business.id,wash.id,{to:"RECEIVED",expectedRevision:1});
+ await ops.itemProgress(own,business.id,wash.id,{to:"IN_PROGRESS",expectedRevision:2});
+ await ops.itemProgress(own,business.id,wash.id,{to:"READY",expectedRevision:3});
+ await ops.itemProgress(own,business.id,wash.id,{to:"OUT_FOR_DELIVERY",expectedRevision:4});
+ await ops.itemProgress(own,business.id,wash.id,{to:"DELIVERED",expectedRevision:5});
+ assert.ok(await db.notification.findFirst({where:{recipientUserId:outsider.id,
+  eventKey:"adaptive:item:"+wash.id+":READY:4"}}));
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:wash.id}})).status,"FUNDED");
+
  // Canonical Booking/Order remain unmodified and visible only to authenticated participants.
 
  const service=await db.service.create({data:{professionalProfileId:profile.id,title:"Sample haircut",priceMinor:5000,currency:"NGN",pricingType:"FIXED"}});
