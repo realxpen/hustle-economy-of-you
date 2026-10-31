@@ -34,7 +34,7 @@ function left(id,day,time,provider="default"){const cap=get(id,provider).capacit
 function reserve(id,day,time,units=1,provider="default"){if(!Number.isSafeInteger(units)||units<1||units>get(id,provider).capacity||left(id,day,time,provider)<units)return false;const k=key(id,day,time,provider);reservations.set(k,held(id,day,time,provider)+units);return true}
 function release(id,day,time,units=1,provider="default"){const k=key(id,day,time,provider);reservations.set(k,Math.max(0,held(id,day,time,provider)-Math.max(0,units)))}
 function slotAt(start,offset){
- const m=String(start).match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)/i);if(!m)return offset?null:start;
+ const m=String(start).match(/^(\d{1,2}):(\d{2})\s*(AM|PM)/i);if(!m)return offset?null:start;
  const hour=(Number(m[1])%12)+(m[3].toUpperCase()==="PM"?12:0),minute=Number(m[2]);
  if(!Number.isInteger(minute)||minute<0||minute>59)return null;
  const format=n=>{const h=(n+24)%24;return (h%12||12)+":"+String(minute).padStart(2,"0")+" "+(h<12?"AM":"PM")};
