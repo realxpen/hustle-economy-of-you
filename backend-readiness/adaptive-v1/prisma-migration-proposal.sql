@@ -194,6 +194,7 @@ CREATE TABLE "AdaptiveItemFulfillment" (
  "workspaceId" TEXT NOT NULL,
  "intakeMethod" TEXT NOT NULL,
  "returnMethod" TEXT NOT NULL,
+ "policySnapshot" JSONB NOT NULL DEFAULT '{}'::jsonb,
  "status" "AdaptiveItemStage" NOT NULL DEFAULT 'AWAITING_INTAKE',
  "estimatedReadyAt" TIMESTAMP(3),
  "actualReadyAt" TIMESTAMP(3),
