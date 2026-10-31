@@ -42,6 +42,7 @@ export function StaffRoster({workspaceId,canManage}:{workspaceId:string;canManag
  const [enabled,setEnabled]=useState(false);
  const [editing,setEditing]=useState<string|null>(null);
  const [edits,setEdits]=useState<WeeklyShift[]>([]);
+ const [editName,setEditName]=useState("");
  const [leave,setLeave]=useState<{staffId:string;start:string;end:string;note:string}>({staffId:"",start:"",end:"",note:""});
  const load=useCallback(async()=>{
   const roster=await adaptiveClient.roster(workspaceId);
@@ -62,12 +63,13 @@ export function StaffRoster({workspaceId,canManage}:{workspaceId:string;canManag
    await load();
    setNotice(done+(result?.affectedExistingBookings?
     " Review "+result.affectedExistingBookings+" existing accepted commitments affected by staffing changes.":""));
-  }catch(e){setError(explain(e))}
+   return true;
+  }catch(e){setError(explain(e));return false;}
   finally{setBusy(false)}
  }
  const submit=(e:FormEvent<HTMLFormElement>,fn:()=>void)=>{e.preventDefault();fn()};
  function startEdit(s:AdaptiveStaff){
-  setEditing(s.id);setEdits(s.weeklyHours.map(x=>({...x})));setError("");
+  setEditing(s.id);setEditName(s.displayName);setEdits(s.weeklyHours.map(x=>({...x})));setError("");
  }
  return <section className={styles.root} aria-label="Business staff and availability">
   <div className={styles.heading}>
@@ -77,7 +79,7 @@ export function StaffRoster({workspaceId,canManage}:{workspaceId:string;canManag
   </div>
   {error&&<p role="alert" className={styles.error}>{error}</p>}
   {notice&&<p role="status" className={styles.notice}>{notice}</p>}
-  {!data?<p>Loading roster…</p>:<>
+  {!data?<p>{error?"Roster unavailable in this environment.":"Loading roster…"}</p>:<>
    <form className={styles.panel} onSubmit={e=>submit(e,()=>void save(
      ()=>adaptiveClient.rosterSettings(workspaceId,{stationCapacity:stations,rosterEnabled:enabled}),
      "Workforce capacity settings updated."))}>
@@ -107,17 +109,18 @@ export function StaffRoster({workspaceId,canManage}:{workspaceId:string;canManag
      <p className={styles.hint}>{s.weeklyHours.length} weekly shift windows · {s.leave.length} upcoming or recorded leave periods</p>
      {canManage&&editing!==s.id&&<button type="button" className={styles.secondary} onClick={()=>startEdit(s)}>Edit shifts</button>}
      {editing===s.id&&<div className={styles.editor}>
+      <label className={styles.field}>Staff display name<input minLength={2} maxLength={80} value={editName} onChange={e=>setEditName(e.target.value)} disabled={busy}/></label>
       <ScheduleRows value={edits} onChange={setEdits} disabled={busy}/>
       <div className={styles.actions}>
        <button type="button" disabled={busy} onClick={()=>void save(
-        ()=>adaptiveClient.updateStaff(workspaceId,s.id,{displayName:s.displayName,
+        ()=>adaptiveClient.updateStaff(workspaceId,s.id,{displayName:editName,
          active:s.active,weeklyHours:edits,expectedRevision:s.revision}),
-         "Staff shifts saved.").then(()=>setEditing(null))}>Save shifts</button>
+         "Staff details saved.").then(ok=>{if(ok)setEditing(null)})}>Save shifts</button>
        <button type="button" className={styles.secondary} onClick={()=>setEditing(null)}>Cancel</button>
       </div>
      </div>}
      {s.leave.map(l=><div key={l.id} className={styles.absence}>
-      <span>Off: {new Date(l.startAt).toLocaleDateString("en-NG")} – {new Date(l.endAt).toLocaleDateString("en-NG")}{l.note?" · "+l.note:""}</span>
+      <span>Off: {new Date(l.startAt).toLocaleDateString("en-NG",{timeZone:"Africa/Lagos"})} – {new Date(l.endAt).toLocaleDateString("en-NG",{timeZone:"Africa/Lagos"})}{l.note?" · "+l.note:""}</span>
       {canManage&&<button type="button" disabled={busy} className={styles.secondary}
        onClick={()=>void save(()=>adaptiveClient.cancelStaffLeave(workspaceId,s.id,l.id),"Time off cancelled.")}>Cancel leave</button>}
      </div>)}
@@ -126,7 +129,7 @@ export function StaffRoster({workspaceId,canManage}:{workspaceId:string;canManag
      {canManage&&leave.staffId===s.id&&<form className={styles.leaveForm}
       onSubmit={e=>submit(e,()=>void save(()=>adaptiveClient.staffLeave(workspaceId,s.id,{
        startAt:leave.start+"T00:00:00+01:00",endAt:nextDay(leave.end)+"T00:00:00+01:00",note:leave.note
-      }),"Time off recorded.").then(()=>setLeave({staffId:"",start:"",end:"",note:""})))}>
+      }),"Time off recorded.").then(ok=>{if(ok)setLeave({staffId:"",start:"",end:"",note:""})})))}>
       <p className={styles.hint}>Full days in Africa/Lagos time. Existing booked customers may need reassignment.</p>
       <label>First day off<input required type="date" value={leave.start} disabled={busy}
        onChange={e=>setLeave({...leave,start:e.target.value})}/></label>
@@ -141,8 +144,8 @@ export function StaffRoster({workspaceId,canManage}:{workspaceId:string;canManag
     </article>)}
    </div>
    {canManage&&<form className={styles.panel} onSubmit={e=>submit(e,()=>void save(
-    ()=>adaptiveClient.addStaff(workspaceId,{displayName:name,weeklyHours:shifts}),"Team member added.").then(()=>{
-      setName("");setShifts(initialDays.map(day=>({day,start:"09:00",end:"17:00"})));
+    ()=>adaptiveClient.addStaff(workspaceId,{displayName:name,weeklyHours:shifts}),"Team member added.").then(ok=>{
+      if(ok){setName("");setShifts(initialDays.map(day=>({day,start:"09:00",end:"17:00"})));}
     }))}>
     <h3>Add a team member</h3>
     <p className={styles.hint}>Add an existing worker or an offline worker by display name. This does not create an account, issue an invitation, or grant wallet access.</p>
