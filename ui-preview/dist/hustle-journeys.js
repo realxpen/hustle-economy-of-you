@@ -474,7 +474,7 @@ function onSubmit(name,form){
  if(name==="report"){state.reportReason=get("reason");state.reportText=get("reportDetails");state.modal="report-confirm";render();return}
  if(name==="booking-request"){const b=data.booking,p=policyFor();b.fields={};for(const [key] of p.fields)b.fields[key]=get(key);
  b.requirements=b.fields.style||"";b.location=get("location");b.venue=get("venue")||p.locationModes[0];b.day=get("day")||localISO(1);b.time=get("time");b.people=Number(get("people")||1);b.quoteLines=null;
- if(!/^\d{4}-\d{2}-\d{2}$/.test(b.day)||b.day<localISO()||b.day>localISO(365)){renderToast("Choose a valid future booking date");return}if(!window.HustleBookingRules?.isOpen(p.id,b.day,b.time,b.professional)){renderToast("That date or time is outside this professional’s working hours");return}
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(b.day)||b.day<localISO()||b.day>localISO(365)){renderToast("Choose a valid future booking date");return}if(!b.time){renderToast("This date is full or closed. Please select a suggested opening.");return}if(!window.HustleBookingRules?.isOpen(p.id,b.day,b.time,b.professional)){renderToast("That time is outside this professional’s working hours");return}
  if(b.requirements.length<5||!Number.isSafeInteger(b.people)||b.people<1||b.people>50){renderToast("Describe the service and choose 1–50 people or items");return}if(!b.location)b.location=/remote|video|phone/i.test(b.venue)?"Online":"Location to be confirmed";
  b.consultChoice=p.consultation==="required"||p.consultation==="optional"&&get("consultChoice")==="consult";
  b.customQuote=b.people>1||/home|event|at my location|pickup|delivery|cater|custom order|site assessment|outdoor/i.test(b.venue);
