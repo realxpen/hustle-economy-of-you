@@ -281,3 +281,9 @@
 .hf-live-preview-host b{font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){.hf-live-preview-still{animation:none}}
+
+
+/* In-room safety control stays inside the entered Live room, not discovery previews */
+.hf-live-room-report{flex:none;width:34px;height:34px;border:1px solid #ffffff78;border-radius:50%;background:#1d1d1dac;color:#fff;font-size:18px;display:grid;place-items:center}
+.hf-live-room-report:focus-visible{outline:2px solid #dfff77;outline-offset:3px}
+@media(max-width:355px){.hf-live-room-report{width:29px;height:29px;font-size:16px}}
