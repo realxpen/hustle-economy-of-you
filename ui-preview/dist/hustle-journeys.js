@@ -66,7 +66,7 @@ function renderOnboarding(){
  else if(i===1){body=field("name","What should people call you?","Your display name","text",o.name,'required maxlength="60" autocomplete="name"')+field("handle","Choose a username (optional)","yourhandle","text",o.handle,'maxlength="25"')}
  else if(i===2){body=field("skill","Primary skill or interest","e.g. Barbering, Fashion, Cooking","text",o.skill,'maxlength="60"')+field("area","Area (optional)","e.g. Yaba, Lagos","text",o.area,'maxlength="90"')+info("Skills and location can be changed later. Your precise location is never requested during onboarding.")}
  else{body=`<div class="hj-finish"><span>✦</span><h2>You're ready to explore.</h2><p>Follow inspiring creators, search nearby skills and begin your Hustle journey.</p></div>
- <label class="hj-check"><input name="updates" type="checkbox" ${o.notifications?"checked":""}> <span>Show me notifications about bookings and messages later (optional)</span></label>`}
+ <label class="hj-check"><input name="updates" type="checkbox" ${o.notifications?"checked":""}> <span>Show me notifications about bookings and messages later (optional)</span></label>${o.intent!=="hire"?`<div class="hj-business-invite"><span>✳</span><div><b>Want customers to book your skills?</b><small>Set up a solo or team business, service prices, appointment capacity, dates, hours and consultation options.</small></div></div>${button("Set up my services →","onboard-business","secondary")}`:""}`}
  return heading("Make it yours","A FEW EASY STEPS")+`<div class="hj-page hj-onboard">${progress(["Goal","About you","Your interests","Ready"],i)}<h2>${["What brings you here?","Let's introduce you.","Find your community.","You're all set."][i]}</h2><p class="hj-lead">${["You can always do both. This just tunes the suggestions.","A name is enough to begin.","Optional now—personalize over time.","Everything can be changed in your profile."][i]}</p>
  ${formBody("onboard",body,i===3?"Enter Hustle →":"Continue →",i>0?"onboard-back":"")}${i<3?button("Skip for now","onboard-skip","link"):""}</div>`;
 }
@@ -323,6 +323,7 @@ function onAction(action,value="",id=""){
  case "auth-method":data.auth.method=value;render();break;
  case "onboard-back":state.onboardStep=Math.max(0,state.onboardStep-1);render();break;
  case "onboard-skip":state.onboardStep=Math.min(3,state.onboardStep+1);render();break;
+ case "onboard-business":if(state.onboardStep===3)finishOnboarding(true);break;
  case "intent":data.onboarding.intent=value;render();break;
  case "notification-tab":state.notificationFilter=value;render();break;
  case "notification-settings":go("NotificationSettings");break;
@@ -395,6 +396,14 @@ function onAction(action,value="",id=""){
  }
  }
 }
+function finishOnboarding(openBusiness=false,form=null){
+ if(form)data.onboarding.notifications=!!form.querySelector('input[name="updates"]')?.checked;
+ state.signedIn=true;state.guest=false;state.user={...data.onboarding};
+ window.HustleFlowsPreview?.updateDemoUser?.(state.user);
+ addNotice("System","Your demo profile is ready",data.onboarding.name,"Explore");
+ rememberIntro();close();
+ if(openBusiness)window.HustleOperations?.open("BusinessSetup",{owner:state.user.name||"My business",skill:window.HustleBookingRules?.detect(state.user.skill||"barber")});
+}
 function onSubmit(name,form){
  const f=new FormData(form),get=k=>String(f.get(k)||"").trim();
  if(name==="auth"){const v=get("contact");if(data.auth.method==="phone"?!/^[+0-9 ()-]{7,18}$/.test(v):!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){renderToast("Enter a valid "+data.auth.method);return}data.auth.contact=v;go("Verify");return}
@@ -406,7 +415,7 @@ function onSubmit(name,form){
  if(name==="onboard"){const i=state.onboardStep;
  if(i===1){data.onboarding.name=get("name");data.onboarding.handle=get("handle");if(!data.onboarding.name){renderToast("A display name is needed");return}}
  if(i===2){data.onboarding.skill=get("skill");data.onboarding.area=get("area")}
- if(i===3){data.onboarding.notifications=!!form.querySelector('input[name="updates"]')?.checked;state.signedIn=true;state.guest=false;state.user={...data.onboarding};window.HustleFlowsPreview?.updateDemoUser?.(state.user);addNotice("System","Your demo profile is ready",data.onboarding.name,"Explore");rememberIntro();close();return}
+ if(i===3){finishOnboarding(false,form);return}
  state.onboardStep++;render();return}
  if(name==="report"){state.reportReason=get("reason");state.reportText=get("reportDetails");state.modal="report-confirm";render();return}
  if(name==="booking-request"){const b=data.booking,p=policyFor();b.fields={};for(const [key] of p.fields)b.fields[key]=get(key);
