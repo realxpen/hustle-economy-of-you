@@ -1,3 +1,8 @@
+-- SUPERSEDED DESIGN DRAFT — DO NOT RUN. Assumes auth.users UUID and a separate
+-- adaptive schema, conflicting with Hustle's actual Prisma User CUID domain.
+-- Use the reviewed apps/api/prisma/migrations/20261031130000_adaptive_core_v1/
+-- migration.sql on a disposable development DB ONLY, after validation.
+
 -- Hustle Adaptive Economy v1 / BACKEND READINESS DRAFT
 -- Target: Supabase PostgreSQL 15+; requires auth.users from Supabase.
 -- NOT EXECUTED. DO NOT RUN AGAINST PRODUCTION BEFORE REVIEW, BASELINE,
