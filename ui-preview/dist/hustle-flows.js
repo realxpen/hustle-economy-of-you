@@ -478,14 +478,73 @@ function renderCheckout(){
  `<h2>Review your order</h2><div class="hf-summary"><div><b>Items</b><span>${state.cart.reduce((n,x)=>n+x.qty,0)}</span></div><div><b>Subtotal</b><span>${money(subtotal)}</span></div><div><b>Delivery area</b><span>${esc(state.checkout.location)}</span></div><div><b>Payment</b><span>Not connected</span></div></div><div class="hf-notice">Your order will not be submitted. Wallet and escrow are intentionally disabled in this preview.</div>`}
  <button data-hf="checkout-next" class="hf-lime-button" style="width:100%">${state.checkoutStep===0?"Review order →":"Finish checkout preview"}</button></div>`;
 }
+function createCategoryOptions(selected){
+ return categories.map(k=>`<option value="${k}" ${selected===k?"selected":""}>${k}</option>`).join("");
+}
+function createFormField(name,label,type="text",extra=""){
+ const old=state.draftForms[state.draftType]||{};
+ const value=old[name]??"";
+ const opts=type==="category"?`<select name="${name}" id="hfDraft-${name}">${createCategoryOptions(value||"Creative")}</select>`:
+ type==="description"?`<textarea id="hfDraft-${name}" name="${name}" rows="4" maxlength="600" required placeholder="${extra||"Tell people what to expect"}">${esc(value)}</textarea>`:
+ type==="price"?`<input name="${name}" id="hfDraft-${name}" type="number" inputmode="numeric" min="1" max="99999999" required value="${esc(value)}" placeholder="${extra||"e.g. 15000"}">`:
+ type==="location"?`<input name="${name}" id="hfDraft-${name}" maxlength="120" value="${esc(value||"Lagos")}" placeholder="Neighborhood, city" required>`:
+ `<input name="${name}" id="hfDraft-${name}" maxlength="100" value="${esc(value)}" required placeholder="${esc(extra)}">`;
+ return `<div class="hf-field"><label for="hfDraft-${name}">${label}</label>${opts}</div>`;
+}
 function renderCreate(){
- return `${head("Create","Share your work, opportunities and offers",false)}<div class="hf-page">
- <p class="hf-subtitle">Every account can share work, buy, hire and offer skills. These forms are previews, not publishing tools.</p>
- <div class="hf-chips">${["Post","Service","Product","Request"].map(x=>`<button data-hf="draft-type" data-value="${x}" class="${state.draftType===x?"on":""}">${x}</button>`).join("")}</div>
- <div class="hf-section-row"><h2>New ${state.draftType.toLowerCase()}</h2></div><div class="hf-field"><label for="hfDraft">Tell people about it</label><textarea id="hfDraft" maxlength="500" placeholder="${state.draftType==="Post"?"Show the work behind the skill":state.draftType==="Request"?"What skill are you looking for?":"Describe your offer or product"}">${esc(state.draftText)}</textarea></div>
- ${state.draftType==="Post"?`<div class="hf-field"><label for="hfDraftImage">Optional photo for this demo post</label><input id="hfDraftImage" type="file" accept="image/*" aria-label="Choose photo from your device" style="font-size:11px">${state.draftImageSrc?`<img class="hf-draft-photo" src="${state.draftImageSrc}" alt="Preview of selected photo">`:''}</div>`:''}
- <div class="hf-notice">This is a local UI demonstration. No content is uploaded or published to real Hustle accounts.</div>
- <button class="hf-lime-button" style="width:100%" data-hf="draft-preview">${state.draftType==="Post"?"Add demo post to my profile →":"Preview draft"}</button></div>`;
+ const choices=["Post","Service","Product","Request","Training"];
+ let formBody="";
+ if(state.draftType==="Post"){
+  const d=state.draftForms.Post||{};
+  formBody=`<div class="hf-create-type-switch">${["Photo","Video","Carousel"].map(x=>`<button type="button" data-hf="post-kind" data-value="${x}" class="${state.draftPostKind===x?"on":""}">${x==="Video"?"▶":x==="Carousel"?"▧":"▣"} ${x}</button>`).join("")}</div>
+  <div class="hf-field"><label for="hfPostCaption">Caption</label><textarea id="hfPostCaption" name="caption" rows="4" maxlength="500" required placeholder="What's the story behind your work?">${esc(d.caption||"")}</textarea></div>
+  <div class="hf-create-uploader"><span>↥</span><b>Choose ${state.draftPostKind==="Video"?"a video":state.draftPostKind==="Carousel"?"up to 4 photos":"a photo"} from your device</b><small>Local preview only · Nothing is uploaded</small>
+  <input id="hfDraftMedia" type="file" accept="${state.draftPostKind==="Video"?"video/*":"image/*"}" ${state.draftPostKind==="Carousel"?"multiple":""} aria-label="Choose ${state.draftPostKind.toLowerCase()} media"></div>
+  ${state.draftFiles.length?`<div class="hf-create-media-preview">${state.draftFiles.map(m=>m.type.startsWith("video/")?`<video src="${m.url}" muted playsinline controls></video>`:`<img src="${m.url}" alt="Selected local media">`).join("")}</div>`:""}
+  <div class="hf-field"><label for="hfPostAttach">Attach a service or product (optional)</label><select name="attach" id="hfPostAttach"><option value="">No attached offer</option>${allItems.filter(x=>["service","product"].includes(x.type)).map(x=>`<option value="${x.id}" ${d.attach===x.id?"selected":""}>${esc(x.title)} · ${money(x.price)}</option>`).join("")}</select></div>
+  <div class="hf-field"><label for="hfPostLocation">Location (optional)</label><input name="location" id="hfPostLocation" maxlength="100" placeholder="e.g. Yaba, Lagos" value="${esc(d.location||"")}"></div>`;
+ }else if(state.draftType==="Service"){
+  formBody=`${createFormField("title","Service name","text","e.g. Signature haircut")}
+  ${createFormField("category","Category","category")}
+  ${createFormField("price","Starting price (₦)","price")}
+  ${createFormField("location","Where do you work?","location")}
+  <div class="hf-field"><label for="hfServiceMode">Delivery style</label><select name="mode" id="hfServiceMode">${["In person","Online","Both"].map(x=>`<option ${state.draftForms.Service?.mode===x?"selected":""}>${x}</option>`).join("")}</select></div>
+  ${createFormField("description","Describe the service and what is included","description")}
+  <div class="hf-notice">A consultation will be required before a service hire. Prices are starting prices, not final invoices.</div>`;
+ }else if(state.draftType==="Product"){
+  formBody=`${createFormField("title","Product name","text","e.g. Handmade accessories")}
+  ${createFormField("category","Product category","category")}
+  ${createFormField("price","Price (₦)","price")}
+  <div class="hf-field"><label for="hfStock">Sample stock quantity</label><input id="hfStock" name="stock" type="number" inputmode="numeric" min="1" max="1000" value="${esc(state.draftForms.Product?.stock||1)}" required></div>
+  ${createFormField("description","Product description","description")}
+  <div class="hf-field"><label for="hfVariants">Options (comma separated)</label><input id="hfVariants" name="variants" maxlength="130" placeholder="e.g. Small, Medium, Large" value="${esc(state.draftForms.Product?.variants||"Standard")}"></div>
+  <div class="hf-notice">Product stock and delivery are simulated. No customer can buy this from your real account.</div>`;
+ }else if(state.draftType==="Request"){
+  formBody=`${createFormField("title","What do you need?","text","e.g. Photographer for an event")}
+  ${createFormField("category","Skill category","category")}
+  ${createFormField("price","Budget (₦)","price")}
+  ${createFormField("location","Where is the request?","location")}
+  ${createFormField("description","Describe the project and timeline","description")}
+  <div class="hf-notice">Demo requests will appear under Explore → Requests, not in the real marketplace.</div>`;
+ }else{
+  formBody=`${createFormField("title","Training or apprenticeship title","text","e.g. Intro to dressmaking")}
+  ${createFormField("category","Skill category","category")}
+  ${createFormField("price","Sample training fee (₦)","price")}
+  <div class="hf-field"><label for="hfTrainMode">Format</label><select id="hfTrainMode" name="mode">${["In person","Online","Hybrid"].map(x=>`<option ${state.draftForms.Training?.mode===x?"selected":""}>${x}</option>`).join("")}</select></div>
+  ${createFormField("description","What will learners gain?","description")}
+  <div class="hf-notice">This is a preview listing. It does not enroll anyone or create a training contract.</div>`;
+ }
+ return `${head("Create","Share work, sell, teach or find talent",false,`<button class="hf-create-go-live-btn" data-hf="go-live">● Go Live</button>`)}
+ <div class="hf-create-page">
+ <div class="hf-create-intro"><span>CREATE ON HUSTLE</span><h2>What are you making today?</h2><p>Every account can show their work, offer a service, sell something, request help or teach.</p></div>
+ <div class="hf-create-tabs" role="tablist" aria-label="Creation types">${choices.map(x=>`<button class="${x===state.draftType?"on":""}" data-hf="draft-type" data-value="${x}" role="tab" aria-selected="${x===state.draftType}"><span>${x==="Post"?"▣":x==="Service"?"✂":x==="Product"?"♧":x==="Request"?"⌕":"✳"}</span>${x}</button>`).join("")}</div>
+ <form id="hfCreateForm" class="hf-create-form">
+ <div class="hf-create-form-heading"><div><span>NEW ${state.draftType.toUpperCase()}</span><h3>${state.draftType==="Post"?"Tell the story":state.draftType==="Service"?"Offer your skill":state.draftType==="Product"?"List a product":state.draftType==="Request"?"Find someone who can help":"Share what you know"}</h3></div><span class="hf-create-step">Demo only</span></div>
+ ${formBody}
+ <button type="submit" class="hf-lime-button hf-create-submit">${state.draftType==="Post"?"Add to demo profile":state.draftType==="Request"?"Preview request":"Create demo "+state.draftType.toLowerCase()+" listing"} →</button>
+ <p class="hf-demo-footnote">Nothing will be published, charged, booked or uploaded to the real Hustle app.</p></form>
+ <div class="hf-create-live-cta"><div><strong>● LIVE STUDIO</strong><h3>Show them the work as it happens.</h3><p>Set up a live room, choose an audience and pin an offer.</p><button data-hf="go-live">Set up Live →</button></div><img src="${pics.food}" alt="Creator at work"></div>
+ </div>`;
 }
 function notify(s){
  const container=phone.querySelector("#toastArea");
