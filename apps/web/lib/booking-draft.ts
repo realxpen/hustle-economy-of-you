@@ -13,6 +13,9 @@ export type BookingDraftFields = {
   requirements: string;
   location: string;
   notes: string;
+  partySize?: number;
+  consultationRequested?: boolean;
+  referenceUrlsText?: string;
 };
 
 type StoredBookingDraft = BookingDraftFields & {
@@ -32,7 +35,10 @@ function boundedFields(value: unknown): value is BookingDraftFields {
     typeof draft.requestedEndAt === "string" && draft.requestedEndAt.length <= 30 &&
     typeof draft.requirements === "string" && draft.requirements.length <= 4000 &&
     typeof draft.location === "string" && draft.location.length <= 300 &&
-    typeof draft.notes === "string" && draft.notes.length <= 2000;
+    typeof draft.notes === "string" && draft.notes.length <= 2000 &&
+    (draft.partySize === undefined || typeof draft.partySize === "number" && Number.isSafeInteger(draft.partySize) && draft.partySize >= 1 && draft.partySize <= 50) &&
+    (draft.consultationRequested === undefined || typeof draft.consultationRequested === "boolean") &&
+    (draft.referenceUrlsText === undefined || typeof draft.referenceUrlsText === "string" && draft.referenceUrlsText.length <= 1600);
 }
 
 export function readBookingDraft(storage: Storage | null, serviceId: string, now = Date.now()): BookingDraftFields | null {
@@ -48,8 +54,8 @@ export function readBookingDraft(storage: Storage | null, serviceId: string, now
       !Number.isFinite(draft.savedAt) || draft.savedAt > now || now - draft.savedAt > BOOKING_DRAFT_TTL_MS) {
       throw Error("Expired or different Service draft");
     }
-    const { requestedStartAt, requestedEndAt, requirements, location, notes } = draft;
-    return { requestedStartAt, requestedEndAt, requirements, location, notes };
+    const { requestedStartAt, requestedEndAt, requirements, location, notes, partySize, consultationRequested, referenceUrlsText } = draft;
+    return { requestedStartAt, requestedEndAt, requirements, location, notes, partySize, consultationRequested, referenceUrlsText };
   } catch {
     try { storage.removeItem(key); } catch { /* Storage is optional. */ }
     return null;
