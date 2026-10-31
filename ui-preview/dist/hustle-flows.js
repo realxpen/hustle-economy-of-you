@@ -409,12 +409,18 @@ let mapInstance=null,mapLoadPromise=null,mapGpsMarker=null;
 const mapMarkers=new Map();
 function mapPeople(){
  const coords={tobi:[6.442,3.478],zara:[6.518,3.381],maya:[6.601,3.349],amara:[6.613,3.361],nora:[6.496,3.350],femi:[6.430,3.420],flora:[6.513,3.375]};
- const visible=people.filter(p=>matches({...p,title:p.primary,description:p.secondary,category:p.tag,seller:p.id}));
+ const visible=people.filter(p=>{
+  const offered=allItems.filter(l=>l.seller===p.id);
+  const joined=offered.map(l=>[l.title,l.category,l.description].join(" ")).join(" ");
+  return matches({...p,title:[p.primary,joined].join(" "),description:[p.secondary,joined].join(" "),category:p.tag,seller:p.id});
+ });
  return visible.map(p=>({...p,coords:coords[p.id]})).filter(p=>p.coords);
 }
 function renderMapResults(){
  const list=mapPeople();
  return `<div class="hf-map-intro"><div><h2>Find skills on the map</h2><p>Explore sample professionals around Lagos. Pins are approximate neighborhood positions, not exact addresses.</p></div><span>⌖</span></div>
+ <p class="hf-map-hint">Tap a skill icon to see the professional and their available example services.</p>
+ ${mapLegend()}
  <div class="hf-map-tools"><button data-hf="map-locate">◎ Use my location</button><button data-hf="map-reset">↺ Reset to Lagos</button></div>
  <div class="hf-map-stage" role="region" aria-label="Interactive professionals map">
  <div id="hfLeafletMap" class="hf-leaflet-map"><div class="hf-map-loading">Preparing map…</div></div></div>
@@ -447,7 +453,8 @@ function renderMapSelection(){
  if(!el)return;
  const p=people.find(x=>x.id===state.mapSelected);
  if(!p){el.innerHTML="";return}
- el.innerHTML=`<div class="hf-map-selected"><img src="${p.avatar}" alt=""><div><b>${esc(p.name)}</b><small>${esc(p.primary)} · ${esc(p.location)}</small><small>Example neighborhood pin</small></div><button data-hf="profile" data-id="${p.id}">View →</button></div>`;
+ const skill=mapCategoryInfo(p),listing=allItems.find(x=>x.seller===p.id&&x.type==="service");
+ el.innerHTML=`<div class="hf-map-selected"><span class="hf-map-selected-icon" style="background:${skill.color}">${skill.icon}</span><img src="${p.avatar}" alt=""><div><b>${esc(p.name)}</b><small>${esc(skill.label)} · ${esc(p.location)}</small><small>${listing?"Offers "+esc(listing.title)+" · ":""}Approximate demo pin</small></div><button data-hf="profile" data-id="${p.id}">Profile →</button></div>${listing?`<button class="hf-map-offer-link" data-hf="listing" data-id="${listing.id}">View ${esc(listing.title)} <span aria-hidden="true">↗</span></button>`:""}`;
 }
 function initMap(){
  if(state.screen!=="Explore"||state.exploreTab!=="Map")return;
@@ -461,10 +468,15 @@ function initMap(){
   maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>'
  }).addTo(mapInstance);
  for(const p of mapPeople()){
-  const ico=L.divIcon({className:"hf-map-custom-icon",html:'<span>✦</span>',iconSize:[36,36],iconAnchor:[18,33],popupAnchor:[0,-29]});
+  const skill=mapCategoryInfo(p);
+  const ico=L.divIcon({className:"hf-map-custom-icon",html:`<span class="hf-map-pin" style="--skill-color:${skill.color}" aria-hidden="true"><i>${skill.icon}</i></span>`,iconSize:[46,50],iconAnchor:[23,43],popupAnchor:[0,-32]});
   const marker=L.marker(p.coords,{icon:ico,title:p.name}).addTo(mapInstance);
-  marker.bindPopup(`<div class="hf-map-popup"><b>${esc(p.name)}</b><small>${esc(p.primary)} · ${esc(p.location)}</small><button type="button" data-hf-map-profile="${esc(p.id)}">View profile →</button></div>`,{maxWidth:220});
-  marker.on("click",()=>{state.mapSelected=p.id;renderMapSelection()});
+  const offer=allItems.find(l=>l.seller===p.id&&l.type==="service");
+  marker.bindPopup(`<div class="hf-map-popup"><b>${skill.icon} ${esc(p.name)}</b><small>${esc(skill.label)} · ${esc(p.location)}</small>${offer?`<small>Service: ${esc(offer.title)}</small>`:""}<small>Approximate location · demo</small><button type="button" data-hf-map-profile="${esc(p.id)}">View professional →</button></div>`,{maxWidth:240});
+  marker.on("click",()=>{
+   state.mapSelected=p.id;renderMapSelection();
+   for(const [id,m] of mapMarkers){const element=m.getElement?.();element?.classList.toggle("hf-map-pin-selected",id===p.id)}
+  });
   marker.on("popupopen",()=>{const button=marker.getPopup()?.getElement()?.querySelector("[data-hf-map-profile]");button?.addEventListener("click",()=>openProfile(p.id),{once:true})});
   mapMarkers.set(p.id,marker);
  }
