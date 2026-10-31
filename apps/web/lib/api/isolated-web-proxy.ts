@@ -66,10 +66,13 @@ const productOwned = /^api\/v1\/products\/[A-Za-z0-9_-]+$/;
 const variantOwned = /^api\/v1\/products\/[A-Za-z0-9_-]+\/variants\/[A-Za-z0-9_-]+$/;
 
 export function isIsolatedWebPreviewEnabled() {
-  return process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH === "true" &&
-    (process.env.HUSTLE_ISOLATED_PWA_GATE === "isolated-staging" ||
-      (process.env.HUSTLE_ISOLATED_PWA_GATE === "payment-preview" &&
-       selectedIsolatedBackendOrigin() === PAYMENT_PREVIEW_API_ORIGIN));
+  if (process.env.NEXT_PUBLIC_HUSTLE_WEB_STAGING_AUTH !== "true") return false;
+  const backend = selectedIsolatedBackendOrigin();
+  if (process.env.HUSTLE_ISOLATED_PWA_GATE === "isolated-staging")
+    return backend === STAGING_API_ORIGIN || backend === AWS_STAGING_API_ORIGIN;
+  if (process.env.HUSTLE_ISOLATED_PWA_GATE === "payment-preview")
+    return backend === PAYMENT_PREVIEW_API_ORIGIN;
+  return false;
 }
 
 export function stagingProxyAllowed(method: string, segments: string[]) {
