@@ -10,6 +10,7 @@ import { withTransactionReturnTo } from "../../../lib/transaction-return";
 import { useParams } from "next/navigation";
 import { TransactionFinanceActions } from "../../../components/finance/transaction-finance-actions";
 import { SandboxBookingActions } from "../../../components/finance/sandbox-booking-actions";
+import { ClientItemHandover } from "../../../components/economy/client-item-handover";
 import { BookingDecisionPanel, type BookingDecision } from "../../../components/booking/booking-decision-panel";
 import { CounterpartyFeedbackCard } from "../../../components/trust/counterparty-feedback-card";
 import { ReviewEligibilityCard } from "../../../components/trust/review-eligibility-card";
@@ -239,6 +240,7 @@ export default function BookingDetailPage() {
     )}
 
     {isolatedWebMode ? <SandboxBookingActions booking={booking} onChange={async () => { await load(); setReviewRefreshKey((version) => version + 1); }} /> : <TransactionJourney kind="BOOKING" status={booking.status} paymentRequired={booking.paymentBoundary.required} funded={booking.paymentBoundary.funded} />}
+    <ClientItemHandover bookingId={booking.id} viewerRole={booking.viewerRole}/>
     {isolatedWebMode && canReviewBooking && (
       <section id="booking-review" aria-label="Review your completed booking" style={{ scrollMarginTop: 24, marginTop: 18 }}>
         <ReviewEligibilityCard key={`${booking.id}:${reviewRefreshKey}`} subjectType="BOOKING" subjectId={booking.id} />
