@@ -50,6 +50,10 @@ export interface BookingRecord {
   requirements: string;
   location: string | null;
   notes: string | null;
+  partySize: number;
+  venueType: string | null;
+  referenceUrls: string[];
+  consultationRequested: boolean;
   serviceTitleSnapshot: string;
   agreedPriceMinor: number;
   currency: string;
@@ -82,6 +86,10 @@ export interface BookingRecord {
     pricingType: string;
     location: string | null;
     professionalProfileId: string;
+    consultationPolicy: "OFF" | "OPTIONAL" | "REQUIRED";
+    consultationFeeMinor: number;
+    consultationCreditEnabled: boolean;
+    maxPartySize: number;
   };
   viewerRole: "CLIENT" | "HUSTLER";
   paymentBoundary: {
@@ -107,6 +115,10 @@ export interface CreateBookingInput {
   location?: string;
   notes?: string;
   conversationId?: string;
+  partySize?: number;
+  venueType?: "AT_PROVIDER" | "AT_CLIENT" | "EVENT" | "REMOTE";
+  referenceUrls?: string[];
+  consultationRequested?: boolean;
 }
 
 export interface BookingAvailability {
@@ -125,8 +137,10 @@ export async function checkBookingAvailability(input: {
   serviceId: string;
   startAt: string;
   endAt?: string;
+  partySize?: number;
 }) {
   const params = new URLSearchParams({ serviceId: input.serviceId, startAt: input.startAt });
+  if (input.partySize) params.set("partySize", String(input.partySize));
   if (input.endAt) params.set("endAt", input.endAt);
   const response = await (await hasViewerSession()
     ? authenticatedFetch(`/bookings/availability?${params.toString()}`)
