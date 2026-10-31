@@ -96,3 +96,30 @@ An abandoned service booking does not automatically imply a consultation refund.
 - A **Join demo waitlist** action records an in-memory example waitlist request, rejects duplicates and displays **no real reservation, monitoring, or future notification**. Production waitlist availability alerts require opt-in, reliable event handling, authenticated subscriptions and cancellation/rescheduling policy.
 - Production requires a persistent staff-aware transactionally safe availability service, atomic holds with TTL, consistent time zones, per-resource overlap handling and actual outgoing messages. The UI preview is simulated, not a guarantee of actual booking capacity.
 - Final verification: 15/15 source and booking-engine checks passed (including full day, full time, group overlap and alternatives); 7/7 UI interaction checks passed (7-day ribbon, disabled Continue, alternative date selection, re-enabled submission and demo waitlist).
+
+
+## Item-based service fulfilment journeys — 31 October 2026
+
+**New product decision:** A booking can be an appointment, a shared/batch session, or a multi-day item-based work order. Laundry, tailoring, shoemaking and opt-in repair/custom services should not automatically follow the haircut journey.
+
+### Customer flow
+1. Browse Marketplace → Services (sample Laundry wash/iron and Shoe repair listings added), open professional/listing, request booking.
+2. Describe garments, shoes, outfit, quantity and care/reference details; choose how items reach professional: shop drop-off or collection from customer's general area.
+3. Independently choose completed-item handover: collect at shop or professional's return delivery. If relevant, select measurements in shop, at customer location, or guided self-measurement. The tailor/shoemaker confirms sizes before production.
+4. Select **item handover appointment** date/time (not an implied completion time); see a distinct **proposed ready-by date/time** computed from professional working days and configured turnaround.
+5. Quote separates base service estimate, optional pickup, return delivery and home measurement fees. Professional approval and customer acceptance precede simulated payment.
+6. Track work as **Awaiting handover → Items received → Processing → Ready → Out for delivery (if applicable) → Collected/Delivered**.
+7. Customer gets an in-app **Orders** demo notification when professional explicitly marks items ready for pickup/dispatch, updates the ETA, marks out for delivery or confirms receipt. Notification opens the **existing** booking without resetting payment or progress.
+8. Customer completes eligible milestone release only after the item handover status is recorded, and can still raise a dispute.
+
+### Professional / Studio
+- Hustler Studio → Bookings shows active example item job with status actions and a revised ready-by **date and time** editor.
+- Hustler Studio → Booking setup and professional onboarding let the professional set business-day turnaround estimate, ready-by time, and pickup/delivery/measurement visit fees, plus an opt-in toggle for multi-day item work on other service categories.
+- Demo progress updates are manual; no automatic completion or readiness from an estimated time. Changes create only in-memory notifications.
+- Example service-specific templates and sample catalogue cards for laundry and shoemaking have been added. Tailoring uses its existing listing and new measurement and return fields.
+
+### Production boundary
+- This is **one active demo booking in memory**, not an order history, account-backed push system, actual address/route booking, driver dispatch, fabric measurement certification or payment integration. No real customer notifications are sent.
+- Real implementation requires durable orders with line items, photos and measurements handled with consent, item receipts, configurable turnaround/service-level policy, actual worker allocation, signed handover proofs, pickup/delivery scheduling and exceptions, separate fulfilment tracking from payment escrow, auditable permission-scoped status changes, delayed-job notifications, notification preferences, and authenticated push/SMS/email providers with opt-in.
+- Ready estimates are indicative; they must be confirmed/revised by the professional and should never auto-mark items ready.
+- No production database, payment processor or hosted production UI is changed from this preview branch.
