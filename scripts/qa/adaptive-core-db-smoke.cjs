@@ -25,6 +25,7 @@ async function run(){
  const own=id(owner.authSubject),member=id(agent.authSubject),other=id(outsider.authSubject);
  const p1=await api.provisionPersonal(own),p2=await api.provisionPersonal(own);
  assert.equal(p1.id,p2.id,"personal provisioning must be idempotent");
+ const profile=await db.professionalProfile.create({data:{userId:owner.id}});
  const business=await api.createWorkspace(own,{name:"Sample Tailoring Studio",kind:"BUSINESS",category:"Tailoring"});
  assert.ok(business.id);
  assert.equal((await api.workspaces(member)).length,0,"agent should not have automatic access");
@@ -131,7 +132,7 @@ async function run(){
  await api.revoke(own,business.id,invite.id);
  await expectForbidden(api.draftWork(member,business.id,{title:"No more access"}));
  // Canonical Booking/Order remain unmodified and visible only to authenticated participants.
- const profile=await db.professionalProfile.create({data:{userId:owner.id}});
+
  const service=await db.service.create({data:{professionalProfileId:profile.id,title:"Sample haircut",priceMinor:5000,currency:"NGN",pricingType:"FIXED"}});
  const booking=await db.booking.create({data:{serviceId:service.id,clientUserId:outsider.id,hustlerUserId:owner.id,
    requestedStartAt:new Date(Date.now()+86400000),requirements:"Short fade",serviceTitleSnapshot:"Sample haircut",
