@@ -84,3 +84,44 @@ This branch is an isolated static Cloudflare Worker preview. All professionals, 
 - Existing 26 discovery/booking/commerce runtime tests were completed in the preceding milestone.
 - JavaScript syntax validation passed.
 - Full interactive Leaflet tiles and exact iPhone Safari appearance **not yet visually verified on the deployed site**.
+
+
+## Additional milestone — Creator Create, independent Live hub and commerce-first Marketplace
+
+### Create
+- Full creator interface with **Post, Service, Product, Request and Training** tabs and a prominent **Go Live** shortcut.
+- Post composer supports Photo, Video and Carousel choices; an optional local file selection, caption, location and attached service/product. Multiple photos (up to four) are previewable as a carousel. Locally created posts appear on the signed-in demo profile and are searchable on Explore.
+- Service forms accept title, category, starting price, work area, mode and description, plus an optional local listing photo. Demo service listings immediately appear under the user's profile and in Marketplace; actual consultation-first hiring remains untouched.
+- Product forms accept title, category, price, sample stock, size/style options and description, plus a local photo. Demo products appear in Marketplace and remain compatible with cart and simulated checkout.
+- Customer Request forms include need, category, budget, area and description. Submitted demo requests become visible under **Explore → Requests** with an example request-detail screen. Nothing is actually sent to professionals.
+- Training forms include title, skill, sample fee, format and description. They appear under the signed-in profile's Training tab and Marketplace Training tab.
+- Draft forms use only in-memory state. Local media object URLs are not uploaded or sent to a backend. There is no authenticated publishing, inventory persistence or real offer submission.
+
+### Live discovery and Go Live
+- **Explore** includes a visible LIVE shortcut; its Live tab opens a **separate Live Hub**, not a Feed story or scrolling post.
+- **Create** contains a Go Live button and creator Live promotion; Marketplace includes a Live commerce entry point.
+- Live Hub supports For You / Following / Nearby and category browsing with clearly marked simulated rooms, example audiences and creator imagery.
+- Tapping a room opens a full-screen demo with local comments, hearts, follow toggle and pinned offer detail navigation. There are no connected streams or viewers.
+- **Go Live setup** has title, category, audience, optional pinned offer, and explicit optional camera-preview permission. Camera never opens by default; a camera preview is local and never broadcast. Streams are stopped on exit or when leaving the host flow.
+- Starting a Live simulation opens the host studio, with local chat/test hearts and End Demo control. **No livestream or real audience can be created from the preview.**
+
+### Marketplace as commerce
+- Marketplace now has a product/store search bar, rotating editorial promotional banners (labelled **sample promotions**, not genuine paid ads), visual category tiles and All / Products / Services / Training filter tabs.
+- Listing cards are product-forward with square imagery, sample prices, creator attribution and location cues. Price low/high sorting and textual matching are functional.
+- Dedicated Live-shopping banner opens the Live Hub; Product detail → Cart → Checkout remains a non-paying simulation.
+- The previews show no fabricated verified ads, discounts, inventory guarantees or payment success claims.
+
+### Test walkthroughs
+1. Create → Post → Photo/Video/Carousel → add optional media and attached service → submit → signed-in Profile Posts → view full post.
+2. Create → Service or Product → fill mandatory details → submit → own Profile listing tab → Marketplace listing detail.
+3. Create → Request → submit → Explore Requests → inspect request.
+4. Create → Training → submit → Profile Training tab and Marketplace Training.
+5. Explore → LIVE → Live Hub → select creator → chat, hearts, pinned offer → Back → Go Live setup → optional camera permission → simulated host studio → End.
+6. Marketplace → rotate promotional banner → category tiles → sort prices → Product details → Cart and simulated checkout.
+
+### Quality gates
+- Static JS parses and all linked CSS assets are confirmed on the preview branch.
+- 16/17 first full-journey checks passed; the one failure was a **test setup selecting the previously active Training tab rather than Post**, not a runtime exception. A correctly selected Post was then rechecked successfully.
+- Additional 8/8 regression tests passed: demo Post creation/search, independent Live hub, local Live chat, optional camera-off state, existing product detail/cart, and existing service consultation.
+- iPhone Safari visual QA and Cloudflare's latest build/deployment remain to be verified.
+- This is an isolated **Cloudflare preview branch only**. No production app, production database, payments, livestream service, ads network or real account was changed.
