@@ -19,6 +19,8 @@ CREATE TABLE "AdaptiveWorkspace" (
  "kind" "AdaptiveWorkspaceKind" NOT NULL DEFAULT 'BUSINESS',
  "category" TEXT,
  "city" TEXT,
+ "stationCapacity" INTEGER NOT NULL DEFAULT 1,
+ "rosterEnabled" BOOLEAN NOT NULL DEFAULT FALSE,
  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
  "updatedAt" TIMESTAMP(3) NOT NULL
 );
@@ -133,3 +135,33 @@ BEGIN
    EXECUTE format('REVOKE ALL ON TABLE %I FROM anon, authenticated',name);
  END LOOP;
 END $$;
+
+
+-- Staff are business scheduling resources, not authenticated users or payment recipients.
+CREATE TABLE "AdaptiveStaffMember" (
+ "id" TEXT PRIMARY KEY, "workspaceId" TEXT NOT NULL,
+ "displayName" TEXT NOT NULL, "active" BOOLEAN NOT NULL DEFAULT TRUE,
+ "weeklyHours" JSONB NOT NULL DEFAULT '[]'::jsonb,
+ "revision" INTEGER NOT NULL DEFAULT 1,
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updatedAt" TIMESTAMP(3) NOT NULL
+);
+CREATE INDEX "AdaptiveStaffMember_workspaceId_active_idx" ON "AdaptiveStaffMember" ("workspaceId","active");
+ALTER TABLE "AdaptiveStaffMember" ADD CONSTRAINT "AdaptiveStaffMember_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "AdaptiveWorkspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AdaptiveStaffMember" ADD CONSTRAINT "AdaptiveStaffMember_revision_positive" CHECK ("revision" > 0);
+CREATE TABLE "AdaptiveStaffLeave" (
+ "id" TEXT PRIMARY KEY, "staffId" TEXT NOT NULL,
+ "startAt" TIMESTAMP(3) NOT NULL, "endAt" TIMESTAMP(3) NOT NULL,
+ "note" TEXT, "cancelledAt" TIMESTAMP(3),
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "AdaptiveStaffLeave_staffId_startAt_endAt_idx" ON "AdaptiveStaffLeave" ("staffId","startAt","endAt");
+ALTER TABLE "AdaptiveStaffLeave" ADD CONSTRAINT "AdaptiveStaffLeave_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "AdaptiveStaffMember"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AdaptiveStaffLeave" ADD CONSTRAINT "AdaptiveStaffLeave_valid_interval" CHECK ("startAt" < "endAt");
+ALTER TABLE "AdaptiveWorkspace" ADD CONSTRAINT "AdaptiveWorkspace_stationCapacity_positive" CHECK ("stationCapacity" BETWEEN 1 AND 200);
+
+-- Deny browser/PostgREST access (server-side authenticated Nest endpoints only).
+ALTER TABLE "AdaptiveStaffMember" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AdaptiveStaffLeave" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE "AdaptiveStaffMember" FROM anon, authenticated;
+REVOKE ALL ON TABLE "AdaptiveStaffLeave" FROM anon, authenticated;
