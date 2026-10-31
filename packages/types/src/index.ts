@@ -339,8 +339,13 @@ export interface WeeklyHoursWindow {
   start: string; // HH:mm local to bookingTimezone
   end: string;
 }
+export type ConsultationPolicy = "OFF" | "OPTIONAL" | "REQUIRED";
 export interface ServiceSchedulingSettings {
   bookingMode: BookingOperationMode;
+  consultationPolicy: ConsultationPolicy;
+  consultationFeeMinor: number;
+  consultationCreditEnabled: boolean;
+  maxPartySize: number;
   bookingTimezone: string;
   resourcePoolKey: string;
   defaultDurationMinutes: number;
@@ -379,6 +384,10 @@ export interface Service extends ServiceSchedulingSettings {
 
 export interface SaveServiceInput {
   bookingMode?: BookingOperationMode;
+  consultationPolicy?: ConsultationPolicy;
+  consultationFeeMinor?: number;
+  consultationCreditEnabled?: boolean;
+  maxPartySize?: number;
   bookingTimezone?: string;
   resourcePoolKey?: string;
   defaultDurationMinutes?: number;
