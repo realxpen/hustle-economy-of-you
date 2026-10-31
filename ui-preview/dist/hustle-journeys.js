@@ -242,7 +242,15 @@ function render(){
  const active=root.querySelector(".hj-page");
  if(active){active.classList.remove("hj-arrive");void active.offsetWidth;active.classList.add("hj-arrive")}
 }
+function clearUnpaidReservation(){
+ const b=data.booking;
+ if(!b||b.paymentConfirmed||!b.slotReserved)return;
+ if(b.slotPlan)window.HustleBookingRules?.releasePlan(b.slotPlan);
+ else window.HustleBookingRules?.release(b.category,b.day,b.time,b.reservedUnits||1,b.professional);
+ b.slotReserved=false;b.slotPlan=null;b.reservedUnits=0;
+}
 function open(screen="Welcome",opts={}){
+ if(screen==="BookingJourney")clearUnpaidReservation();
  if(screen==="Splash")state.guest=true;
  if(screen==="Report"){state.reportSubject=opts.subject||"Content";state.reportId=opts.id||"Sample content";state.reportText="";state.reportReason="Misleading or fraudulent"}
  if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category,opts.professional||data.booking.professional);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:"Tomorrow",time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,mediaName:"",quoteLines:null,slotReserved:false,slotPlan:null,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
@@ -252,7 +260,7 @@ function open(screen="Welcome",opts={}){
 }
 function go(screen){state.stack.push(state.screen);state.screen=screen;state.modal="";render()}
 function back(){if(state.modal){state.modal="";render();return}if(state.stack.length){state.screen=state.stack.pop();render()}else close()}
-function close(){root.hidden=true;root.innerHTML="";phone.classList.remove("hj-open");state.stack=[];state.modal=""}
+function close(){if(state.screen==="BookingJourney")clearUnpaidReservation();root.hidden=true;root.innerHTML="";phone.classList.remove("hj-open");state.stack=[];state.modal=""}
 function addNotice(type,title,detail,route){data.notifications.unshift({id:uid("n"),type,title,detail,time:"Now",read:false,route})}
 function onAction(action,value="",id=""){
  switch(action){
