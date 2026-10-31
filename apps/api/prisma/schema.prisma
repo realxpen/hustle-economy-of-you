@@ -1756,6 +1756,7 @@ model AdaptiveItemFulfillment {
   workspaceId       String
   intakeMethod      String
   returnMethod      String
+  policySnapshot    Json               @default("{}")
   status            AdaptiveItemStage @default(AWAITING_INTAKE)
   estimatedReadyAt  DateTime?
   actualReadyAt     DateTime?
