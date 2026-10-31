@@ -30,6 +30,7 @@ function renderSpaces(s){
  +'<div class="ha-capabilities">'+caps.map(x=>'<button class="'+(s.person.capabilities.includes(x.id)?"on":"")+'" data-ha="capability" data-id="'+x.id+'"><span>'+x.icon+'</span><b>'+esc(x.label)+'</b><small>'+(s.person.capabilities.includes(x.id)?"Enabled":"Enable")+'</small></button>').join("")+'</div>'
  +'<div class="ha-note">Capabilities personalize the demo. They do not grant real identity verification, business access, agent approval or payment permissions.</div>'
  +section("Suggested next steps","Based on your enabled capabilities")+'<div class="ha-guidance">'+core().capabilityGuidance().map((x,i)=>'<p><span>✦</span>'+esc(x)+'</p>').join("")+'</div>'
+ +(s.person.capabilities.includes("learn")?'<div class="ha-actions"><button data-ha="explore-training">Explore training & apprenticeships</button></div>':"")
  +(ui.spaceModal?'<div class="ha-inline-form">'+section("New workspace")+formStart("new-space")+field("name","Business, team or brand name","e.g. Kunle Apparel")+select("type","Workspace type",[["business","Business"],["team","Team / agency"]],"business")+field("category","Main field","Fashion, services, commerce")+button("Create workspace","", "ha-primary ha-wide","submit")+'</form></div>':"");
 }
 function renderServices(s){
@@ -133,6 +134,7 @@ function onClick(e){
  }
  if(action==="create-content"){close();window.HustleFlowsPreview?.open("Create");return}
  if(action==="agent-tools"){close();window.HustleOperations?.open("Agent");return}
+ if(action==="explore-training"){close();window.HustleFlowsPreview?.open("Explore",{exploreTab:"Training"});return}
  if(action==="capability"){m.addCapability(id);notice("Capability enabled in demo");return}
  if(action==="space-form"){ui.spaceModal=!ui.spaceModal;render();return}
  if(action==="service-form"){ui.serviceModal=!ui.serviceModal;render();return}
