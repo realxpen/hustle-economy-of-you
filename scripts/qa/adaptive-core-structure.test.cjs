@@ -116,3 +116,26 @@ test("One-to-one canonical link is proposed but not activated",()=>{
   assert.match(sql,/"canonicalServiceId" TEXT/);
   assert.match(sql,/AdaptiveServiceDraft_canonicalServiceId_fkey/);
 });
+
+test("Staff roster is private, scope-aware and shares the Booking lock",()=>{
+ const roster=read("apps/api/src/adaptive/adaptive-roster.service.ts");
+ const ctrl=read("apps/api/src/adaptive/adaptive.controller.ts");
+ const scheduling=read("apps/api/src/booking/booking-schedule.service.ts");
+ assert.match(roster,/schedule\.manage/);
+ assert.match(roster,/AdaptiveMemberStatus\.ACTIVE/);
+ assert.match(roster,/pg_try_advisory_xact_lock/);
+ assert.match(roster,/affectedExistingBookings/);
+ assert.match(roster,/revision:\{increment:1\}/);
+ assert.match(ctrl,/@Get\("workspaces\/:workspaceId\/roster"\)/);
+ assert.match(ctrl,/@Post\("workspaces\/:workspaceId\/staff"\)/);
+ assert.match(scheduling,/rosterCapacity\(/);
+ assert.match(scheduling,/roster\?\.rosterEnabled/);
+});
+test("Roster tables and capacity flag are additive, RLS-blocked and proposed only",()=>{
+ const proposal=read("backend-readiness/adaptive-v1/prisma-migration-proposal.sql");
+ assert.match(schema,/model AdaptiveStaffMember/);
+ assert.match(schema,/model AdaptiveStaffLeave/);
+ assert.match(schema,/rosterEnabled\s+Boolean\s+@default\(false\)/);
+ assert.match(proposal,/ENABLE ROW LEVEL SECURITY/);
+ assert.match(proposal,/REVOKE ALL ON TABLE "AdaptiveStaffMember"/);
+});
