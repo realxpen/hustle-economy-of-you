@@ -32,6 +32,9 @@ export interface CreateBookingInput {
   location?: unknown;
   notes?: unknown;
   conversationId?: unknown;
+  partySize?: unknown;
+  consultationRequested?: unknown;
+  referenceUrls?: unknown;
 }
 
 export interface BookingPaginationInput {
@@ -93,6 +96,9 @@ const bookingSelect = {
   status: true,
   requestedStartAt: true,
   requestedEndAt: true,
+  partySize: true,
+  consultationRequested: true,
+  referenceUrls: true,
   confirmedStartAt: true,
   confirmedEndAt: true,
   timeProposalId: true,
@@ -141,7 +147,8 @@ const bookingSelect = {
       currency: true,
       pricingType: true,
       location: true,
-      professionalProfileId: true
+      professionalProfileId: true,
+      consultationFeeMinor: true
     }
   }
 } satisfies Prisma.BookingSelect;
@@ -165,6 +172,18 @@ export class BookingService {
     const location = this.optionalText(input.location, "location", 300);
     const notes = this.optionalText(input.notes, "notes", 2000);
     const conversationId = this.optionalId(input.conversationId, "conversationId");
+    const partySize = input.partySize === undefined ? 1 : input.partySize;
+    if (typeof partySize !== "number" || !Number.isSafeInteger(partySize) || partySize < 1 || partySize > 50) {
+      throw new BadRequestException("partySize must be an integer between 1 and 50");
+    }
+    const consultationRequested = input.consultationRequested === undefined ? false : input.consultationRequested;
+    if (typeof consultationRequested !== "boolean") throw new BadRequestException("consultationRequested must be boolean");
+    const references = input.referenceUrls === undefined ? [] : input.referenceUrls;
+    if (!Array.isArray(references) || references.length > 3 ||
+        references.some((v) => typeof v !== "string" || v.length > 500 || !/^https:\/\//i.test(v))) {
+      throw new BadRequestException("Provide up to three HTTPS image or video reference URLs");
+    }
+    const referenceUrls = references as string[];
 
     if (requestedStartAt.getTime() <= Date.now()) {
       throw new BadRequestException("requestedStartAt must be in the future");
@@ -196,6 +215,9 @@ export class BookingService {
         currency: true,
         pricingType: true,
         bookingMode: true,
+        consultationPolicy: true,
+        consultationFeeMinor: true,
+        groupBookingsEnabled: true,
         professionalProfile: {
           select: { userId: true }
         }
@@ -208,6 +230,16 @@ export class BookingService {
       throw new BadRequestException("Service must have a concrete price before it can be booked");
     }
 
+    if (partySize > 1 && !service.groupBookingsEnabled) throw new BadRequestException("This service does not accept group bookings");
+    if (partySize > 1 && service.pricingType !== "FIXED") {
+      throw new BadRequestException("Group quotes for variable-price services require a negotiated quote before payment");
+    }
+    if (service.consultationPolicy === "OFF" && consultationRequested) {
+      throw new BadRequestException("This service does not offer consultations");
+    }
+    if (service.consultationPolicy === "REQUIRED" && !consultationRequested) {
+      throw new BadRequestException("Consultation is required for this service");
+    }
     const hustlerUserId = service.professionalProfile.userId;
     if (client.id === hustlerUserId) {
       throw new BadRequestException("You cannot book your own Service");
@@ -216,8 +248,9 @@ export class BookingService {
     if (conversationId) {
       await this.requireDirectConversationForPair(conversationId, client.id, hustlerUserId);
     }
-    if (process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging" &&
-        service.bookingMode === BookingOperationMode.CONSULTATION) {
+    if (service.consultationPolicy === "REQUIRED" ||
+        (process.env.HUSTLE_RUNTIME_SCOPE === "isolated-staging" &&
+         service.bookingMode === BookingOperationMode.CONSULTATION)) {
       if (!conversationId) {
         throw new BadRequestException("Consult this Hustler before requesting a time for this Service");
       }
@@ -231,7 +264,12 @@ export class BookingService {
     }
 
     const serviceTitleSnapshot = service.title.trim();
-    const agreedPriceMinor = service.priceMinor;
+    // Fixed-price group listings use a per-person price; snapshot the subtotal.
+    // Variable-price group quotes are blocked above, never charged at the base price.
+    const agreedPriceMinor = service.priceMinor * partySize;
+    if (!Number.isSafeInteger(agreedPriceMinor) || agreedPriceMinor > 2_147_483_647) {
+      throw new BadRequestException("Booking subtotal exceeds supported payment limit");
+    }
     const booking = await this.prisma.$transaction(async (tx) => {
       const created = await tx.booking.create({
       data: {
@@ -241,6 +279,9 @@ export class BookingService {
         conversationId,
         requestedStartAt,
         requestedEndAt,
+        partySize,
+        consultationRequested,
+        referenceUrls,
         requirements,
         location,
         notes,
@@ -261,7 +302,10 @@ export class BookingService {
       clientUserId: booking.clientUserId,
       hustlerUserId: booking.hustlerUserId,
       status: booking.status,
-      hasConversation: Boolean(booking.conversationId)
+      hasConversation: Boolean(booking.conversationId),
+      partySize: booking.partySize,
+      consultationRequested: booking.consultationRequested,
+      referenceCount: booking.referenceUrls.length
     });
 
     return this.serializeBooking(booking, client.id);
@@ -324,6 +368,11 @@ export class BookingService {
       }
     }
 
+    // Paid consultations require separately verified payment. Never claim a fee
+    // was paid or give credit on an unverified client request.
+    if (booking.consultationRequested && booking.service.consultationFeeMinor > 0) {
+      throw new ConflictException("Paid consultation approval requires a separate verified consultation-payment flow");
+    }
     const paid = booking.agreedPriceMinor > 0;
     const nextStatus = paid ? BookingStatus.PAYMENT_PENDING : BookingStatus.ACCEPTED;
     const now = new Date();
@@ -332,6 +381,7 @@ export class BookingService {
     // Advisory locking on the Hustler prevents simultaneous last-slot acceptances.
     const updated = await this.prisma.$transaction(async (tx) => {
       const availability = await this.schedule.reserveWithinTransaction(tx, {
+        partySize: booking.partySize,
         serviceId: booking.serviceId,
         hustlerUserId: viewer.id,
         startAt: confirmedStartAt,
@@ -563,6 +613,7 @@ export class BookingService {
       const availability = await this.schedule.reserveWithinTransaction(tx, {
         serviceId: existing.serviceId, hustlerUserId: viewer.id,
         startAt: existing.confirmedStartAt, endAt: proposed,
+        partySize: existing.partySize,
         excludeBookingId: id, allowExistingStart: true
       });
       if (availability.endAt?.getTime() !== proposed.getTime()) {

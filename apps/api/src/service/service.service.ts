@@ -28,6 +28,10 @@ export interface SaveServiceInput {
   deliveryTime?: unknown;
   requirements?: unknown;
   bookingMode?: unknown;
+  consultationPolicy?: unknown;
+  consultationFeeMinor?: unknown;
+  consultationCreditEnabled?: unknown;
+  groupBookingsEnabled?: unknown;
   bookingTimezone?: unknown;
   resourcePoolKey?: unknown;
   defaultDurationMinutes?: unknown;
@@ -349,6 +353,21 @@ export class ServiceService {
     const deliveryTime = this.optionalText(input.deliveryTime, "deliveryTime", 120);
     const requirements = this.optionalText(input.requirements, "requirements", 1500);
 
+    const policy = input.consultationPolicy === undefined ? undefined : input.consultationPolicy;
+    if (policy !== undefined && !["OFF", "OPTIONAL", "REQUIRED"].includes(String(policy))) {
+      throw new BadRequestException("Consultation policy must be OFF, OPTIONAL or REQUIRED");
+    }
+    const fee = input.consultationFeeMinor === undefined ? undefined : input.consultationFeeMinor;
+    if (fee !== undefined && (typeof fee !== "number" || !Number.isSafeInteger(fee) || fee < 0 || fee > 10_000_000)) {
+      throw new BadRequestException("Consultation fee must be 0–100,000 NGN in minor units");
+    }
+    const credit = input.consultationCreditEnabled === undefined ? undefined : input.consultationCreditEnabled;
+    const group = input.groupBookingsEnabled === undefined ? undefined : input.groupBookingsEnabled;
+    if (credit !== undefined && typeof credit !== "boolean") throw new BadRequestException("Consultation credit must be boolean");
+    if (group !== undefined && typeof group !== "boolean") throw new BadRequestException("Group bookings setting must be boolean");
+    if (policy === "OFF" && ((fee !== undefined && fee > 0) || credit === true)) {
+      throw new BadRequestException("Disabled consultations cannot charge a fee or offer credit");
+    }
     const mode = input.bookingMode === undefined ? undefined : input.bookingMode;
     if (mode !== undefined && !["APPOINTMENT", "WORK_QUEUE", "CONSULTATION"].includes(String(mode))) {
       throw new BadRequestException("Invalid FlowTime booking mode");
@@ -427,6 +446,10 @@ export class ServiceService {
       ...(availabilityNote !== undefined ? { availabilityNote } : {}),
       ...(deliveryTime !== undefined ? { deliveryTime } : {}),
       ...(requirements !== undefined ? { requirements } : {}),
+      ...(policy !== undefined ? { consultationPolicy: policy as "OFF" | "OPTIONAL" | "REQUIRED" } : {}),
+      ...(fee !== undefined ? { consultationFeeMinor: fee as number } : {}),
+      ...(credit !== undefined ? { consultationCreditEnabled: credit as boolean } : {}),
+      ...(group !== undefined ? { groupBookingsEnabled: group as boolean } : {}),
       ...(mode !== undefined ? { bookingMode: mode as "APPOINTMENT" | "WORK_QUEUE" | "CONSULTATION" } : {}),
       ...(timezone !== undefined ? { bookingTimezone: timezone } : {}),
       ...(pool !== undefined ? { resourcePoolKey: pool } : {}),

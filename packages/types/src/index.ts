@@ -334,6 +334,7 @@ export type ServiceStatus = "DRAFT" | "PUBLISHED" | "PAUSED";
 export type ServicePricingType = "FIXED" | "STARTING_AT" | "HOURLY";
 export type ServiceDeliveryMode = "REMOTE" | "PHYSICAL" | "BOTH";
 export type BookingOperationMode = "APPOINTMENT" | "WORK_QUEUE" | "CONSULTATION";
+export type ConsultationPolicy = "OFF" | "OPTIONAL" | "REQUIRED";
 export interface WeeklyHoursWindow {
   day: number; // 0=Sunday, 6=Saturday
   start: string; // HH:mm local to bookingTimezone
@@ -341,6 +342,10 @@ export interface WeeklyHoursWindow {
 }
 export interface ServiceSchedulingSettings {
   bookingMode: BookingOperationMode;
+  consultationPolicy: ConsultationPolicy;
+  consultationFeeMinor: number;
+  consultationCreditEnabled: boolean;
+  groupBookingsEnabled: boolean;
   bookingTimezone: string;
   resourcePoolKey: string;
   defaultDurationMinutes: number;
@@ -379,6 +384,10 @@ export interface Service extends ServiceSchedulingSettings {
 
 export interface SaveServiceInput {
   bookingMode?: BookingOperationMode;
+  consultationPolicy?: ConsultationPolicy;
+  consultationFeeMinor?: number;
+  consultationCreditEnabled?: boolean;
+  groupBookingsEnabled?: boolean;
   bookingTimezone?: string;
   resourcePoolKey?: string;
   defaultDurationMinutes?: number;

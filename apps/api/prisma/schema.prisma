@@ -681,6 +681,10 @@ model Service {
   deliveryTime          String?
   requirements          String?
   bookingMode           BookingOperationMode @default(APPOINTMENT)
+  consultationPolicy    String               @default("OPTIONAL")
+  consultationFeeMinor  Int                  @default(0)
+  consultationCreditEnabled Boolean          @default(false)
+  groupBookingsEnabled Boolean              @default(false)
   bookingTimezone       String               @default("Africa/Lagos")
   resourcePoolKey       String               @default("primary")
   defaultDurationMinutes Int                 @default(60)
@@ -946,6 +950,9 @@ model Booking {
   status               BookingStatus      @default(REQUESTED)
   requestedStartAt     DateTime
   requestedEndAt       DateTime?
+  partySize            Int                @default(1)
+  consultationRequested Boolean           @default(false)
+  referenceUrls        String[]           @default([])
   confirmedStartAt     DateTime?
   confirmedEndAt       DateTime?
   // A Client's response is authoritative for proposed scheduling only.

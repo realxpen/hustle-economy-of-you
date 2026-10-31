@@ -111,7 +111,7 @@ export default function PublicServicePage() {
         <strong>{formatServicePrice(service)}</strong>
         <div className={styles.offerActions}>
           <a className={styles.bookButton} href={preparedBookingHref} onClick={isolatedWebMode ? undefined : (event) => requireAuthForAction(event, preparedBookingHref)}>{isolatedWebMode ? "Request a time (test) →" : "Book this service →"}</a>
-          <a className={styles.messageButton} href={consultHref} onClick={(event) => requireAuthForAction(event, consultHref)}>Message first</a>
+          <a className={styles.messageButton} href={consultHref} onClick={(event) => requireAuthForAction(event, consultHref)}>{service.consultationPolicy === "REQUIRED" ? "Consult first" : "Ask a question"}</a>
         </div>
       </div>
       <aside className={styles.ownerCard}>

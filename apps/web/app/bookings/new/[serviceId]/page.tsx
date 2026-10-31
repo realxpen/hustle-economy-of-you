@@ -54,6 +54,9 @@ export default function NewBookingPage() {
   const [requirements, setRequirements] = useState("");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [partySize, setPartySize] = useState(1);
+  const [consultationRequested, setConsultationRequested] = useState(false);
+  const [referenceUrlsText, setReferenceUrlsText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
@@ -86,6 +89,9 @@ export default function NewBookingPage() {
           setRequirements(draft.requirements);
           setLocation(draft.location);
           setNotes(draft.notes);
+          setPartySize(draft.partySize ?? 1);
+          setConsultationRequested(service.service.consultationPolicy === "REQUIRED" || Boolean(draft.consultationRequested));
+          setReferenceUrlsText(draft.referenceUrlsText ?? "");
           setDraftPresent(true);
           setDraftRestored(true);
         } else {
@@ -94,6 +100,9 @@ export default function NewBookingPage() {
           setRequirements("");
           setLocation(service.service.location ?? service.owner.location ?? "");
           setNotes("");
+          setPartySize(1);
+          setConsultationRequested(service.service.consultationPolicy === "REQUIRED");
+          setReferenceUrlsText("");
         }
       })
       .catch((reason: Error) => { if (active) setError(reason.message); });
@@ -122,14 +131,14 @@ export default function NewBookingPage() {
     const end = toIso(requestedEndAt);
     if (!start || (requestedEndAt && !end)) { setCheckedTime(null); return; }
     let active=true;
-    void checkBookingAvailability({serviceId:data.service.id,startAt:start,...(end?{endAt:end}:{})})
+    void checkBookingAvailability({serviceId:data.service.id,startAt:start,partySize,...(end?{endAt:end}:{})})
       .then((result)=>{if(active)setCheckedTime(result);})
       .catch(()=>{if(active)setCheckedTime(null);});
     return ()=>{active=false;};
-  }, [data, requestedStartAt, requestedEndAt]);
+  }, [data, requestedStartAt, requestedEndAt, partySize]);
 
   function draftFields(): BookingDraftFields {
-    return { requestedStartAt, requestedEndAt, requirements, location, notes };
+    return { requestedStartAt, requestedEndAt, requirements, location, notes, partySize, consultationRequested, referenceUrlsText };
   }
 
   function updateDraft(patch: Partial<BookingDraftFields>) {
@@ -147,6 +156,9 @@ export default function NewBookingPage() {
     setRequestedEndAt("");
     setRequirements("");
     setNotes("");
+    setPartySize(1);
+    setConsultationRequested(data?.service.consultationPolicy === "REQUIRED");
+    setReferenceUrlsText("");
     setLocation(data?.service.location ?? data?.owner.location ?? "");
     setDraftPresent(false);
     setDraftRestored(false);
@@ -175,6 +187,16 @@ export default function NewBookingPage() {
       return;
     }
 
+    if (!Number.isSafeInteger(partySize) || partySize < 1 || partySize > 50 || (partySize > 1 && !data.service.groupBookingsEnabled)) {
+      setError("Choose a supported group size for this service."); return;
+    }
+    const references = referenceUrlsText.split(/\r?\n/).map((x)=>x.trim()).filter(Boolean);
+    if (references.length > 3 || references.some((url)=>!/^https:\/\//i.test(url) || url.length>500)) {
+      setError("Add up to three HTTPS links to your reference photos or videos."); return;
+    }
+    if (data.service.consultationPolicy === "OFF" && consultationRequested) {
+      setError("This service supports direct booking only."); return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -188,7 +210,7 @@ export default function NewBookingPage() {
       const availability = await checkBookingAvailability({
         serviceId: data.service.id,
         startAt: start,
-        ...(end ? { endAt: end } : {})
+        ...(end ? { endAt: end } : {}), partySize
       });
       if (!availability.available) {
         setError(availability.reason ?? "That time is not currently available.");
@@ -211,6 +233,9 @@ export default function NewBookingPage() {
         requestedStartAt: start,
         ...(end ? { requestedEndAt: end } : {}),
         requirements,
+        partySize,
+        consultationRequested: data.service.consultationPolicy === "REQUIRED" || consultationRequested,
+        referenceUrls: references,
         ...(location.trim() ? { location: location.trim() } : {}),
         ...(notes.trim() ? { notes: notes.trim() } : {}),
         ...(conversationId ? { conversationId } : {})
@@ -248,13 +273,13 @@ export default function NewBookingPage() {
 
     <OpportunityContext sourcePostId={sourcePostId} ownerUsername={owner.username}
       offerHref={`/services/${encodeURIComponent(service.id)}`} offerLabel="Review service" />
-    <div className={styles.bookingConsult}>
+    {service.consultationPolicy !== "OFF" && <div className={styles.bookingConsult}>
       <div><strong>Want to clarify the job first?</strong><span>Ask questions about scope, timing, or pricing, then return to this Booking request. Your draft stays in this tab.</span></div>
       <a href={consultHref}>
         Consult {owner.displayName ?? owner.username ?? "Hustler"} ↗
       </a>
-    </div>
-    {service.bookingMode === "CONSULTATION" && <section className={styles.consultationRequired} aria-label="Consultation before booking">
+    </div>}
+    {(service.bookingMode === "CONSULTATION" || service.consultationPolicy === "REQUIRED") && <section className={styles.consultationRequired} aria-label="Consultation before booking">
       <strong>{isolatedWebMode ? "Consultation required before booking" : "Consult with the Hustler before booking"}</strong>
       <p>{isolatedWebMode
         ? "Send a message about this Service using the linked Service in the conversation. Then return here to submit your request. Opening a chat without sending a Service-linked message is not enough."
@@ -281,6 +306,36 @@ export default function NewBookingPage() {
       </section>
 
       <form className={styles.formCard} onSubmit={submit} aria-busy={submitting} aria-describedby="booking-form-help">
+        <div className={styles.formSectionHeading}>
+          <span className={styles.formStep}>Booking preferences</span>
+          <h3>Make this request yours</h3>
+        </div>
+        {service.consultationPolicy === "OFF" ? <p className={styles.bookingRequestNotice}>No consultation is required. Share the style, project or reference and request directly.</p> :
+          <div className={styles.field}>
+            <label htmlFor="consultation-option">Consultation preference</label>
+            <select id="consultation-option" value={service.consultationPolicy === "REQUIRED" || consultationRequested ? "yes":"no"}
+              disabled={service.consultationPolicy === "REQUIRED"} onChange={(e)=>{setConsultationRequested(e.target.value==="yes");updateDraft({consultationRequested:e.target.value==="yes"});}}>
+              {service.consultationPolicy !== "REQUIRED" && <option value="no">Book directly (without consultation)</option>}
+              <option value="yes">{service.consultationFeeMinor > 0 ? "Consult first (paid)":"Consult first (free)"}</option>
+            </select>
+            <small>{service.consultationFeeMinor>0
+              ? `Consultation fee: ₦${(service.consultationFeeMinor/100).toLocaleString("en-NG")}. ${service.consultationCreditEnabled?"A verified payment may count toward your service price.":"This fee is separate from the service price."} No consultation payment is collected here.`
+              : "A consultation is free when offered. The Hustler must confirm your request."}</small>
+          </div>}
+        {service.groupBookingsEnabled && <div className={styles.field}>
+          <label htmlFor="party-size">Number of people needing this service</label>
+          <input id="party-size" type="number" min="1" max="50" value={partySize} onChange={(e)=>{const n=Number(e.target.value);setPartySize(n);setRequestedEndAt("");updateDraft({partySize:n,requestedEndAt:""});}} />
+          <small>{partySize > 1 ? `A request for ${partySize} people. Team capacity and consecutive working time will be checked.` : "One person by default."}
+          {partySize > 1 && service.pricingType==="FIXED" && service.priceMinor !== null ? ` Listed fixed price is per person; service subtotal: ₦${(service.priceMinor*partySize/100).toLocaleString("en-NG")} before agreed extras.`:""}
+          </small>
+        </div>}
+        <div className={styles.field}>
+          <label htmlFor="booking-references">Reference photo or video links (optional)</label>
+          <textarea id="booking-references" maxLength={1600} rows={2} value={referenceUrlsText}
+            onChange={(e)=>{setReferenceUrlsText(e.target.value);updateDraft({referenceUrlsText:e.target.value});}}
+            placeholder={"https://example.com/hairstyle.jpg\nOne HTTPS link per line (max 3)"} />
+          <small>You can also describe your reference below. Images are not uploaded by this form; only links you provide are shared with the Hustler.</small>
+        </div>
         <div className={styles.formLead}>
           <span className={styles.formStep}>Your request · Step 1 of 2</span>
           <h2>Plan the booking</h2>
@@ -320,8 +375,8 @@ export default function NewBookingPage() {
                   onClick={()=>{
                     const start=toLocalInput(slot.startAt);
                     const end=slot.endAt ? toLocalInput(slot.endAt) : "";
-                    setRequestedStartAt(start); setRequestedEndAt(end);
-                    updateDraft({requestedStartAt:start, requestedEndAt:end});
+                    setRequestedStartAt(start); setRequestedEndAt(partySize>1?"":end);
+                    updateDraft({requestedStartAt:start, requestedEndAt:partySize>1?"":end});
                     setError(null);
                   }}>
                   <strong>{new Intl.DateTimeFormat("en-NG",{hour:"numeric",minute:"2-digit",timeZone:service.bookingTimezone}).format(new Date(slot.startAt))}</strong>

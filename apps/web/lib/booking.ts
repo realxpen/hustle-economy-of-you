@@ -34,6 +34,9 @@ export interface BookingRecord {
   status: BookingStatus;
   requestedStartAt: string;
   requestedEndAt: string | null;
+  partySize: number;
+  consultationRequested: boolean;
+  referenceUrls: string[];
   confirmedStartAt: string | null;
   confirmedEndAt: string | null;
   timeProposalId: string | null;
@@ -103,6 +106,9 @@ export interface CreateBookingInput {
   serviceId: string;
   requestedStartAt: string;
   requestedEndAt?: string;
+  partySize?: number;
+  consultationRequested?: boolean;
+  referenceUrls?: string[];
   requirements: string;
   location?: string;
   notes?: string;
@@ -125,8 +131,10 @@ export async function checkBookingAvailability(input: {
   serviceId: string;
   startAt: string;
   endAt?: string;
+  partySize?: number;
 }) {
   const params = new URLSearchParams({ serviceId: input.serviceId, startAt: input.startAt });
+  if (input.partySize !== undefined) params.set("partySize", String(input.partySize));
   if (input.endAt) params.set("endAt", input.endAt);
   const response = await (await hasViewerSession()
     ? authenticatedFetch(`/bookings/availability?${params.toString()}`)
