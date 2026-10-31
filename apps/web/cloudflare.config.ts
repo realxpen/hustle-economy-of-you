@@ -10,6 +10,11 @@ const paymentPreviewBuild = process.env.HUSTLE_PAYMENT_PREVIEW_BUILD === "true";
 if ([awsPreviewBuild, stagingAwsCutoverBuild, paymentPreviewBuild].filter(Boolean).length > 1) {
   throw new Error("AWS preview, staging cutover and isolated payment-preview builds are mutually exclusive");
 }
+if (!paymentPreviewBuild &&
+    (process.env.HUSTLE_API_BACKEND_TARGET === "payment-preview" ||
+     process.env.HUSTLE_ISOLATED_PWA_GATE === "payment-preview")) {
+  throw new Error("Payment preview flags must never build or overwrite ordinary staging");
+}
 if (paymentPreviewBuild &&
     (process.env.HUSTLE_API_BACKEND_TARGET !== "payment-preview" ||
      process.env.HUSTLE_ISOLATED_PWA_GATE !== "payment-preview" ||
