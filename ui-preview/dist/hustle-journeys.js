@@ -209,6 +209,53 @@ function updateBookingPreview(){
 
 function localISO(offset=0){const d=new Date();d.setDate(d.getDate()+offset);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
 function niceDate(day){if(!/^\d{4}-\d{2}-\d{2}$/.test(day||""))return esc(day||"");const d=new Date(day+"T12:00:00");return d.toLocaleDateString("en-NG",{weekday:"short",day:"numeric",month:"short",year:"numeric"})}
+
+function fulfillmentFields(p,b){
+ const f=window.HustleBookingRules?.fulfillmentFor(p.id,b.professional);if(!f)return "";
+ const opts=(name,choices,selected)=>'<select name="'+name+'" id="hj-'+name+'">'+choices.map(x=>'<option value="'+esc(x)+'" '+(selected===x?'selected':'')+'>'+esc(x)+'</option>').join("")+'</select>';
+ const guidance=p.id==="tailor"?"Use a flexible tape for chest, waist, hips, shoulders, sleeves and inseam. Ask for assistance and confirm the fit with the tailor.":"Measure heel to longest toe on paper in centimetres for both feet; the shoemaker confirms their sizing chart before production.";
+ return '<section class="hj-fulfillment-fields"><div class="hj-booking-section"><span>02</span><h3>Collection, fitting and return</h3></div>'
+ +'<p class="hj-lead">How should the professional receive your items, and how should they come back?</p>'
+ +'<div class="hj-field"><label for="hj-intake">Item handover</label>'+opts("intake",f.intakeModes,b.intake||f.intakeModes[0])+'</div>'
+ +'<div class="hj-field"><label for="hj-returnMethod">When the work is ready</label>'+opts("returnMethod",f.returnModes,b.returnMethod||f.returnModes[0])+'</div>'
+ +(f.measurementModes.length?'<div class="hj-field"><label for="hj-measurementMethod">Measurements or sizing</label>'+opts("measurementMethod",f.measurementModes,b.measurementMethod||f.measurementModes[0])+'</div><div class="hj-measure-guide">'+esc(guidance)+'</div>':"")
+ +'<div class="hj-field"><label for="hj-handoffAddress">Collection / delivery area (if required)</label><input name="handoffAddress" id="hj-handoffAddress" value="'+esc(b.handoffAddress||"")+'" placeholder="e.g. Yaba, Lagos"><small>Only a general area in this demo. Exact addresses should be shared privately after acceptance.</small></div>'
+ +'<div class="hj-ready-estimate"><span>◷ ESTIMATED READY DATE</span><b id="hjEstimatedReady">'+niceDate(window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"")+'</b><small>Proposed only. The professional confirms the timeline when accepting.</small></div></section>';
+}
+function fulfillmentSummary(b,p){
+ if(!p.jobFulfillment)return "";
+ return '<div class="hj-fulfillment-summary"><div><span>Items received by</span><b>'+esc(b.intake||"To agree")+'</b></div>'
+ +'<div><span>Return method</span><b>'+esc(b.returnMethod||"To agree")+'</b></div>'
+ +(b.measurementMethod?'<div><span>Fitting / sizing</span><b>'+esc(b.measurementMethod)+'</b></div>':"")
+ +'<div><span>Estimated ready</span><b>'+niceDate(b.readyDate||window.HustleBookingRules?.estimatedReadyDate(b.day,p.id,b.professional)||"")+'</b></div></div>';
+}
+function jobStatusName(status){return ({awaiting_handoff:"Awaiting item handover",received:"Items received",processing:"Work in progress",ready:"Ready for collection / delivery",out_for_delivery:"Out for delivery",completed:"Collected or delivered"})[status]||"Awaiting item handover";}
+function renderJobTracker(b){
+ const steps=["awaiting_handoff","received","processing","ready",...(b.returnMethod==="Deliver to my address"?["out_for_delivery"]:[]),"completed"];
+ const idx=steps.indexOf(b.jobStatus||"awaiting_handoff");
+ return '<section class="hj-job-tracker"><header><span>YOUR JOB · DEMO</span><b>'+jobStatusName(b.jobStatus)+'</b></header>'
+ +'<div class="hj-ready-banner"><span>Estimated completion</span><strong>'+niceDate(b.readyDate)+'</strong><small>Subject to revision, not a guaranteed collection date.</small></div>'
+ +'<div class="hj-job-steps">'+steps.map((status,i)=>'<div class="'+(i<=idx?"done":"")+'"><i>'+(i<idx?"✓":i+1)+'</i><span>'+jobStatusName(status)+'</span></div>').join("")+'</div>'
+ +'<p><b>Return plan:</b> '+esc(b.returnMethod||"To confirm")+'. Only professional updates trigger a ready notification.</p></section>';
+}
+function updateProfessionalJob(status,readyDate){
+ const b=data.booking,p=policyFor(),allowed={awaiting_handoff:["received"],received:["processing"],processing:["ready"],ready:["out_for_delivery","completed"],out_for_delivery:["completed"],completed:[]};
+ if(!p.jobFulfillment||b.stage!=="work"||!b.paymentConfirmed)return false;
+ if(readyDate){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(readyDate)||readyDate<b.day)return false;
+  if(readyDate!==b.readyDate){b.readyDate=readyDate;addNotice("Orders","Estimated ready date changed · demo",b.service+" · "+niceDate(readyDate),"BookingJourney")}
+ }
+ if(status){
+  if(!allowed[b.jobStatus||"awaiting_handoff"]?.includes(status))return false;
+  if(status==="out_for_delivery"&&b.returnMethod!=="Deliver to my address")return false;
+  b.jobStatus=status;
+  const title=status==="ready"?"Your items are ready · demo":status==="out_for_delivery"?"Out for delivery · demo":status==="completed"?"Item collection/delivery recorded · demo":"Job update · "+jobStatusName(status);
+  addNotice("Orders",title,b.service+" · "+(status==="ready"?b.returnMethod:jobStatusName(status)),"BookingJourney");
+ }
+ if(!root.hidden&&state.screen==="BookingJourney")render();
+ return true;
+}
+
 function renderBooking(){
  const b=data.booking,p=policyFor(),paid=Number(b.consultPaid||0),due=payable(),group=!!b.customQuote,estimate=b.quoteLines||window.HustleBookingRules?.quote({id:p.id,provider:b.professional,basePrice:b.basePrice,people:b.people,venue:b.venue,consultPaid:paid});
  const visible=["Your request","Review & approval","Secure payment","Complete"];
