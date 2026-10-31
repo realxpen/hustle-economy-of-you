@@ -9,6 +9,7 @@ on:
       - "scripts/payment-sandbox/**"
       - "scripts/payment-preview/**"
       - ".github/workflows/hustle-payment-preview-neon-schema.yml"
+      - ".github/workflows/hustle-payment-preview-secret-readiness.yml"
       - "infra/aws/lambda/payment-preview-template.yaml"
       - "infra/cloudflare/payment-preview-api-worker.mjs"
       - ".github/workflows/hustle-payment-preview-api-deploy.yml"
@@ -69,6 +70,7 @@ jobs:
         run: |
           node --check scripts/payment-preview/migrate.mjs
           node scripts/payment-preview/check-guard.mjs
+          node scripts/payment-preview/check-aws-secret-readiness.test.mjs
       - name: Syntax-check protected provider runner without running it
         run: node --check scripts/payment-sandbox/real-paystack-test-preflight.mjs
       - name: Validate protected real-provider preflight denies unsafe contexts without network
