@@ -30,6 +30,15 @@ export function AdaptivePolicyForm({ blueprint, policy, onChange, disabled }: Pr
       {help && <small>{help}</small>}
     </label>
   );
+  const amount = (key: string, label: string) => (
+    <label className={styles.field} key={key}>
+      <span>{label}</span>
+      <input type="number" min={0} max={20000000} step=".01" required disabled={disabled}
+        value={(typeof policy[key] === "number" ? policy[key] as number : 0) / 100}
+        onChange={event => set(key, Math.round(Number(event.target.value) * 100))} />
+      <small>Configuration only. No fee is collected by saving this draft.</small>
+    </label>
+  );
   const toggle = (key: string, label: string) => (
     <label className={styles.toggle} key={key}>
       <input type="checkbox" disabled={disabled} checked={policy[key] === true}
@@ -73,7 +82,7 @@ export function AdaptivePolicyForm({ blueprint, policy, onChange, disabled }: Pr
   const consultation = () => <>
     {select("consultationMode", "Consultation", options.consultation)}
     {policy.consultationMode !== "disabled" && <>
-      {number("consultationFeeMinor","Consultation fee (kobo)",0,2000000000)}
+      {amount("consultationFeeMinor","Consultation fee (₦)")}
       {toggle("creditConsultation","Deduct the paid consultation fee from an eventual booking")}
     </>}
   </>;
