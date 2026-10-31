@@ -138,10 +138,10 @@ function renderBooking(){
    <div class="hj-field"><label for="hj-people">How many people, guests or items? (1 for individual)</label><input type="number" id="hj-people" name="people" min="1" max="50" value="${b.people||1}"></div>
    <div class="hj-capacity-note"><b>${p.capacity} parallel appointment${p.capacity===1?"":"s"} per slot · ${p.duration} min/session</b><span>A salon with staff may accept multiple bookings in one hour. Groups require a separately agreed schedule.</span><small>Example openings (not real-time): ${["1:00 PM – 2:00 PM","2:00 PM – 3:00 PM"].map(t=>`${esc(t)}: ${window.HustleBookingRules?.left(p.id,b.day,t,b.professional)??p.capacity} of ${p.capacity}`).join(" · ")}</small></div>
    <div class="hj-field"><label for="hj-bookingMedia">Reference photo or video (optional)</label><input type="file" id="hj-bookingMedia" accept="image/*,video/*"><small>${b.mediaName?`Selected: ${esc(b.mediaName)} · local only`:"Show the hairstyle, outfit, repair or example you want. Local demo only."}</small></div>
-   <fieldset class="hj-consult-options"><legend>Consultation</legend>
+   ${p.consultation==="off"?"":`<fieldset class="hj-consult-options"><legend>Consultation</legend>
    ${p.consultation!=="required"?`<label><input type="radio" name="consultChoice" value="direct" ${!b.consultChoice?"checked":""}><span><b>Book without consultation</b><small>Send details now for professional approval</small></span></label>`:""}
    ${p.consultation!=="off"?`<label><input type="radio" name="consultChoice" value="consult" ${b.consultChoice?"checked":""}><span><b>${p.consultFee?`Consult first · ${money(p.consultFee)}`:"Free consultation"}</b><small>${p.consultFee&&p.creditConsultation?"Fee is credited if you later book this service":p.consultFee?"Separate paid consultation, not credited":"Discuss requirements before booking"}</small></span></label>`:""}
-   </fieldset><div class="hj-booking-advice">✦ Quick haircut? Book without consulting. Wedding party, home visit or bespoke work? Request a custom quote.</div>
+   </fieldset>`}<div class="hj-booking-advice">✦ ${p.consultation==="off"?"No consultation needed.":p.consultation==="required"?"Consultation is required for this service.":"Consultation is your choice."} Wedding party, home visit or bespoke work? Ask for a custom quote.</div>
   `,"Continue →")}`;
  }
  if(b.stage==="consultation")body=`<h2>Choose how to consult</h2><p class="hj-lead">The professional can offer free or paid consultations. The fee and credit terms are shown before payment.</p>
