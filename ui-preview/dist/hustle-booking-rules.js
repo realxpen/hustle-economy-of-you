@@ -83,6 +83,7 @@ function update(id,patch,provider="default"){if(!templates[id])return false;cons
  if(["off","optional","required"].includes(patch.consultation))clean.consultation=patch.consultation;
  if(patch.consultFee!==undefined){const n=Number(patch.consultFee);if(!Number.isSafeInteger(n)||n<0||n>100000)return false;clean.consultFee=n}
  if(typeof patch.creditConsultation==="boolean")clean.creditConsultation=patch.creditConsultation;
+ if(typeof patch.jobFulfillment==="boolean")clean.jobFulfillment=patch.jobFulfillment;
  if(["individual","shared","batch"].includes(patch.deliveryMode))clean.deliveryMode=patch.deliveryMode;
  if(["flat","perPerson"].includes(patch.pricingMode))clean.pricingMode=patch.pricingMode;
  if(patch.batchSize!==undefined){const n=Number(patch.batchSize);if(!Number.isSafeInteger(n)||n<1||n>100)return false;clean.batchSize=n}
