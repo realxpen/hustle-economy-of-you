@@ -34,6 +34,20 @@ export type AdaptiveStaff = { id: string; displayName: string; active: boolean; 
   weeklyHours: WeeklyShift[]; leave: StaffLeave[] };
 export type AdaptiveRoster = { stationCapacity: number; rosterEnabled: boolean;
   activeStaff: number; staff: AdaptiveStaff[]; warning: string };
+export type AdaptiveItemStage = "AWAITING_INTAKE"|"RECEIVED"|"IN_PROGRESS"|"READY"|"OUT_FOR_DELIVERY"|"DELIVERED"|"COLLECTED";
+export type AdaptiveBookingOperation = {
+ bookingId:string; bookingStatus:string; viewerRole:"CLIENT"|"HUSTLER"|"TEAM";
+ assignment: {id:string;staffId:string;revision:number;staff:{displayName:string;active:boolean}}|null;
+ fulfillment: {id:string;status:AdaptiveItemStage;intakeMethod:string;returnMethod:string;
+ revision:number;estimatedReadyAt:string|null;actualReadyAt:string|null}|null;
+ offeredMethods: {handoverMethods:string[];returnMethods:string[]}|null;
+};
+export type AdaptiveWorkspaceBooking = {
+ id:string;serviceTitleSnapshot:string;status:string;requestedStartAt:string;confirmedStartAt:string|null;
+ client:{displayName:string|null;username:string|null};service:{bookingMode:string};
+ adaptiveAssignment:{revision:number;staffId:string;staff:{displayName:string}}|null;
+ adaptiveItemFulfillment:{revision:number;status:AdaptiveItemStage;intakeMethod:string;returnMethod:string}|null;
+};
 export type AdaptiveInvitation = {
   id: string; role: string; permissions: string[];
   workspace: { id: string; name: string; kind: string };
@@ -75,6 +89,19 @@ export const adaptiveClient = {
     post("/workspaces/" + encodeURIComponent(id) + "/invitations", { username, role, permissions }),
   respond: (id: string, answer: "accept" | "decline") =>
     post("/invitations/" + encodeURIComponent(id) + "/" + answer),
+  workspaceBookings: (id:string) => json<AdaptiveWorkspaceBooking[]>(
+    "/workspaces/"+encodeURIComponent(id)+"/booking-operations"),
+  bookingOps: (bookingId:string) => json<AdaptiveBookingOperation>(
+    "/bookings/"+encodeURIComponent(bookingId)+"/operations"),
+  chooseHandover: (bookingId:string,intakeMethod:string,returnMethod:string,expectedRevision?:number) =>
+    post("/bookings/"+encodeURIComponent(bookingId)+"/handover",
+      {intakeMethod,returnMethod,...(expectedRevision===undefined?{}:{expectedRevision})}),
+  assignWorker: (spaceId:string,bookingId:string,staffId:string,expectedRevision?:number) =>
+    post("/workspaces/"+encodeURIComponent(spaceId)+"/bookings/"+encodeURIComponent(bookingId)+"/assign",
+      {staffId,...(expectedRevision===undefined?{}:{expectedRevision})}),
+  advanceItem: (spaceId:string,bookingId:string,to:AdaptiveItemStage,expectedRevision:number) =>
+    post("/workspaces/"+encodeURIComponent(spaceId)+"/bookings/"+encodeURIComponent(bookingId)+"/item-progress",
+      {to,expectedRevision}),
   roster: (id: string) => json<AdaptiveRoster>("/workspaces/" + encodeURIComponent(id) + "/roster"),
   rosterSettings: (id: string, input: { stationCapacity: number; rosterEnabled: boolean }) =>
     json<{ stationCapacity: number; rosterEnabled: boolean; affectedExistingBookings: number }>(
