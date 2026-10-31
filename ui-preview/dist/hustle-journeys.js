@@ -163,6 +163,7 @@ function updateBookingAvailability(){
  const box=root.querySelector("#hjAvailabilityHelp");if(!box)return;
  const {b,p,day,people,options,valid}=bookingSlotData(),engine=window.HustleBookingRules;
  const selected=root.querySelector("#hj-time")?.value||"",full=!valid.length,closed=!options.length;
+ const submit=root.querySelector('form[data-hj-form="booking-request"] button[type="submit"]');if(submit){submit.disabled=full;submit.setAttribute("aria-disabled",String(full));submit.title=full?"Choose an available date and time":"Continue your booking request"}
  const next=(engine?.nextAvailable(p.id,day,b.professional,people,4,45)||[]).filter(x=>x.day!==day||!valid.length).slice(0,4);
  const alternatives=valid.length?valid.filter(x=>x.time!==selected).slice(0,3).map(x=>({day,time:x.time})):next;
  const heading=closed?"Closed on this date":full?"Fully booked for your request":"Appointments available";
