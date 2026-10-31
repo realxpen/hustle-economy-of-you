@@ -1,0 +1,13 @@
+.root{margin:15px 0;padding:17px;border-radius:16px;border:1px solid var(--h-border-subtle,#d6e1d3);background:var(--h-surface,#fff);display:grid;gap:12px}
+.head small{font-size:10px;font-weight:850;letter-spacing:1px;color:#6f9637}
+.head h2{font-size:17px;margin:6px 0}
+.hint{font-size:12px;line-height:1.6;color:var(--h-muted,#6d7a6a);margin:0}
+.stage{display:grid;gap:5px;padding:12px;border-radius:10px;background:#eef8e4;color:#34562e}
+.stage strong{font-size:13px}.stage span{font-size:11px}
+.form{display:grid;gap:12px}.form label{display:grid;gap:6px;font-size:12px;font-weight:750}
+.form select{width:100%;min-height:44px;border:1px solid var(--h-border-subtle,#c7d8bd);border-radius:10px;padding:9px;background:var(--h-surface,#fff);color:inherit;font:inherit}
+.form button{min-height:43px;border-radius:10px;border:1px solid #bdd99a;background:#def6a8;color:#203c22;font-size:12px;font-weight:850}
+.form button:disabled{opacity:.5}
+.error,.notice{font-size:12px;padding:10px;background:#ffecec;border:1px solid #d69e9e;color:#933d3d;border-radius:10px}
+.notice{background:#eefaeb;color:#315f2c;border-color:#b2d99b}
+.root :is(select,button):focus-visible{outline:3px solid #85a944;outline-offset:2px}
