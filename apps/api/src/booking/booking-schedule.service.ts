@@ -4,6 +4,7 @@ import { BookingOperationMode, BookingStatus, Prisma, ServiceStatus } from "@pri
 import { PrismaService } from "../database/prisma.service";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import type { AcceptBookingInput, CreateBookingInput } from "./booking.service";
+import { rosterCapacity } from "../adaptive/adaptive-roster-rules";
 
 const blockingStatuses: BookingStatus[] = [
   BookingStatus.ACCEPTED, BookingStatus.PAYMENT_PENDING, BookingStatus.FUNDED, BookingStatus.IN_PROGRESS
@@ -15,7 +16,14 @@ const scheduleSelect = {
   bufferMinutes: true, parallelCapacity: true, overbookingAllowance: true,
   weeklyHours: true, blackoutDates: true, maxActiveJobs: true,
   turnaroundHours: true, autoExtensionMinutes: true,
-  professionalProfile: { select: { userId: true } }
+  professionalProfile: { select: { userId: true } },
+  adaptiveDraft: { select: { workspace: { select: {
+    rosterEnabled: true, stationCapacity: true,
+    staff: { where: { active: true }, select: {
+      active: true, weeklyHours: true,
+      leave: { where: { cancelledAt: null }, select: { startAt: true, endAt: true, cancelledAt: true } }
+    } }
+  } } } }
 } satisfies Prisma.ServiceSelect;
 
 type SchedulingService = Prisma.ServiceGetPayload<{ select: typeof scheduleSelect }>;
@@ -177,7 +185,15 @@ export class BookingScheduleService {
     // Shared resource pools must respect the strictest participating Service policy.
     const normalCapacity = Math.min(service.parallelCapacity,
       ...overlapping.map((b) => b.service.parallelCapacity));
-    const totalCapacity = normalCapacity + service.overbookingAllowance;
+    // Roster-managed canonical Services use verified shift coverage for the
+    // WHOLE window including prep/buffer. No overbooking beyond actual people/chairs.
+    // Legacy/non-opt-in services retain the existing FlowTime behavior.
+    const roster = service.adaptiveDraft?.workspace;
+    const staffed = roster?.rosterEnabled
+      ? rosterCapacity(roster.staff, roster.stationCapacity, candidateStart, candidateEnd, service.bookingTimezone)
+      : null;
+    const permittedCapacity = staffed === null ? normalCapacity : Math.min(normalCapacity, staffed);
+    const totalCapacity = staffed === null ? normalCapacity + service.overbookingAllowance : permittedCapacity;
     // Peak concurrent occupancy matters: two non-overlapping clients inside a
     // long requested interval consume only one slot at any instant.
     const events: { at: number; change: number }[] = [];
@@ -198,7 +214,9 @@ export class BookingScheduleService {
       capacity: totalCapacity, remainingCapacity: remaining,
       overbooking: peak >= normalCapacity,
       turnaroundHours: service.turnaroundHours,
-      reason: remaining ? null : "All available capacity for this time is already committed"
+      reason: remaining ? null : (staffed !== null && permittedCapacity === 0
+        ? "No eligible staff and stations cover the selected time"
+        : "All available capacity for this time is already committed")
     };
   }
 
