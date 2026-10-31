@@ -75,3 +75,12 @@ Only authenticated, authorized workspace managers can assign or advance item pro
 The real Next.js My Economy Work view lists that workspace's canonical bookings and shows worker allocation or item progress buttons. The existing Booking detail page gains the client's intake/return choices and progress display; if Adaptive Core is disabled, it hides the optional panel and the original booking journey continues normally.
 
 No production migration, payment integration, outbound push/SMS/email or deployment is performed by this branch. Next: resolve staffing changes against assigned upcoming bookings, provider/client approval of changed delivery terms, secure courier dispatch evidence, and scoped creator/event resource pools.
+
+## Post-PR #302 hardening — restore green acceptance and review staffing changes
+
+- Restore the disposable PG17 integration fixture to represent the actual *current* client-facing 96-hour item offer. Earlier concurrent draft-update fixtures had reset that service to its 48-hour default. The prior failed assertion (48 !== 96) was a **test-data setup mismatch**; the replacement fixture explicitly defines the 96-hour offer before client selection and still changes the draft after selection to prove the agreed snapshot is retained.
+- Add read-only `GET /adaptive/workspaces/:id/staffing-alerts` behind authenticated `schedule.manage`. The review queue flags upcoming accepted appointments when no worker is assigned, a worker is inactive, or their shifts/leave no longer cover the whole slot. It never cancels, refunds, reassigns or changes a Booking automatically. Manual reassignment still revalidates availability and takes the shared booking advisory lock.
+- A client may change their selection while the business has not yet received the items. Changes compare the saved version atomically; the original offered policy snapshot remains authoritative, so later edits by the business cannot silently erase the client's choices.
+- My Economy Work surfaces the review queue and links to each affected operational booking. The single-source booking, escrow and financial statuses remain unchanged.
+
+**Rollout:** Source branch and disposable CI only; the existing Adaptive Core feature flag remains off. New roster/fulfillment tables are in the unapplied schema proposal. No production migration, deployment or payment operation is performed.

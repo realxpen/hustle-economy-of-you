@@ -162,7 +162,7 @@ export class AdaptiveBookingOpsService {
   }
   async assignments(identity: AuthIdentity, workspaceId: string) {
     const user=await this.actor(identity);
-    await this.access(user.id,workspaceId);
+    await this.access(user.id,workspaceId,"schedule.manage");
     return this.db.adaptiveBookingAssignment.findMany({
       where: { workspaceId, booking: { status: { in: assignable } } },
       select: {
@@ -172,6 +172,58 @@ export class AdaptiveBookingOpsService {
       }, orderBy:{assignedAt:"desc"},take:100
     });
   }
+  /**
+   * Read-only review queue. Leaving staff inactive, on leave or without a
+   * covering shift must not automatically cancel an accepted financial Booking.
+   * Reassignment still goes through assign() under the canonical booking lock.
+   */
+  async staffingAlerts(identity: AuthIdentity, workspaceId: string) {
+    const user=await this.actor(identity);
+    await this.access(user.id,workspaceId,"schedule.manage");
+    const workspace=await this.db.adaptiveWorkspace.findUnique({
+      where:{id:workspaceId},select:{ownerUserId:true,rosterEnabled:true}
+    });
+    if(!workspace)throw new NotFoundException("Workspace not found");
+    if(!workspace.rosterEnabled)return {items:[],rosterEnabled:false,limited:false};
+    const bookingRows=await this.db.booking.findMany({
+      where:{
+        hustlerUserId:workspace.ownerUserId,
+        status:{in:assignable},
+        confirmedStartAt:{gte:new Date()},
+        service:{bookingMode:BookingOperationMode.APPOINTMENT,
+          adaptiveDraft:{is:{workspaceId}}}
+      },
+      select:{
+        id:true,serviceTitleSnapshot:true,status:true,confirmedStartAt:true,confirmedEndAt:true,
+        service:{select:{defaultDurationMinutes:true,prepMinutes:true,bufferMinutes:true,bookingTimezone:true}},
+        adaptiveAssignment:{select:{revision:true,staffId:true,
+          staff:{select:{id:true,displayName:true,active:true,weeklyHours:true,
+            leave:{where:{cancelledAt:null},
+              select:{startAt:true,endAt:true,cancelledAt:true}}}}}}
+      },
+      orderBy:{confirmedStartAt:"asc"},take:201
+    });
+    const limited=bookingRows.length>200;
+    const items=bookingRows.slice(0,200).flatMap(row=>{
+      const startAt=row.confirmedStartAt;
+      if(!startAt)return [];
+      const start=new Date(startAt.getTime()-row.service.prepMinutes*60000);
+      const end=new Date((row.confirmedEndAt??new Date(startAt.getTime()+
+        row.service.defaultDurationMinutes*60000)).getTime()+row.service.bufferMinutes*60000);
+      const assign=row.adaptiveAssignment;
+      const reason=!assign?"UNASSIGNED":
+        !assign.staff.active?"WORKER_INACTIVE":
+        !staffCoversSlot(assign.staff,start,end,row.service.bookingTimezone)?"SHIFT_OR_LEAVE_CONFLICT":null;
+      return reason?[{
+        bookingId:row.id,serviceTitle:row.serviceTitleSnapshot,bookingStatus:row.status,
+        confirmedStartAt:startAt,confirmedEndAt:row.confirmedEndAt,
+        reason,staffId:assign?.staffId??null,staffName:assign?.staff.displayName??null,
+        expectedRevision:assign?.revision??null
+      }]:[];
+    });
+    return {items,rosterEnabled:true,limited};
+  }
+
   async assign(identity: AuthIdentity, workspaceId: string, bookingId: string, raw: unknown) {
     const user=await this.actor(identity);
     await this.access(user.id,workspaceId,"schedule.manage");
@@ -243,23 +295,27 @@ export class AdaptiveBookingOpsService {
     if(b.service.bookingMode!==BookingOperationMode.WORK_QUEUE ||
        b.service.adaptiveDraft?.blueprint.slug!=="item"||!intakeAllowed.includes(b.status))
       throw new ConflictException("Item options not available for this booking");
-    const policy=validateAdaptiveServicePolicy("item",b.service.adaptiveDraft.policy);
     const d=this.obj(raw);
-    if(typeof d.intakeMethod!=="string"||!(policy.handoverMethods as string[]).includes(d.intakeMethod)||
-       typeof d.returnMethod!=="string"||!(policy.returnMethods as string[]).includes(d.returnMethod))
-      throw new BadRequestException("Select handover and return methods offered by this business");
-    // Existing options cannot silently change after the provider receives items.
+    // Existing agreed terms remain the authority until explicit renegotiation,
+    // even if the seller edits the underlying draft while intake is pending.
     return this.db.$transaction(async tx=>{
       const prev=await tx.adaptiveItemFulfillment.findUnique({where:{bookingId}});
       if(prev&&prev.status!==AdaptiveItemStage.AWAITING_INTAKE)
         throw new ConflictException("Handover is already underway; contact the business to revise the agreement");
+      const policy=validateAdaptiveServicePolicy("item",
+        prev?.policySnapshot ?? b.service.adaptiveDraft!.policy);
+      if(typeof d.intakeMethod!=="string"||!(policy.handoverMethods as string[]).includes(d.intakeMethod)||
+         typeof d.returnMethod!=="string"||!(policy.returnMethods as string[]).includes(d.returnMethod))
+        throw new BadRequestException("Select handover and return methods agreed with this business");
       if(prev){
-        if(this.rev(d.expectedRevision)!==prev.revision)
-          throw new ConflictException("Handover changed; refresh");
-        return tx.adaptiveItemFulfillment.update({where:{id:prev.id},data:{
-          intakeMethod:d.intakeMethod as string,returnMethod:d.returnMethod as string,
-          policySnapshot:policy as Prisma.InputJsonValue,revision:{increment:1}
-        }});
+        const expected=this.rev(d.expectedRevision);
+        const changed=await tx.adaptiveItemFulfillment.updateMany({
+          where:{id:prev.id,revision:expected,status:AdaptiveItemStage.AWAITING_INTAKE},
+          data:{intakeMethod:d.intakeMethod as string,returnMethod:d.returnMethod as string,
+            revision:{increment:1}}
+        });
+        if(changed.count!==1)throw new ConflictException("Handover changed; refresh");
+        return tx.adaptiveItemFulfillment.findUniqueOrThrow({where:{id:prev.id}});
       }
       if(d.expectedRevision!==undefined)throw new ConflictException("Handover is not yet initialized");
       return tx.adaptiveItemFulfillment.create({data:{

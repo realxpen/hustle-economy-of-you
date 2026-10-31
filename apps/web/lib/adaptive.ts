@@ -42,6 +42,13 @@ export type AdaptiveBookingOperation = {
  revision:number;estimatedReadyAt:string|null;actualReadyAt:string|null}|null;
  offeredMethods: {handoverMethods:string[];returnMethods:string[]}|null;
 };
+export type AdaptiveStaffingAlert = {
+  bookingId:string;serviceTitle:string;bookingStatus:string;
+  confirmedStartAt:string;confirmedEndAt:string|null;
+  reason:"UNASSIGNED"|"WORKER_INACTIVE"|"SHIFT_OR_LEAVE_CONFLICT";
+  staffId:string|null;staffName:string|null;expectedRevision:number|null;
+};
+export type AdaptiveStaffingAlerts = {items:AdaptiveStaffingAlert[];rosterEnabled:boolean;limited:boolean};
 export type AdaptiveWorkspaceBooking = {
  id:string;serviceTitleSnapshot:string;status:string;requestedStartAt:string;confirmedStartAt:string|null;
  client:{displayName:string|null;username:string|null};service:{bookingMode:string};
@@ -89,6 +96,8 @@ export const adaptiveClient = {
     post("/workspaces/" + encodeURIComponent(id) + "/invitations", { username, role, permissions }),
   respond: (id: string, answer: "accept" | "decline") =>
     post("/invitations/" + encodeURIComponent(id) + "/" + answer),
+  staffingAlerts: (workspaceId:string) =>
+    json<AdaptiveStaffingAlerts>("/workspaces/"+encodeURIComponent(workspaceId)+"/staffing-alerts"),
   workspaceBookings: (id:string) => json<AdaptiveWorkspaceBooking[]>(
     "/workspaces/"+encodeURIComponent(id)+"/booking-operations"),
   bookingOps: (bookingId:string) => json<AdaptiveBookingOperation>(
