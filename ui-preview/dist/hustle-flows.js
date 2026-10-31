@@ -60,6 +60,7 @@ function head(title,subtitle="",back=true,action=""){
  return `<header class="hf-page-head"><div class="hf-headrow">${back?'<button class="hf-icbtn" data-hf="back" aria-label="Go back">←</button>':''}<div><h1>${esc(title)}<em>.</em></h1>${subtitle?`<small>${esc(subtitle)}</small>`:''}</div>${action}</div></header>`;
 }
 function push(screen,params={}){
+ if((state.screen==="GoLive"||state.screen==="LiveStudio")&&screen!=="GoLive"&&screen!=="LiveStudio")stopCamera();
  if(state.screen!=="Home"||screen!=="Home")state.stack.push({screen:state.screen,profile:state.profile,profileTab:state.profileTab,item:state.item,thread:state.thread});
  state.screen=screen;
  Object.assign(state,params);
@@ -83,7 +84,7 @@ function back(){
  home();
 }
 function updateNav(screen){
- phone.querySelectorAll(".bottom-nav [data-nav]").forEach(b=>b.classList.toggle("active",b.dataset.nav===(screen==="Marketplace"?"Explore":screen==="Chat"?"Inbox":screen==="OwnProfile"?"Profile":screen)));
+ phone.querySelectorAll(".bottom-nav [data-nav]").forEach(b=>b.classList.toggle("active",b.dataset.nav===(screen==="Marketplace"||screen==="LiveHub"?"Explore":screen==="Chat"?"Inbox":screen==="OwnProfile"?"Profile":screen)));
 }
 function render(){
  if(state.screen==="Home"){home();return}
