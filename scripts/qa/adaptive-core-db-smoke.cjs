@@ -297,21 +297,21 @@ async function run(){
  assert.equal((await ops.myBookingSummary(other,garment.id)).fulfillment.policySnapshot.turnaroundHours,96);
  await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"RECEIVED",expectedRevision:1}),409);
  await db.booking.update({where:{id:garment.id},data:{status:"FUNDED"}});
- await ops.itemProgress(own,business.id,garment.id,{to:"RECEIVED",expectedRevision:1});
+ await ops.itemProgress(own,business.id,garment.id,{to:"RECEIVED",expectedRevision:3});
  const receipt=await db.adaptiveItemFulfillment.findUniqueOrThrow({where:{bookingId:garment.id}});
  const hoursUntilReady=(receipt.estimatedReadyAt.getTime()-Date.now())/3600000;
  assert.ok(hoursUntilReady>95&&hoursUntilReady<97,"ETA reflects original 96-hour client terms, not later draft edits");
 
- await ops.itemProgress(own,business.id,garment.id,{to:"IN_PROGRESS",expectedRevision:2});
- const ready=await ops.itemProgress(own,business.id,garment.id,{to:"READY",expectedRevision:3});
+ await ops.itemProgress(own,business.id,garment.id,{to:"IN_PROGRESS",expectedRevision:4});
+ const ready=await ops.itemProgress(own,business.id,garment.id,{to:"READY",expectedRevision:5});
  assert.equal(ready.status,"READY");
  assert.ok(ready.actualReadyAt);
- await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"OUT_FOR_DELIVERY",expectedRevision:4}),409);
- const collected=await ops.itemProgress(own,business.id,garment.id,{to:"COLLECTED",expectedRevision:4});
+ await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"OUT_FOR_DELIVERY",expectedRevision:6}),409);
+ const collected=await ops.itemProgress(own,business.id,garment.id,{to:"COLLECTED",expectedRevision:6});
  assert.equal(collected.status,"COLLECTED");
- await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"COLLECTED",expectedRevision:4}),409);
+ await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"COLLECTED",expectedRevision:6}),409);
  assert.ok(await db.notification.findFirst({where:{recipientUserId:outsider.id,
-  eventKey:"adaptive:item:"+garment.id+":READY:4"}}));
+  eventKey:"adaptive:item:"+garment.id+":READY:6"}}));
  assert.equal((await db.booking.findUniqueOrThrow({where:{id:garment.id}})).status,"FUNDED",
   "item notifications do not advance the financial Booking");
  assert.equal((await db.adaptiveItemEvent.findMany({where:{fulfillmentId:collected.id}})).length,4);
