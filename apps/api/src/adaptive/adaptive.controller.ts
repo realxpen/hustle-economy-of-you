@@ -4,11 +4,12 @@ import { AuthGuard } from "../auth/auth.guard";
 import { CurrentIdentity } from "../auth/current-identity.decorator";
 import { AdaptiveFeatureGuard } from "./adaptive-feature.guard";
 import { AdaptiveService } from "./adaptive.service";
+import { AdaptiveRosterService } from "./adaptive-roster.service";
 
 @Controller("adaptive")
 @UseGuards(AuthGuard, AdaptiveFeatureGuard)
 export class AdaptiveController {
-  constructor(private readonly adaptive: AdaptiveService) {}
+  constructor(private readonly adaptive: AdaptiveService, private readonly roster: AdaptiveRosterService) {}
 
   @Get("blueprints")
   blueprints() { return this.adaptive.blueprints(); }
@@ -51,6 +52,34 @@ export class AdaptiveController {
   revoke(@CurrentIdentity() user: AuthIdentity,
     @Param("workspaceId") workspaceId: string, @Param("memberId") memberId: string) {
     return this.adaptive.revoke(user, workspaceId, memberId);
+  }
+
+  @Get("workspaces/:workspaceId/roster")
+  rosterList(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") workspaceId: string) {
+    return this.roster.list(identity, workspaceId);
+  }
+  @Patch("workspaces/:workspaceId/roster-settings")
+  rosterSettings(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") workspaceId: string, @Body() body: unknown) {
+    return this.roster.settings(identity, workspaceId, body);
+  }
+  @Post("workspaces/:workspaceId/staff")
+  addStaff(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") workspaceId: string, @Body() body: unknown) {
+    return this.roster.create(identity, workspaceId, body);
+  }
+  @Patch("workspaces/:workspaceId/staff/:staffId")
+  editStaff(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") workspaceId: string,
+    @Param("staffId") staffId: string, @Body() body: unknown) {
+    return this.roster.update(identity, workspaceId, staffId, body);
+  }
+  @Post("workspaces/:workspaceId/staff/:staffId/leave")
+  recordLeave(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") workspaceId: string,
+    @Param("staffId") staffId: string, @Body() body: unknown) {
+    return this.roster.leave(identity, workspaceId, staffId, body);
+  }
+  @Post("workspaces/:workspaceId/staff/:staffId/leave/:leaveId/cancel")
+  cancelStaffLeave(@CurrentIdentity() identity: AuthIdentity, @Param("workspaceId") workspaceId: string,
+    @Param("staffId") staffId: string, @Param("leaveId") leaveId: string) {
+    return this.roster.cancelLeave(identity, workspaceId, staffId, leaveId);
   }
 
   @Get("workspaces/:workspaceId/services")

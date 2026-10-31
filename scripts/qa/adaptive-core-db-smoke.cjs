@@ -5,12 +5,17 @@
 const assert=require("node:assert/strict");
 const {PrismaClient}=require("@prisma/client");
 const {AdaptiveService}=require("../../apps/api/dist/adaptive/adaptive.service");
+const {AdaptiveRosterService}=require("../../apps/api/dist/adaptive/adaptive-roster.service");
+const {BookingScheduleService}=require("../../apps/api/dist/booking/booking-schedule.service");
 
 const url=new URL(process.env.DATABASE_URL||"postgresql://missing");
 if(!["127.0.0.1","localhost"].includes(url.hostname) || !url.pathname.endsWith("/hustle_adaptive_ci"))
  throw Error("Refusing non-disposable database");
+// Only after localhost / disposable-database guards: exercise feature-on roster reads.
+process.env.HUSTLE_ADAPTIVE_CORE_ENABLED="true";
 const db=new PrismaClient();
 const api=new AdaptiveService(db);
+const roster=new AdaptiveRosterService(db),schedule=new BookingScheduleService(db);
 const id=(subject)=>({subject,emailVerified:true,phoneVerified:true});
 const expectForbidden=async(promise,code=403)=>{
  await assert.rejects(promise,error=>typeof error?.getStatus==="function"&&error.getStatus()===code);
@@ -74,6 +79,75 @@ async function run(){
  assert.equal(salonService.overbookingAllowance,0);
  assert.deepEqual(salonService.weeklyHours,[],"appointments start with no bookable opening hours");
  assert.equal(salonService.resourcePoolKey,business.id);
+
+ // A business with no configured roster remains in legacy FlowTime mode.
+ const initial=await roster.list(own,business.id);
+ assert.equal(initial.rosterEnabled,false);
+ await expectForbidden(roster.create(other,business.id,{displayName:"Outsider",weeklyHours:[]}));
+ const seven=Array.from({length:7},(_,day)=>({day,start:"09:00",end:"17:00"}));
+ const worker1=(await roster.create(own,business.id,{displayName:"Ayo · Barber",weeklyHours:seven})).staff;
+ const worker2=(await roster.create(own,business.id,{displayName:"Kunle · Barber",weeklyHours:seven})).staff;
+ assert.equal((await roster.list(own,business.id)).activeStaff,2);
+ await expectForbidden(roster.create(own,business.id,{displayName:"Invalid shifts",
+   weeklyHours:[{day:1,start:"14:00",end:"10:00"}]}),400);
+ await expectForbidden(roster.create(own,business.id,{displayName:"Overlapping shifts",
+   weeklyHours:[{day:1,start:"09:00",end:"12:00"},{day:1,start:"11:00",end:"14:00"}]}),400);
+ const settings=await roster.settings(own,business.id,{stationCapacity:2,rosterEnabled:true});
+ assert.equal(settings.rosterEnabled,true);
+ await expectForbidden(roster.settings(other,business.id,{stationCapacity:20,rosterEnabled:false}));
+ // BookingScheduleService remains authoritative. Only scratch data is published here.
+ await db.service.update({where:{id:salonPrepared.serviceId},data:{
+   status:"PUBLISHED",weeklyHours:seven}});
+ const day=new Date(Date.now()+8*86400000).toISOString().slice(0,10);
+ const startAt=new Date(day+"T10:00:00+01:00"),endAt=new Date(day+"T10:30:00+01:00");
+ const candidate={serviceId:salonPrepared.serviceId,startAt:startAt.toISOString(),endAt:endAt.toISOString()};
+ let available=await schedule.checkAvailability(null,candidate);
+ assert.equal(available.capacity,2);
+ assert.equal(available.remainingCapacity,2);
+ const leave=await roster.leave(own,business.id,worker2.id,{
+   startAt:day+"T00:00:00+01:00",endAt:new Date(Date.parse(day+"T00:00:00Z")+86400000).toISOString().slice(0,10)+"T00:00:00+01:00",
+   note:"Approved annual leave"
+ });
+ available=await schedule.checkAvailability(null,candidate);
+ assert.equal(available.capacity,1,"one unavailable worker reduces real appointment capacity");
+ assert.equal(available.remainingCapacity,1);
+ // Real accepted booking (synthetic client) uses same shared pool and consumes the last seat.
+ const accepted=await db.booking.create({data:{
+   serviceId:salonPrepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
+   requestedStartAt:startAt,requestedEndAt:endAt,confirmedStartAt:startAt,confirmedEndAt:endAt,
+   status:"ACCEPTED",requirements:"Synthetic test haircut",serviceTitleSnapshot:"Group wedding haircuts",
+   agreedPriceMinor:800000,pricingTypeSnapshot:"FIXED"
+ }});
+ available=await schedule.checkAvailability(null,candidate);
+ assert.equal(available.available,false);
+ assert.equal(available.remainingCapacity,0,"last staffed slot is fully booked");
+ const disabled=await roster.update(own,business.id,worker1.id,{
+   displayName:worker1.displayName,weeklyHours:seven,active:false,expectedRevision:worker1.revision
+ });
+ assert.equal(disabled.staff.active,false);
+ assert.ok(disabled.affectedExistingBookings>=1,"staff reduction flags pre-existing commitments for review");
+ available=await schedule.checkAvailability(null,candidate);
+ assert.equal(available.capacity,0);
+ assert.equal(available.available,false);
+ // Cancel time off and reactivate worker. A confirmed booking is not auto-deleted.
+ await roster.cancelLeave(own,business.id,worker2.id,leave.leave.id);
+ available=await schedule.checkAvailability(null,candidate);
+ assert.equal(available.capacity,1);
+ assert.equal(available.remainingCapacity,0);
+ const reactivated=await roster.update(own,business.id,worker1.id,{
+  displayName:worker1.displayName,weeklyHours:seven,active:true,expectedRevision:disabled.staff.revision
+ });
+ assert.equal(reactivated.staff.active,true);
+ available=await schedule.checkAvailability(null,candidate);
+ assert.equal(available.capacity,2);
+ assert.equal(available.remainingCapacity,1);
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:accepted.id}})).status,"ACCEPTED");
+ // Stale, outsider and nonconsenting agent changes must fail.
+ await expectForbidden(roster.update(own,business.id,worker1.id,{
+  displayName:"Stale",weeklyHours:seven,active:true,expectedRevision:1}),409);
+ await expectForbidden(roster.update(other,business.id,worker1.id,{
+  displayName:"Wrong owner",weeklyHours:seven,active:true,expectedRevision:reactivated.staff.revision}));
+
 
  assert.equal(salon.policy.creditConsultation,true);
  const laundry=await api.draftService(own,business.id,{title:"Laundry pickup and delivery",blueprint:"item",priceMinor:450000,

@@ -1592,6 +1592,9 @@ model AdaptiveWorkspace {
   kind          AdaptiveWorkspaceKind @default(BUSINESS)
   category      String?
   city          String?
+  stationCapacity Int                @default(1)
+  rosterEnabled   Boolean            @default(false)
+  staff           AdaptiveStaffMember[]
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
   owner         User                  @relation("AdaptiveWorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
@@ -1687,4 +1690,34 @@ model AdaptiveWorkEvent {
 
   @@unique([workId, revision])
   @@index([actorUserId, createdAt])
+}
+
+
+// A staff entry may represent an offline/non-technical team member.
+// This record NEVER grants app login, agent access, KYC, or financial permissions.
+model AdaptiveStaffMember {
+  id           String                 @id @default(cuid())
+  workspaceId  String
+  displayName  String
+  active       Boolean                @default(true)
+  weeklyHours  Json                   @default("[]")
+  revision     Int                    @default(1)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  workspace    AdaptiveWorkspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  leave        AdaptiveStaffLeave[]
+
+  @@index([workspaceId, active])
+}
+model AdaptiveStaffLeave {
+  id          String               @id @default(cuid())
+  staffId     String
+  startAt     DateTime
+  endAt       DateTime
+  note        String?
+  cancelledAt DateTime?
+  createdAt   DateTime             @default(now())
+  staff       AdaptiveStaffMember  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, startAt, endAt])
 }
