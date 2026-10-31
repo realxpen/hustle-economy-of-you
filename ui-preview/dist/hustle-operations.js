@@ -34,7 +34,7 @@ const store={
  agents:[{id:"APP-20",name:"Sample agent",category:"Talent management",state:"Pending"}],
  audit:[{date:"Sample",action:"Sandbox initialized",context:"No production data"}]
 };
-const state={page:"Wallet",previous:[],walletTab:"Overview",hustlerTab:"Overview",agentTab:"Overview",adminTab:"Dashboard",activityTab:"All",escrowId:"HES-2401",milestoneId:1,confirmAction:null,fundingMethod:"Card",agentPreview:false,adminPreview:false,agentApplied:false,hustlerAvailable:true,modal:"",formDraft:{}};
+const state={page:"Wallet",previous:[],walletTab:"Overview",hustlerTab:"Overview",agentTab:"Overview",adminTab:"Dashboard",activityTab:"All",escrowId:"HES-2401",milestoneId:1,confirmAction:null,fundingMethod:"Card",agentPreview:false,adminPreview:false,adminInspect:false,agentApplied:false,hustlerAvailable:true,modal:"",formDraft:{}};
 let root=document.getElementById("hustleOpsLayer");if(!root){root=document.createElement("section");root.id="hustleOpsLayer";root.className="ho-root";root.hidden=true;phone.appendChild(root)}
 function audit(action,context){store.audit.unshift({date:dateNow(),action,context});}
 const escrow=id=>store.escrow.find(x=>x.id===id);
@@ -54,7 +54,7 @@ function nav(page){if(page===state.page)return;state.previous.push(state.page);s
 function back(){if(state.modal){state.modal="";render();return}if(state.previous.length){state.page=state.previous.pop();render()}else close()}
 function close(){root.hidden=true;root.innerHTML="";state.previous=[];state.modal="";phone.classList.remove("ho-open")}
 function open(page="Wallet"){
- state.previous=[];state.page=page;state.modal="";state.adminPreview=false;
+ state.previous=[];state.page=page;state.modal="";state.adminPreview=false;state.adminInspect=false;
  if(page==="Agent"&&!state.agentPreview)state.page="AgentIntro";
  if(page==="Admin")state.page="AdminGate";
  root.hidden=false;phone.classList.add("ho-open");render()
@@ -104,11 +104,12 @@ function renderWallet(){
 }
 function renderEscrow(){
  const e=escrow(state.escrowId);if(!e)return banner("Escrow missing","Return to the list");
+ const readOnly=state.adminInspect;
  return header("Escrow details",e.id)+`<div class="ho-screen">${visibleStatus()}<div class="ho-detail-hero"><div class="ho-escrow-top">${badge(e.status)}<span>${esc(e.created)}</span></div><h2>${esc(e.service)}</h2><p>Client: ${esc(e.client)} · Professional: ${esc(e.creator)}</p><div class="ho-detail-total">${money(e.value)} <small>agreed demo amount</small></div>
  <div class="ho-detail-breakdown"><span>Held now <b>${money(held(e))}</b></span><span>Already released <b>${money(e.value-held(e))}</b></span></div></div>
  ${section("Milestone payments")}
- ${e.milestones.map(m=>`<div class="ho-milestone"><div class="ho-milestone-mark">${m.status==="Released"?"✓":m.status==="Refunded"?"↩":"🔒"}</div><div><b>${esc(m.title)}</b><small>${money(m.amount)} · ${m.status}</small></div>${m.status==="Held"&&e.status==="Held"?`<button class="ho-small-lime" data-op="confirm-release" data-id="${e.id}" data-mid="${m.id}">Release</button>`:badge(m.status)}</div>`).join("")}
- <div class="ho-actions">${e.status==="Held"?btn("Raise a dispute","dispute","outline",e.id):btn("View dispute status","disputeInfo","outline",e.id)}${btn("Escrow history","escrowHistory","outline",e.id)}</div>
+ ${e.milestones.map(m=>`<div class="ho-milestone"><div class="ho-milestone-mark">${m.status==="Released"?"✓":m.status==="Refunded"?"↩":"🔒"}</div><div><b>${esc(m.title)}</b><small>${money(m.amount)} · ${m.status}</small></div>${!readOnly&&m.status==="Held"&&e.status==="Held"?`<button class="ho-small-lime" data-op="confirm-release" data-id="${e.id}" data-mid="${m.id}">Release</button>`:badge(m.status)}</div>`).join("")}
+ <div class="ho-actions">${readOnly?btn("Inspect history","escrowHistory","outline",e.id):e.status==="Held"?btn("Raise a dispute","dispute","outline",e.id):btn("View dispute status","disputeInfo","outline",e.id)}${!readOnly?btn("Escrow history","escrowHistory","outline",e.id):""}</div>
  ${banner("Important","Release is the client's decision after accepting work. Disputed funds should be frozen and reviewed. This prototype cannot move or lock money.","quiet")}</div>`;
 }
 function renderDeposit(){
@@ -308,6 +309,7 @@ function submitEscrow(form){
  store.wallet-=amount;store.escrow.unshift(e);addTransaction("Demo escrow created",e.id+" · "+service,amount,"debit","Escrow");audit("Escrow created",e.id);state.escrowId=e.id;state.page="Escrow";render();toast("Escrow created in demo only");
 }
 function processDecision(){
+ if(state.adminInspect){state.confirmAction=null;render();return}
  const a=state.confirmAction;if(!a)return;const e=escrow(a.escrow);
  if(a.type==="release"&&e?.status==="Held"){const m=e.milestones.find(m=>m.id===a.mid&&m.status==="Held");if(!m){state.confirmAction=null;render();return}m.status="Released";e.log.unshift(`Milestone ${m.id} released (demo)`);if(held(e)===0)e.status="Completed";addTransaction("Demo escrow release",e.id+" · "+m.title,m.amount,"debit","Escrow");audit("Client released milestone",e.id+" · "+money(m.amount))}
  if(a.type==="dispute"&&e?.status==="Held"){e.status="Disputed";e.log.unshift("Client raised dispute (demo)");audit("Dispute raised",e.id)}
@@ -325,13 +327,15 @@ function handle(op,id,value,node){
  switch(op){
   case "close":close();break;
   case "back":back();break;
-  case "Wallet":case "Hustler":case "Agent":case "Admin":open(op);break;
+  case "Wallet":case "Hustler":nav(op);break;
+  case "Agent":nav(state.agentPreview?"Agent":"AgentIntro");break;
+  case "Admin":state.adminPreview=false;nav("AdminGate");break;
   case "wallet-tab":state.walletTab=value;render();break;
   case "studio-tab":state.hustlerTab=value;render();break;
   case "agent-tab":state.agentTab=value;render();break;
   case "admin-tab":if(state.adminPreview){state.adminTab=value;render()}break;
   case "activity-tab":state.activityTab=value;render();break;
-  case "escrow":state.escrowId=id;nav("Escrow");break;
+  case "escrow":state.adminInspect=state.page==="Admin";state.escrowId=id;nav("Escrow");break;
   case "deposit":state.fundingMethod="Card";nav("Deposit");break;
   case "deposit-bank":state.fundingMethod="Bank transfer";nav("Deposit");break;
   case "withdraw":nav("Withdraw");break;
@@ -339,8 +343,8 @@ function handle(op,id,value,node){
   case "escrowHelp":state.modal="escrowHelp";render();break;
   case "escrowHistory":state.escrowId=id;nav("EscrowHistory");break;
   case "set-amount":{const el=root.querySelector("#hoAmount");if(el)el.value=id;break}
-  case "confirm-release":state.confirmAction={type:"release",escrow:id,mid:Number(node.dataset.mid)};render();break;
-  case "dispute":state.confirmAction={type:"dispute",escrow:id};render();break;
+  case "confirm-release":if(!state.adminInspect){state.confirmAction={type:"release",escrow:id,mid:Number(node.dataset.mid)};render()}break;
+  case "dispute":if(!state.adminInspect){state.confirmAction={type:"dispute",escrow:id};render()}break;
   case "disputeInfo":state.modal="disputeInfo";render();break;
   case "cancel-decision":state.confirmAction=null;render();break;
   case "decide":processDecision();break;
