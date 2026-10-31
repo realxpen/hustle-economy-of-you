@@ -8,7 +8,7 @@ BEGIN
      NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='hustle_api') OR
      NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='hustle_payment_preview_api') OR
      (SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='public') < 30 OR
-     (SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='payment_auth') <> 5 THEN
+     (SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='payment_auth' AND tablename <> '_prisma_migrations') <> 5 THEN
     RAISE EXCEPTION 'REFUSED: preview schema incomplete; no permission handoff';
   END IF;
 END $ux046$;
