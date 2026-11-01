@@ -144,6 +144,8 @@ export class AdaptiveBookingOpsService {
         service:{select:{bookingMode:true}},
         adaptiveAssignment:{select:{revision:true,staffId:true,
           staff:{select:{displayName:true}}}},
+        adaptiveGroup:{select:{peopleCount:true,revision:true,
+          assignments:{select:{staffId:true,staff:{select:{displayName:true}}}}}},
         adaptiveItemFulfillment:{select:{revision:true,status:true,intakeMethod:true,
           returnMethod:true,estimatedReadyAt:true,clientConfirmedAt:true,updatedAt:true}} },
       orderBy:{createdAt:"desc"},take:60
@@ -206,7 +208,10 @@ export class AdaptiveBookingOpsService {
         adaptiveAssignment:{select:{revision:true,staffId:true,
           staff:{select:{id:true,displayName:true,active:true,weeklyHours:true,
             leave:{where:{cancelledAt:null},
-              select:{startAt:true,endAt:true,cancelledAt:true}}}}}}
+              select:{startAt:true,endAt:true,cancelledAt:true}}}}}},
+        adaptiveGroup:{select:{peopleCount:true,revision:true,assignments:{
+          select:{staffId:true,staff:{select:{active:true,weeklyHours:true,
+            leave:{where:{cancelledAt:null},select:{startAt:true,endAt:true,cancelledAt:true}}}}}}}}
       },
       orderBy:{id:"asc"},...(cursor?{cursor:{id:cursor},skip:1}:{}),take:51
     });
@@ -220,7 +225,11 @@ export class AdaptiveBookingOpsService {
       const end=new Date((row.confirmedEndAt??new Date(startAt.getTime()+
         row.service.defaultDurationMinutes*60000)).getTime()+row.service.bufferMinutes*60000);
       const assign=row.adaptiveAssignment;
-      const reason=!assign?"UNASSIGNED":
+      const group=row.adaptiveGroup;
+      const groupIncomplete=!!group&&(group.assignments.length!==group.peopleCount||
+        group.assignments.some(a=>!staffCoversSlot(a.staff,start,end,row.service.bookingTimezone)));
+      const reason=group?(groupIncomplete?"GROUP_UNDERSTAFFED":null):
+        !assign?"UNASSIGNED":
         !assign.staff.active?"WORKER_INACTIVE":
         !staffCoversSlot(assign.staff,start,end,row.service.bookingTimezone)?"SHIFT_OR_LEAVE_CONFLICT":null;
       // Check every reservation against the full canonical resource pool,
@@ -256,6 +265,8 @@ export class AdaptiveBookingOpsService {
     if (!workspace?.rosterEnabled || booking.hustlerUserId!==workspace.ownerUserId)
       throw new ConflictException("Verified business roster must be active");
     return this.locked(workspace.ownerUserId,async tx=>{
+      if(await tx.adaptiveGroupBooking.findUnique({where:{bookingId},select:{id:true}}))
+        throw new ConflictException("Group appointments require multiple-worker assignment instead");
       const current=await tx.adaptiveBookingAssignment.findUnique({where:{bookingId}});
       if (current && current.staffId===staffId) return current; // idempotent
       if (current && expected!==current.revision)
@@ -289,6 +300,19 @@ export class AdaptiveBookingOpsService {
           row.booking.service.bufferMinutes*60000);
         if(otherStart<finish&&start<otherEnd)
           throw new ConflictException("Worker is already assigned to an overlapping appointment");
+      }
+      const multi=await tx.adaptiveGroupStaffAssignment.findMany({
+        where:{staffId,group:{booking:{status:{in:assignable}}}},
+        include:{group:{include:{booking:{select:{confirmedStartAt:true,confirmedEndAt:true,
+          service:{select:{prepMinutes:true,bufferMinutes:true,defaultDurationMinutes:true}}}}}}}
+      });
+      for(const row of multi){
+        const t=row.group.booking.confirmedStartAt;if(!t)continue;
+        const a=new Date(t.getTime()-row.group.booking.service.prepMinutes*60000);
+        const endAt=new Date((row.group.booking.confirmedEndAt??new Date(t.getTime()+
+          row.group.booking.service.defaultDurationMinutes*60000)).getTime()+
+          row.group.booking.service.bufferMinutes*60000);
+        if(a<finish&&start<endAt)throw new ConflictException("Worker is on another group booking");
       }
       if(current) {
         const changed=await tx.adaptiveBookingAssignment.updateMany({

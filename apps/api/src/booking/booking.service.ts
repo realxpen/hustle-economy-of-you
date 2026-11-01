@@ -32,6 +32,7 @@ export interface CreateBookingInput {
   location?: unknown;
   notes?: unknown;
   conversationId?: unknown;
+  peopleCount?: unknown;
 }
 
 export interface BookingPaginationInput {
@@ -165,6 +166,11 @@ export class BookingService {
     const location = this.optionalText(input.location, "location", 300);
     const notes = this.optionalText(input.notes, "notes", 2000);
     const conversationId = this.optionalId(input.conversationId, "conversationId");
+    const peopleCount = input.peopleCount===undefined?1:input.peopleCount;
+    if(typeof peopleCount!=="number"||!Number.isSafeInteger(peopleCount)||peopleCount<1||peopleCount>12)
+      throw new BadRequestException("People count must be between 1 and 12");
+    if(peopleCount>1&&process.env.HUSTLE_ADAPTIVE_CORE_ENABLED!=="true")
+      throw new BadRequestException("Group bookings are not enabled");
 
     if (requestedStartAt.getTime() <= Date.now()) {
       throw new BadRequestException("requestedStartAt must be in the future");
@@ -208,6 +214,13 @@ export class BookingService {
       throw new BadRequestException("Service must have a concrete price before it can be booked");
     }
 
+    const groupSpace=peopleCount>1?await this.prisma.adaptiveServiceDraft.findUnique({
+      where:{canonicalServiceId:service.id},
+      select:{workspaceId:true,workspace:{select:{rosterEnabled:true}}}
+    }):null;
+    if(peopleCount>1 && (service.bookingMode!==BookingOperationMode.APPOINTMENT||
+       !groupSpace?.workspace.rosterEnabled))
+      throw new BadRequestException("Group bookings require a roster-managed appointment service");
     const hustlerUserId = service.professionalProfile.userId;
     if (client.id === hustlerUserId) {
       throw new BadRequestException("You cannot book your own Service");
@@ -251,6 +264,11 @@ export class BookingService {
       },
       select: bookingSelect
       });
+      if(peopleCount>1){
+        await tx.adaptiveGroupBooking.create({data:{
+          bookingId:created.id,workspaceId:groupSpace!.workspaceId,peopleCount
+        }});
+      }
       await this.notifications.recordBookingStatus(tx, created, BookingStatus.REQUESTED, client.id);
       return created;
     });
@@ -261,7 +279,7 @@ export class BookingService {
       clientUserId: booking.clientUserId,
       hustlerUserId: booking.hustlerUserId,
       status: booking.status,
-      hasConversation: Boolean(booking.conversationId)
+      hasConversation: Boolean(booking.conversationId),groupHeadcount:peopleCount
     });
 
     return this.serializeBooking(booking, client.id);

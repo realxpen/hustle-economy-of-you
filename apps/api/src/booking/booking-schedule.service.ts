@@ -117,8 +117,18 @@ export class BookingScheduleService {
 
   private async availabilityForService(
     db: Db, service: SchedulingService, startAt: Date, proposedEnd: Date | null,
-    excludeBookingId?: string, allowExistingStart = false
+    excludeBookingId?: string, allowExistingStart = false, requestedUnits = 1
   ): Promise<FlowTimeAvailability> {
+    // No optional-schema queries while Adaptive Core is disabled.
+    if(process.env.HUSTLE_ADAPTIVE_CORE_ENABLED === "true" && excludeBookingId) {
+      const group=await db.adaptiveGroupBooking.findUnique({where:{bookingId:excludeBookingId},
+        select:{peopleCount:true}});
+      if(group)requestedUnits=group.peopleCount;
+    }
+    if(!Number.isSafeInteger(requestedUnits)||requestedUnits<1||requestedUnits>12)
+      throw new BadRequestException("Group size must be between 1 and 12");
+    if(requestedUnits>1&&service.bookingMode!==BookingOperationMode.APPOINTMENT)
+      throw new BadRequestException("Group size applies to simultaneous appointments only");
     const endAt = this.effectiveEnd(service, startAt, proposedEnd);
     if (!allowExistingStart && startAt.getTime() <= Date.now()) {
       return { available: false, mode: service.bookingMode, startAt, endAt,
@@ -198,6 +208,11 @@ export class BookingScheduleService {
         })
       : null;
     const roster = linked?.workspace;
+    if(requestedUnits>1 && !roster?.rosterEnabled){
+      return {available:false,mode:service.bookingMode,startAt,endAt,capacity:0,
+        remainingCapacity:0,overbooking:false,turnaroundHours:service.turnaroundHours,
+        reason:"Group booking is unavailable while business staff rosters are disabled"};
+    }
     const staffed = roster?.rosterEnabled
       ? rosterCapacity(roster.staff, roster.stationCapacity, candidateStart, candidateEnd, service.bookingTimezone)
       : null;
@@ -205,27 +220,36 @@ export class BookingScheduleService {
     const totalCapacity = staffed === null ? normalCapacity + service.overbookingAllowance : permittedCapacity;
     // Peak concurrent occupancy matters: two non-overlapping clients inside a
     // long requested interval consume only one slot at any instant.
+    const acceptedGroupUnits = new Map<string,number>();
+    if (process.env.HUSTLE_ADAPTIVE_CORE_ENABLED === "true" && overlapping.length) {
+      const groups=await db.adaptiveGroupBooking.findMany({
+        where:{bookingId:{in:overlapping.map(b=>b.id)}},
+        select:{bookingId:true,peopleCount:true}
+      });
+      for(const g of groups)acceptedGroupUnits.set(g.bookingId,g.peopleCount);
+    }
     const events: { at: number; change: number }[] = [];
     for (const row of overlapping) {
       const begin = new Date(row.confirmedStartAt!.getTime() - row.service.prepMinutes * 60_000).getTime();
       const finish = (row.confirmedEndAt ??
         new Date(row.confirmedStartAt!.getTime() + row.service.defaultDurationMinutes * 60_000)).getTime() +
         row.service.bufferMinutes * 60_000;
-      events.push({ at: Math.max(begin, candidateStart.getTime()), change: 1 });
-      events.push({ at: Math.min(finish, candidateEnd.getTime()), change: -1 });
+      const units=acceptedGroupUnits.get(row.id)??1;
+      events.push({ at: Math.max(begin, candidateStart.getTime()), change: units });
+      events.push({ at: Math.min(finish, candidateEnd.getTime()), change: -units });
     }
     events.sort((a,b)=>a.at - b.at || a.change - b.change);
     let active = 0, peak = 0;
     for (const event of events) { active += event.change; peak = Math.max(peak, active); }
     const remaining = Math.max(0, totalCapacity - peak);
     return {
-      available: remaining > 0, mode: service.bookingMode, startAt, endAt,
+      available: remaining >= requestedUnits, mode: service.bookingMode, startAt, endAt,
       capacity: totalCapacity, remainingCapacity: remaining,
       overbooking: peak >= normalCapacity,
       turnaroundHours: service.turnaroundHours,
-      reason: remaining ? null : (staffed !== null && permittedCapacity === 0
+      reason: remaining >= requestedUnits ? null : (staffed !== null && permittedCapacity === 0
         ? "No eligible staff and stations cover the selected time"
-        : "All available capacity for this time is already committed")
+        : "Not enough simultaneous workers or stations for this group")
     };
   }
 
@@ -243,7 +267,7 @@ export class BookingScheduleService {
 
   async checkAvailability(
     identity: AuthIdentity | null,
-    input: { serviceId?: unknown; startAt?: unknown; endAt?: unknown }
+    input: { serviceId?: unknown; startAt?: unknown; endAt?: unknown; peopleCount?: unknown }
   ) {
     if (identity) {
       const user = await this.prisma.user.findUnique({
@@ -259,7 +283,19 @@ export class BookingScheduleService {
     if (end && end <= start) throw new BadRequestException("endAt must be after startAt");
     const service = await this.loadService(this.prisma, input.serviceId.trim());
     if (service.status !== ServiceStatus.PUBLISHED) throw new BadRequestException("Service is not currently public");
-    return this.availabilityForService(this.prisma, service, start, end);
+    const count=input.peopleCount === undefined ? 1 : Number(input.peopleCount);
+    if(!Number.isSafeInteger(count)||count<1||count>12)
+      throw new BadRequestException("People count must be between 1 and 12");
+    if(count>1 && process.env.HUSTLE_ADAPTIVE_CORE_ENABLED !== "true")
+      throw new BadRequestException("Group booking is not enabled");
+    if(count>1){
+      const draft=await this.prisma.adaptiveServiceDraft.findUnique({
+        where:{canonicalServiceId:service.id},select:{workspace:{select:{rosterEnabled:true}}}
+      });
+      if(!draft?.workspace.rosterEnabled||service.bookingMode!==BookingOperationMode.APPOINTMENT)
+        throw new BadRequestException("This service does not support group appointments");
+    }
+    return this.availabilityForService(this.prisma, service, start, end,undefined,false,count);
   }
 
   async validateCreate(identity: AuthIdentity, input: CreateBookingInput) {
@@ -281,7 +317,18 @@ export class BookingScheduleService {
     });
     if (duplicate) throw new ConflictException("You already requested this Service at this time");
 
-    const result = await this.availabilityForService(this.prisma, service, start, end);
+    const requestedCount=input.peopleCount === undefined ? 1 : Number(input.peopleCount);
+    if(!Number.isSafeInteger(requestedCount)||requestedCount<1||requestedCount>12)
+      throw new BadRequestException("People count must be between 1 and 12");
+    if(requestedCount>1 && process.env.HUSTLE_ADAPTIVE_CORE_ENABLED !== "true")
+      throw new BadRequestException("Group bookings are unavailable");
+    if(requestedCount>1){
+      const draft=await this.prisma.adaptiveServiceDraft.findUnique({where:{canonicalServiceId:service.id},
+        select:{workspace:{select:{rosterEnabled:true}}}});
+      if(!draft?.workspace.rosterEnabled||service.bookingMode!==BookingOperationMode.APPOINTMENT)
+        throw new BadRequestException("This service does not support simultaneous group bookings");
+    }
+    const result = await this.availabilityForService(this.prisma, service, start, end,undefined,false,requestedCount);
     if (!result.available) throw new ConflictException(result.reason ?? "No capacity available");
     // REQUESTED never holds a slot; another accepted request may take capacity first.
   }

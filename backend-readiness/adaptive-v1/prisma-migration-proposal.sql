@@ -222,3 +222,33 @@ ALTER TABLE "AdaptiveBookingAssignment" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "AdaptiveItemFulfillment" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "AdaptiveItemEvent" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE "AdaptiveBookingAssignment","AdaptiveItemFulfillment","AdaptiveItemEvent" FROM anon, authenticated;
+
+
+-- Optional GROUP appointment reservation ledger, unapplied until reviewed.
+-- A group occupies peopleCount units in one canonical paid/unpaid Booking.
+CREATE TABLE "AdaptiveGroupBooking" (
+ "id" TEXT PRIMARY KEY, "bookingId" TEXT NOT NULL, "workspaceId" TEXT NOT NULL,
+ "peopleCount" INTEGER NOT NULL, "revision" INTEGER NOT NULL DEFAULT 1,
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updatedAt" TIMESTAMP(3) NOT NULL,
+ CONSTRAINT "AdaptiveGroupBooking_count_bounds" CHECK ("peopleCount" BETWEEN 2 AND 12),
+ CONSTRAINT "AdaptiveGroupBooking_revision_positive" CHECK ("revision" > 0)
+);
+CREATE UNIQUE INDEX "AdaptiveGroupBooking_bookingId_key" ON "AdaptiveGroupBooking"("bookingId");
+CREATE INDEX "AdaptiveGroupBooking_workspaceId_createdAt_idx" ON "AdaptiveGroupBooking"("workspaceId","createdAt");
+ALTER TABLE "AdaptiveGroupBooking" ADD CONSTRAINT "AdaptiveGroupBooking_bookingId_fkey"
+ FOREIGN KEY ("bookingId") REFERENCES "Booking"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+CREATE TABLE "AdaptiveGroupStaffAssignment" (
+ "id" TEXT PRIMARY KEY, "groupId" TEXT NOT NULL, "staffId" TEXT NOT NULL,
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX "AdaptiveGroupStaffAssignment_groupId_staffId_key"
+ ON "AdaptiveGroupStaffAssignment"("groupId","staffId");
+CREATE INDEX "AdaptiveGroupStaffAssignment_staffId_idx" ON "AdaptiveGroupStaffAssignment"("staffId");
+ALTER TABLE "AdaptiveGroupStaffAssignment" ADD CONSTRAINT "AdaptiveGroupStaffAssignment_groupId_fkey"
+ FOREIGN KEY ("groupId") REFERENCES "AdaptiveGroupBooking"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AdaptiveGroupStaffAssignment" ADD CONSTRAINT "AdaptiveGroupStaffAssignment_staffId_fkey"
+ FOREIGN KEY ("staffId") REFERENCES "AdaptiveStaffMember"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "AdaptiveGroupBooking" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AdaptiveGroupStaffAssignment" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE "AdaptiveGroupBooking","AdaptiveGroupStaffAssignment" FROM anon,authenticated;

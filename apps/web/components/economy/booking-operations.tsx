@@ -19,6 +19,7 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
  const [roster,setRoster]=useState<AdaptiveRoster|null>(null);
  const [alerts,setAlerts]=useState<AdaptiveStaffingAlerts|null>(null);
  const [selected,setSelected]=useState<Record<string,string>>({});
+ const [selectedGroups,setSelectedGroups]=useState<Record<string,string[]>>({});
  const [etaInput,setEtaInput]=useState<Record<string,string>>({});
  const [etaReason,setEtaReason]=useState<Record<string,string>>({});
  const [loading,setLoading]=useState(true);
@@ -69,7 +70,7 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
     <strong>{alerts.items.length} appointment{alerts.items.length===1?"":"s"} need staffing attention</strong>
     <p className={styles.hint}>Review staff, chairs and business hours against overlapping reservations. These alerts do not cancel or reschedule bookings. Refresh after changing Team & hours.</p>
     {alerts.items.map(x=><div className={styles.alertItem} key={x.bookingId}>
-      <span><b>{x.serviceTitle}</b> · {date(x.confirmedStartAt)} · {x.reason==="CAPACITY_CONFLICT"?"Reserved appointment no longer fits current capacity or hours":x.reason==="UNASSIGNED"?"Worker not assigned":
+      <span><b>{x.serviceTitle}</b> · {date(x.confirmedStartAt)} · {x.reason==="CAPACITY_CONFLICT"?"Reserved appointment no longer fits current capacity or hours":x.reason==="UNASSIGNED"?"Worker not assigned":x.reason==="GROUP_UNDERSTAFFED"?"Group needs more eligible workers":
        x.reason==="WORKER_INACTIVE"?"Assigned worker is inactive":"Assigned worker is unavailable during this appointment"}
       {x.staffName?" · "+x.staffName:""}
       {x.capacityConflict&&<small> · {x.capacityReason} · Current capacity: {x.capacity}</small>}</span>
@@ -86,6 +87,8 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
    const assigned=b.adaptiveAssignment;
    const job=b.adaptiveItemFulfillment;
    const chosen=selected[b.id]??assigned?.staffId??"";
+   const group=b.adaptiveGroup;
+   const picks=selectedGroups[b.id]??group?.assignments.map(x=>x.staffId)??[];
    const next=job&&statusActions[job.status];
    const possible=job?.status==="READY"&&job.returnMethod!=="shop_pickup"
     ? {next:"OUT_FOR_DELIVERY" as AdaptiveItemStage,label:"Mark out for delivery"} : next;
@@ -97,7 +100,25 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
     <p className={styles.hint}>Client: {b.client.displayName||b.client.username||"Hustle client"} · {date(b.confirmedStartAt??b.requestedStartAt)}</p>
     <Link href={"/bookings/"+b.id}>Open canonical booking</Link>
     {appointment?<div className={styles.actions}>
-     <small>Assigned worker: {assigned?.staff.displayName??"Not assigned"}</small>
+     {group ? <section className={styles.groupAssign} aria-label="Workers for group booking">
+       <strong>Group appointment · {group.peopleCount} people</strong>
+       <p className={styles.hint}>One worker per person, at the same time. {group.assignments.length} currently assigned.</p>
+       {canSchedule&&<div className={styles.groupChoices}>
+        {roster?.staff.filter(w=>w.active).map(w=><label key={w.id}>
+          <input type="checkbox" checked={picks.includes(w.id)} disabled={busy||!valid||!roster.rosterEnabled}
+           onChange={e=>setSelectedGroups(prev=>({
+            ...prev,[b.id]:e.target.checked?[...picks,w.id]:picks.filter(id=>id!==w.id)
+           }))}/>
+          {w.displayName}
+        </label>)}
+        <button type="button" disabled={busy||!valid||picks.length!==group.peopleCount||!roster?.rosterEnabled}
+         onClick={()=>void act(()=>adaptiveClient.assignGroup(workspaceId,b.id,picks,group.revision),
+           "Group workers assigned. Booking price, payment and escrow remain unchanged.")}>
+          Save {group.peopleCount} assignments
+        </button>
+       </div>}
+      </section> : <>
+      <small>Assigned worker: {assigned?.staff.displayName??"Not assigned"}</small>
      {canSchedule&&<div className={styles.selectRow}>
       <select aria-label={"Assign worker for "+b.serviceTitleSnapshot} value={chosen}
        onChange={e=>setSelected({...selected,[b.id]:e.target.value})} disabled={busy||!valid||!roster?.rosterEnabled}>
@@ -110,7 +131,8 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
        {assigned?"Reassign":"Assign"}
       </button>
      </div>}
-     <p className={styles.hint}>Shift, leave and overlapping appointments are checked on the server. No automatic reassignment or client charge occurs.</p>
+     </>}
+     <p className={styles.hint}>Shifts, leave, overlapping appointments and booking capacity are checked on the server. This never automatically changes client charges or releases escrow.</p>
     </div>:<div className={styles.actions}>
      {!job?<p className={styles.hint}>The client must choose from this business's offered pickup and return methods before processing begins.</p>:<>
       <p><strong>Item stage:</strong> {readable(job.status)}</p>

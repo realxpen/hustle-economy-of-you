@@ -8,6 +8,7 @@ const {AdaptiveService}=require("../../apps/api/dist/adaptive/adaptive.service")
 const {AdaptiveRosterService}=require("../../apps/api/dist/adaptive/adaptive-roster.service");
 const {BookingScheduleService}=require("../../apps/api/dist/booking/booking-schedule.service");
 const {AdaptiveBookingOpsService}=require("../../apps/api/dist/adaptive/adaptive-booking-ops.service");
+const {AdaptiveGroupService}=require("../../apps/api/dist/adaptive/adaptive-group.service");
 
 const url=new URL(process.env.DATABASE_URL||"postgresql://missing");
 if(!["127.0.0.1","localhost"].includes(url.hostname) || !url.pathname.endsWith("/hustle_adaptive_ci"))
@@ -18,6 +19,7 @@ const db=new PrismaClient();
 const api=new AdaptiveService(db);
 const roster=new AdaptiveRosterService(db),schedule=new BookingScheduleService(db);
 const ops=new AdaptiveBookingOpsService(db,schedule);
+const groupOps=new AdaptiveGroupService(db,schedule);
 const id=(subject)=>({subject,emailVerified:true,phoneVerified:true});
 const expectForbidden=async(promise,code=403)=>{
  await assert.rejects(promise,error=>typeof error?.getStatus==="function"&&error.getStatus()===code);
@@ -413,6 +415,86 @@ async function run(){
  assert.equal((await db.order.findUnique({where:{id:order.id}})).status,"PENDING");
  const agentHub=await api.workHub(member);
  assert.equal(agentHub.items.some(x=>x.id==="booking:"+booking.id),false,"agent is not a direct booking party");
+
+ // A group of two takes TWO simultaneous chairs and TWO staff, but still has
+ // exactly one canonical Booking and one unchanged price snapshot.
+ const futureDay=new Date(Date.now()+31*86400000).toISOString().slice(0,10);
+ const gs=new Date(futureDay+"T10:00:00+01:00"),ge=new Date(futureDay+"T10:30:00+01:00");
+ assert.equal((await groupOps.publicOptions(salonPrepared.serviceId)).maxPeople,2);
+ const beforeGroup=await schedule.checkAvailability(null,{serviceId:salonPrepared.serviceId,
+   startAt:gs.toISOString(),endAt:ge.toISOString(),peopleCount:2});
+ assert.equal(beforeGroup.available,true);
+ const groupBooking=await db.booking.create({data:{
+  serviceId:salonPrepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
+  requestedStartAt:gs,requestedEndAt:ge,status:"REQUESTED",
+  requirements:"Two wedding party haircuts at the same time",serviceTitleSnapshot:"Wedding group",
+  agreedPriceMinor:1500000,pricingTypeSnapshot:"FIXED"
+ }});
+ await db.adaptiveGroupBooking.create({data:{bookingId:groupBooking.id,workspaceId:business.id,peopleCount:2}});
+ await db.$transaction(async tx=>{
+  const result=await schedule.reserveWithinTransaction(tx,{serviceId:salonPrepared.serviceId,
+    hustlerUserId:owner.id,startAt:gs,endAt:ge,excludeBookingId:groupBooking.id});
+  assert.equal(result.available,true);
+  await tx.booking.update({where:{id:groupBooking.id},
+    data:{status:"ACCEPTED",confirmedStartAt:gs,confirmedEndAt:ge}});
+ });
+ const unavailable=await schedule.checkAvailability(null,{serviceId:salonPrepared.serviceId,
+   startAt:gs.toISOString(),endAt:ge.toISOString(),peopleCount:1});
+ assert.equal(unavailable.remainingCapacity,0);
+ assert.equal(unavailable.available,false,"group consumed both chairs");
+ const refused=await db.booking.create({data:{
+  serviceId:salonPrepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
+  requestedStartAt:gs,requestedEndAt:ge,status:"REQUESTED",
+  requirements:"Another two-person request",serviceTitleSnapshot:"Rejected group",
+  agreedPriceMinor:1500000,pricingTypeSnapshot:"FIXED"
+ }});
+ await db.adaptiveGroupBooking.create({data:{bookingId:refused.id,workspaceId:business.id,peopleCount:2}});
+ await expectForbidden(db.$transaction(tx=>schedule.reserveWithinTransaction(tx,{
+  serviceId:salonPrepared.serviceId,hustlerUserId:owner.id,startAt:gs,endAt:ge,
+  excludeBookingId:refused.id
+ })),409);
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:refused.id}})).status,"REQUESTED",
+  "rejected group acceptance cannot mutate the booking");
+
+ await expectForbidden(groupOps.assign(other,business.id,groupBooking.id,{
+  staffIds:[worker1.id,worker2.id],expectedRevision:1}));
+ await expectForbidden(groupOps.assign(own,business.id,groupBooking.id,{
+  staffIds:[worker1.id,worker1.id],expectedRevision:1}),400);
+ const groupAssigned=await groupOps.assign(own,business.id,groupBooking.id,{
+  staffIds:[worker1.id,worker2.id],expectedRevision:1});
+ assert.equal(groupAssigned.revision,2);
+ assert.equal(groupAssigned.staffIds.length,2);
+ assert.equal((await groupOps.assign(own,business.id,groupBooking.id,{
+  staffIds:[worker2.id,worker1.id],expectedRevision:1})).revision,2);
+ assert.equal((await groupOps.get(other,groupBooking.id)).group.peopleCount,2);
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:groupBooking.id}})).agreedPriceMinor,1500000);
+ const conflicting=await db.booking.create({data:{
+  serviceId:salonPrepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
+  requestedStartAt:gs,requestedEndAt:ge,confirmedStartAt:gs,confirmedEndAt:ge,
+  status:"ACCEPTED",requirements:"Synthetic overlapping worker fixture",
+  serviceTitleSnapshot:"Overlap",agreedPriceMinor:0,pricingTypeSnapshot:"FIXED"
+ }});
+ await expectForbidden(ops.assign(own,business.id,conflicting.id,{staffId:worker1.id}),409);
+ const warnings=await ops.staffingAlerts(own,business.id);
+ assert.ok(warnings.items.some(x=>x.bookingId===conflicting.id),"overbooked calendar gets reviewed");
+ await db.booking.update({where:{id:conflicting.id},data:{status:"CANCELLED"}});
+ assert.equal((await ops.staffingAlerts(own,business.id)).items.some(x=>
+   x.bookingId===groupBooking.id&&x.reason==="GROUP_UNDERSTAFFED"),false);
+ await roster.settings(own,business.id,{stationCapacity:2,rosterEnabled:false});
+ const disabledGroup=await schedule.reviewReservation(db,{
+  id:groupBooking.id,serviceId:salonPrepared.serviceId,confirmedStartAt:gs,confirmedEndAt:ge
+ });
+ assert.equal(disabledGroup.available,false,"disabling the roster cannot approve a group");
+ await roster.settings(own,business.id,{stationCapacity:2,rosterEnabled:true});
+ const leaveDayEnd=new Date(Date.parse(futureDay+"T00:00:00Z")+86400000).toISOString().slice(0,10);
+ await roster.leave(own,business.id,worker2.id,{
+  startAt:futureDay+"T00:00:00+01:00",endAt:leaveDayEnd+"T00:00:00+01:00"
+ });
+ const affected=await ops.staffingAlerts(own,business.id);
+ assert.ok(affected.items.some(x=>x.bookingId===groupBooking.id&&x.reason==="GROUP_UNDERSTAFFED"),
+  "a worker's leave makes the group visible for manual review");
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:groupBooking.id}})).status,"ACCEPTED");
+
  // Review pagination never silently drops bookings beyond the first page.
  const pageFixtures=Array.from({length:52},(_,i)=>({
   id:"adaptive-page-"+String(i).padStart(3,"0"),serviceId:salonPrepared.serviceId,

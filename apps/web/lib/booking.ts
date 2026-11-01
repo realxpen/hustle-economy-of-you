@@ -107,6 +107,7 @@ export interface CreateBookingInput {
   location?: string;
   notes?: string;
   conversationId?: string;
+  peopleCount?: number;
 }
 
 export interface BookingAvailability {
@@ -125,14 +126,24 @@ export async function checkBookingAvailability(input: {
   serviceId: string;
   startAt: string;
   endAt?: string;
+  peopleCount?: number;
 }) {
   const params = new URLSearchParams({ serviceId: input.serviceId, startAt: input.startAt });
+  if(input.peopleCount&&input.peopleCount>1)params.set("peopleCount",String(input.peopleCount));
   if (input.endAt) params.set("endAt", input.endAt);
   const response = await (await hasViewerSession()
     ? authenticatedFetch(`/bookings/availability?${params.toString()}`)
     : publicReadFetch(`/guest/bookings/availability?${params.toString()}`));
   if (!response.ok) throw new Error(`Booking availability returned ${response.status}`);
   return response.json() as Promise<BookingAvailability>;
+}
+
+export async function getGroupOptions(serviceId:string):Promise<{available:boolean;maxPeople:number}>{
+  try{
+    const r=await publicReadFetch("/guest/adaptive/group-options?serviceId="+encodeURIComponent(serviceId));
+    if(!r.ok)return {available:false,maxPeople:1};
+    return r.json() as Promise<{available:boolean;maxPeople:number}>;
+  }catch{return {available:false,maxPeople:1}}
 }
 
 export async function createBooking(input: CreateBookingInput) {

@@ -3,7 +3,7 @@ require("reflect-metadata");
 const test=require("node:test"),assert=require("node:assert/strict");
 const {BookingScheduleService}=require("../../apps/api/dist/booking/booking-schedule.service");
 const start=new Date("2030-11-04T09:00:00Z"),end=new Date("2030-11-04T10:00:00Z");
-function setup({stations=2,rows=[],hours=null,buffer=0}={}){
+function setup({stations=2,rows=[],groups={},hours=null,buffer=0}={}){
  const service={id:"service",status:"PUBLISHED",bookingMode:"APPOINTMENT",bookingTimezone:"Africa/Lagos",
   professionalProfile:{userId:"owner"},resourcePoolKey:"pool",defaultDurationMinutes:60,
   prepMinutes:0,bufferMinutes:buffer,parallelCapacity:2,overbookingAllowance:0,
@@ -11,7 +11,12 @@ function setup({stations=2,rows=[],hours=null,buffer=0}={}){
  const staff={active:true,weeklyHours:Array.from({length:7},(_,day)=>({day,start:"09:00",end:"17:00"})),leave:[]};
  const db={service:{findUnique:async()=>service},
   booking:{findMany:async({where})=>rows.filter(x=>x.id!==where.id?.not)},
-  adaptiveServiceDraft:{findUnique:async()=>({workspace:{rosterEnabled:true,stationCapacity:stations,staff:[staff,staff]}})}};
+  adaptiveServiceDraft:{findUnique:async()=>({workspace:{rosterEnabled:true,stationCapacity:stations,staff:[staff,staff]}})},
+  adaptiveGroupBooking:{
+   findUnique:async({where})=>groups[where.bookingId]?{peopleCount:groups[where.bookingId]}:null,
+   findMany:async({where})=>Object.entries(groups).filter(([bookingId])=>where.bookingId.in.includes(bookingId))
+     .map(([bookingId,peopleCount])=>({bookingId,peopleCount}))
+  }};
  const scheduler=new BookingScheduleService(db);
  const row=(id,a=start,b=end)=>({id,confirmedStartAt:a,confirmedEndAt:b,service});
  const review=()=>scheduler.reviewReservation(db,{id:"self",serviceId:"service",confirmedStartAt:start,confirmedEndAt:end});
@@ -40,4 +45,20 @@ test("cleanup buffers count towards conflicts",async()=>{
 });
 test("changed business hours flag a previously confirmed reservation",async()=>{
  const f=setup({hours:[]});assert.match((await f.review()).reason,/opening hours/);
+});
+
+test("a two-person group consumes two simultaneous slots",async()=>{
+ const f=setup({stations:2,groups:{other:2}});
+ f.rows.push(f.row("self"),f.row("other"));
+ assert.equal((await f.review()).available,false);
+});
+test("group cannot fit if only one of two required chairs remains",async()=>{
+ const f=setup({stations:2,groups:{self:2}});
+ f.rows.push(f.row("self"),f.row("other"));
+ assert.equal((await f.review()).available,false);
+});
+test("group fits two chairs if no other booking overlaps",async()=>{
+ const f=setup({stations:2,groups:{self:2}});
+ f.rows.push(f.row("self"));
+ assert.equal((await f.review()).available,true);
 });

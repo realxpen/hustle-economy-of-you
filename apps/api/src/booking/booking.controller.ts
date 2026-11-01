@@ -49,7 +49,7 @@ export class BookingController {
   @Get("availability")
   availability(
     @CurrentIdentity() identity: AuthIdentity,
-    @Query() query: { serviceId?: unknown; startAt?: unknown; endAt?: unknown }
+    @Query() query: { serviceId?: unknown; startAt?: unknown; endAt?: unknown; peopleCount?: unknown }
   ) {
     return this.bookingScheduleService.checkAvailability(identity, query);
   }
@@ -159,7 +159,7 @@ export class GuestBookingAvailabilityController {
     return this.schedule.listSlots(null, serviceId, date);
   }
   @Get("availability")
-  availability(@Query() query: { serviceId?: unknown; startAt?: unknown; endAt?: unknown }) {
+  availability(@Query() query: { serviceId?: unknown; startAt?: unknown; endAt?: unknown; peopleCount?: unknown }) {
     return this.schedule.checkAvailability(null, query);
   }
 }

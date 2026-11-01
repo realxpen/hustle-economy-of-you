@@ -216,3 +216,27 @@ test("Receipt timestamp and ETA audit fields are added only in private schema pr
  assert.match(sql,/"clientConfirmedAt" TIMESTAMP\(3\)/);
  assert.match(sql,/"details" JSONB NOT NULL/);
 });
+
+test("Group booking holds simultaneous capacity only under feature flag",()=>{
+ const sched=read("apps/api/src/booking/booking-schedule.service.ts");
+ const booking=read("apps/api/src/booking/booking.service.ts");
+ const groups=read("apps/api/src/adaptive/adaptive-group.service.ts");
+ assert.match(sched,/acceptedGroupUnits/);
+ assert.match(sched,/change: units/);
+ assert.match(sched,/remaining >= requestedUnits/);
+ assert.match(sched,/HUSTLE_ADAPTIVE_CORE_ENABLED === "true"/);
+ assert.match(booking,/tx\.adaptiveGroupBooking\.create/);
+ assert.match(booking,/peopleCount>1&&process\.env\.HUSTLE_ADAPTIVE_CORE_ENABLED/);
+ assert.match(groups,/pg_try_advisory_xact_lock/);
+ assert.match(groups,/staffCoversSlot/);
+ assert.match(groups,/group\.revision!==input\.expectedRevision/);
+ assert.match(groups,/adaptiveGroupStaffAssignment\.createMany/);
+});
+test("Group assignments do not alter Booking price, escrow or payment",()=>{
+ const g=read("apps/api/src/adaptive/adaptive-group.service.ts");
+ assert.doesNotMatch(g,/tx\.booking\.update|tx\.escrow|tx\.paymentAttempt|tx\.financialLedger/);
+ assert.match(schema,/model AdaptiveGroupBooking/);
+ assert.match(schema,/model AdaptiveGroupStaffAssignment/);
+ assert.match(sql,/AdaptiveGroupBooking_count_bounds/);
+ assert.match(sql,/REVOKE ALL ON TABLE "AdaptiveGroupBooking"/);
+});
