@@ -52,7 +52,8 @@ export function readBookingDraft(storage: Storage | null, serviceId: string, now
       throw Error("Expired or different Service draft");
     }
     const { requestedStartAt, requestedEndAt, requirements, location, notes,peopleCount } = draft;
-    return { requestedStartAt, requestedEndAt, requirements, location, notes, peopleCount:peopleCount??1 };
+    return { requestedStartAt, requestedEndAt, requirements, location, notes,
+      ...(peopleCount===undefined?{}:{peopleCount}) };
   } catch {
     try { storage.removeItem(key); } catch { /* Storage is optional. */ }
     return null;
