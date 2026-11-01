@@ -1,0 +1,78 @@
+name: Hustle TEST Payment Preview Identity Acceptance
+
+# Automatic PR job: public GETs only, no secrets or deployment.
+# Protected manual job: invited TEST identity login/session reads and sign-out.
+# Never executes checkout, Paystack, wallet/escrow, production or staging writes.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/hustle-payment-preview-identity-acceptance.yml"
+      - "scripts/payment-preview/hosted-auth-acceptance.mjs"
+  workflow_dispatch:
+    inputs:
+      authorization:
+        description: 'Only separate invited TEST identity acceptance; never payments, existing staging or production'
+        required: true
+        type: choice
+        options:
+          - DO_NOT_TEST
+          - I_AUTHORIZE_TEST_ONLY_INVITED_AUTH_ACCEPTANCE
+        default: DO_NOT_TEST
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hustle-payment-preview-identity-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  public-readonly:
+    if: github.event_name == 'pull_request' && github.repository == 'realxpen/hustle-economy-of-you'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify deployed TEST sign-in, anonymous session, owner-denial and guest browsing
+        run: node scripts/payment-preview/hosted-auth-acceptance.mjs public
+
+  protected-invited-identity:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'realxpen/hustle-economy-of-you' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.authorization == 'I_AUTHORIZE_TEST_ONLY_INVITED_AUTH_ACCEPTANCE'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    environment: hustle-payment-preview
+    env:
+      HUSTLE_AUTH_TEST_APPROVAL: I_AUTHORIZE_TEST_ONLY_INVITED_AUTH_ACCEPTANCE
+      HUSTLE_PREVIEW_TEST_AUTH_EMAIL: ${{ secrets.HUSTLE_PREVIEW_TEST_AUTH_EMAIL }}
+      HUSTLE_PREVIEW_TEST_AUTH_PASSWORD: ${{ secrets.HUSTLE_PREVIEW_TEST_AUTH_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Fail closed without private TEST identity only (no provider or database secrets)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "realxpen/hustle-economy-of-you"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$HUSTLE_AUTH_TEST_APPROVAL" = "I_AUTHORIZE_TEST_ONLY_INVITED_AUTH_ACCEPTANCE"
+          test -n "${HUSTLE_PREVIEW_TEST_AUTH_EMAIL:-}"
+          test -n "${HUSTLE_PREVIEW_TEST_AUTH_PASSWORD:-}"
+          test -z "${PAYSTACK_SECRET_KEY:-}"
+          test -z "${PAYSTACK_TEST_SECRET_KEY:-}"
+          test -z "${DATABASE_URL:-}"
+          test -z "${SUPABASE_SERVICE_ROLE_KEY:-}"
+      - name: Verify invited Better Auth sign-in, persistence, own account and denial
+        run: node scripts/payment-preview/hosted-auth-acceptance.mjs invited
