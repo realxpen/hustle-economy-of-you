@@ -118,15 +118,35 @@ jobs:
           set -euo pipefail
           PREVIEW="https://hustle-payment-preview.realxpens.workers.dev"
           for retry in 1 2 3 4 5; do
-            CODE="$(curl --silent --show-error --max-time 20 --output /tmp/ux043-auth.html --write-out '%{http_code}' "$PREVIEW/auth")"
+            CODE="$(curl --silent --show-error --max-time 20 --output /tmp/ux051-auth.html --write-out '%{http_code}' "$PREVIEW/auth")"
+            echo "UX051 preview sign-in HTTP status: $CODE (attempt $retry)"
             if test "$CODE" = "200"; then break; fi
             if test "$retry" = 5; then
-              echo "::error::Dedicated payment preview login not available; separate deployment requires investigation"
+              echo "::error::Dedicated payment-preview login must return HTTP 200; got $CODE"
               exit 1
             fi
             sleep 3
           done
-          grep -q 'PRIVATE TEST' /tmp/ux043-auth.html
-          HEALTH="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' "$PREVIEW/api/isolated/api/v1/health")"
-          test "$HEALTH" = "200"
-          echo "PASS: separate payment-preview Worker published with private test sign-in and dedicated API. No payment charged or webhook changed."
+          if ! grep -q 'PRIVATE TEST' /tmp/ux051-auth.html; then
+            echo "::error::Dedicated sign-in HTML missing PRIVATE TEST marker"
+            exit 1
+          fi
+          # A standalone direct-API 200 is insufficient: the Web Worker must
+          # reach the separate API Worker through the strictly-public route.
+          for retry in 1 2 3 4 5; do
+            HEALTH="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' "$PREVIEW/api/isolated/api/v1/health")"
+            echo "UX051 web-to-API health HTTP status: $HEALTH (attempt $retry)"
+            if test "$HEALTH" = "200"; then break; fi
+            if test "$retry" = 5; then
+              echo "::error::Dedicated Web-to-API health proxy returned $HEALTH; expected 200"
+              exit 1
+            fi
+            sleep 3
+          done
+          DENIED="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' "$PREVIEW/api/isolated/api/v1/payments/unrelated-preview-probe")"
+          echo "UX051 anonymous payment read HTTP status: $DENIED"
+          test "$DENIED" = "401" || {
+            echo "::error::Dedicated Web payment read must reject anonymous access with 401; got $DENIED"
+            exit 1
+          }
+          echo "PASS: separate TEST Web Worker sign-in, Web-to-API health and anonymous payment denial. No payment charged or webhook changed."
