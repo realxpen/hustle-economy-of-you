@@ -397,6 +397,8 @@ model User {
   username                    String?                   @unique
   bio                         String?
   location                    String?
+  primarySkill                String?
+  interests                   String[]                  @default([])
   avatarUrl                   String?
   onboardingCompleted         Boolean                   @default(false)
   capabilities                UserCapability[]
