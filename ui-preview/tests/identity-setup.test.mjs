@@ -51,7 +51,7 @@ test("Source uses eight actual separate screens and honest social auth limitatio
  assert.match(journey,/Continue with Google · Not enabled/);
  assert.match(journey,/Continue with Apple · Not enabled/);
  assert.match(journey,/Continue as guest/);
- assert.match(journey,/Email recovery is not configured/);
+ assert.match(journey,/Recovery will be enabled after email delivery is configured/);
  assert.ok(html.indexOf("hustle-account-setup.js")<html.indexOf("hustle-identity-ui.js"));
  assert.ok(html.indexOf("hustle-identity-ui.js")<html.indexOf("hustle-journeys.js"));
  assert.match(auth,/async function usernameAvailability/);
