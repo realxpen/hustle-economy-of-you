@@ -6,12 +6,14 @@ import { AdaptiveFeatureGuard } from "./adaptive-feature.guard";
 import { AdaptiveService } from "./adaptive.service";
 import { AdaptiveRosterService } from "./adaptive-roster.service";
 import { AdaptiveBookingOpsService } from "./adaptive-booking-ops.service";
+import { AdaptiveGroupService } from "./adaptive-group.service";
 
 @Controller("adaptive")
 @UseGuards(AuthGuard, AdaptiveFeatureGuard)
 export class AdaptiveController {
   constructor(private readonly adaptive: AdaptiveService, private readonly roster: AdaptiveRosterService,
-    private readonly bookingOps: AdaptiveBookingOpsService) {}
+    private readonly bookingOps: AdaptiveBookingOpsService,
+    private readonly groups: AdaptiveGroupService) {}
 
   @Get("blueprints")
   blueprints() { return this.adaptive.blueprints(); }
@@ -54,6 +56,16 @@ export class AdaptiveController {
   revoke(@CurrentIdentity() user: AuthIdentity,
     @Param("workspaceId") workspaceId: string, @Param("memberId") memberId: string) {
     return this.adaptive.revoke(user, workspaceId, memberId);
+  }
+
+  @Get("bookings/:bookingId/group")
+  getGroup(@CurrentIdentity() user:AuthIdentity,@Param("bookingId") bookingId:string){
+    return this.groups.get(user,bookingId);
+  }
+  @Post("workspaces/:workspaceId/bookings/:bookingId/group-staff")
+  assignGroup(@CurrentIdentity() user:AuthIdentity,@Param("workspaceId") workspaceId:string,
+   @Param("bookingId") bookingId:string,@Body() body:unknown){
+    return this.groups.assign(user,workspaceId,bookingId,body);
   }
 
   @Get("workspaces/:workspaceId/booking-operations")
@@ -176,4 +188,13 @@ export class AdaptiveController {
   work(@CurrentIdentity() user: AuthIdentity, @Query("workspaceId") scope?: string) {
     return this.adaptive.workHub(user, scope);
   }
+}
+
+/** Public capability hint only: no staff names or private shifts are exposed. */
+@Controller("guest/adaptive")
+@UseGuards(AdaptiveFeatureGuard)
+export class GuestAdaptiveGroupController{
+ constructor(private readonly groups:AdaptiveGroupService){}
+ @Get("group-options")
+ options(@Query("serviceId") serviceId:string){return this.groups.publicOptions(serviceId);}
 }
