@@ -111,6 +111,8 @@ export class AdaptiveBookingOpsService {
       this.db.adaptiveItemFulfillment.findUnique({
         where: { bookingId }, select: { id:true,revision:true,status:true,
           intakeMethod:true,returnMethod:true,policySnapshot:true,estimatedReadyAt:true,actualReadyAt:true,
+          clientConfirmedAt:true,events:{where:{eventType:"item.eta_revised"},orderBy:{createdAt:"desc"},take:1,
+            select:{details:true,createdAt:true}},
           updatedAt:true }
       })
     ]);
@@ -139,7 +141,7 @@ export class AdaptiveBookingOpsService {
         adaptiveAssignment:{select:{revision:true,staffId:true,
           staff:{select:{displayName:true}}}},
         adaptiveItemFulfillment:{select:{revision:true,status:true,intakeMethod:true,
-          returnMethod:true,updatedAt:true}} },
+          returnMethod:true,estimatedReadyAt:true,clientConfirmedAt:true,updatedAt:true}} },
       orderBy:{createdAt:"desc"},take:60
     });
   }
@@ -324,6 +326,109 @@ export class AdaptiveBookingOpsService {
       }});
     });
   }
+  /**
+   * Provider-authored ETA revision, with a durable reason and client notice.
+   * An ETA is an estimate, never an amendment to the price, payout or escrow.
+   */
+  async reviseReadyEstimate(identity: AuthIdentity, workspaceId: string, bookingId: string, raw: unknown) {
+    const user=await this.actor(identity);
+    await this.access(user.id,workspaceId,"work.manage");
+    const b=await this.booking(user.id,bookingId,workspaceId);
+    const owner=await this.db.adaptiveWorkspace.findUnique({
+      where:{id:workspaceId},select:{ownerUserId:true}
+    });
+    if(!owner||b.hustlerUserId!==owner.ownerUserId||
+       b.service.bookingMode!==BookingOperationMode.WORK_QUEUE||
+       b.service.adaptiveDraft?.blueprint.slug!=="item")
+      throw new ForbiddenException("Only this business can revise its item-service estimate");
+    const d=this.obj(raw),expected=this.rev(d.expectedRevision);
+    if(typeof d.reason!=="string"||d.reason.trim().length<8||d.reason.trim().length>180)
+      throw new BadRequestException("Explain the change in 8–180 characters");
+    const reason=d.reason as string;
+    if(typeof d.estimatedReadyAt!=="string"||
+       !/([zZ]|[+-]\d\d:\d\d)$/.test(d.estimatedReadyAt))
+      throw new BadRequestException("Estimated ready time must include a timezone offset");
+    const estimate=new Date(d.estimatedReadyAt),now=Date.now();
+    if(!Number.isFinite(estimate.getTime())||
+       estimate.getTime()<now+5*60000||estimate.getTime()>now+90*86400000)
+      throw new BadRequestException("Estimate must be 5 minutes to 90 days in the future");
+    return this.db.$transaction(async tx=>{
+      const [current,latest]=await Promise.all([
+        tx.adaptiveItemFulfillment.findUnique({where:{bookingId}}),
+        tx.booking.findUnique({where:{id:bookingId},select:{status:true,agreedPriceMinor:true}})
+      ]);
+      const revisableStages:AdaptiveItemStage[]=[AdaptiveItemStage.RECEIVED,AdaptiveItemStage.IN_PROGRESS];
+      if(!current||!revisableStages.includes(current.status)||
+         !latest||!assignable.includes(latest.status)||
+         latest.agreedPriceMinor>0&&!([BookingStatus.FUNDED,BookingStatus.IN_PROGRESS] as BookingStatus[]).includes(latest.status))
+        throw new ConflictException("Only funded, received or in-progress item work can revise readiness");
+      if(current.estimatedReadyAt?.getTime()===estimate.getTime())
+        return current; // retry of the same estimate; no duplicate notice
+      const changed=await tx.adaptiveItemFulfillment.updateMany({
+        where:{id:current.id,revision:expected,status:current.status,clientConfirmedAt:null},
+        data:{estimatedReadyAt:estimate,revision:{increment:1}}
+      });
+      if(changed.count!==1)throw new ConflictException("Estimate has changed; refresh");
+      await tx.adaptiveItemEvent.create({data:{
+        fulfillmentId:current.id,revision:expected+1,eventType:"item.eta_revised",
+        actorUserId:user.id,details:{
+          reason:reason.trim(),previousEstimate:current.estimatedReadyAt?.toISOString()??null,
+          revisedEstimate:estimate.toISOString()
+        }
+      }});
+      const eventKey="adaptive:item:"+bookingId+":ETA_REVISED:"+String(expected+1);
+      await tx.notification.upsert({where:{recipientUserId_eventKey:{
+        recipientUserId:b.clientUserId,eventKey
+      }},update:{},create:{recipientUserId:b.clientUserId,eventKey,
+        kind:NotificationKind.BOOKING,title:"Updated completion estimate",
+        body:"Your service provider has revised the expected ready time. See the reason and new estimate in your booking.",
+        href:"/bookings/"+bookingId
+      }});
+      return tx.adaptiveItemFulfillment.findUniqueOrThrow({where:{id:current.id}});
+    });
+  }
+
+  /** Client acknowledgement of physical receipt, not acceptance of work/escrow. */
+  async confirmItemReceived(identity: AuthIdentity, bookingId: string, raw: unknown) {
+    const user=await this.actor(identity);
+    const b=await this.db.booking.findUnique({where:{id:bookingId},
+      select:{id:true,clientUserId:true,hustlerUserId:true,status:true,
+        service:{select:{adaptiveDraft:{select:{workspaceId:true,blueprint:{select:{slug:true}}}}}}}});
+    if(!b||b.clientUserId!==user.id||b.service.adaptiveDraft?.blueprint.slug!=="item")
+      throw new NotFoundException("Item receipt not found for this client");
+    const expected=this.rev(this.obj(raw).expectedRevision);
+    return this.db.$transaction(async tx=>{
+      const [current,latest]=await Promise.all([
+        tx.adaptiveItemFulfillment.findUnique({where:{bookingId}}),
+        tx.booking.findUnique({where:{id:bookingId},select:{status:true}})
+      ]);
+      const receivedStages:AdaptiveItemStage[]=[AdaptiveItemStage.DELIVERED,AdaptiveItemStage.COLLECTED];
+      const invalidBookingStatuses:BookingStatus[]=[BookingStatus.CANCELLED,BookingStatus.DISPUTED,BookingStatus.REFUNDED];
+      if(!current||!receivedStages.includes(current.status)||
+         !latest||invalidBookingStatuses.includes(latest.status))
+        throw new ConflictException("Receipt can only be acknowledged after delivery or collection");
+      if(current.clientConfirmedAt)return current; // retry, no second audit or notice
+      const changed=await tx.adaptiveItemFulfillment.updateMany({
+        where:{id:current.id,status:current.status,revision:expected,clientConfirmedAt:null},
+        data:{clientConfirmedAt:new Date(),revision:{increment:1}}
+      });
+      if(changed.count!==1)throw new ConflictException("Receipt changed; refresh");
+      await tx.adaptiveItemEvent.create({data:{
+        fulfillmentId:current.id,revision:expected+1,eventType:"item.client_received",
+        actorUserId:user.id,details:{}
+      }});
+      const eventKey="adaptive:item:"+bookingId+":CLIENT_RECEIVED";
+      await tx.notification.upsert({where:{recipientUserId_eventKey:{
+        recipientUserId:b.hustlerUserId,eventKey
+      }},update:{},create:{recipientUserId:b.hustlerUserId,eventKey,
+        kind:NotificationKind.BOOKING,title:"Customer acknowledged item receipt",
+        body:"Your customer confirmed physical receipt of their item. This does not release payment or close a dispute.",
+        href:"/bookings/"+bookingId
+      }});
+      return tx.adaptiveItemFulfillment.findUniqueOrThrow({where:{id:current.id}});
+    });
+  }
+
   async itemProgress(identity: AuthIdentity, workspaceId: string, bookingId: string, raw: unknown) {
     const user=await this.actor(identity);
     await this.access(user.id,workspaceId,"work.manage");

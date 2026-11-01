@@ -198,6 +198,7 @@ CREATE TABLE "AdaptiveItemFulfillment" (
  "status" "AdaptiveItemStage" NOT NULL DEFAULT 'AWAITING_INTAKE',
  "estimatedReadyAt" TIMESTAMP(3),
  "actualReadyAt" TIMESTAMP(3),
+ "clientConfirmedAt" TIMESTAMP(3),
  "revision" INTEGER NOT NULL DEFAULT 1,
  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
  "updatedAt" TIMESTAMP(3) NOT NULL
@@ -211,6 +212,7 @@ CREATE TABLE "AdaptiveItemEvent" (
  "fulfillmentId" TEXT NOT NULL,
  "revision" INTEGER NOT NULL,
  "eventType" TEXT NOT NULL,
+ "details" JSONB NOT NULL DEFAULT '{}'::jsonb,
  "actorUserId" TEXT NOT NULL,
  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

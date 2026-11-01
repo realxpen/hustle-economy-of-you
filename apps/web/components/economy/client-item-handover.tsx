@@ -33,6 +33,17 @@ export function ClientItemHandover({bookingId,viewerRole}:{bookingId:string;view
   }).catch(()=>{if(alive)setHidden(true)});
   return()=>{alive=false};
  },[bookingId]);
+ async function acknowledge(){
+  if(busy||!state?.fulfillment)return;
+  setBusy(true);setError("");setNotice("");
+  try{
+   await adaptiveClient.confirmItemReceipt(bookingId,state.fulfillment.revision);
+   const updated=await adaptiveClient.bookingOps(bookingId);
+   setState(updated);
+   setNotice("Physical receipt recorded. Booking payment and escrow remain unchanged.");
+  }catch(e){setError(e instanceof Error?e.message:"Unable to confirm receipt. Refresh and retry.")}
+  finally{setBusy(false)}
+ }
  async function save(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(busy||!state)return;
   setBusy(true);setError("");setNotice("");
@@ -54,6 +65,22 @@ export function ClientItemHandover({bookingId,viewerRole}:{bookingId:string;view
     job.estimatedReadyAt?"Estimated ready: "+new Date(job.estimatedReadyAt).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short"}):
     "Awaiting provider's estimated completion time"}</span>
   </div>}
+  {job?.events?.[0]?.details?.reason&&<p className={styles.hint}>
+   <strong>Updated completion estimate:</strong> {job.events[0].details.reason}
+  </p>}
+  {job?.clientConfirmedAt&&<p className={styles.stage} role="status">
+   <strong>Receipt acknowledged by customer</strong>
+   <span>{new Date(job.clientConfirmedAt).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short",timeZone:"Africa/Lagos"})}</span>
+  </p>}
+  {viewerRole==="CLIENT"&&job&&!job.clientConfirmedAt&&
+   ["DELIVERED","COLLECTED"].includes(job.status)&&
+   <div className={styles.form}>
+    <p className={styles.hint}>The business has marked the item as {job.status==="DELIVERED"?"delivered":"collected"}.
+     Confirm only if you actually received it. This does not approve work quality or release escrow.</p>
+    <button type="button" disabled={busy} onClick={()=>void acknowledge()}>
+     {busy?"Recording…":"Confirm I received my item"}
+    </button>
+   </div>}
   {viewerRole==="CLIENT"&&(!job||job.status==="AWAITING_INTAKE")&&<form className={styles.form} onSubmit={e=>void save(e)}>
    <label>How will the business receive your items?
     <select value={intake} onChange={e=>setIntake(e.target.value)} disabled={busy} required>

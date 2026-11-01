@@ -1760,6 +1760,7 @@ model AdaptiveItemFulfillment {
   status            AdaptiveItemStage @default(AWAITING_INTAKE)
   estimatedReadyAt  DateTime?
   actualReadyAt     DateTime?
+  clientConfirmedAt DateTime?
   revision          Int               @default(1)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -1773,6 +1774,7 @@ model AdaptiveItemEvent {
   fulfillmentId  String
   revision       Int
   eventType      String
+  details        Json                    @default("{}")
   actorUserId    String
   createdAt      DateTime                @default(now())
   fulfillment    AdaptiveItemFulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)

@@ -84,3 +84,11 @@ No production migration, payment integration, outbound push/SMS/email or deploym
 - My Economy Work surfaces the review queue and links to each affected operational booking. The single-source booking, escrow and financial statuses remain unchanged.
 
 **Rollout:** Source branch and disposable CI only; the existing Adaptive Core feature flag remains off. New roster/fulfillment tables are in the unapplied schema proposal. No production migration, deployment or payment operation is performed.
+
+## Item ETA revisions and physical receipt acknowledgement
+
+A business with explicitly granted work.manage access may revise an estimated ready time during a funded item-service job after receipt and before READY. The estimate must be in the future and the business must provide a short reason. Version-checked PostgreSQL updates append an audit event carrying the old/new ETA and reason; a deduplicated in-app notification links the client to their canonical Booking detail. This does **not** amend the agreed service price, charge a customer, or change funding.
+
+After the business marks an item DELIVERED or COLLECTED, the actual client can explicitly acknowledge physical receipt. This is not a work-quality approval, a payment confirmation, a payout authorization, an escrow release, or a dispute resolution. Client acknowledgement is idempotent with a timestamp, immutable audit event and one in-app notification to the professional. The server blocks receipt updates from other users and blocks changes after booking cancellation, dispute or refund.
+
+The only new data columns are in the additive, **unapplied** Adaptive Core proposal: `AdaptiveItemFulfillment.clientConfirmedAt` and `AdaptiveItemEvent.details`. Existing production bookings and migrations remain untouched. The optional client and business UI is hidden when the Adaptive feature is disabled. The branch requires CI build, source contract and disposable PG17 acceptance before review or activation.

@@ -302,19 +302,54 @@ async function run(){
  const hoursUntilReady=(receipt.estimatedReadyAt.getTime()-Date.now())/3600000;
  assert.ok(hoursUntilReady>95&&hoursUntilReady<97,"ETA reflects original 96-hour client terms, not later draft edits");
 
- await ops.itemProgress(own,business.id,garment.id,{to:"IN_PROGRESS",expectedRevision:4});
- const ready=await ops.itemProgress(own,business.id,garment.id,{to:"READY",expectedRevision:5});
+ // Owner can revise an estimate with a reason, preserving original agreed policy.
+ const newEta=new Date(Date.now()+110*3600000).toISOString();
+ await expectForbidden(ops.reviseReadyEstimate(other,business.id,garment.id,{
+  estimatedReadyAt:newEta,reason:"Cloth delivery running late",expectedRevision:4
+ }));
+ await expectForbidden(ops.reviseReadyEstimate(own,business.id,garment.id,{
+  estimatedReadyAt:newEta,reason:"Short",expectedRevision:4
+ }),400);
+ const etaChange=await ops.reviseReadyEstimate(own,business.id,garment.id,{
+  estimatedReadyAt:newEta,reason:"Cloth delivery is delayed",expectedRevision:4
+ });
+ assert.equal(etaChange.revision,5);
+ assert.equal(etaChange.estimatedReadyAt.toISOString(),newEta);
+ assert.ok(await db.notification.findFirst({where:{recipientUserId:outsider.id,
+  eventKey:"adaptive:item:"+garment.id+":ETA_REVISED:5"}}));
+ assert.equal((await ops.myBookingSummary(other,garment.id)).fulfillment.events[0].details.reason,
+  "Cloth delivery is delayed");
+ await expectForbidden(ops.reviseReadyEstimate(own,business.id,garment.id,{
+  estimatedReadyAt:new Date(Date.now()+111*3600000).toISOString(),
+  reason:"Cloth delivery is delayed",expectedRevision:4
+ }),409);
+ assert.equal((await ops.reviseReadyEstimate(own,business.id,garment.id,{
+  estimatedReadyAt:newEta,reason:"Cloth delivery is delayed",expectedRevision:4
+ })).revision,5,"retrying identical estimate does not create a second event");
+
+
+ await ops.itemProgress(own,business.id,garment.id,{to:"IN_PROGRESS",expectedRevision:5});
+ const ready=await ops.itemProgress(own,business.id,garment.id,{to:"READY",expectedRevision:6});
  assert.equal(ready.status,"READY");
  assert.ok(ready.actualReadyAt);
- await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"OUT_FOR_DELIVERY",expectedRevision:6}),409);
- const collected=await ops.itemProgress(own,business.id,garment.id,{to:"COLLECTED",expectedRevision:6});
+ await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"OUT_FOR_DELIVERY",expectedRevision:7}),409);
+ const collected=await ops.itemProgress(own,business.id,garment.id,{to:"COLLECTED",expectedRevision:7});
  assert.equal(collected.status,"COLLECTED");
- await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"COLLECTED",expectedRevision:6}),409);
+ await expectForbidden(ops.confirmItemReceived(own,garment.id,{expectedRevision:8}),404);
+ const receiptConfirmed=await ops.confirmItemReceived(other,garment.id,{expectedRevision:8});
+ assert.ok(receiptConfirmed.clientConfirmedAt);
+ assert.equal(receiptConfirmed.revision,9);
+ assert.equal((await ops.confirmItemReceived(other,garment.id,{expectedRevision:8})).revision,9,
+  "duplicate client confirmation is idempotent");
+ assert.ok(await db.notification.findFirst({where:{recipientUserId:owner.id,
+   eventKey:"adaptive:item:"+garment.id+":CLIENT_RECEIVED"}}));
+
+ await expectForbidden(ops.itemProgress(own,business.id,garment.id,{to:"COLLECTED",expectedRevision:7}),409);
  assert.ok(await db.notification.findFirst({where:{recipientUserId:outsider.id,
-  eventKey:"adaptive:item:"+garment.id+":READY:6"}}));
+  eventKey:"adaptive:item:"+garment.id+":READY:7"}}));
  assert.equal((await db.booking.findUniqueOrThrow({where:{id:garment.id}})).status,"FUNDED",
   "item notifications do not advance the financial Booking");
- assert.equal((await db.adaptiveItemEvent.findMany({where:{fulfillmentId:collected.id}})).length,4);
+ assert.equal((await db.adaptiveItemEvent.findMany({where:{fulfillmentId:collected.id}})).length,6);
  // Laundry can offer home pickup and delivery, without claiming automatic courier dispatch.
  const laundryPrepared=await api.prepareCanonicalService(own,business.id,laundry.id);
  const wash=await db.booking.create({data:{
@@ -329,6 +364,12 @@ async function run(){
  await ops.itemProgress(own,business.id,wash.id,{to:"READY",expectedRevision:3});
  await ops.itemProgress(own,business.id,wash.id,{to:"OUT_FOR_DELIVERY",expectedRevision:4});
  await ops.itemProgress(own,business.id,wash.id,{to:"DELIVERED",expectedRevision:5});
+ await expectForbidden(ops.confirmItemReceived(other,wash.id,{expectedRevision:4}),409);
+ const deliveredReceipt=await ops.confirmItemReceived(other,wash.id,{expectedRevision:6});
+ assert.ok(deliveredReceipt.clientConfirmedAt);
+ assert.equal(deliveredReceipt.revision,7);
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:wash.id}})).status,"FUNDED");
+
  assert.ok(await db.notification.findFirst({where:{recipientUserId:outsider.id,
   eventKey:"adaptive:item:"+wash.id+":READY:4"}}));
  assert.equal((await db.booking.findUniqueOrThrow({where:{id:wash.id}})).status,"FUNDED");

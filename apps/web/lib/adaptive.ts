@@ -39,7 +39,8 @@ export type AdaptiveBookingOperation = {
  bookingId:string; bookingStatus:string; viewerRole:"CLIENT"|"HUSTLER"|"TEAM";
  assignment: {id:string;staffId:string;revision:number;staff:{displayName:string;active:boolean}}|null;
  fulfillment: {id:string;status:AdaptiveItemStage;intakeMethod:string;returnMethod:string;
- revision:number;estimatedReadyAt:string|null;actualReadyAt:string|null}|null;
+ revision:number;estimatedReadyAt:string|null;actualReadyAt:string|null;clientConfirmedAt:string|null;
+ events:{details:{reason?:string;previousEstimate?:string;revisedEstimate?:string};createdAt:string}[]}|null;
  offeredMethods: {handoverMethods:string[];returnMethods:string[]}|null;
 };
 export type AdaptiveStaffingAlert = {
@@ -53,7 +54,7 @@ export type AdaptiveWorkspaceBooking = {
  id:string;serviceTitleSnapshot:string;status:string;requestedStartAt:string;confirmedStartAt:string|null;
  client:{displayName:string|null;username:string|null};service:{bookingMode:string};
  adaptiveAssignment:{revision:number;staffId:string;staff:{displayName:string}}|null;
- adaptiveItemFulfillment:{revision:number;status:AdaptiveItemStage;intakeMethod:string;returnMethod:string}|null;
+ adaptiveItemFulfillment:{revision:number;status:AdaptiveItemStage;intakeMethod:string;returnMethod:string;estimatedReadyAt:string|null;clientConfirmedAt:string|null}|null;
 };
 export type AdaptiveInvitation = {
   id: string; role: string; permissions: string[];
@@ -111,6 +112,11 @@ export const adaptiveClient = {
   advanceItem: (spaceId:string,bookingId:string,to:AdaptiveItemStage,expectedRevision:number) =>
     post("/workspaces/"+encodeURIComponent(spaceId)+"/bookings/"+encodeURIComponent(bookingId)+"/item-progress",
       {to,expectedRevision}),
+  reviseItemEta: (spaceId:string,bookingId:string,estimatedReadyAt:string,reason:string,expectedRevision:number) =>
+    post("/workspaces/"+encodeURIComponent(spaceId)+"/bookings/"+encodeURIComponent(bookingId)+"/estimate",
+      {estimatedReadyAt,reason,expectedRevision}),
+  confirmItemReceipt: (bookingId:string,expectedRevision:number) =>
+    post("/bookings/"+encodeURIComponent(bookingId)+"/confirm-item-receipt",{expectedRevision}),
   roster: (id: string) => json<AdaptiveRoster>("/workspaces/" + encodeURIComponent(id) + "/roster"),
   rosterSettings: (id: string, input: { stationCapacity: number; rosterEnabled: boolean }) =>
     json<{ stationCapacity: number; rosterEnabled: boolean; affectedExistingBookings: number }>(
