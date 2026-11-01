@@ -92,3 +92,32 @@ A business with explicitly granted work.manage access may revise an estimated re
 After the business marks an item DELIVERED or COLLECTED, the actual client can explicitly acknowledge physical receipt. This is not a work-quality approval, a payment confirmation, a payout authorization, an escrow release, or a dispute resolution. Client acknowledgement is idempotent with a timestamp, immutable audit event and one in-app notification to the professional. The server blocks receipt updates from other users and blocks changes after booking cancellation, dispute or refund.
 
 The only new data columns are in the additive, **unapplied** Adaptive Core proposal: `AdaptiveItemFulfillment.clientConfirmedAt` and `AdaptiveItemEvent.details`. Existing production bookings and migrations remain untouched. The optional client and business UI is hidden when the Adaptive feature is disabled. The branch requires CI build, source contract and disposable PG17 acceptance before review or activation.
+
+## Group appointments — single booking, multiple simultaneous workers
+
+The canonical Booking remains the sole financial/transaction authority. For opted-in
+roster-managed appointment services with two or more effective chairs/staff and suitable
+Service.parallelCapacity, clients may request a simultaneous group of 2–12 people.
+The group request is created atomically with the Booking and can only be configured before
+the Hustler accepts. The published Service's existing price snapshot is NOT multiplied,
+requoted, funded, refunded or settled by group APIs. Clients must discuss scope and price
+with the provider before they submit; no automatic price negotiation occurs.
+
+The additive `AdaptiveGroupBooking` holds party size and revision; `AdaptiveGroupStaffAssignment`
+stores distinct workers. The existing FlowTime owner-wide advisory lock accounts for one
+occupied seat per person in both a requested group's acceptance and other overlapping
+confirmed bookings. Legacy bookings still count one seat, and with
+`HUSTLE_ADAPTIVE_CORE_ENABLED=false` no new tables are queried.
+
+Only authorized `schedule.manage` managers may assign exactly N eligible staff to
+an accepted group of N people. Assignments are checked against working shifts, leave,
+previous single-worker appointments, other group jobs and shared resource capacity in a
+single locked transaction. Duplicate staff are rejected, changes use revision CAS,
+repeat requests are idempotent, and all changes are audited. Staff changes raise
+`GROUP_UNDERSTAFFED` in the staffing review queue. The client can see group size
+and assigned staff once the business has set them.
+
+**Non-goal:** sequential/group-of-many appointments are not converted into simultaneous
+haircuts; separate service duration, staggering and per-attendee pricing need additional
+explicit business terms and consent. No migration, deployment or payment operation is
+authorized by this feature branch.
