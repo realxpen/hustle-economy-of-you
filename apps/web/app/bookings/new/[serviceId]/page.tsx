@@ -78,9 +78,9 @@ export default function NewBookingPage() {
     setDraftRestored(false);
     setPeopleCount(1);
     setGroupOptions({available:false,maxPeople:1});
-    void getGroupOptions(serviceId).then(options=>{if(active)setGroupOptions(options)});
-    void getPublicService(serviceId)
-      .then((service) => {
+    void Promise.all([getPublicService(serviceId),getGroupOptions(serviceId)])
+      .then(([service,options]) => {
+        if(active)setGroupOptions(options);
         if (!active) return;
         setData(service);
         setSlotDate(serviceToday(service.service.bookingTimezone));
@@ -91,7 +91,7 @@ export default function NewBookingPage() {
           setRequirements(draft.requirements);
           setLocation(draft.location);
           setNotes(draft.notes);
-          setPeopleCount(draft.peopleCount??1);
+          setPeopleCount(options.available?Math.min(options.maxPeople,draft.peopleCount??1):1);
           setDraftPresent(true);
           setDraftRestored(true);
         } else {
