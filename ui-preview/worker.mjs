@@ -6,6 +6,7 @@ const paths=new Map([
  ["POST /api/preview/auth/sign-out","/api/auth/sign-out"],
  ["POST /api/preview/account/sync","/api/v1/auth/sync"],
  ["GET /api/preview/account","/api/v1/auth/me"],
+ ["GET /api/preview/account/username","/api/v1/auth/username-availability"],
  ["PATCH /api/preview/account","/api/v1/auth/profile"]
 ]);
 const baseHeaders={"content-type":"application/json; charset=utf-8","cache-control":"private, no-store","x-content-type-options":"nosniff","referrer-policy":"no-referrer"};
@@ -54,8 +55,51 @@ export default {async fetch(req,env){
  const url=new URL(req.url),route=req.method+" "+url.pathname;
  if(!url.pathname.startsWith("/api/preview/"))return env.ASSETS.fetch(req);
  if(env.HUSTLE_PREVIEW_AUTH_GATE!=="isolated-staging")return send({message:"Preview backend disabled"},404);
- if(route!=="GET /api/preview/auth/session"&&!paths.has(route))return send({message:"Route not available"},404);
+ const avatarRead=req.method==="GET"&&/^\/api\/preview\/avatar\/[0-9a-f-]{36}\.webp$/.test(url.pathname);
+ const avatarUpload=route==="POST /api/preview/account/avatar";
+ if(route!=="GET /api/preview/auth/session"&&!paths.has(route)&&!avatarRead&&!avatarUpload)
+  return send({message:"Route not available"},404);
  if(req.method!=="GET"&&req.headers.get("origin")!==url.origin)return send({message:"Cross-origin writes blocked"},403);
+ if(avatarRead){
+  if(!env.HUSTLE_AVATARS)return send({message:"Photo storage not configured"},404);
+  const key="profiles/"+url.pathname.split("/").pop();
+  const image=await env.HUSTLE_AVATARS.get(key);
+  if(!image)return send({message:"Photo not found"},404);
+  return new Response(image.body,{headers:{"content-type":"image/webp",
+   "cache-control":"public, max-age=31536000, immutable","x-content-type-options":"nosniff",
+   "content-security-policy":"default-src 'none'"}});
+ }
+ if(avatarUpload){
+  if(!env.HUSTLE_AVATARS)return send({message:"Profile photo storage is not enabled in this test"},503);
+  if(req.headers.get("content-type")!=="image/webp")return send({message:"Choose a supported image"},415);
+  const owner=await session(req);
+  if(!owner)return send({message:"Sign in to upload a photo"},401);
+  const MAX=256*1024;
+  if(Number(req.headers.get("content-length")||0)>MAX)return send({message:"Photo exceeds 256 KB"},413);
+  const reader=req.body?.getReader();
+  if(!reader)return send({message:"Missing image"},400);
+  const chunks=[];let size=0;let tooLarge=false;
+  try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;
+    if(size>MAX){tooLarge=true;await reader.cancel();break;}chunks.push(value);}}
+  catch{return send({message:"Upload interrupted"},400);}
+  if(tooLarge)return send({message:"Photo exceeds 256 KB"},413);
+  const bytes=new Uint8Array(size);let offset=0;
+  for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
+  const decode=(start,end)=>String.fromCharCode(...bytes.subarray(start,end));
+  if(size<20||decode(0,4)!=="RIFF"||decode(8,12)!=="WEBP")
+    return send({message:"Invalid WebP image"},415);
+  const id=crypto.randomUUID(),key="profiles/"+id+".webp";
+  try{await env.HUSTLE_AVATARS.put(key,bytes,{httpMetadata:{contentType:"image/webp"}});}
+  catch{return send({message:"Photo storage unavailable"},503);}
+  const avatarUrl=url.origin+"/api/preview/avatar/"+id+".webp";
+  const result=await upstream("/api/v1/auth/profile",{method:"PATCH",cookie:cookies(req),
+    token:owner.token,body:{avatarUrl}});
+  if(result.error||result.status>=400||result.data?.avatarUrl!==avatarUrl){
+    await env.HUSTLE_AVATARS.delete(key).catch(()=>{});
+    return send({message:"Could not save photo to your test profile"},result.status>=400?result.status:502);
+  }
+  return send(result.data);
+ }
  if(route==="GET /api/preview/auth/session"){
   const current=await session(req);
   return send(current?{authenticated:true,user:{id:current.user.id,email:current.user.email??null}}:{authenticated:false,user:null});
@@ -76,6 +120,14 @@ export default {async fetch(req,env){
  }
  const identity=await session(req);
  if(!identity)return send({message:"Sign in to your test account"},401);
+ if(route==="GET /api/preview/account/username"){
+  const username=url.searchParams.get("username")||"";
+  if(username.length>30||!username.length)return send({message:"Enter a username"},400);
+  const result=await upstream("/api/v1/auth/username-availability?username="+encodeURIComponent(username),
+     {cookie:cookies(req),token:identity.token});
+  if(result.error)return send({message:result.error},result.status);
+  return send(result.data,result.status);
+ }
  let body;
  if(route==="PATCH /api/preview/account"){
   const input=await bodyOf(req);
