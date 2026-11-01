@@ -11,6 +11,7 @@ const blockingStatuses: BookingStatus[] = [
 
 const scheduleSelect = {
   id: true, status: true, professionalProfileId: true, bookingMode: true, bookingTimezone: true,
+  groupBookingsEnabled: true,
   resourcePoolKey: true, defaultDurationMinutes: true, prepMinutes: true,
   bufferMinutes: true, parallelCapacity: true, overbookingAllowance: true,
   weeklyHours: true, blackoutDates: true, maxActiveJobs: true,
@@ -62,9 +63,17 @@ export class BookingScheduleService {
     return service;
   }
 
-  private effectiveEnd(service: SchedulingService, start: Date, requestedEnd: Date | null) {
+  private effectiveEnd(service: SchedulingService, start: Date, requestedEnd: Date | null, partySize = 1) {
     if (service.bookingMode !== BookingOperationMode.APPOINTMENT) return requestedEnd;
-    const end = requestedEnd ?? new Date(start.getTime() + service.defaultDurationMinutes * 60_000);
+    // Conservative team allocation: hold the required staff for every hour of a
+    // group job until individual worker calendars are available.
+    const minimumMinutes = service.defaultDurationMinutes *
+      Math.ceil(partySize / service.parallelCapacity);
+    const minimumEnd = new Date(start.getTime() + minimumMinutes * 60_000);
+    if (requestedEnd && requestedEnd < minimumEnd) {
+      throw new BadRequestException("Group appointment duration cannot be shorter than staffing needs");
+    }
+    const end = requestedEnd ?? minimumEnd;
     if (end.getTime() <= start.getTime()) throw new BadRequestException("End must be after start");
     if (end.getTime() - start.getTime() > 24 * 3_600_000) {
       throw new BadRequestException("Appointments may not exceed 24 hours");
@@ -116,9 +125,9 @@ export class BookingScheduleService {
 
   private async availabilityForService(
     db: Db, service: SchedulingService, startAt: Date, proposedEnd: Date | null,
-    excludeBookingId?: string, allowExistingStart = false
+    excludeBookingId?: string, allowExistingStart = false, partySize = 1
   ): Promise<FlowTimeAvailability> {
-    const endAt = this.effectiveEnd(service, startAt, proposedEnd);
+    const endAt = this.effectiveEnd(service, startAt, proposedEnd, partySize);
     if (!allowExistingStart && startAt.getTime() <= Date.now()) {
       return { available: false, mode: service.bookingMode, startAt, endAt,
         capacity: 0, remainingCapacity: 0, overbooking: false,
@@ -145,7 +154,7 @@ export class BookingScheduleService {
         service: { resourcePoolKey: service.resourcePoolKey }
       },
       select: {
-        id: true, confirmedStartAt: true, confirmedEndAt: true,
+        id: true, confirmedStartAt: true, confirmedEndAt: true, partySize: true,
         service: { select: {
           bookingMode: true, defaultDurationMinutes: true, prepMinutes: true,
           bufferMinutes: true, parallelCapacity: true, maxActiveJobs: true
@@ -186,25 +195,36 @@ export class BookingScheduleService {
       const finish = (row.confirmedEndAt ??
         new Date(row.confirmedStartAt!.getTime() + row.service.defaultDurationMinutes * 60_000)).getTime() +
         row.service.bufferMinutes * 60_000;
-      events.push({ at: Math.max(begin, candidateStart.getTime()), change: 1 });
-      events.push({ at: Math.min(finish, candidateEnd.getTime()), change: -1 });
+      const units = Math.min(row.partySize ?? 1, row.service.parallelCapacity);
+      events.push({ at: Math.max(begin, candidateStart.getTime()), change: units });
+      events.push({ at: Math.min(finish, candidateEnd.getTime()), change: -units });
     }
     events.sort((a,b)=>a.at - b.at || a.change - b.change);
     let active = 0, peak = 0;
     for (const event of events) { active += event.change; peak = Math.max(peak, active); }
     const remaining = Math.max(0, totalCapacity - peak);
+    const required = Math.min(partySize, service.parallelCapacity);
     return {
-      available: remaining > 0, mode: service.bookingMode, startAt, endAt,
+      available: remaining >= required, mode: service.bookingMode, startAt, endAt,
       capacity: totalCapacity, remainingCapacity: remaining,
       overbooking: peak >= normalCapacity,
       turnaroundHours: service.turnaroundHours,
-      reason: remaining ? null : "All available capacity for this time is already committed"
+      reason: remaining >= required ? null : "Not enough staff capacity for the requested party size"
     };
   }
 
+  private parsePartySize(value: unknown): number {
+    if (value === undefined || value === null || value === "") return 1;
+    const parsed = typeof value === "string" && /^[1-9][0-9]*$/.test(value)
+      ? Number(value) : value;
+    if (typeof parsed !== "number" || !Number.isSafeInteger(parsed) || parsed < 1 || parsed > 50) {
+      throw new BadRequestException("partySize must be between 1 and 50");
+    }
+    return parsed;
+  }
   async checkAvailability(
     identity: AuthIdentity | null,
-    input: { serviceId?: unknown; startAt?: unknown; endAt?: unknown }
+    input: { serviceId?: unknown; startAt?: unknown; endAt?: unknown; partySize?: unknown }
   ) {
     if (identity) {
       const user = await this.prisma.user.findUnique({
@@ -220,7 +240,9 @@ export class BookingScheduleService {
     if (end && end <= start) throw new BadRequestException("endAt must be after startAt");
     const service = await this.loadService(this.prisma, input.serviceId.trim());
     if (service.status !== ServiceStatus.PUBLISHED) throw new BadRequestException("Service is not currently public");
-    return this.availabilityForService(this.prisma, service, start, end);
+    const partySize = this.parsePartySize(input.partySize);
+    if (partySize > 1 && !service.groupBookingsEnabled) throw new BadRequestException("Group bookings are not enabled for this service");
+    return this.availabilityForService(this.prisma, service, start, end, undefined, false, partySize);
   }
 
   async validateCreate(identity: AuthIdentity, input: CreateBookingInput) {
@@ -242,7 +264,9 @@ export class BookingScheduleService {
     });
     if (duplicate) throw new ConflictException("You already requested this Service at this time");
 
-    const result = await this.availabilityForService(this.prisma, service, start, end);
+    const partySize = this.parsePartySize(input.partySize);
+    if (partySize > 1 && !service.groupBookingsEnabled) throw new BadRequestException("Group bookings are not enabled");
+    const result = await this.availabilityForService(this.prisma, service, start, end, undefined, false, partySize);
     if (!result.available) throw new ConflictException(result.reason ?? "No capacity available");
     // REQUESTED never holds a slot; another accepted request may take capacity first.
   }
@@ -257,14 +281,14 @@ export class BookingScheduleService {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       select: { id: true, hustlerUserId: true, status: true, serviceId: true,
-        requestedStartAt: true, requestedEndAt: true }
+        requestedStartAt: true, requestedEndAt: true, partySize: true }
     });
     if (!booking || booking.hustlerUserId !== hustlerUserId ||
         booking.status !== BookingStatus.REQUESTED) return;
     const start = this.parseOptionalDate(input.confirmedStartAt) ?? booking.requestedStartAt;
     const end = input.confirmedEndAt === undefined ? booking.requestedEndAt : this.parseOptionalDate(input.confirmedEndAt);
     const service = await this.loadService(this.prisma, booking.serviceId);
-    const available = await this.availabilityForService(this.prisma, service, start, end, booking.id);
+    const available = await this.availabilityForService(this.prisma, service, start, end, booking.id, false, booking.partySize);
     if (!available.available) throw new ConflictException(available.reason ?? "Capacity is full");
   }
 
@@ -272,7 +296,7 @@ export class BookingScheduleService {
   async reserveWithinTransaction(
     tx: Prisma.TransactionClient, input: {
       serviceId: string; hustlerUserId: string; startAt: Date; endAt: Date | null;
-      excludeBookingId?: string; allowExistingStart?: boolean;
+      excludeBookingId?: string; allowExistingStart?: boolean; partySize?: number;
     }
   ) {
     // PostgreSQL transaction-scoped advisory lock: released on commit/rollback, never global process state.
@@ -283,7 +307,7 @@ export class BookingScheduleService {
       throw new ForbiddenException("Service owner mismatch");
     }
     const result = await this.availabilityForService(
-      tx, service, input.startAt, input.endAt, input.excludeBookingId, input.allowExistingStart ?? false
+      tx, service, input.startAt, input.endAt, input.excludeBookingId, input.allowExistingStart ?? false, input.partySize ?? 1
     );
     if (!result.available) throw new ConflictException(result.reason ?? "Booking capacity is full");
     return result;

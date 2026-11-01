@@ -7,6 +7,7 @@ import type {
   ServiceDeliveryMode,
   ServicePricingType,
   BookingOperationMode,
+  ConsultationPolicy,
   WeeklyHoursWindow
 } from "@hustle/types";
 import {
@@ -34,6 +35,10 @@ type FormState = {
   deliveryTime: string;
   requirements: string;
   bookingMode: BookingOperationMode;
+  consultationPolicy: ConsultationPolicy;
+  consultationFeeNaira: string;
+  consultationCreditEnabled: boolean;
+  groupBookingsEnabled: boolean;
   bookingTimezone: string;
   resourcePoolKey: string;
   defaultDurationMinutes: number;
@@ -61,6 +66,10 @@ const emptyForm: FormState = {
   deliveryTime: "",
   requirements: "",
   bookingMode: "APPOINTMENT",
+  consultationPolicy: "OPTIONAL",
+  consultationFeeNaira: "0",
+  consultationCreditEnabled: false,
+  groupBookingsEnabled: false,
   bookingTimezone: "Africa/Lagos",
   resourcePoolKey: "primary",
   defaultDurationMinutes: 60,
@@ -89,6 +98,10 @@ function toForm(service: Service): FormState {
     deliveryTime: service.deliveryTime ?? "",
     requirements: service.requirements ?? "",
     bookingMode: service.bookingMode,
+    consultationPolicy: service.consultationPolicy,
+    consultationFeeNaira: String(service.consultationFeeMinor / 100),
+    consultationCreditEnabled: service.consultationCreditEnabled,
+    groupBookingsEnabled: service.groupBookingsEnabled,
     bookingTimezone: service.bookingTimezone,
     resourcePoolKey: service.resourcePoolKey,
     defaultDurationMinutes: service.defaultDurationMinutes,
@@ -158,6 +171,10 @@ export function ServiceEditor({ serviceId }: { serviceId?: string }) {
       deliveryTime: form.deliveryTime,
       requirements: form.requirements,
       bookingMode: form.bookingMode,
+      consultationPolicy: form.consultationPolicy,
+      consultationFeeMinor: form.consultationPolicy === "OFF" ? 0 : Math.round(Number(form.consultationFeeNaira) * 100),
+      consultationCreditEnabled: form.consultationPolicy !== "OFF" && form.consultationCreditEnabled,
+      groupBookingsEnabled: form.groupBookingsEnabled,
       bookingTimezone: form.bookingTimezone,
       resourcePoolKey: form.resourcePoolKey,
       defaultDurationMinutes: form.defaultDurationMinutes,
@@ -305,6 +322,27 @@ export function ServiceEditor({ serviceId }: { serviceId?: string }) {
           <label><span>Delivery time *</span><input maxLength={120} value={form.deliveryTime} onChange={(event) => setField("deliveryTime", event.target.value)} placeholder="Same day, 3 days, 2 weeks…" /></label>
         </div>
 
+        <section className={styles.flowtime} aria-label="Service-specific booking configuration">
+          <div className={styles.sectionHeading}><span>03</span><div><strong>How clients book this service</strong><p>Barbers, tailors and other professionals can choose different journeys. A consultation is not automatically required.</p></div></div>
+          <div className={styles.twoCol}>
+            <label><span>Consultation</span><select value={form.consultationPolicy} onChange={(e)=>setField("consultationPolicy",e.target.value as ConsultationPolicy)}>
+              <option value="OFF">Not offered · direct booking</option>
+              <option value="OPTIONAL">Optional · client chooses</option>
+              <option value="REQUIRED">Required before booking</option>
+            </select></label>
+            {form.consultationPolicy !== "OFF" && <label><span>Consultation fee (₦ · 0 means free)</span>
+              <input type="number" min="0" max="100000" step="0.01" value={form.consultationFeeNaira}
+                onChange={(e)=>setField("consultationFeeNaira",e.target.value)} /></label>}
+          </div>
+          {form.consultationPolicy !== "OFF" && <label><input type="checkbox"
+            checked={form.consultationCreditEnabled} onChange={(e)=>setField("consultationCreditEnabled",e.target.checked)} />
+            Credit paid consultation fee toward the service price (e.g. ₦5,000 service less ₦1,000 consultation = ₦4,000 remaining).
+          </label>}
+          <label><input type="checkbox" checked={form.groupBookingsEnabled} onChange={(e)=>setField("groupBookingsEnabled",e.target.checked)} />
+            Accept group requests (wedding parties, teams and multiple clients) with team capacity checks.
+          </label>
+          <p className={styles.flowtimeHint}>This saves a booking policy; it does not collect consultation fees. Any paid consultation needs its own confirmed payment and receipt before a credit can be applied. Event/travel extras require a separate agreed quote.</p>
+        </section>
         <section className={styles.flowtime} aria-label="FlowTime scheduling configuration">
           <div className={styles.sectionHeading}><span>03</span><div><strong>FlowTime · Scheduling & capacity</strong><p>Make your own working rules. A solo Hustler stays simple; a team can accept parallel appointments.</p></div></div>
           <div className={styles.twoCol}>
