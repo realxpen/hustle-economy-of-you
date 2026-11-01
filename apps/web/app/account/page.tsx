@@ -7,7 +7,8 @@ import { ExperienceHeader } from "../../components/navigation/experience-header"
 import { ExperienceState } from "../../components/experience/experience-state";
 import { TrustActivityCenter } from "../../components/trust/trust-activity-center";
 import { AttributionConsentSettings } from "../../components/privacy/attribution-consent";
-import { getMyAccount } from "../../lib/auth/hustle-account";
+import { getMyAccount, invalidateMyAccountCache } from "../../lib/auth/hustle-account";
+import { invalidateAuthenticatedSessionCache } from "../../lib/api/authenticated-fetch";
 import { getUnreadNotificationCount } from "../../lib/notifications";
 import { getSupabaseBrowserClient } from "../../lib/supabase/client";
 import { isolatedWebMode, stageSignOut } from "../../lib/auth/isolated-web-auth";
@@ -90,6 +91,8 @@ export default function AccountPage() {
         ? stageSignOut().then(() => ({ error: null }))
         : getSupabaseBrowserClient().auth.signOut());
       if (authError) throw authError;
+      invalidateAuthenticatedSessionCache();
+      invalidateMyAccountCache();
       window.location.assign("/auth");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not sign out. Please try again.");
