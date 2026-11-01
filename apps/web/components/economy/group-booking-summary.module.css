@@ -1,0 +1,6 @@
+.wrap{margin:15px 0;display:grid;gap:8px;padding:17px;border:1px solid var(--h-border-subtle,#d7e4d4);border-radius:15px;background:var(--h-surface,#fff)}
+.eyebrow{font-size:10px!important;font-weight:850;letter-spacing:1px;color:#7c9d47;margin:0}
+.wrap h2{font-size:17px;margin:0}.wrap p{font-size:12px;line-height:1.5;margin:0}
+.wrap small{font-size:11px;line-height:1.5;color:var(--h-muted,#667563)}
+.members{display:flex;flex-wrap:wrap;gap:6px}
+.members span{padding:7px 10px;border:1px solid var(--h-border-subtle,#d7e4d4);border-radius:20px;font-size:11px}
