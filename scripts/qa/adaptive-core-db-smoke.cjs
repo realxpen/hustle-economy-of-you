@@ -480,6 +480,12 @@ async function run(){
  await db.booking.update({where:{id:conflicting.id},data:{status:"CANCELLED"}});
  assert.equal((await ops.staffingAlerts(own,business.id)).items.some(x=>
    x.bookingId===groupBooking.id&&x.reason==="GROUP_UNDERSTAFFED"),false);
+ await roster.settings(own,business.id,{stationCapacity:2,rosterEnabled:false});
+ const disabledGroup=await schedule.reviewReservation(db,{
+  id:groupBooking.id,serviceId:salonPrepared.serviceId,confirmedStartAt:gs,confirmedEndAt:ge
+ });
+ assert.equal(disabledGroup.available,false,"disabling the roster cannot approve a group");
+ await roster.settings(own,business.id,{stationCapacity:2,rosterEnabled:true});
  const leaveDayEnd=new Date(Date.parse(futureDay+"T00:00:00Z")+86400000).toISOString().slice(0,10);
  await roster.leave(own,business.id,worker2.id,{
   startAt:futureDay+"T00:00:00+01:00",endAt:leaveDayEnd+"T00:00:00+01:00"
