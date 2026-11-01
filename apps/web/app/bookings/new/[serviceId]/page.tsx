@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { OpportunityContext } from "../../../../components/commerce/opportunity-context";
 import { useSourcePost, withSourcePost } from "../../../../lib/opportunity-source";
 import { withTransactionReturnTo } from "../../../../lib/transaction-return";
-import { checkBookingAvailability, createBooking, listFlowTimeSlots, type FlowTimeSlotDay, type BookingAvailability } from "../../../../lib/booking";
+import { checkBookingAvailability, createBooking, getGroupOptions, listFlowTimeSlots, type FlowTimeSlotDay, type BookingAvailability } from "../../../../lib/booking";
 import { openDirectConversation } from "../../../../lib/messaging";
 import { shouldContinueBookingWithoutConversation } from "../../../../lib/booking-consultation-policy";
 import { authUrlFor } from "../../../../lib/auth/safe-auth-next";
@@ -54,6 +54,8 @@ export default function NewBookingPage() {
   const [requirements, setRequirements] = useState("");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [groupOptions,setGroupOptions]=useState({available:false,maxPeople:1});
+  const [peopleCount,setPeopleCount]=useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
@@ -74,6 +76,9 @@ export default function NewBookingPage() {
     setError(null);
     setDraftPresent(false);
     setDraftRestored(false);
+    setPeopleCount(1);
+    setGroupOptions({available:false,maxPeople:1});
+    void getGroupOptions(serviceId).then(options=>{if(active)setGroupOptions(options)});
     void getPublicService(serviceId)
       .then((service) => {
         if (!active) return;
@@ -86,6 +91,7 @@ export default function NewBookingPage() {
           setRequirements(draft.requirements);
           setLocation(draft.location);
           setNotes(draft.notes);
+          setPeopleCount(draft.peopleCount??1);
           setDraftPresent(true);
           setDraftRestored(true);
         } else {
@@ -94,6 +100,7 @@ export default function NewBookingPage() {
           setRequirements("");
           setLocation(service.service.location ?? service.owner.location ?? "");
           setNotes("");
+          setPeopleCount(1);
         }
       })
       .catch((reason: Error) => { if (active) setError(reason.message); });
@@ -122,14 +129,14 @@ export default function NewBookingPage() {
     const end = toIso(requestedEndAt);
     if (!start || (requestedEndAt && !end)) { setCheckedTime(null); return; }
     let active=true;
-    void checkBookingAvailability({serviceId:data.service.id,startAt:start,...(end?{endAt:end}:{})})
+    void checkBookingAvailability({serviceId:data.service.id,startAt:start,peopleCount,...(end?{endAt:end}:{})})
       .then((result)=>{if(active)setCheckedTime(result);})
       .catch(()=>{if(active)setCheckedTime(null);});
     return ()=>{active=false;};
-  }, [data, requestedStartAt, requestedEndAt]);
+  }, [data, requestedStartAt, requestedEndAt, peopleCount]);
 
   function draftFields(): BookingDraftFields {
-    return { requestedStartAt, requestedEndAt, requirements, location, notes };
+    return { requestedStartAt, requestedEndAt, requirements, location, notes, peopleCount };
   }
 
   function updateDraft(patch: Partial<BookingDraftFields>) {
@@ -147,6 +154,7 @@ export default function NewBookingPage() {
     setRequestedEndAt("");
     setRequirements("");
     setNotes("");
+    setPeopleCount(1);
     setLocation(data?.service.location ?? data?.owner.location ?? "");
     setDraftPresent(false);
     setDraftRestored(false);
@@ -188,6 +196,7 @@ export default function NewBookingPage() {
       const availability = await checkBookingAvailability({
         serviceId: data.service.id,
         startAt: start,
+        peopleCount,
         ...(end ? { endAt: end } : {})
       });
       if (!availability.available) {
@@ -209,6 +218,7 @@ export default function NewBookingPage() {
       const booking = await createBooking({
         serviceId: data.service.id,
         requestedStartAt: start,
+        ...(peopleCount>1?{peopleCount}:{}),
         ...(end ? { requestedEndAt: end } : {}),
         requirements,
         ...(location.trim() ? { location: location.trim() } : {}),
@@ -295,6 +305,16 @@ export default function NewBookingPage() {
               : "Your draft is stored only in this browser tab for up to 2 hours as you type."}</span>
           {draftPresent && <button type="button" onClick={discardDraft} disabled={submitting}>Clear draft</button>}
         </div>
+        {service.bookingMode==="APPOINTMENT"&&groupOptions.available&&<div className={styles.field}>
+          <label htmlFor="group-count">NUMBER OF PEOPLE (SIMULTANEOUS APPOINTMENT)</label>
+          <select id="group-count" value={peopleCount} onChange={e=>{
+            const n=Number(e.target.value);setPeopleCount(n);updateDraft({peopleCount:n});
+          }} disabled={submitting}>
+            {Array.from({length:groupOptions.maxPeople},(_,i)=>i+1).map(n=><option value={n} key={n}>
+              {n===1?"1 person":n+" people"}</option>)}
+          </select>
+          <small>Everyone needs a separate available worker at the same time. This is one booking at the listed total price, not a separate charge per person. Confirm pricing and scope with the Hustler before requesting.</small>
+        </div>}
         <div className={styles.formSectionHeading}>
           <span className={styles.formStep}>01 · Timing</span>
           <h3>When do you need this?</h3>
@@ -315,8 +335,8 @@ export default function NewBookingPage() {
               {!slotDay.configuredHours && <p>Indicative 9 AM–6 PM slots: this Hustler has not set structured operating hours. Confirm the time before travelling.</p>}
               <div className={styles.flowTimeGrid}>
                 {slotDay.slots.map((slot)=><button type="button" key={slot.startAt}
-                  disabled={!slot.available || submitting}
-                  aria-label={new Intl.DateTimeFormat("en-NG",{hour:"numeric",minute:"2-digit",timeZone:service.bookingTimezone}).format(new Date(slot.startAt))+"; "+(slot.available?slot.remainingCapacity+" places available":"fully booked")}
+                  disabled={!slot.available || slot.remainingCapacity<peopleCount || submitting}
+                  aria-label={new Intl.DateTimeFormat("en-NG",{hour:"numeric",minute:"2-digit",timeZone:service.bookingTimezone}).format(new Date(slot.startAt))+"; "+(slot.remainingCapacity>=peopleCount?slot.remainingCapacity+" places available":"not enough places")}
                   onClick={()=>{
                     const start=toLocalInput(slot.startAt);
                     const end=slot.endAt ? toLocalInput(slot.endAt) : "";
@@ -325,7 +345,7 @@ export default function NewBookingPage() {
                     setError(null);
                   }}>
                   <strong>{new Intl.DateTimeFormat("en-NG",{hour:"numeric",minute:"2-digit",timeZone:service.bookingTimezone}).format(new Date(slot.startAt))}</strong>
-                  <small>{slot.available ? slot.overbooking ? "Limited extra place" : slot.remainingCapacity+" available" : "Fully booked"}</small>
+                  <small>{slot.available&&slot.remainingCapacity>=peopleCount ? slot.overbooking ? "Limited extra place" : slot.remainingCapacity+" available" : "Not enough space"}</small>
                 </button>)}
               </div>
               {slotDay.slots.length === 0 && <p>No start times remain for this day. Try another date.</p>}
