@@ -341,3 +341,32 @@
 .phone.dark .hj-picker-selection,.phone.dark .hj-area-selected,.phone.dark .hj-interest-chip.selected{background:#29472c;color:#e8f8df;border-color:#81a953}
 @media(max-width:370px){.hj-picker-title b{font-size:14px}.hj-skill-option small{max-width:26%}.hj-location-permission{flex-wrap:wrap}.hj-location-permission button{width:100%}}
 @media(prefers-reduced-motion:reduce){.hj-picker-block *, .hj-interest-chip{animation:none!important;transition:none!important}}
+
+/* V1 identity polish — references interpreted through Hustle's native design. */
+.hj-username-step{display:grid;gap:13px;margin:18px 0 23px}
+.hj-username-intro{text-transform:uppercase;letter-spacing:1.6px;font-size:10px;font-weight:900;color:#7d9b5b}
+.hj-username-label{font-weight:900;font-size:21px;letter-spacing:-.5px}
+.hj-handle-wrap{display:flex;gap:0;align-items:center;border-radius:16px;background:var(--hj-surface);border:1px solid var(--hj-line);padding-left:14px;min-height:56px}
+.hj-handle-wrap>span{font-size:20px;color:var(--hj-muted);font-weight:850}
+.hj-handle-wrap input{background:transparent;border:0;min-height:54px;width:100%;padding:12px 14px 12px 5px;font-size:16px;color:var(--hj-text);outline:none}
+.hj-username-status{font-size:12px;color:var(--hj-muted);min-height:18px;margin:0}
+.hj-username-status.available{color:#4b8a34;font-weight:800}
+.hj-username-status.unavailable{color:#ba533a}
+.hj-username-suggestions{display:flex;flex-wrap:wrap;gap:7px;min-height:39px}
+.hj-username-suggestions button{border:1px solid var(--hj-line);background:var(--hj-surface);border-radius:22px;padding:9px 10px;font-size:12px;color:var(--hj-text)}
+.hj-username-suggestions button:active{background:var(--hj-acid)}
+.hj-photo-step{display:flex;align-items:center;flex-direction:column;text-align:center;padding:20px 12px 12px;gap:12px;min-height:370px}
+.hj-photo-circle{position:relative;display:grid;place-items:center;width:160px;height:160px;border:1px solid var(--hj-line);border-radius:50%;background:var(--hj-surface);cursor:pointer;margin:12px auto 7px}
+.hj-photo-circle>img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.hj-photo-face{font-size:73px;color:var(--hj-muted);opacity:.55;line-height:1}
+.hj-photo-add{position:absolute;right:2px;bottom:7px;display:grid;place-items:center;width:48px;height:48px;border:3px solid var(--hj-bg);border-radius:50%;background:var(--hj-acid);color:#142a13;font-size:30px;line-height:1}
+.hj-photo-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.hj-photo-step h3{font-size:20px;margin:10px 0 0}
+.hj-photo-step p{max-width:270px;color:var(--hj-muted);font-size:13px;line-height:1.55}
+.hj-photo-step small{font-size:11px;color:var(--hj-muted);max-width:290px;line-height:1.5}
+.hj-photo-step .hj-photo-error{color:#bb5739;font-weight:700}
+.hj-social-divider{display:flex;gap:12px;align-items:center;text-align:center;color:var(--hj-muted);font-size:11px;margin:18px 0}
+.hj-social-divider:before,.hj-social-divider:after{content:"";height:1px;background:var(--hj-line);flex:1}
+.hj-social-btn{display:flex;justify-content:center;align-items:center;width:100%;margin:9px 0;min-height:47px;border:1px solid var(--hj-line);border-radius:14px;background:var(--hj-surface);font-size:12px!important;color:var(--hj-muted);opacity:.8}
+.hj-auth-password-help{font-size:11px;text-align:center;color:var(--hj-muted);margin:14px auto;max-width:270px}
+@media(prefers-reduced-motion:reduce){.hj-photo-circle *,.hj-username-step *{animation:none!important}}
