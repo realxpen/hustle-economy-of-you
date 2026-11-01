@@ -1,0 +1,26 @@
+name: Hustle TEST Payment Preview Public Read-only Diagnostics
+
+# Never deploy or access GitHub environments, Paystack, AWS or Neon secrets.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/hustle-payment-preview-web-diagnostics.yml"
+      - "scripts/payment-sandbox/diagnose-payment-preview-web.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  public-web-diagnostics:
+    if: github.repository == 'realxpen/hustle-economy-of-you'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Diagnose exactly which hosted Web/API response differed (GET only, no credentials)
+        run: node scripts/payment-sandbox/diagnose-payment-preview-web.mjs

@@ -28,7 +28,12 @@ export default defineConfig({
       awsPreviewBuild ? "hustle-ios-pwa-aws-test" : "hustle-ios-pwa-staging",
     entrypoint: "vinext/server/fetch-handler",
     compatibilityDate: "2026-10-24",
-    compatibilityFlags: ["nodejs_compat"],
+    // UX051: only this isolated preview Worker calls the dedicated API Worker
+    // through its fixed workers.dev origin. Opt into Cloudflare public fetch
+    // routing; retain all original staging/AWS-preview compatibility behavior.
+    compatibilityFlags: paymentPreviewBuild
+      ? ["nodejs_compat", "global_fetch_strictly_public"]
+      : ["nodejs_compat"],
     assets: {
       htmlHandling: "none",
       notFoundHandling: "none",
