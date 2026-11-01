@@ -7,11 +7,12 @@ import { AdaptiveService } from "./adaptive.service";
 import { AdaptiveRosterService } from "./adaptive-roster.service";
 import { AdaptiveBookingOpsService } from "./adaptive-booking-ops.service";
 import { AdaptiveGroupService } from "./adaptive-group.service";
+import { AdaptiveItemCaseworkService } from "./adaptive-item-casework.service";
 
 @Module({
   imports: [AuthModule, BookingModule],
   controllers: [AdaptiveController, GuestAdaptiveGroupController],
-  providers: [AdaptiveService, AdaptiveRosterService, AdaptiveBookingOpsService, AdaptiveGroupService, AdaptiveFeatureGuard],
+  providers: [AdaptiveService, AdaptiveRosterService, AdaptiveBookingOpsService, AdaptiveGroupService, AdaptiveItemCaseworkService, AdaptiveFeatureGuard],
   exports: [AdaptiveService]
 })
 export class AdaptiveModule {}
