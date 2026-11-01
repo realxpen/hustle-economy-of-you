@@ -669,7 +669,7 @@ function renderOwn(){
  else if(state.ownTab==="Reviews")content='<div class="hf-empty">Reviews from real customers will appear once your account is connected.</div>';
  else {const type=state.ownTab==="Services"?"service":state.ownTab==="Products"?"product":"training";const ownItems=allItems.filter(x=>x.seller==="self"&&x.type===type);content=ownItems.length?`<div class="hf-two">${ownItems.map(listingCard).join("")}</div>`:'<div class="hf-empty">No demo '+type+' listings under your profile yet.</div><button class="hf-lime-button hf-listing-draft" data-hf="create">+ Create listing draft</button>';}
  return `<div class="hf-profile-cover hf-own-cover"><img src="${signedIn.cover}" alt="Sample profile cover"><div class="hf-profile-head"><span>HUSTLE · YOUR PROFILE</span><button data-hf="own-settings" aria-label="Profile settings">⚙</button></div></div>
- <div class="hf-profile-info"><div class="hf-profile-identity"><img src="${signedIn.avatar}" alt="Sample avatar"><div><h2>${esc(signedIn.name)}</h2><small>${esc(signedIn.handle)} · ${esc(signedIn.location)}</small></div></div>
+ <div class="hf-profile-info"><div class="hf-profile-identity"><img src="${signedIn.avatar}" alt="Your profile photo"><div><h2>${esc(signedIn.name)}</h2><small>${esc(signedIn.handle)} · ${esc(signedIn.location)}</small></div></div>
  <p class="hf-profile-bio">${esc(signedIn.bio)}</p>${signedIn.interests.length&&window.HustleAuth?.isSignedIn?.()?`<div class="hf-trust" aria-label="Your interests">${signedIn.interests.map(x=>`<span>♡ ${esc(x)}</span>`).join("")}</div>`:""}<div class="hf-trust"><span>Primary: ${esc(signedIn.primary)}</span><span>Secondary: ${esc(signedIn.secondary)}</span><span>${window.HustleAuth?.getAccount?.()?.capabilities?.some(c=>c.capability==="HUSTLER"&&c.status==="ACTIVE")?"Client + Hustler":window.HustleAuth?.isSignedIn?.()?"Client":"Capability preview"}</span></div>
  <div class="hf-profile-metrics"><span><b>${signedIn.followers}</b> sample followers</span><span><b>${signedIn.following}</b> following</span><span><b>${samplePosts.filter(p=>p.seller==="self").length}</b> sample posts</span></div>
  <div class="hf-actions"><button class="hf-lime-button" data-hf="own-edit">Edit profile</button><button class="hf-soft-button" data-hf="create">+ Post</button><button class="hf-soft-button" data-hf="notifications" aria-label="View notifications">♧ Alerts</button></div>
@@ -1004,7 +1004,7 @@ layer.addEventListener("click",e=>{
  case "profile":openProfile(id);break;
  case "own":go("OwnProfile");break;
  case "own-edit":if(!window.HustleAuth?.isSignedIn?.()){window.HustleJourneys?.open("Auth");break}push("EditProfile");break;
- case "edit-discovery":if(!window.HustleAuth?.isSignedIn?.()){window.HustleJourneys?.open("Auth");break}window.HustleJourneys?.open("Onboarding",{step:2});break;
+ case "edit-discovery":if(!window.HustleAuth?.isSignedIn?.()){window.HustleJourneys?.open("Auth");break}window.HustleJourneys?.open("Onboarding",{step:4});break;
  case "own-settings":push("Settings");break;
  case "payments":if(window.HustleOperations)window.HustleOperations.open("Wallet");else push("Payments");break;
  case "escrow-demo":window.HustleOperations?.open("NewEscrow");break;
@@ -1179,11 +1179,12 @@ window.HustleFlowsPreview={
   signedIn.location=p.area||signedIn.location;
   signedIn.bio=p.bio||signedIn.bio;
   signedIn.interests=Array.isArray(p.interests)?p.interests.slice(0,10):signedIn.interests;
+  if(p.avatarUrl&&/^https:\/\//.test(p.avatarUrl))signedIn.avatar=p.avatarUrl;
   if(state.screen==="OwnProfile"||state.screen==="Settings")render();
  },
  clearIdentity:()=>{
   signedIn.name="Your name";signedIn.handle="@yourhustle";
-  signedIn.bio="Sign in to complete your profile";signedIn.location="Lagos, Nigeria";signedIn.interests=[];
+  signedIn.bio="Sign in to complete your profile";signedIn.location="Lagos, Nigeria";signedIn.interests=[];signedIn.avatar=pics.avatar||signedIn.avatar;
   if(state.screen==="OwnProfile"||state.screen==="Settings")render();
  }
 };
