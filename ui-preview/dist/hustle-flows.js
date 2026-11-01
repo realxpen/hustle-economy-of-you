@@ -1184,7 +1184,7 @@ window.HustleFlowsPreview={
  },
  clearIdentity:()=>{
   signedIn.name="Your name";signedIn.handle="@yourhustle";
-  signedIn.bio="Sign in to complete your profile";signedIn.location="Lagos, Nigeria";signedIn.interests=[];signedIn.avatar=pics.avatar||signedIn.avatar;
+  signedIn.bio="Sign in to complete your profile";signedIn.location="Lagos, Nigeria";signedIn.interests=[];signedIn.avatar=pics.style;signedIn.primary="Your primary skill";signedIn.secondary="Your other skills";
   if(state.screen==="OwnProfile"||state.screen==="Settings")render();
  }
 };
