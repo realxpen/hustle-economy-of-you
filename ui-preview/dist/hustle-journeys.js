@@ -439,6 +439,42 @@ function onAction(action,value="",id=""){
  case "onboard-skip":if(state.onboardStep!==1)state.onboardStep=Math.min(5,state.onboardStep+1);render();break;
  case "onboard-business":if(state.onboardStep===5)finishOnboarding(true);break;
  case "intent":data.onboarding.intent=value;render();break;
+ case "skill-select":{
+  if(!window.HustleOnboardingPickers?.bySkill(value))break;
+  data.onboarding.skill=value;state.skillQuery=value;render();break
+ }
+ case "skill-clear":data.onboarding.skill="";state.skillQuery="";render();break;
+ case "interest-toggle":{
+  if(!window.HustleOnboardingPickers?.interests.some(x=>x.name===value))break;
+  const old=data.onboarding.interests,selected=old.includes(value);
+  if(!selected&&old.length>=10){renderToast("You can choose up to 10 interests");break}
+  data.onboarding.interests=selected?old.filter(x=>x!==value):[...old,value];
+  const y=root.scrollTop;render();root.scrollTop=y;break
+ }
+ case "interest-show-all":state.interestsExpanded=!state.interestsExpanded;{const y=root.scrollTop;render();root.scrollTop=y;}break;
+ case "area-select":{
+  const candidate=String(value||"").trim();
+  if(candidate.length<3||candidate.length>100||!(/^[\\p{L}\\p{N} ,.'()/-]+$/u.test(candidate)))break;
+  data.onboarding.area=candidate;state.areaQuery=candidate;state.areaMapVisible=false;render();break
+ }
+ case "area-clear":data.onboarding.area="";state.areaQuery="";state.areaMapVisible=false;render();break;
+ case "area-map-toggle":if(data.onboarding.area){state.areaMapVisible=!state.areaMapVisible;render();}break;
+ case "area-geolocate":{
+  if(state.locationBusy)break;
+  if(!navigator.geolocation){renderToast("Location unavailable. Search your area instead.");break}
+  state.locationBusy=true;
+  navigator.geolocation.getCurrentPosition(
+   pos=>{
+    state.locationBusy=false;
+    const area=window.HustleOnboardingPickers?.approximateArea(pos.coords.latitude,pos.coords.longitude);
+    if(area){data.onboarding.area=area.label;state.areaQuery=area.label;state.areaMapVisible=false;render();renderToast("Nearby general area selected. You can change it.");}
+    else renderToast("No nearby suggested area. Search your city manually.");
+   },
+   ()=>{state.locationBusy=false;renderToast("Location not shared. Search your area instead.");},
+   {enableHighAccuracy:false,timeout:9000,maximumAge:60000}
+  );break
+ }
+
  case "notification-tab":state.notificationFilter=value;render();break;
  case "notification-settings":go("NotificationSettings");break;
  case "notifications":go("Notifications");break;
@@ -597,7 +633,16 @@ if(name==="onboard"){const i=state.onboardStep;
 }
 root.addEventListener("click",e=>{const target=e.target.closest("[data-hj]");if(!target||!root.contains(target))return;if(target.type==="submit")return;e.preventDefault();onAction(target.dataset.hj,target.dataset.value,target.dataset.id)});
 root.addEventListener("submit",e=>{const f=e.target;if(!f.dataset.hjForm)return;e.preventDefault();onSubmit(f.dataset.hjForm,f)});
-root.addEventListener("input",e=>{if(e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
+root.addEventListener("input",e=>{
+ if(e.target.id==="hj-skill-query"){
+  state.skillQuery=e.target.value;
+  const list=root.querySelector("#hjSkillResults");if(list)list.innerHTML=window.HustleOnboardingUI?.skillsList(state.skillQuery)||"";return
+ }
+ if(e.target.id==="hj-area-query"){
+  state.areaQuery=e.target.value;
+  const list=root.querySelector("#hjAreaResults");if(list)list.innerHTML=window.HustleOnboardingUI?.areaResults(state.areaQuery)||"";return
+ }
+ if(e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
 root.addEventListener("change",e=>{if(e.target.id==="hj-day"||e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-bookingMedia"){const file=e.target.files?.[0];if(file){if(!/^(image|video)\//.test(file.type)||file.size>15*1024*1024){renderToast("Select a photo or video under 15 MB");e.target.value="";return}clearBookingMedia();data.booking.mediaName=file.name;data.booking.mediaType=file.type;try{data.booking.mediaUrl=window.URL?.createObjectURL?.(file)||""}catch(e){data.booking.mediaUrl=""}showBookingMedia();renderToast("Reference selected locally · not uploaded")}}if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
 function updateReportStatus(id,status){
  const report=data.reports.find(x=>x.id===id);if(!report)return false;
