@@ -65,7 +65,7 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
    Assign eligible staff to accepted appointments. For laundry and tailoring, track work from intake to pickup or delivery without changing payment or escrow.</p></div>
   {error&&<p className={styles.error} role="alert">{error}</p>}
   {notice&&<p className={styles.notice} role="status">{notice}</p>}
-  {alerts&&<section className={styles.alerts} aria-label="Staffing conflicts requiring review">
+  {alerts?.rosterEnabled&&<section className={styles.alerts} aria-label="Staffing conflicts requiring review">
     <strong>{alerts.items.length} appointment{alerts.items.length===1?"":"s"} need staffing attention</strong>
     <p className={styles.hint}>Review staff, chairs and business hours against overlapping reservations. These alerts do not cancel or reschedule bookings. Refresh after changing Team & hours.</p>
     {alerts.items.map(x=><div className={styles.alertItem} key={x.bookingId}>

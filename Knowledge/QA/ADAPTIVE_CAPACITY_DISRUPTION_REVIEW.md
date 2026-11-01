@@ -1,6 +1,6 @@
 # Capacity disruption review — 2026-11-01
 
-Build on merged PR #303. Existing client physical-receipt confirmation and ETA revision are retained, not reintroduced.
+Build on merged PRs #303 and #304. Existing client physical-receipt confirmation and ETA revision are retained, not reintroduced.
 
 ## Behavior
 
