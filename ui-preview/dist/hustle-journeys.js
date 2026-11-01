@@ -592,7 +592,7 @@ function applyAccount(account){
  if(!account)return;
  state.guest=false;state.signedIn=true;
  state.user={name:account.displayName||account.email||"Hustle user",
-  handle:account.username||"",area:account.location||"",bio:account.bio||"",skill:account.primarySkill||"",interests:Array.isArray(account.interests)?account.interests:[]};
+  handle:account.username||"",area:account.location||"",bio:account.bio||"",avatarUrl:account.avatarUrl||"",skill:account.primarySkill||"",interests:Array.isArray(account.interests)?account.interests:[]};
  data.onboarding.name=account.displayName||"";
  data.onboarding.handle=account.username||"";
  data.onboarding.area=account.location||"";
