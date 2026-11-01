@@ -345,7 +345,7 @@ export default function NewBookingPage() {
                     setError(null);
                   }}>
                   <strong>{new Intl.DateTimeFormat("en-NG",{hour:"numeric",minute:"2-digit",timeZone:service.bookingTimezone}).format(new Date(slot.startAt))}</strong>
-                  <small>{slot.available&&slot.remainingCapacity>=peopleCount ? slot.overbooking ? "Limited extra place" : slot.remainingCapacity+" available" : "Not enough space"}</small>
+                  <small>{slot.available&&slot.remainingCapacity>=peopleCount ? slot.overbooking ? "Limited extra place" : slot.remainingCapacity+" available" : slot.remainingCapacity===0?"Fully booked":"Not enough space for this group"}</small>
                 </button>)}
               </div>
               {slotDay.slots.length === 0 && <p>No start times remain for this day. Try another date.</p>}
