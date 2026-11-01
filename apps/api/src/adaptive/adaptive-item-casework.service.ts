@@ -110,8 +110,11 @@ export class AdaptiveItemCaseworkService {
         resolvedAt: record!.resolvedAt
       } : null,
       hasOtherCase: !!record && !isDeliveryCase,
-      statements: isDeliveryCase ? statements : [],
-      canRespond: isDeliveryCase && booking.status === BookingStatus.DISPUTED
+      statements: isDeliveryCase ? statements.map(({ actorUserId, ...entry }) => ({
+        ...entry, author: actorUserId === actorId ? "YOU" : "OTHER"
+      })) : [],
+      canRespond: isDeliveryCase && booking.status === BookingStatus.DISPUTED &&
+        !["RESOLVED", "CLOSED"].includes(record!.status)
     };
   }
 
