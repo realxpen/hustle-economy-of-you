@@ -417,6 +417,7 @@ function clearUnpaidReservation(){
 function open(screen="Welcome",opts={}){
  if(screen==="BookingJourney"){clearUnpaidReservation();clearBookingMedia()}
  if(screen==="Splash")state.guest=true;
+ if(screen==="Onboarding"&&state.signedIn)state.onboardStep=Math.min(4,Math.max(0,Number(opts.step)||0));
  if(screen==="Report"){state.reportSubject=opts.subject||"Content";state.reportId=opts.id||"Sample content";state.reportText="";state.reportReason="Misleading or fraudulent"}
  if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category,opts.professional||data.booking.professional);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,adaptiveRef:uid("HAB"),basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:localISO(1),time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,intake:"",returnMethod:"",measurementMethod:"",handoffAddress:"",readyDate:"",readyTime:pol?.readyTime||"17:00",jobStatus:"awaiting_handoff",mediaName:"",mediaType:"",mediaUrl:"",quoteLines:null,slotReserved:false,slotPlan:null,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
  if(screen==="PaymentJourney"&&opts.item){data.purchase={...data.purchase,item:opts.item,price:Number(opts.price)||data.purchase.price,method:opts.method||data.purchase.method,delivery:opts.delivery||data.purchase.delivery,stage:"details",status:"Not placed"}}
@@ -560,7 +561,7 @@ function applyAccount(account){
  if(!account)return;
  state.guest=false;state.signedIn=true;
  state.user={name:account.displayName||account.email||"Hustle user",
-  handle:account.username||"",area:account.location||"",bio:account.bio||""};
+  handle:account.username||"",area:account.location||"",bio:account.bio||"",skill:account.primarySkill||"",interests:Array.isArray(account.interests)?account.interests:[]};
  data.onboarding.name=account.displayName||"";
  data.onboarding.handle=account.username||"";
  data.onboarding.area=account.location||"";
@@ -578,7 +579,7 @@ async function finishOnboarding(openBusiness=false,form=null){
   const account=await window.HustleAuth.update({
    displayName:data.onboarding.name.trim(),username:data.onboarding.handle.trim(),
    location:data.onboarding.area.trim(),primarySkill:data.onboarding.skill||"",
-   interests:data.onboarding.interests,bio:""
+   interests:data.onboarding.interests,bio:state.user?.bio||""
   });
   applyAccount(account);rememberIntro();close();
   if(openBusiness)renderToast("Professional verification will be integrated separately.");
