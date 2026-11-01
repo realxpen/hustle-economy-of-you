@@ -25,6 +25,11 @@ const now = 10_000_000;
 assert.equal(saveBookingDraft(storage, "service-A", payload, now), true);
 assert.deepEqual(readBookingDraft(storage, "service-A", now + 3), payload);
 assert.equal(readBookingDraft(storage, "service-B", now), null, "Draft is service-scoped");
+assert.equal(saveBookingDraft(storage, "service-group", { ...payload,peopleCount:3 },now),true);
+assert.equal(readBookingDraft(storage,"service-group",now)?.peopleCount,3);
+assert.equal(saveBookingDraft(storage,"bad-group", {...payload,peopleCount:13},now),false);
+clearBookingDraft(storage,"service-group");
+
 assert.equal(readBookingDraft(storage, "service-A", now + BOOKING_DRAFT_TTL_MS + 1), null, "Expired draft cannot leak");
 assert.equal(map.size, 0, "Expired draft removed");
 assert.equal(saveBookingDraft(storage, "../service-A", payload, now), false);
