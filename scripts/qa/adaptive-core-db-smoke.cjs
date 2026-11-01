@@ -9,6 +9,8 @@ const {AdaptiveRosterService}=require("../../apps/api/dist/adaptive/adaptive-ros
 const {BookingScheduleService}=require("../../apps/api/dist/booking/booking-schedule.service");
 const {AdaptiveBookingOpsService}=require("../../apps/api/dist/adaptive/adaptive-booking-ops.service");
 const {AdaptiveGroupService}=require("../../apps/api/dist/adaptive/adaptive-group.service");
+const {AdaptiveItemCaseworkService}=require("../../apps/api/dist/adaptive/adaptive-item-casework.service");
+const {MarketplaceCaseService}=require("../../apps/api/dist/admin-operations/marketplace-case.service");
 
 const url=new URL(process.env.DATABASE_URL||"postgresql://missing");
 if(!["127.0.0.1","localhost"].includes(url.hostname) || !url.pathname.endsWith("/hustle_adaptive_ci"))
@@ -397,6 +399,75 @@ async function run(){
  assert.ok(await db.notification.findFirst({where:{recipientUserId:outsider.id,
   eventKey:"adaptive:item:"+wash.id+":READY:4"}}));
  assert.equal((await db.booking.findUniqueOrThrow({where:{id:wash.id}})).status,"FUNDED");
+
+ // Contested delivery reuses exactly one MarketplaceCase and never moves money.
+ const cases=new AdaptiveItemCaseworkService(db);
+ const adminCases=new MarketplaceCaseService(db);
+ const contested=await db.booking.create({data:{
+   serviceId:laundryPrepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
+   requestedStartAt:new Date(Date.now()+86400000),status:"FUNDED",
+   requirements:"Synthetic disputed parcel",serviceTitleSnapshot:"Disputed laundry delivery",
+   agreedPriceMinor:450000,pricingTypeSnapshot:"FIXED"
+ }});
+ await ops.myHandover(other,contested.id,{intakeMethod:"home_pickup",returnMethod:"home_delivery"});
+ for(const [next,revision] of [["RECEIVED",1],["IN_PROGRESS",2],["READY",3],
+   ["OUT_FOR_DELIVERY",4],["DELIVERED",5]])
+   await ops.itemProgress(own,business.id,contested.id,{to:next,expectedRevision:revision});
+ assert.equal((await cases.read(other,contested.id)).canOpen,true);
+ await expectForbidden(cases.read(member,contested.id),404);
+ await expectForbidden(cases.open(own,contested.id,{
+   statement:"I have not received this parcel from the customer",expectedRevision:6
+ }),403);
+ await expectForbidden(cases.open(other,contested.id,{
+   statement:"Missing my parcel after provider marked delivered",
+   evidenceType:"COURIER_REFERENCE",reference:"https://untrusted.example",expectedRevision:6
+ }),400);
+ const opened=await cases.open(other,contested.id,{
+   statement:"I did not physically receive this parcel even though it was marked delivered.",
+   evidenceType:"COURIER_REFERENCE",reference:"COURIER-DEL-129",expectedRevision:6
+ });
+ assert.equal(opened.case.status,"OPEN");
+ assert.equal(opened.canOpen,false);
+ assert.equal(opened.bookingStatus,"DISPUTED");
+ assert.equal(opened.statements.length,1);
+ assert.equal(opened.statements[0].author,"YOU");
+ assert.equal(opened.statements[0].details.reference,"COURIER-DEL-129");
+ const canonicalCase=await db.marketplaceCase.findUniqueOrThrow({where:{
+   subjectType_subjectId:{subjectType:"BOOKING",subjectId:contested.id}
+ }});
+ assert.equal(canonicalCase.id,opened.case.id);
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:contested.id}})).status,"DISPUTED");
+ await expectForbidden(ops.confirmItemReceived(other,contested.id,{expectedRevision:7}),409);
+ await expectForbidden(cases.open(other,contested.id,{
+   statement:"Submitting the same delivery objection again",expectedRevision:6
+ }),409);
+ assert.equal(await db.marketplaceCase.count({where:{subjectType:"BOOKING",subjectId:contested.id}}),1);
+ await expectForbidden(cases.statement(member,contested.id,{
+   statement:"Attempted unauthorized statement",expectedRevision:7
+ }),404);
+ const response=await cases.statement(own,contested.id,{
+   statement:"We handed this parcel to a courier at the agreed address.",
+   evidenceType:"HANDOVER_REFERENCE",reference:"DISPATCH-42",expectedRevision:7
+ });
+ assert.equal(response.expectedRevision,8);
+ assert.equal(response.statements[1].author,"YOU");
+ await expectForbidden(cases.statement(own,contested.id,{
+   statement:"Stale duplicate update",expectedRevision:7
+ }),409);
+ const clientView=await cases.read(other,contested.id);
+ assert.equal(clientView.statements[1].author,"OTHER");
+ const review=await adminCases.get(canonicalCase.id);
+ assert.equal(review.subject.deliveryEvidence.events.length,2,
+   "admin review must see both sides of the same canonical case");
+ assert.equal(review.subject.deliveryEvidence.clientConfirmedAt,null);
+ assert.equal(await db.escrowRecord.count({where:{subjectId:contested.id}}),0,
+   "opening a delivery claim never creates or settles escrow");
+ assert.equal(await db.paymentAttempt.count({where:{subjectId:contested.id}}),0,
+   "opening a delivery claim never creates a payment attempt");
+ assert.ok(await db.notification.findFirst({where:{recipientUserId:owner.id,
+   eventKey:"adaptive:delivery-claim:"+contested.id}}));
+ assert.ok(await db.notification.findFirst({where:{recipientUserId:outsider.id,
+   eventKey:"adaptive:delivery-statement:"+contested.id+":8"}}));
 
  // Canonical Booking/Order remain unmodified and visible only to authenticated participants.
 
