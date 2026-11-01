@@ -66,7 +66,7 @@ async function publicAcceptance() {
   for (const [label, path] of [
     ["Guest For You discovery", "/api/isolated/api/v1/guest/feed/for-you"],
     ["Guest marketplace discovery", "/api/isolated/api/v1/guest/marketplace/all"],
-    ["Guest search discovery", "/api/isolated/api/v1/guest/search/top"]
+    ["Guest search discovery", "/api/isolated/api/v1/guest/search/top?q=barber"]
   ]) {
     await withoutCredentials(label, path, 200);
   }
