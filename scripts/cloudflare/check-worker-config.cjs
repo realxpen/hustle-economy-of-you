@@ -18,7 +18,12 @@ assert.match(config, /stagingAwsCutoverBuild/);
 assert.match(config, /awsPreviewBuild \? "aws-lambda-isolated-staging" : "vercel-isolated-staging"/);
 assert.match(config, /HUSTLE_STAGING_AWS_CUTOVER_BUILD === "true"/);
 assert.match(config, /mutually exclusive/);
-assert.match(config, /compatibilityFlags: \["nodejs_compat"\]/);
+// The separate payment-preview Worker opts in to same-account public fetch.
+assert.match(config, /compatibilityFlags: paymentPreviewBuild/);
+assert.match(config, /\["nodejs_compat", "global_fetch_strictly_public"\]/);
+assert.match(config, /: \["nodejs_compat"\]/);
+// Runtime-built config variants are independently exercised in the payment-preview test.
+
 assert.match(config, /HUSTLE_ISOLATED_PWA_GATE: bindings\.text\(paymentPreviewBuild \? "payment-preview" : "isolated-staging"\)/);
 assert.match(config, /paymentPreviewBuild \? "hustle-payment-preview"/);
 assert.match(config, /HUSTLE_PAYMENT_PREVIEW_API_ORIGIN: bindings\.text/);
