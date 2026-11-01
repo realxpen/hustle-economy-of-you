@@ -377,7 +377,26 @@ export class MarketplaceCaseService {
       });
       if (!booking) throw new NotFoundException("Referenced Booking not found");
       const payment = await this.latestPayment(subjectType, subjectId);
-      return { ...booking, payment };
+      // Optional schema is not present in currently deployed databases.
+      // Read participant-authored evidence only in explicitly activated Adaptive environments.
+      const deliveryEvidence = process.env.HUSTLE_ADAPTIVE_CORE_ENABLED === "true"
+        ? await this.prisma.adaptiveItemFulfillment.findUnique({
+            where: { bookingId: subjectId },
+            select: {
+              status: true, clientConfirmedAt: true,
+              events: {
+                where: { eventType: { in: [
+                  "item.delivery_claim_opened", "item.delivery_statement"
+                ] } },
+                orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                take: 100,
+                select: { id: true, eventType: true, actorUserId: true,
+                  details: true, createdAt: true }
+              }
+            }
+          })
+        : null;
+      return { ...booking, payment, deliveryEvidence };
     }
     const order = await this.prisma.order.findUnique({
       where: { id: subjectId },
