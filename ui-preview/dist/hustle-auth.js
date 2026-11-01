@@ -36,8 +36,19 @@ async function enter(email,password,create){
  }catch(e){account=null;announce();throw e}
 }
 async function update(input){
- account=await request("account",{method:"PATCH",body:input});
- announce();return account;
+ const updated=await request("account",{method:"PATCH",body:input});
+ // Older hosted APIs can silently ignore newly introduced profile fields.
+ // Do not claim onboarding preferences persisted until the server echoes them.
+ if(Object.prototype.hasOwnProperty.call(input,"interests")){
+  if(!Array.isArray(updated.interests)||
+     JSON.stringify(updated.interests)!==JSON.stringify(input.interests))
+    throw new Error("Skills and interests are not active on this test server yet. Nothing was confirmed saved.");
+ }
+ if(Object.prototype.hasOwnProperty.call(input,"primarySkill")){
+  if((updated.primarySkill||"")!==(input.primarySkill||""))
+    throw new Error("Your primary skill was not confirmed by the test server. Try again after staging is updated.");
+ }
+ account=updated;announce();return account;
 }
 async function exit(){
  await request("auth/sign-out",{method:"POST"});
