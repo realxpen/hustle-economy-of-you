@@ -148,7 +148,10 @@ try {
  assert.match(get("apps/web/lib/feed.ts"),/guest/);
  assert.match(get("apps/web/lib/search.ts"),/guest/);
  assert.match(get("apps/web/app/home/page.tsx"),/redirectGuestToAuth/);
- assert.match(get("apps/web/app/auth/staging-sign-in.tsx"),/safeAuthReturnPath/);
+ assert.match(get("apps/web/app/auth/staging-sign-in.tsx"),/previewAuthDestination/,
+   "Staging sign-in must use the safe onboarding-aware auth continuation");
+ assert.match(get("apps/web/lib/auth/preview-auth-return.ts"),/safeAuthNext/,
+   "The preview continuation must reject external or malformed redirect targets");
  assert.match(get("apps/api/src/hustler-application/hustler-review.controller.ts"),/@UseGuards\(AuthGuard, AdminGuard\)/);
  assert.match(get("apps/api/src/hustler-application/hustler-review.service.ts"),/assertNotSelfReview\(application.userId, reviewer.id\)/);
  assert.match(get("apps/api/src/hustler-application/hustler-review.service.ts"),/identityVerificationStatus !== VerificationStatus.VERIFIED/);
