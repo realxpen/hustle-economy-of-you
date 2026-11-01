@@ -442,6 +442,20 @@ async function run(){
    startAt:gs.toISOString(),endAt:ge.toISOString(),peopleCount:1});
  assert.equal(unavailable.remainingCapacity,0);
  assert.equal(unavailable.available,false,"group consumed both chairs");
+ const refused=await db.booking.create({data:{
+  serviceId:salonPrepared.serviceId,clientUserId:outsider.id,hustlerUserId:owner.id,
+  requestedStartAt:gs,requestedEndAt:ge,status:"REQUESTED",
+  requirements:"Another two-person request",serviceTitleSnapshot:"Rejected group",
+  agreedPriceMinor:1500000,pricingTypeSnapshot:"FIXED"
+ }});
+ await db.adaptiveGroupBooking.create({data:{bookingId:refused.id,workspaceId:business.id,peopleCount:2}});
+ await expectForbidden(db.$transaction(tx=>schedule.reserveWithinTransaction(tx,{
+  serviceId:salonPrepared.serviceId,hustlerUserId:owner.id,startAt:gs,endAt:ge,
+  excludeBookingId:refused.id
+ })),409);
+ assert.equal((await db.booking.findUniqueOrThrow({where:{id:refused.id}})).status,"REQUESTED",
+  "rejected group acceptance cannot mutate the booking");
+
  await expectForbidden(groupOps.assign(other,business.id,groupBooking.id,{
   staffIds:[worker1.id,worker2.id],expectedRevision:1}));
  await expectForbidden(groupOps.assign(own,business.id,groupBooking.id,{
