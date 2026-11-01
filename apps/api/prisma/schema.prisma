@@ -998,6 +998,7 @@ model Booking {
   adaptiveWork     AdaptiveWorkRecord?
   adaptiveAssignment AdaptiveBookingAssignment?
   adaptiveItemFulfillment AdaptiveItemFulfillment?
+  adaptiveGroup AdaptiveGroupBooking?
   cancelledBy  User?         @relation("BookingCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
 
   @@index([clientUserId, status, createdAt])
@@ -1709,6 +1710,7 @@ model AdaptiveStaffMember {
   workspace    AdaptiveWorkspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   leave        AdaptiveStaffLeave[]
   assignments AdaptiveBookingAssignment[]
+  groupAssignments AdaptiveGroupStaffAssignment[]
 
   @@index([workspaceId, active])
 }
@@ -1780,4 +1782,33 @@ model AdaptiveItemEvent {
   fulfillment    AdaptiveItemFulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)
 
   @@unique([fulfillmentId, revision])
+}
+
+
+// Optional Adaptive group booking (single canonical Booking, multi-seat reservation).
+// No additional payment/order is created and price is never multiplied implicitly.
+// Only active for businesses with the roster-enabled feature flag.
+model AdaptiveGroupBooking {
+  id           String @id @default(cuid())
+  bookingId    String @unique
+  workspaceId  String
+  peopleCount  Int
+  revision     Int @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  booking      Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  assignments  AdaptiveGroupStaffAssignment[]
+
+  @@index([workspaceId, createdAt])
+}
+model AdaptiveGroupStaffAssignment {
+  id         String @id @default(cuid())
+  groupId    String
+  staffId    String
+  createdAt  DateTime @default(now())
+  group      AdaptiveGroupBooking @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  staff      AdaptiveStaffMember @relation(fields: [staffId], references: [id], onDelete: Restrict)
+
+  @@unique([groupId, staffId])
+  @@index([staffId])
 }
