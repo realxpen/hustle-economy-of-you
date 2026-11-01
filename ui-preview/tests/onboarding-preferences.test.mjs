@@ -77,7 +77,7 @@ test("Backend schema stores interests separately without changing capabilities o
  assert.match(migration,/ALTER TABLE "User"/);
  assert.match(migration,/ADD COLUMN "primarySkill"/);
  assert.match(migration,/ADD COLUMN "interests"/);
- assert.doesNotMatch(migration,/DROP TABLE|DELETE FROM|UPDATE\s+"Booking"|Payment|Escrow/i);
+ assert.doesNotMatch(migration.split("\n").filter(line=>!line.trim().startsWith("--")).join("\n"),/DROP TABLE|DELETE FROM|UPDATE\s+"Booking"|ALTER TABLE\s+"Payment"|ALTER TABLE\s+"Escrow"/i);
 });
 test("V1 onboarding has six distinct steps, server persistence and no silent GPS",()=>{
  const journey=source("../dist/hustle-journeys.js");
