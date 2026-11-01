@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { AuthGuard } from "./auth.guard";
 import { AuthService, type UpdateProfileInput } from "./auth.service";
@@ -17,6 +17,11 @@ export class AuthController {
   @Get("me")
   me(@CurrentIdentity() identity: AuthIdentity) {
     return this.accounts.me(identity);
+  }
+
+  @Get("username-availability")
+  usernameAvailability(@CurrentIdentity() identity: AuthIdentity, @Query("username") username: string) {
+    return this.accounts.usernameAvailability(identity,username);
   }
 
   @Patch("profile")

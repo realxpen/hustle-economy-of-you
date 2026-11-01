@@ -36,15 +36,55 @@ async function enter(email,password,create){
  }catch(e){account=null;announce();throw e}
 }
 async function update(input){
- account=await request("account",{method:"PATCH",body:input});
- announce();return account;
+ const updated=await request("account",{method:"PATCH",body:input});
+ // Older hosted APIs can silently ignore newly introduced profile fields.
+ // Do not claim onboarding preferences persisted until the server echoes them.
+ if(Object.prototype.hasOwnProperty.call(input,"interests")){
+  if(!Array.isArray(updated.interests)||
+     JSON.stringify(updated.interests)!==JSON.stringify(input.interests))
+    throw new Error("Skills and interests are not active on this test server yet. Nothing was confirmed saved.");
+ }
+ if(Object.prototype.hasOwnProperty.call(input,"primarySkill")){
+  if((updated.primarySkill||"")!==(input.primarySkill||""))
+    throw new Error("Your primary skill was not confirmed by the test server. Try again after staging is updated.");
+ }
+ account=updated;announce();return account;
+}
+async function usernameAvailability(username){
+ const normalized=String(username||"").trim().toLowerCase();
+ if(!window.HustleAccountSetup?.valid(normalized))return {username:normalized,available:false,reason:"invalid"};
+ const response=await request("account/username?username="+encodeURIComponent(normalized));
+ if(response?.username!==normalized||typeof response.available!=="boolean")
+  throw new Error("Username availability could not be verified.");
+ return response;
+}
+async function uploadAvatar(file){
+ if(!account)throw new Error("Sign in before uploading your photo.");
+ const blob=await window.HustleAccountSetup.compress(file);
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),18000);
+ try{
+  const response=await fetch("/api/preview/account/avatar",{
+   method:"POST",credentials:"same-origin",cache:"no-store",
+   headers:{"content-type":"image/webp",accept:"application/json"},
+   body:blob,signal:controller.signal
+  });
+  const data=await response.json().catch(()=>null);
+  if(!response.ok)throw new Error(data?.message||"Profile photos are not configured in this isolated preview.");
+  if(typeof data?.avatarUrl!=="string"||!data.avatarUrl.startsWith(location.origin+"/api/preview/avatar/"))
+   throw new Error("Photo could not be confirmed on your account.");
+  account=data;announce();return account;
+ }catch(error){
+  if(error?.name==="AbortError")throw new Error("Photo upload timed out. Try again.");
+  throw error;
+ }finally{clearTimeout(timeout)}
 }
 async function exit(){
  await request("auth/sign-out",{method:"POST"});
  account=null;announce();
 }
 window.HustleAuth={
- current,enter,update,exit,
+ current,enter,update,exit,usernameAvailability,uploadAvatar,
  getAccount:()=>account,
  isSignedIn:()=>Boolean(account),
 };

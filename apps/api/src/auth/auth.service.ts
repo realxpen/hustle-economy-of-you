@@ -8,6 +8,8 @@ export interface UpdateProfileInput {
   username?: unknown;
   bio?: unknown;
   location?: unknown;
+  primarySkill?: unknown;
+  interests?: unknown;
   avatarUrl?: unknown;
 }
 
@@ -96,6 +98,30 @@ export class AuthService {
     return this.getBySubject(identity.subject);
   }
 
+  private readonly reservedHandles = new Set([
+    "admin","administrator","support","help","hustle","official","security",
+    "payments","wallet","escrow","system","root","moderator","verified",
+    "contact","api","login","signup","null","undefined","anonymous"
+  ]);
+
+  async usernameAvailability(identity: AuthIdentity, value: unknown) {
+    const original = typeof value === "string" ? value.trim().toLowerCase() : "";
+    if (!/^[a-z0-9._]{3,30}$/.test(original) ||
+        original.startsWith(".") || original.endsWith(".") || original.includes("..") ||
+        this.reservedHandles.has(original)) {
+      return { username:original.slice(0,30),available:false,reason:"invalid" as const };
+    }
+    const owner = await this.prisma.user.findUnique({
+      where:{ authSubject:identity.subject },select:{ id:true }
+    });
+    if (!owner) throw new NotFoundException("Hustle account not synchronized");
+    const taken = await this.prisma.user.findUnique({
+      where:{ username:original },select:{ id:true }
+    });
+    return { username:original, available:!taken||taken.id===owner.id,
+      reason:taken&&taken.id!==owner.id?"taken" as const:null };
+  }
+
   async updateProfile(identity: AuthIdentity, input: UpdateProfileInput) {
     const existing = await this.prisma.user.findUnique({
       where: { authSubject: identity.subject },
@@ -105,8 +131,13 @@ export class AuthService {
 
     const displayName = this.optionalText(input.displayName, "displayName", 80);
     const username = this.optionalUsername(input.username);
+    if (username && (username.startsWith(".") || username.endsWith(".") || username.includes("..") || this.reservedHandles.has(username))) {
+      throw new BadRequestException("Choose a different username");
+    }
     const bio = this.optionalText(input.bio, "bio", 300);
     const location = this.optionalText(input.location, "location", 120);
+    const primarySkill = this.optionalText(input.primarySkill, "primarySkill", 80);
+    const interests = this.optionalInterests(input.interests);
     const avatarUrl = this.optionalUrl(input.avatarUrl);
     const resultingDisplayName = displayName === undefined ? existing.displayName : displayName;
     const resultingUsername = username === undefined ? existing.username : username;
@@ -119,6 +150,8 @@ export class AuthService {
           ...(username !== undefined ? { username } : {}),
           ...(bio !== undefined ? { bio } : {}),
           ...(location !== undefined ? { location } : {}),
+          ...(primarySkill !== undefined ? { primarySkill } : {}),
+          ...(interests !== undefined ? { interests } : {}),
           ...(avatarUrl !== undefined ? { avatarUrl } : {}),
           onboardingCompleted: Boolean(resultingDisplayName && resultingUsername)
         }
@@ -212,6 +245,26 @@ export class AuthService {
       throw new BadRequestException("Username must be 3–30 characters using letters, numbers, dots or underscores");
     }
     return username;
+  }
+
+  private optionalInterests(value: unknown): string[] | undefined {
+    if (value === undefined) return undefined;
+    if (!Array.isArray(value) || value.length > 10) {
+      throw new BadRequestException("Choose up to 10 distinct interests");
+    }
+    const cleaned = value.map(item => {
+      if (typeof item !== "string") throw new BadRequestException("Each interest must be text");
+      const normalized = item.trim();
+      if (normalized.length < 2 || normalized.length > 50 ||
+          !/^[\p{L}\p{N} &+().,'/-]+$/u.test(normalized)) {
+        throw new BadRequestException("Invalid interest");
+      }
+      return normalized;
+    });
+    if (new Set(cleaned.map(item => item.toLocaleLowerCase("en"))).size !== cleaned.length) {
+      throw new BadRequestException("Interests must not repeat");
+    }
+    return cleaned;
   }
 
   private optionalUrl(value: unknown): string | null | undefined {

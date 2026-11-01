@@ -52,7 +52,7 @@ const threads=[
 {id:"maya",person:"maya",status:"Inquiry",unread:0,last:"What date is your shoot?",when:"Mon",about:"s-photo",messages:[{from:"them",text:"What date is your shoot?",time:"Mon"}]}
 ];
 const samplePosts=[{"id":"post-tobi-1","seller":"tobi","kind":"video","image":"barber","caption":"A quiet morning at the chair. Getting the details right, one cut at a time.","related":"s-barber","tag":"Barbering"},{"id":"post-tobi-2","seller":"tobi","kind":"photo","image":"hair","caption":"The tools and people behind the finished look.","related":null,"tag":"Daily life"},{"id":"post-zara-1","seller":"zara","kind":"carousel","image":"fashion","caption":"From sketch to fitting. Here's a little behind the scenes of the making.","related":"s-fashion","tag":"Fashion"},{"id":"post-zara-2","seller":"zara","kind":"photo","image":"fabric","caption":"Mood board from this week's fabric hunt. What would you make with this?","related":null,"tag":"Creative process"},{"id":"post-maya-1","seller":"maya","kind":"photo","image":"photo","caption":"It's not just the camera. It's making people comfortable in front of it.","related":"s-photo","tag":"Photography"},{"id":"post-amara-1","seller":"amara","kind":"photo","image":"food","caption":"Cooking with family today. Good memories start in the kitchen.","related":null,"tag":"Life"},{"id":"post-amara-2","seller":"amara","kind":"photo","image":"meal","caption":"Weekend meal boxes are ready. Ask me anything about the menu.","related":"p-meal","tag":"Food"},{"id":"post-nora-1","seller":"nora","kind":"photo","image":"house","caption":"Small changes, completely different room. Before-and-after inspiration.","related":"s-interior","tag":"Home"},{"id":"post-femi-1","seller":"femi","kind":"photo","image":"style","caption":"Two ways to style pieces you already own.","related":"s-stylist","tag":"Fashion"},{"id":"post-flora-1","seller":"flora","kind":"video","image":"flowers","caption":"The way flowers open always makes me pause for a second.","related":"s-floral","tag":"Creative"},{"id":"post-you-1","seller":"self","kind":"photo","image":"photo","caption":"Learning, creating, and documenting the process. This is a sample post on my Hustle profile.","related":null,"tag":"Everyday"},{"id":"post-you-2","seller":"self","kind":"photo","image":"fashion","caption":"A sample of work I can share with the community.","related":null,"tag":"My work"}].map(p=>({...p,image:pics[p.image]}));
-const signedIn={name:"Your name",handle:"@yourhustle",bio:"A little about you, your interests, and the skills you want to share.",primary:"Your primary skill",secondary:"Your other skills",location:"Lagos, Nigeria",avatar:pics.style,cover:pics.photo,following:83,followers:128};
+const signedIn={interests:[],name:"Your name",handle:"@yourhustle",bio:"A little about you, your interests, and the skills you want to share.",primary:"Your primary skill",secondary:"Your other skills",location:"Lagos, Nigeria",avatar:pics.style,cover:pics.photo,following:83,followers:128};
 const ownSavedPosts=new Set();
 const state={screen:"Home",stack:[],exploreTab:"Top",category:"All",query:"",marketTab:"All",profile:"tobi",profileTab:"Posts",post:"post-tobi-1",postLikes:new Set(),postComments:{},ownTab:"Posts",item:"s-barber",photoIndex:0,thread:"tobi",inboxTab:"All",inboxQuery:"",bookingStep:0,bookingItem:"s-barber",booking:{details:"",location:"",mode:"In person",day:"Tomorrow",time:"11:30 AM"},cart:[],checkoutStep:0,checkoutMethod:"Card",checkout:{name:"",location:"",note:""},follow:new Set(),save:new Set(),variant:{},quantity:{},financeTab:"Overview",draftType:"Post",draftText:"",draftImageSrc:null,draftForms:{},draftFiles:[],draftPostKind:"Photo",draftServiceType:"In person",draftAttach:"",marketSort:"Featured",marketSearch:"",marketSlide:0,liveHubTab:"For You",liveCategory:"All",liveSlideId:null,livePreviewLikes:new Set(),liveSetup:{title:"",category:"Cooking",audience:"Public",offer:"p-meal"},liveComments:[],liveHearts:0,liveGifts:0,liveStarted:false,request:"",postSlide:0};
 const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -97,7 +97,7 @@ function renderOrders(){
 }
 function renderSettings(){
  return `${head("Settings","Your account and app preferences",true)}<div class="hf-page">
- <button class="hf-person" data-hf="own-edit"><span class="hf-person-icon">♙</span><span class="hf-person-data"><b>Edit profile</b><small>Name, bio, skill and location</small></span><span class="hf-chevron">›</span></button>
+ <button class="hf-person" data-hf="own-edit"><span class="hf-person-icon">♙</span><span class="hf-person-data"><b>Edit profile</b><small>Name, username, bio and area</small></span><span class="hf-chevron">›</span></button><button class="hf-person" data-hf="edit-discovery"><span class="hf-person-icon">✳</span><span class="hf-person-data"><b>Skills, interests & area</b><small>Update your primary skill, interests and general location</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="appearance"><span class="hf-person-icon">☾</span><span class="hf-person-data"><b>Appearance</b><small>Toggle light or dark theme</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="notifications"><span class="hf-person-icon">♧</span><span class="hf-person-data"><b>Notifications</b><small>Bookings, escrow, orders & messages</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="auth-start"><span class="hf-person-icon">✳</span><span class="hf-person-data"><b>${window.HustleAuth?.isSignedIn?.()?"Account session / sign out":"Sign in or create account"}</b><small>Connected isolated Hustle identity · no demo OTP</small></span><span class="hf-chevron">›</span></button>
@@ -530,9 +530,9 @@ function renderProfileEdit(){
  const fields=[["Name","name",signedIn.name],["Username","handle",signedIn.handle.replace(/^@/,"")],["Location","location",signedIn.location]];
  return `${head("Edit profile","Connected test account",true)}
  <form class="hf-form" id="hfEditProfileForm">
- <div class="hf-profile-edit-avatar"><img src="${signedIn.avatar}" alt="Sample avatar"><span>Demo avatar · change in the real app</span></div>
- ${fields.map(([label,name,value])=>`<div class="hf-field"><label for="hf-edit-${name}">${label}</label><input id="hf-edit-${name}" name="${name}" value="${esc(value)}" maxlength="70" required></div>`).join("")}
- <div class="hf-field"><label for="hf-edit-bio">Bio</label><textarea id="hf-edit-bio" name="bio" maxlength="250" required>${esc(signedIn.bio)}</textarea></div>
+ <div class="hf-profile-edit-avatar"><img src="${signedIn.avatar}" alt="Your profile photo"><button type="button" data-hf="edit-photo" class="hf-soft-button">Change profile photo</button></div>
+ ${fields.map(([label,name,value])=>`<div class="hf-field"><label for="hf-edit-${name}">${label}</label><input id="hf-edit-${name}" name="${name}" value="${esc(value)}" maxlength="70" ${name==="location"?"":"required"}></div>`).join("")}
+ <div class="hf-field"><label for="hf-edit-bio">Bio</label><textarea id="hf-edit-bio" name="bio" maxlength="250">${esc(signedIn.bio)}</textarea></div>
  <button class="hf-lime-button" type="submit" style="width:100%">Save connected profile →</button>
  <p class="hf-demo-footnote">This form updates your isolated backend identity. Professional skill fields will be connected during a later milestone.</p></form>`;
 }
@@ -669,8 +669,8 @@ function renderOwn(){
  else if(state.ownTab==="Reviews")content='<div class="hf-empty">Reviews from real customers will appear once your account is connected.</div>';
  else {const type=state.ownTab==="Services"?"service":state.ownTab==="Products"?"product":"training";const ownItems=allItems.filter(x=>x.seller==="self"&&x.type===type);content=ownItems.length?`<div class="hf-two">${ownItems.map(listingCard).join("")}</div>`:'<div class="hf-empty">No demo '+type+' listings under your profile yet.</div><button class="hf-lime-button hf-listing-draft" data-hf="create">+ Create listing draft</button>';}
  return `<div class="hf-profile-cover hf-own-cover"><img src="${signedIn.cover}" alt="Sample profile cover"><div class="hf-profile-head"><span>HUSTLE · YOUR PROFILE</span><button data-hf="own-settings" aria-label="Profile settings">⚙</button></div></div>
- <div class="hf-profile-info"><div class="hf-profile-identity"><img src="${signedIn.avatar}" alt="Sample avatar"><div><h2>${esc(signedIn.name)}</h2><small>${esc(signedIn.handle)} · ${esc(signedIn.location)}</small></div></div>
- <p class="hf-profile-bio">${esc(signedIn.bio)}</p><div class="hf-trust"><span>Primary: ${esc(signedIn.primary)}</span><span>Secondary: ${esc(signedIn.secondary)}</span><span>${window.HustleAuth?.getAccount?.()?.capabilities?.some(c=>c.capability==="HUSTLER"&&c.status==="ACTIVE")?"Client + Hustler":window.HustleAuth?.isSignedIn?.()?"Client":"Capability preview"}</span></div>
+ <div class="hf-profile-info"><div class="hf-profile-identity"><img src="${signedIn.avatar}" alt="Your profile photo"><div><h2>${esc(signedIn.name)}</h2><small>${esc(signedIn.handle)} · ${esc(signedIn.location)}</small></div></div>
+ <p class="hf-profile-bio">${esc(signedIn.bio)}</p>${signedIn.interests.length&&window.HustleAuth?.isSignedIn?.()?`<div class="hf-trust" aria-label="Your interests">${signedIn.interests.map(x=>`<span>♡ ${esc(x)}</span>`).join("")}</div>`:""}<div class="hf-trust"><span>Primary: ${esc(signedIn.primary)}</span><span>Secondary: ${esc(signedIn.secondary)}</span><span>${window.HustleAuth?.getAccount?.()?.capabilities?.some(c=>c.capability==="HUSTLER"&&c.status==="ACTIVE")?"Client + Hustler":window.HustleAuth?.isSignedIn?.()?"Client":"Capability preview"}</span></div>
  <div class="hf-profile-metrics"><span><b>${signedIn.followers}</b> sample followers</span><span><b>${signedIn.following}</b> following</span><span><b>${samplePosts.filter(p=>p.seller==="self").length}</b> sample posts</span></div>
  <div class="hf-actions"><button class="hf-lime-button" data-hf="own-edit">Edit profile</button><button class="hf-soft-button" data-hf="create">+ Post</button><button class="hf-soft-button" data-hf="notifications" aria-label="View notifications">♧ Alerts</button></div>
  <div class="hf-auth-entry"><div><b>${window.HustleAuth?.isSignedIn?.()?"Connected Hustle test identity":"Sign in to create your identity"}</b><small>${window.HustleAuth?.isSignedIn?.()?"Your name and username are stored on the isolated backend":"Sample profile only until you sign in"}</small></div><button data-hf="auth-start">${window.HustleAuth?.isSignedIn?.()?"Account →":"Get started →"}</button></div>
@@ -1004,6 +1004,8 @@ layer.addEventListener("click",e=>{
  case "profile":openProfile(id);break;
  case "own":go("OwnProfile");break;
  case "own-edit":if(!window.HustleAuth?.isSignedIn?.()){window.HustleJourneys?.open("Auth");break}push("EditProfile");break;
+ case "edit-photo":if(!window.HustleAuth?.isSignedIn?.()){window.HustleJourneys?.open("Auth");break}window.HustleJourneys?.open("Onboarding",{step:3});break;
+ case "edit-discovery":if(!window.HustleAuth?.isSignedIn?.()){window.HustleJourneys?.open("Auth");break}window.HustleJourneys?.open("Onboarding",{step:4});break;
  case "own-settings":push("Settings");break;
  case "payments":if(window.HustleOperations)window.HustleOperations.open("Wallet");else push("Payments");break;
  case "escrow-demo":window.HustleOperations?.open("NewEscrow");break;
@@ -1174,14 +1176,16 @@ window.HustleFlowsPreview={
   if(!p)return;
   signedIn.name=p.name||signedIn.name;
   signedIn.handle=p.handle?"@"+p.handle.replace(/^@/,""):signedIn.handle;
-  signedIn.primary=p.skill||signedIn.primary;
+  signedIn.primary=p.skill===undefined?signedIn.primary:(p.skill||"Add a primary skill");
   signedIn.location=p.area||signedIn.location;
   signedIn.bio=p.bio||signedIn.bio;
+  signedIn.interests=Array.isArray(p.interests)?p.interests.slice(0,10):signedIn.interests;
+  if(p.avatarUrl&&/^https:\/\//.test(p.avatarUrl))signedIn.avatar=p.avatarUrl;
   if(state.screen==="OwnProfile"||state.screen==="Settings")render();
  },
  clearIdentity:()=>{
   signedIn.name="Your name";signedIn.handle="@yourhustle";
-  signedIn.bio="Sign in to complete your profile";signedIn.location="Lagos, Nigeria";
+  signedIn.bio="Sign in to complete your profile";signedIn.location="Lagos, Nigeria";signedIn.interests=[];signedIn.avatar=pics.style;signedIn.primary="Your primary skill";signedIn.secondary="Your other skills";
   if(state.screen==="OwnProfile"||state.screen==="Settings")render();
  }
 };

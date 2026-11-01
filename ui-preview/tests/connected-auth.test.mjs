@@ -110,7 +110,7 @@ test("The approved UI keeps its original navigation and removes simulated login 
  assert.match(journey,/window.HustleAuth\.update/);
  assert.match(journey,/window.HustleAuth\.exit/);
  assert.doesNotMatch(journey,/get\("otp"\)!=="123456"/);
- assert.match(journey,/state\.onboardStep=1;renderToast/);
+ assert.match(journey,/state\.onboardStep=2;renderToast/);
  assert.match(flows,/window.HustleAuth\.update/);
  assert.match(flows,/HustleAuth\?\.isSignedIn/);
  assert.doesNotMatch(auth,/localStorage|sessionStorage/);

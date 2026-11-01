@@ -11,8 +11,8 @@ const defaults=[
 {id:"n3",type:"Activity",title:"New work from Flora Studio",detail:"See a sample creator post.",time:"1 hr",read:false,route:"Explore"},
 {id:"n4",type:"Orders",title:"Sample order status updated",detail:"Your demo order is ready to review.",time:"Yesterday",read:true,route:"PaymentJourney"},
 {id:"n5",type:"System",title:"Welcome to Hustle",detail:"Discover and connect with skilled people.",time:"Yesterday",read:true,route:"Explore"}];
-const data={notifications:defaults,reports:[],agentInvites:[],waitlists:[],onboarding:{name:"",handle:"",skill:"",secondary:"",area:"",intent:"both",notifications:false},auth:{method:"email",contact:"",mode:"signin",step:0},booking:{category:"barber",basePrice:8000,consultChoice:false,consultPaid:0,consultCredit:0,venue:"At the shop",people:1,fields:{},mediaName:"",slotReserved:false,customQuote:false,stage:"request",service:"Signature haircut",professional:"Tobi Adeyemi",price:8000,requirements:"",location:"",day:"Tomorrow",time:"11:30 AM",mode:"Video call",quoteAccepted:false,paymentConfirmed:false,escrowRef:null,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}],dispute:false,review:0,notes:""},purchase:{item:"Weekend meal box",price:12500,delivery:"Yaba, Lagos",method:"Card",stage:"details",status:"Not placed",reference:""},prefs:{Booking:true,Orders:true,Money:true,Activity:true,System:true}};
-const state={screen:"Splash",stack:[],guest:true,signedIn:false,user:null,authBusy:false,authError:"",authStep:"contact",otp:"",onboardStep:0,notificationFilter:"All",reportSubject:"Post",reportId:"Sample post",reportReason:"Misleading or fraudulent",reportText:"",reportFile:null,reportIdActive:null,agentStep:0,agentMode:"Existing",agentSearch:"",agentSelected:"",agentName:"",agentSkill:"",agentArea:"",agentLanguage:"English",agentHandoff:"In-person handover",agentConsent:false,agentTerms:false,agentInviteId:null,modal:"",info:""};
+const data={notifications:defaults,reports:[],agentInvites:[],waitlists:[],onboarding:{name:"",handle:"",skill:"",secondary:"",interests:[],area:"",avatarUrl:"",intent:"both",notifications:false},auth:{method:"email",contact:"",mode:"signin",step:0},booking:{category:"barber",basePrice:8000,consultChoice:false,consultPaid:0,consultCredit:0,venue:"At the shop",people:1,fields:{},mediaName:"",slotReserved:false,customQuote:false,stage:"request",service:"Signature haircut",professional:"Tobi Adeyemi",price:8000,requirements:"",location:"",day:"Tomorrow",time:"11:30 AM",mode:"Video call",quoteAccepted:false,paymentConfirmed:false,escrowRef:null,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}],dispute:false,review:0,notes:""},purchase:{item:"Weekend meal box",price:12500,delivery:"Yaba, Lagos",method:"Card",stage:"details",status:"Not placed",reference:""},prefs:{Booking:true,Orders:true,Money:true,Activity:true,System:true}};
+const state={screen:"Splash",stack:[],guest:true,signedIn:false,user:null,authBusy:false,authError:"",authStep:"contact",otp:"",onboardStep:0,usernameCheck:null,usernameBusy:false,usernameRequest:0,usernameTimer:null,photoBusy:false,photoPreview:"",photoError:"",skillQuery:"",areaQuery:"",interestsExpanded:false,areaMapVisible:false,locationBusy:false,notificationFilter:"All",reportSubject:"Post",reportId:"Sample post",reportReason:"Misleading or fraudulent",reportText:"",reportFile:null,reportIdActive:null,agentStep:0,agentMode:"Existing",agentSearch:"",agentSelected:"",agentName:"",agentSkill:"",agentArea:"",agentLanguage:"English",agentHandoff:"In-person handover",agentConsent:false,agentTerms:false,agentInviteId:null,modal:"",info:""};
 const steps={BookingJourney:["Request","Consultation","Quote","Payment","Work","Completion","Review"],PaymentJourney:["Details","Review","Payment","Result"],AgentAdd:["Choose","Details","Consent","Invite"]};
 const visual={Booking:"◷",Money:"₦",Activity:"♥",Orders:"▣",System:"✦"};
 function renderToast(msg){const old=root.querySelector(".hj-toast");if(old)old.remove();const t=document.createElement("div");t.className="hj-toast";t.setAttribute("role","status");t.textContent=msg;root.appendChild(t);setTimeout(()=>t.remove(),2200)}
@@ -40,9 +40,9 @@ function screenContent(){
  ? heading("Your Hustle identity","CONNECTED TEST ACCOUNT")+`<div class="hj-page"><h2>You're signed in.</h2><p class="hj-lead">${esc(state.user.name)} · @${esc(state.user.handle)}</p>${button("Continue exploring","close")}${button("Sign out","sign-out","outline")}${info("Your identity is connected to the isolated Hustle backend. Posts, bookings and payments remain demonstrations.")}</div>`
  : heading("Welcome back","SIGN IN OR CREATE ACCOUNT")+`<div class="hj-page"><div class="hj-auth-brand">hustle<span>.</span></div><h2>Continue with less hassle.</h2><p class="hj-lead">One identity to discover, hire and offer skills. Use an invited test email.</p>
  <div class="hj-segment"><button type="button" data-hj="auth-mode" data-value="signin" class="${data.auth.mode==="signin"?"on":""}">Sign in</button><button type="button" data-hj="auth-mode" data-value="signup" class="${data.auth.mode==="signup"?"on":""}">Create account</button></div>
- ${formBody("auth",field("contact","Email address","Invited test email","email",data.auth.contact,'required autocomplete="email"')+field("password","Test password","At least 12 characters","password","",'required minlength="12" maxlength="128" autocomplete="'+(data.auth.mode==="signup"?"new-password":"current-password")+'"'),state.authBusy?"Checking…":data.auth.mode==="signup"?"Create test account →":"Sign in →")}
+ ${formBody("auth",field("contact","Email address","Invited test email","email",data.auth.contact,'required autocomplete="email"')+field("password","Test password","At least 12 characters","password","",'required minlength="12" maxlength="128" autocomplete="'+(data.auth.mode==="signup"?"new-password":"current-password")+'"')+button("Show / hide password","auth-password-visibility","link"),state.authBusy?"Checking…":data.auth.mode==="signup"?"Create test account →":"Sign in →")}
  ${state.authError?'<div role="alert" class="hj-info">'+esc(state.authError)+'</div>':""}
- <div class="hj-auth-alternatives">${button("Explore as guest","guest","outline")}</div>
+ <div class="hj-auth-alternatives"><p class="hj-social-divider">or continue with</p><button class="hj-social-btn" type="button" disabled aria-label="Google sign in not enabled for isolated testing">◉ Continue with Google · Not enabled</button><button class="hj-social-btn" type="button" disabled aria-label="Apple sign in not enabled for isolated testing">● Continue with Apple · Not enabled</button>${button("Continue as guest","guest","outline")}<p class="hj-auth-password-help">Forgot password? Email recovery is not configured for this private test.</p></div>
  ${info("Connected test login · No demonstration OTP. Do not reuse a real password. Phone verification follows in a future milestone.")}</div>`;
 case "Verify":return heading("Test authentication","EMAIL SIGN-IN")+`<div class="hj-page"><p class="hj-lead">Demonstration one-time codes are not valid authentication.</p>${button("Use invited email","auth-start")}</div>`;
   case "Onboarding":return renderOnboarding();
@@ -63,12 +63,16 @@ function renderOnboarding(){
  const i=state.onboardStep,o=data.onboarding;
  let body="";
  if(i===0){body=`<div class="hj-select-cards">${[["both","Discover and share skills","Hire people and offer your own skills","✳"],["hire","I'm here to hire","Find creators and skilled professionals","⌕"],["offer","I'm here to offer a skill","Build a profile and get discovered","✂"]].map(([v,title,subtitle,icon])=>`<button type="button" data-hj="intent" data-value="${v}" class="${o.intent===v?"selected":""}"><span>${icon}</span><div><b>${title}</b><small>${subtitle}</small></div><i>${o.intent===v?"✓":"○"}</i></button>`).join("")}</div>`}
- else if(i===1){body=field("name","What should people call you?","Your display name","text",o.name,'required maxlength="60" autocomplete="name"')+field("handle","Choose a username","yourhandle","text",o.handle,'required minlength="3" maxlength="25" pattern="[a-zA-Z0-9._]+"')}
- else if(i===2){body=field("skill","Primary skill or interest","e.g. Barbering, Fashion, Cooking","text",o.skill,'maxlength="60"')+field("area","Area (optional)","e.g. Yaba, Lagos","text",o.area,'maxlength="90"')+info("Skills and location can be changed later. Your precise location is never requested during onboarding.")}
+ else if(i===1){body=field("name","Your display name","What should people call you?","text",o.name,'required maxlength="60" autocomplete="name"')+info("Your name can be changed later. It does not need to be unique.")}
+ else if(i===2){body=window.HustleIdentityUI?.username(o.name,o.handle,state.usernameCheck,state.usernameBusy)||info("Username picker unavailable. Try again.")}
+ else if(i===3){body=window.HustleIdentityUI?.photo(state.photoPreview||o.avatarUrl,!!o.avatarUrl,state.photoBusy,state.photoError)||info("Photo picker unavailable. Try again.")}
+ else if(i===4){body=window.HustleOnboardingUI?.skills(o.skill,state.skillQuery)||info("Skill list unavailable. Try again.")}
+ else if(i===5){body=window.HustleOnboardingUI?.interests(o.interests,state.interestsExpanded)||info("Interests unavailable. Try again.")}
+ else if(i===6){body=window.HustleOnboardingUI?.area(o.area,state.areaQuery,state.areaMapVisible)||info("Area list unavailable. Try again.")}
  else{body=`<div class="hj-finish"><span>✦</span><h2>You're ready to explore.</h2><p>Follow inspiring creators, search nearby skills and begin your Hustle journey.</p></div>
  <label class="hj-check"><input name="updates" type="checkbox" ${o.notifications?"checked":""}> <span>Show me notifications about bookings and messages later (optional)</span></label>${o.intent!=="hire"?`<div class="hj-business-invite"><span>✳</span><div><b>Want customers to book your skills?</b><small>Complete your identity first. Professional verification and service setup will be connected separately.</small></div></div>`:""}`}
- return heading("Make it yours","A FEW EASY STEPS")+`<div class="hj-page hj-onboard">${progress(["Goal","About you","Your interests","Ready"],i)}<h2>${["What brings you here?","Let's introduce you.","Find your community.","You're all set."][i]}</h2><p class="hj-lead">${["You can always do both. This just tunes the suggestions.","A name and username create your Hustle identity.","Optional now—personalize over time.","Everything can be changed in your profile."][i]}</p>
- ${formBody("onboard",body,i===3?"Enter Hustle →":"Continue →",i>0?"onboard-back":"")}${(i===0||i===2)?button("Skip for now","onboard-skip","link"):""}</div>`;
+ return heading("Make it yours","A FEW EASY STEPS")+`<div class="hj-page hj-onboard">${progress(["Goal","Display name","Username","Photo","Skill","Interests","Area","Ready"],i)}<h2>${["What brings you here?","Set up your profile.","Choose your username.","A face to your name.","What can you do?","What are you into?","Where should we look?","You’re all set."][i]}</h2><p class="hj-lead">${["Choose how you want to begin.","Add the name people will see.","Your unique @handle on Hustle.","Add a photo or skip.","Primary skill is separate from your interests.","Choose topics you enjoy.","Pick a general area, not your precise address.","Everything can be changed later."][i]}</p>
+ ${formBody("onboard",body,i===7?"Enter Hustle →":"Continue →",i>0?"onboard-back":"")}${[0,3,4,5,6].includes(i)?button("Skip for now","onboard-skip","link"):""}</div>`;
 }
 function renderNotifications(){
  const types=["All","Booking","Money","Orders","Activity","System"],all=data.notifications.filter(n=>state.notificationFilter==="All"||n.type===state.notificationFilter);
@@ -415,6 +419,7 @@ function clearUnpaidReservation(){
 function open(screen="Welcome",opts={}){
  if(screen==="BookingJourney"){clearUnpaidReservation();clearBookingMedia()}
  if(screen==="Splash")state.guest=true;
+ if(screen==="Onboarding"&&state.signedIn)state.onboardStep=Math.min(7,Math.max(0,Number(opts.step)||0));
  if(screen==="Report"){state.reportSubject=opts.subject||"Content";state.reportId=opts.id||"Sample content";state.reportText="";state.reportReason="Misleading or fraudulent"}
  if(screen==="BookingJourney"){const service=opts.service||data.booking.service,pol=window.HustleBookingRules?.getForService(service,opts.category,opts.professional||data.booking.professional);const price=Number(opts.price)||pol?.basePrice||8000;data.booking={...data.booking,category:pol?.id||"generic",policy:pol?{...pol,fields:pol.fields.map(x=>x.slice()),locationModes:pol.locationModes.slice()}:null,service,professional:opts.professional||data.booking.professional,adaptiveRef:uid("HAB"),basePrice:price,price,stage:"request",fields:{},requirements:"",venue:pol?.locationModes?.[0]||"At provider",people:1,day:localISO(1),time:"1:00 PM – 2:00 PM",consultChoice:pol?.consultation==="required",consultPaid:0,consultCredit:0,customQuote:false,intake:"",returnMethod:"",measurementMethod:"",handoffAddress:"",readyDate:"",readyTime:pol?.readyTime||"17:00",jobStatus:"awaiting_handoff",mediaName:"",mediaType:"",mediaUrl:"",quoteLines:null,slotReserved:false,slotPlan:null,reservedUnits:0,quoteAccepted:false,paymentConfirmed:false,escrowRef:null,dispute:false,review:0,milestones:[{title:"Planning & preparation",fraction:.4,state:"Held"},{title:"Work completion",fraction:.6,state:"Held"}]}}
  if(screen==="PaymentJourney"&&opts.item){data.purchase={...data.purchase,item:opts.item,price:Number(opts.price)||data.purchase.price,method:opts.method||data.purchase.method,delivery:opts.delivery||data.purchase.delivery,stage:"details",status:"Not placed"}}
@@ -425,6 +430,32 @@ function go(screen){state.stack.push(state.screen);state.screen=screen;state.mod
 function back(){if(state.modal){state.modal="";render();return}if(state.stack.length){state.screen=state.stack.pop();render()}else close()}
 function close(){if(state.screen==="BookingJourney"){clearUnpaidReservation();clearBookingMedia()}root.hidden=true;root.innerHTML="";phone.classList.remove("hj-open");state.stack=[];state.modal=""}
 function addNotice(type,title,detail,route){data.notifications.unshift({id:uid("n"),type,title,detail,time:"Now",read:false,route})}
+function checkUsernameSoon(value){
+ const normalized=String(value||"").trim().toLowerCase();
+ data.onboarding.handle=normalized;
+ state.usernameRequest++;
+ const version=state.usernameRequest;
+ if(state.usernameTimer)clearTimeout(state.usernameTimer);
+ state.usernameCheck=null;
+ state.usernameBusy=!!window.HustleAccountSetup?.valid(normalized);
+ const status=root.querySelector("#hjUsernameStatus");
+ if(status)status.textContent=state.usernameBusy?"Checking availability…":"Use 3–30 letters, numbers, dots or underscores";
+ if(!state.usernameBusy)return;
+ state.usernameTimer=setTimeout(async()=>{
+  try{
+   const checked=await window.HustleAuth.usernameAvailability(normalized);
+   if(version!==state.usernameRequest||state.screen!=="Onboarding"||state.onboardStep!==2)return;
+   state.usernameCheck=checked;
+   const el=root.querySelector("#hjUsernameStatus");
+   if(el){el.textContent=checked.available?"✓ Username available":checked.reason==="invalid"?"Reserved or invalid username":"That username is taken";
+    el.className="hj-username-status "+(checked.available?"available":"unavailable");}
+  }catch(error){
+   if(version!==state.usernameRequest)return;
+   const el=root.querySelector("#hjUsernameStatus");
+   if(el){el.textContent="Availability unavailable. Check your connection.";el.className="hj-username-status unavailable";}
+  }finally{if(version===state.usernameRequest)state.usernameBusy=false}
+ },380);
+}
 function onAction(action,value="",id=""){
  switch(action){
  case "close":close();break;case "back":back();break;
@@ -434,9 +465,48 @@ function onAction(action,value="",id=""){
   case "auth-method":data.auth.method="email";render();break;
   case "sign-out":void (async()=>{try{await window.HustleAuth.exit();state.signedIn=false;state.guest=true;state.user=null;window.HustleFlowsPreview?.clearIdentity?.();state.screen="Auth";render();}catch(e){state.authError=e.message||"Could not sign out";render();}})();break;
  case "onboard-back":state.onboardStep=Math.max(0,state.onboardStep-1);render();break;
- case "onboard-skip":if(state.onboardStep!==1)state.onboardStep=Math.min(3,state.onboardStep+1);render();break;
- case "onboard-business":if(state.onboardStep===3)finishOnboarding(true);break;
+ case "onboard-skip":if(![1,2].includes(state.onboardStep))state.onboardStep=Math.min(7,state.onboardStep+1);render();break;
+ case "onboard-business":if(state.onboardStep===7)finishOnboarding(true);break;
  case "intent":data.onboarding.intent=value;render();break;
+ case "username-suggest":data.onboarding.handle=String(value||"").toLowerCase();state.usernameCheck=null;render();checkUsernameSoon(data.onboarding.handle);break;
+ case "auth-password-visibility":{const password=root.querySelector("#hj-password");if(password){password.type=password.type==="password"?"text":"password";}break;}
+
+ case "skill-select":{
+  if(!window.HustleOnboardingPickers?.bySkill(value))break;
+  data.onboarding.skill=value;state.skillQuery=value;render();break
+ }
+ case "skill-clear":data.onboarding.skill="";state.skillQuery="";render();break;
+ case "interest-toggle":{
+  if(!window.HustleOnboardingPickers?.interests.some(x=>x.name===value))break;
+  const old=data.onboarding.interests,selected=old.includes(value);
+  if(!selected&&old.length>=10){renderToast("You can choose up to 10 interests");break}
+  data.onboarding.interests=selected?old.filter(x=>x!==value):[...old,value];
+  const y=root.scrollTop;render();root.scrollTop=y;break
+ }
+ case "interest-show-all":state.interestsExpanded=!state.interestsExpanded;{const y=root.scrollTop;render();root.scrollTop=y;}break;
+ case "area-select":{
+  const candidate=String(value||"").trim();
+  if(candidate.length<3||candidate.length>100||!(/^[\p{L}\p{N} ,.'()/-]+$/u.test(candidate)))break;
+  data.onboarding.area=candidate;state.areaQuery=candidate;state.areaMapVisible=false;render();break
+ }
+ case "area-clear":data.onboarding.area="";state.areaQuery="";state.areaMapVisible=false;render();break;
+ case "area-map-toggle":if(data.onboarding.area){state.areaMapVisible=!state.areaMapVisible;render();}break;
+ case "area-geolocate":{
+  if(state.locationBusy)break;
+  if(!navigator.geolocation){renderToast("Location unavailable. Search your area instead.");break}
+  state.locationBusy=true;
+  navigator.geolocation.getCurrentPosition(
+   pos=>{
+    state.locationBusy=false;
+    const area=window.HustleOnboardingPickers?.approximateArea(pos.coords.latitude,pos.coords.longitude);
+    if(area){data.onboarding.area=area.label;state.areaQuery=area.label;state.areaMapVisible=false;render();renderToast("Nearby general area selected. You can change it.");}
+    else renderToast("No nearby suggested area. Search your city manually.");
+   },
+   ()=>{state.locationBusy=false;renderToast("Location not shared. Search your area instead.");},
+   {enableHighAccuracy:false,timeout:9000,maximumAge:60000}
+  );break
+ }
+
  case "notification-tab":state.notificationFilter=value;render();break;
  case "notification-settings":go("NotificationSettings");break;
  case "notifications":go("Notifications");break;
@@ -522,22 +592,26 @@ function applyAccount(account){
  if(!account)return;
  state.guest=false;state.signedIn=true;
  state.user={name:account.displayName||account.email||"Hustle user",
-  handle:account.username||"",area:account.location||"",bio:account.bio||""};
+  handle:account.username||"",area:account.location||"",bio:account.bio||"",avatarUrl:account.avatarUrl||"",skill:account.primarySkill||"",interests:Array.isArray(account.interests)?account.interests:[]};
  data.onboarding.name=account.displayName||"";
  data.onboarding.handle=account.username||"";
  data.onboarding.area=account.location||"";
+ data.onboarding.skill=account.primarySkill||"";
+ data.onboarding.interests=Array.isArray(account.interests)?account.interests.slice(0,10):[];
+ data.onboarding.avatarUrl=account.avatarUrl||"";
  window.HustleFlowsPreview?.updateDemoUser?.({...state.user});
 }
 async function finishOnboarding(openBusiness=false,form=null){
  if(state.authBusy)return;
- if(!data.onboarding.name.trim()||!/^[a-zA-Z0-9._]{3,25}$/.test(data.onboarding.handle.trim())){
-  state.onboardStep=1;renderToast("Choose your name and a valid username");render();return;
+ if(!data.onboarding.name.trim()||!window.HustleAccountSetup?.valid(data.onboarding.handle.trim().toLowerCase())){
+  state.onboardStep=2;renderToast("Choose your name and a valid username");render();return;
  }
  state.authBusy=true;
  try{
   const account=await window.HustleAuth.update({
    displayName:data.onboarding.name.trim(),username:data.onboarding.handle.trim(),
-   location:data.onboarding.area.trim(),bio:""
+   location:data.onboarding.area.trim(),primarySkill:data.onboarding.skill||"",
+   interests:data.onboarding.interests,bio:state.user?.bio||""
   });
   applyAccount(account);rememberIntro();close();
   if(openBusiness)renderToast("Professional verification will be integrated separately.");
@@ -565,9 +639,14 @@ async function onSubmit(name,form){
 }
 if(name==="verify"){state.screen="Auth";render();return;}
 if(name==="onboard"){const i=state.onboardStep;
- if(i===1){data.onboarding.name=get("name");data.onboarding.handle=get("handle");if(!data.onboarding.name){renderToast("A display name is needed");return}}
- if(i===2){data.onboarding.skill=get("skill");data.onboarding.area=get("area")}
- if(i===3){await finishOnboarding(false,form);return}
+ if(i===1){data.onboarding.name=get("name");if(!data.onboarding.name){renderToast("A display name is needed");return}}
+ if(i===2){data.onboarding.handle=get("handle").toLowerCase();
+  if(!window.HustleAccountSetup?.valid(data.onboarding.handle)){renderToast("Choose a valid username");return}
+  try{const result=await window.HustleAuth.usernameAvailability(data.onboarding.handle);state.usernameCheck=result;
+   if(!result.available){renderToast("Username unavailable. Try another.");render();return}}
+  catch(error){renderToast(error.message||"Could not check username");return}}
+ if(i===4&&data.onboarding.skill&&!window.HustleOnboardingPickers?.bySkill(data.onboarding.skill)){renderToast("Choose a listed skill");return}
+ if(i===7){await finishOnboarding(false,form);return}
  state.onboardStep++;render();return}
  if(name==="report"){state.reportReason=get("reason");state.reportText=get("reportDetails");state.modal="report-confirm";render();return}
  if(name==="booking-request"){const b=data.booking,p=policyFor();b.fields={};for(const [key] of p.fields)b.fields[key]=get(key);
@@ -592,8 +671,36 @@ if(name==="onboard"){const i=state.onboardStep;
 }
 root.addEventListener("click",e=>{const target=e.target.closest("[data-hj]");if(!target||!root.contains(target))return;if(target.type==="submit")return;e.preventDefault();onAction(target.dataset.hj,target.dataset.value,target.dataset.id)});
 root.addEventListener("submit",e=>{const f=e.target;if(!f.dataset.hjForm)return;e.preventDefault();onSubmit(f.dataset.hjForm,f)});
-root.addEventListener("input",e=>{if(e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
-root.addEventListener("change",e=>{if(e.target.id==="hj-day"||e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-bookingMedia"){const file=e.target.files?.[0];if(file){if(!/^(image|video)\//.test(file.type)||file.size>15*1024*1024){renderToast("Select a photo or video under 15 MB");e.target.value="";return}clearBookingMedia();data.booking.mediaName=file.name;data.booking.mediaType=file.type;try{data.booking.mediaUrl=window.URL?.createObjectURL?.(file)||""}catch(e){data.booking.mediaUrl=""}showBookingMedia();renderToast("Reference selected locally · not uploaded")}}if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
+root.addEventListener("input",e=>{
+ if(e.target.id==="hj-handle"){checkUsernameSoon(e.target.value);return;}
+
+ if(e.target.id==="hj-skill-query"){
+  state.skillQuery=e.target.value;
+  const list=root.querySelector("#hjSkillResults");if(list)list.innerHTML=window.HustleOnboardingUI?.skillsList(state.skillQuery)||"";return
+ }
+ if(e.target.id==="hj-area-query"){
+  state.areaQuery=e.target.value;
+  const list=root.querySelector("#hjAreaResults");if(list)list.innerHTML=window.HustleOnboardingUI?.areaResults(state.areaQuery)||"";return
+ }
+ if(e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
+root.addEventListener("change",e=>{
+ if(e.target.id==="hjAvatarFile"){
+  const file=e.target.files?.[0];if(!file)return;
+  if(state.photoBusy)return;
+  if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>12*1024*1024){state.photoError="Choose JPG, PNG or WebP under 12 MB.";render();return;}
+  state.photoBusy=true;state.photoError="";
+  if(state.photoPreview?.startsWith("blob:"))URL.revokeObjectURL(state.photoPreview);
+  state.photoPreview=URL.createObjectURL(file);render();
+  void (async()=>{try{
+   const account=await window.HustleAuth.uploadAvatar(file);
+   data.onboarding.avatarUrl=account.avatarUrl||"";
+   if(state.photoPreview?.startsWith("blob:"))URL.revokeObjectURL(state.photoPreview);
+   state.photoPreview="";
+  }catch(error){state.photoError=error.message||"Photo not saved. You may skip for now.";}
+  finally{state.photoBusy=false;if(state.screen==="Onboarding"&&state.onboardStep===3)render();}
+  })();return;
+ }
+if(e.target.id==="hj-day"||e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-bookingMedia"){const file=e.target.files?.[0];if(file){if(!/^(image|video)\//.test(file.type)||file.size>15*1024*1024){renderToast("Select a photo or video under 15 MB");e.target.value="";return}clearBookingMedia();data.booking.mediaName=file.name;data.booking.mediaType=file.type;try{data.booking.mediaUrl=window.URL?.createObjectURL?.(file)||""}catch(e){data.booking.mediaUrl=""}showBookingMedia();renderToast("Reference selected locally · not uploaded")}}if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
 function updateReportStatus(id,status){
  const report=data.reports.find(x=>x.id===id);if(!report)return false;
  report.status=status;addNotice("System","Report review updated · demo",id+" · "+status,"Explore");
