@@ -86,7 +86,7 @@ test("V1 onboarding has eight distinct steps, server persistence and no silent G
  const flows=source("../dist/hustle-flows.js");
  assert.ok(html.indexOf("hustle-onboarding-pickers.js")<html.indexOf("hustle-onboarding-ui.js"));
  assert.ok(html.indexOf("hustle-onboarding-ui.js")<html.indexOf("hustle-journeys.js"));
- assert.match(journey,/\["Goal","About you","Your skill","Interests","Area","Ready"\]/);
+ assert.match(journey,/\["Goal","Display name","Username","Photo","Skill","Interests","Area","Ready"\]/);
  assert.match(journey,/window\.HustleOnboardingUI\?\.skills/);
  assert.match(journey,/window\.HustleOnboardingUI\?\.interests/);
  assert.match(journey,/window\.HustleOnboardingUI\?\.area/);
