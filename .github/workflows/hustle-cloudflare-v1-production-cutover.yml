@@ -1,0 +1,94 @@
+name: Hustle Cloudflare V1 to AWS Production (manual protected)
+on:
+  workflow_dispatch:
+    inputs:
+      authorize_public_cutover:
+        type: choice
+        required: true
+        options: [DO_NOT_DEPLOY, I_AUTHORIZE_PUBLIC_AWS_PRODUCTION_CUTOVER]
+        default: DO_NOT_DEPLOY
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: hustle-cloudflare-v1-public-cutover
+  cancel-in-progress: false
+jobs:
+  cutover:
+    if: >-
+      github.repository == 'realxpen/hustle-economy-of-you' &&
+      github.ref == 'refs/heads/preview/hustle-v1-posts-stories' &&
+      inputs.authorize_public_cutover == 'I_AUTHORIZE_PUBLIC_AWS_PRODUCTION_CUTOVER'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: hustle-cloudflare-production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Test exact founder-approved UI and production gateway
+        run: |
+          node --check ui-preview/worker.mjs
+          node --check ui-preview/production-gateway.mjs
+          node --test ui-preview/tests/production-gateway.test.mjs
+          node scripts/qa/production-aws-ui-contract.cjs
+      - name: Assume narrowly scoped AWS production release role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::707859598737:role/hustle-github-production-deployer
+          aws-region: eu-west-2
+          role-session-name: hustle-cloudflare-prod-check
+      - name: Verify AWS production API and access-denial before touching Cloudflare
+        run: |
+          set -euo pipefail
+          test "$(aws sts get-caller-identity --query Account --output text)" = 707859598737
+          test "$(aws lambda get-function-configuration --function-name hustle-production-api --query State --output text)" = Active
+          URL="$(aws lambda get-function-url-config --function-name hustle-production-api --query FunctionUrl --output text)"
+          URL_NO_SLASH="$(printf '%s' "$URL" | sed 's:/$::')"
+          URL_NO_SLASH="$URL_NO_SLASH" node -e 'if(!/^https:\/\/[a-z0-9]{10,64}\.lambda-url\.eu-west-2\.on\.aws$/.test(process.env.URL_NO_SLASH))process.exit(1)'
+          curl --fail --silent --show-error --max-time 25 "$URL"api/v1/health >/dev/null
+          STATUS="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 "$URL"api/v1/auth/me)"
+          test "$STATUS" = 401
+          echo "PROD_API_ORIGIN=$URL_NO_SLASH" >> "$GITHUB_ENV"
+      - name: Verify production Supabase and required Cloudflare credentials
+        env:
+          HUSTLE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.HUSTLE_SUPABASE_PUBLISHABLE_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$HUSTLE_SUPABASE_PUBLISHABLE_KEY"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          curl --fail --silent --show-error --max-time 20 \
+            https://pfgarmyygybmhiiuopym.supabase.co/auth/v1/health >/dev/null
+      - name: Deploy existing V1 UI with AWS production connection
+        env:
+          HUSTLE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.HUSTLE_SUPABASE_PUBLISHABLE_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npm ci --include=dev
+          npx wrangler deploy --config ui-preview/wrangler.production.jsonc \
+            --var HUSTLE_UI_API_MODE:aws-production \
+            --var "HUSTLE_PRODUCTION_API_ORIGIN:$PROD_API_ORIGIN" \
+            --var "HUSTLE_SUPABASE_PUBLISHABLE_KEY:$HUSTLE_SUPABASE_PUBLISHABLE_KEY"
+      - name: Confirm live Cloudflare guest session and denied finance endpoints
+        run: |
+          set -euo pipefail
+          SITE=https://hustle-economy-of-you.realxpens.workers.dev
+          for attempt in 1 2 3 4 5; do
+            CODE="$(curl -sS --max-time 20 -o /tmp/hustle-session.json -w '%{http_code}' "$SITE/api/preview/auth/session")"
+            if [ "$CODE" = 200 ]; then break; fi
+            if [ "$attempt" = 5 ]; then exit 1; fi
+            sleep 3
+          done
+          node -e 'const x=JSON.parse(require("fs").readFileSync("/tmp/hustle-session.json","utf8"));if(x.authenticated!==false)process.exit(1)'
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "$SITE/api/preview/escrow")" = 404
+          curl --fail --silent --show-error "$SITE/" >/dev/null
+          echo 'PASS: same V1 site; AWS production session; no finance route.'

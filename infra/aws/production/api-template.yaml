@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Hustle production NestJS API on AWS Lambda; no automatic traffic cutover or finance activation.
+Parameters:
+  ImageUri:
+    Type: String
+    AllowedPattern: '^707859598737[.]dkr[.]ecr[.]eu-west-2[.]amazonaws[.]com/hustle-production-api@sha256:[0-9a-f]{64}$'
+    Description: Reviewed immutable ECR digest; NEVER staging images.
+  ProductionSecretArn:
+    Type: String
+    AllowedPattern: '^arn:aws:secretsmanager:eu-west-2:707859598737:secret:hustle-production-api-credentials-[A-Za-z0-9]+$'
+    Description: Dedicated production-only database and Supabase public Auth configuration.
+Resources:
+  ApiLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/hustle-production-api
+      RetentionInDays: 14
+  ApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: hustle-production-api-execution
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: hustle-production-logs-only
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: arn:aws:logs:eu-west-2:707859598737:log-group:/aws/lambda/hustle-production-api:*
+  Api:
+    Type: AWS::Lambda::Function
+    DependsOn: ApiLogs
+    Properties:
+      FunctionName: hustle-production-api
+      Description: Production API, Cloudflare first-party gateway; financial providers remain disabled.
+      PackageType: Image
+      Code:
+        ImageUri: !Ref ImageUri
+      Role: !GetAtt ApiRole.Arn
+      Architectures: [x86_64]
+      MemorySize: 1024
+      Timeout: 28
+      Environment:
+        Variables:
+          NODE_ENV: production
+          PORT: '8080'
+          AWS_LWA_PORT: '8080'
+          AWS_LWA_READINESS_CHECK_PATH: /api/v1/health
+          HUSTLE_RUNTIME_SCOPE: production
+          HUSTLE_FINANCIAL_PROVIDERS_ENABLED: 'false'
+          HUSTLE_SANDBOX_FINANCIAL_TESTS_ENABLED: 'false'
+          HUSTLE_ADAPTIVE_CORE_ENABLED: 'false'
+          EXPO_PUBLIC_HUSTLE_ENABLE_BOOKING_REQUESTS: 'false'
+          WEB_ORIGIN: https://hustle-economy-of-you.realxpens.workers.dev
+          DATABASE_URL: !Sub '{{resolve:secretsmanager:${ProductionSecretArn}:SecretString:DATABASE_URL}}'
+          SUPABASE_URL: !Sub '{{resolve:secretsmanager:${ProductionSecretArn}:SecretString:SUPABASE_URL}}'
+          SUPABASE_PUBLISHABLE_KEY: !Sub '{{resolve:secretsmanager:${ProductionSecretArn}:SecretString:SUPABASE_PUBLISHABLE_KEY}}'
+  ApiUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt Api.Arn
+      AuthType: NONE
+      InvokeMode: BUFFERED
+      Cors:
+        AllowOrigins:
+          - https://hustle-economy-of-you.realxpens.workers.dev
+        AllowMethods: [GET, POST, PATCH]
+        AllowHeaders: [authorization, content-type]
+        AllowCredentials: false
+  ApiFunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Api
+      Principal: '*'
+      Action: lambda:InvokeFunctionUrl
+      FunctionUrlAuthType: NONE
+  ApiInvokeViaFunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Api
+      Principal: '*'
+      Action: lambda:InvokeFunction
+      InvokedViaFunctionUrl: true
+Outputs:
+  ProductionApiOrigin:
+    Value: !GetAtt ApiUrl.FunctionUrl
+    Description: Set Cloudflare HUSTLE_PRODUCTION_API_ORIGIN only after release tests; remove trailing slash.
+  ProductionApiFunction:
+    Value: !Ref Api

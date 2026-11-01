@@ -1,3 +1,4 @@
+import { handleProductionApi } from "./production-gateway.mjs";
 // Hustle isolated test account bridge. This Worker never proxies arbitrary APIs.
 const API="https://hustle-isolated-staging-api.vercel.app";
 const paths=new Map([
@@ -54,6 +55,10 @@ function text(v,min,max){return typeof v==="string"&&v.trim().length>=min&&v.tri
 export default {async fetch(req,env){
  const url=new URL(req.url),route=req.method+" "+url.pathname;
  if(!url.pathname.startsWith("/api/preview/"))return env.ASSETS.fetch(req);
+ // The production path cannot silently fall back to the older Vercel test API.
+ if(env.HUSTLE_UI_API_MODE==="aws-production")return handleProductionApi(req,env);
+ if(env.HUSTLE_UI_API_MODE && env.HUSTLE_UI_API_MODE!=="isolated-staging")
+   return send({message:"Unsupported API runtime"},503);
  if(env.HUSTLE_PREVIEW_AUTH_GATE!=="isolated-staging")return send({message:"Preview backend disabled"},404);
  const avatarRead=req.method==="GET"&&/^\/api\/preview\/avatar\/[0-9a-f-]{36}\.webp$/.test(url.pathname);
  const avatarUpload=route==="POST /api/preview/account/avatar";
