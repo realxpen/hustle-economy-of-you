@@ -121,3 +121,5 @@ and assigned staff once the business has set them.
 haircuts; separate service duration, staggering and per-attendee pricing need additional
 explicit business terms and consent. No migration, deployment or payment operation is
 authorized by this feature branch.
+
+**Activation safety:** Do not disable `HUSTLE_ADAPTIVE_CORE_ENABLED` or remove group tables while any group bookings remain active. Disabling a business roster while the feature remains enabled closes group availability and flags affected reservations, but disabling the global feature would intentionally remove optional-table reads, so activation/reversal requires an explicit outstanding-booking drain and reviewed migration procedure.
