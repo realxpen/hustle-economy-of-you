@@ -430,6 +430,32 @@ function go(screen){state.stack.push(state.screen);state.screen=screen;state.mod
 function back(){if(state.modal){state.modal="";render();return}if(state.stack.length){state.screen=state.stack.pop();render()}else close()}
 function close(){if(state.screen==="BookingJourney"){clearUnpaidReservation();clearBookingMedia()}root.hidden=true;root.innerHTML="";phone.classList.remove("hj-open");state.stack=[];state.modal=""}
 function addNotice(type,title,detail,route){data.notifications.unshift({id:uid("n"),type,title,detail,time:"Now",read:false,route})}
+function checkUsernameSoon(value){
+ const normalized=String(value||"").trim().toLowerCase();
+ data.onboarding.handle=normalized;
+ state.usernameRequest++;
+ const version=state.usernameRequest;
+ if(state.usernameTimer)clearTimeout(state.usernameTimer);
+ state.usernameCheck=null;
+ state.usernameBusy=!!window.HustleAccountSetup?.valid(normalized);
+ const status=root.querySelector("#hjUsernameStatus");
+ if(status)status.textContent=state.usernameBusy?"Checking availability…":"Use 3–30 letters, numbers, dots or underscores";
+ if(!state.usernameBusy)return;
+ state.usernameTimer=setTimeout(async()=>{
+  try{
+   const checked=await window.HustleAuth.usernameAvailability(normalized);
+   if(version!==state.usernameRequest||state.screen!=="Onboarding"||state.onboardStep!==2)return;
+   state.usernameCheck=checked;
+   const el=root.querySelector("#hjUsernameStatus");
+   if(el){el.textContent=checked.available?"✓ Username available":checked.reason==="invalid"?"Reserved or invalid username":"That username is taken";
+    el.className="hj-username-status "+(checked.available?"available":"unavailable");}
+  }catch(error){
+   if(version!==state.usernameRequest)return;
+   const el=root.querySelector("#hjUsernameStatus");
+   if(el){el.textContent="Availability unavailable. Check your connection.";el.className="hj-username-status unavailable";}
+  }finally{if(version===state.usernameRequest)state.usernameBusy=false}
+ },380);
+}
 function onAction(action,value="",id=""){
  switch(action){
  case "close":close();break;case "back":back();break;
@@ -442,6 +468,9 @@ function onAction(action,value="",id=""){
  case "onboard-skip":if(![1,2].includes(state.onboardStep))state.onboardStep=Math.min(7,state.onboardStep+1);render();break;
  case "onboard-business":if(state.onboardStep===7)finishOnboarding(true);break;
  case "intent":data.onboarding.intent=value;render();break;
+ case "username-suggest":data.onboarding.handle=String(value||"").toLowerCase();state.usernameCheck=null;render();checkUsernameSoon(data.onboarding.handle);break;
+ case "auth-password-visibility":{const password=root.querySelector("#hj-password");if(password){password.type=password.type==="password"?"text":"password";}break;}
+
  case "skill-select":{
   if(!window.HustleOnboardingPickers?.bySkill(value))break;
   data.onboarding.skill=value;state.skillQuery=value;render();break
@@ -643,6 +672,8 @@ if(name==="onboard"){const i=state.onboardStep;
 root.addEventListener("click",e=>{const target=e.target.closest("[data-hj]");if(!target||!root.contains(target))return;if(target.type==="submit")return;e.preventDefault();onAction(target.dataset.hj,target.dataset.value,target.dataset.id)});
 root.addEventListener("submit",e=>{const f=e.target;if(!f.dataset.hjForm)return;e.preventDefault();onSubmit(f.dataset.hjForm,f)});
 root.addEventListener("input",e=>{
+ if(e.target.id==="hj-handle"){checkUsernameSoon(e.target.value);return;}
+
  if(e.target.id==="hj-skill-query"){
   state.skillQuery=e.target.value;
   const list=root.querySelector("#hjSkillResults");if(list)list.innerHTML=window.HustleOnboardingUI?.skillsList(state.skillQuery)||"";return
@@ -652,7 +683,24 @@ root.addEventListener("input",e=>{
   const list=root.querySelector("#hjAreaResults");if(list)list.innerHTML=window.HustleOnboardingUI?.areaResults(state.areaQuery)||"";return
  }
  if(e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-agentSearch"){state.agentSearch=e.target.value;const results=root.querySelector("#hjAgentResults");if(results)results.innerHTML=agentSearchResults()}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
-root.addEventListener("change",e=>{if(e.target.id==="hj-day"||e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-bookingMedia"){const file=e.target.files?.[0];if(file){if(!/^(image|video)\//.test(file.type)||file.size>15*1024*1024){renderToast("Select a photo or video under 15 MB");e.target.value="";return}clearBookingMedia();data.booking.mediaName=file.name;data.booking.mediaType=file.type;try{data.booking.mediaUrl=window.URL?.createObjectURL?.(file)||""}catch(e){data.booking.mediaUrl=""}showBookingMedia();renderToast("Reference selected locally · not uploaded")}}if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
+root.addEventListener("change",e=>{
+ if(e.target.id==="hjAvatarFile"){
+  const file=e.target.files?.[0];if(!file)return;
+  if(state.photoBusy)return;
+  if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>12*1024*1024){state.photoError="Choose JPG, PNG or WebP under 12 MB.";render();return;}
+  state.photoBusy=true;state.photoError="";
+  if(state.photoPreview?.startsWith("blob:"))URL.revokeObjectURL(state.photoPreview);
+  state.photoPreview=URL.createObjectURL(file);render();
+  void (async()=>{try{
+   const account=await window.HustleAuth.uploadAvatar(file);
+   data.onboarding.avatarUrl=account.avatarUrl||"";
+   if(state.photoPreview?.startsWith("blob:"))URL.revokeObjectURL(state.photoPreview);
+   state.photoPreview="";
+  }catch(error){state.photoError=error.message||"Photo not saved. You may skip for now.";}
+  finally{state.photoBusy=false;if(state.screen==="Onboarding"&&state.onboardStep===3)render();}
+  })();return;
+ }
+if(e.target.id==="hj-day"||e.target.id==="hj-people")refreshBookingTimes();if(e.target.id==="hj-bookingMedia"){const file=e.target.files?.[0];if(file){if(!/^(image|video)\//.test(file.type)||file.size>15*1024*1024){renderToast("Select a photo or video under 15 MB");e.target.value="";return}clearBookingMedia();data.booking.mediaName=file.name;data.booking.mediaType=file.type;try{data.booking.mediaUrl=window.URL?.createObjectURL?.(file)||""}catch(e){data.booking.mediaUrl=""}showBookingMedia();renderToast("Reference selected locally · not uploaded")}}if(e.target.dataset.hjPref){data.prefs[e.target.dataset.hjPref]=e.target.checked;renderToast("Saved in this demo session")};if(e.target.id==="hj-reportFile"){const file=e.target.files?.[0];if(file&&file.type.startsWith("image/")&&file.size<=10*1024*1024){state.reportFile=file.name;renderToast("Local screenshot selected · not uploaded")}else if(file)renderToast("Choose an image smaller than 10 MB")}if(e.target.closest?.('form[data-hj-form="booking-request"]'))updateBookingPreview()});
 function updateReportStatus(id,status){
  const report=data.reports.find(x=>x.id===id);if(!report)return false;
  report.status=status;addNotice("System","Report review updated · demo",id+" · "+status,"Explore");
