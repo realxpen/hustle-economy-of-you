@@ -4,6 +4,8 @@ on:
     paths:
       - "apps/api/prisma/schema.prisma"
       - "apps/api/src/adaptive/**"
+      - "apps/api/src/booking/booking-schedule.service.ts"
+      - "apps/web/components/economy/**"
       - "backend-readiness/adaptive-v1/**"
       - "apps/web/app/economy/**"
       - "apps/web/lib/adaptive.ts"
@@ -57,6 +59,8 @@ jobs:
         run: npm run adaptive:policy
       - name: Validate staff roster capacity rules
         run: npm run adaptive:roster
+      - name: Validate capacity disruption review
+        run: node --test scripts/qa/adaptive-core-capacity.test.cjs
       - name: Execute authenticated-identity and data-isolation smoke
         run: node scripts/qa/adaptive-core-db-smoke.cjs
       - name: Check migration/history and source constraints

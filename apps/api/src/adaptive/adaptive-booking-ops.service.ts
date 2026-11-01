@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 import type { AuthIdentity } from "../infrastructure/auth/auth.port";
 import { PrismaService } from "../database/prisma.service";
+import { BookingScheduleService } from "../booking/booking-schedule.service";
 import { staffCoversSlot } from "./adaptive-roster-rules";
 import { validateAdaptiveServicePolicy } from "./adaptive-service-policy";
 
@@ -31,7 +32,7 @@ const transitions: Record<AdaptiveItemStage, AdaptiveItemStage[]> = {
 
 @Injectable()
 export class AdaptiveBookingOpsService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(private readonly db: PrismaService, private readonly schedule: BookingScheduleService) {}
   private obj(v: unknown): Data {
     if (!v || typeof v !== "object" || Array.isArray(v))
       throw new BadRequestException("Expected a JSON object");
@@ -127,7 +128,10 @@ export class AdaptiveBookingOpsService {
   }
   async workspaceBookings(identity: AuthIdentity, workspaceId: string) {
     const user=await this.actor(identity);
-    await this.access(user.id,workspaceId,"work.manage");
+    const member=await this.db.adaptiveMembership.findUnique({where:{workspaceId_userId:{workspaceId,userId:user.id}}});
+    if(!member||member.status!==AdaptiveMemberStatus.ACTIVE||
+       member.role!==AdaptiveMemberRole.OWNER&&!member.permissions.some(p=>p==="work.manage"||p==="schedule.manage"))
+      throw new ForbiddenException("Work or scheduling permission required");
     const workspace=await this.db.adaptiveWorkspace.findUnique({
       where:{id:workspaceId},select:{ownerUserId:true}
     });
@@ -135,7 +139,7 @@ export class AdaptiveBookingOpsService {
     return this.db.booking.findMany({
       where:{hustlerUserId:workspace.ownerUserId,
         service:{adaptiveDraft:{is:{workspaceId}}}},
-      select:{id:true,serviceTitleSnapshot:true,status:true,confirmedStartAt:true,
+      select:{id:true,serviceTitleSnapshot:true,status:true,agreedPriceMinor:true,confirmedStartAt:true,
         requestedStartAt:true,client:{select:{displayName:true,username:true}},
         service:{select:{bookingMode:true}},
         adaptiveAssignment:{select:{revision:true,staffId:true,
@@ -179,36 +183,39 @@ export class AdaptiveBookingOpsService {
    * covering shift must not automatically cancel an accepted financial Booking.
    * Reassignment still goes through assign() under the canonical booking lock.
    */
-  async staffingAlerts(identity: AuthIdentity, workspaceId: string) {
+  async staffingAlerts(identity: AuthIdentity, workspaceId: string, after?: string) {
     const user=await this.actor(identity);
     await this.access(user.id,workspaceId,"schedule.manage");
     const workspace=await this.db.adaptiveWorkspace.findUnique({
       where:{id:workspaceId},select:{ownerUserId:true,rosterEnabled:true}
     });
     if(!workspace)throw new NotFoundException("Workspace not found");
-    if(!workspace.rosterEnabled)return {items:[],rosterEnabled:false,limited:false};
+    if(!workspace.rosterEnabled)return {items:[],rosterEnabled:false,limited:false,nextCursor:null};
+    const cursor=after ? this.id(after,"cursor") : undefined;
     const bookingRows=await this.db.booking.findMany({
       where:{
         hustlerUserId:workspace.ownerUserId,
         status:{in:assignable},
-        confirmedStartAt:{gte:new Date()},
+        OR:[{confirmedStartAt:{gte:new Date()}},{confirmedEndAt:{gte:new Date()}},{status:BookingStatus.IN_PROGRESS}],
         service:{bookingMode:BookingOperationMode.APPOINTMENT,
           adaptiveDraft:{is:{workspaceId}}}
       },
       select:{
-        id:true,serviceTitleSnapshot:true,status:true,confirmedStartAt:true,confirmedEndAt:true,
+        id:true,serviceId:true,serviceTitleSnapshot:true,status:true,confirmedStartAt:true,confirmedEndAt:true,
         service:{select:{defaultDurationMinutes:true,prepMinutes:true,bufferMinutes:true,bookingTimezone:true}},
         adaptiveAssignment:{select:{revision:true,staffId:true,
           staff:{select:{id:true,displayName:true,active:true,weeklyHours:true,
             leave:{where:{cancelledAt:null},
               select:{startAt:true,endAt:true,cancelledAt:true}}}}}}
       },
-      orderBy:{confirmedStartAt:"asc"},take:201
+      orderBy:{id:"asc"},...(cursor?{cursor:{id:cursor},skip:1}:{}),take:51
     });
-    const limited=bookingRows.length>200;
-    const items=bookingRows.slice(0,200).flatMap(row=>{
+    const limited=bookingRows.length>50;
+    const page=bookingRows.slice(0,50);
+    const items=[];
+    for (const row of page) {
       const startAt=row.confirmedStartAt;
-      if(!startAt)return [];
+      if(!startAt)continue;
       const start=new Date(startAt.getTime()-row.service.prepMinutes*60000);
       const end=new Date((row.confirmedEndAt??new Date(startAt.getTime()+
         row.service.defaultDurationMinutes*60000)).getTime()+row.service.bufferMinutes*60000);
@@ -216,14 +223,22 @@ export class AdaptiveBookingOpsService {
       const reason=!assign?"UNASSIGNED":
         !assign.staff.active?"WORKER_INACTIVE":
         !staffCoversSlot(assign.staff,start,end,row.service.bookingTimezone)?"SHIFT_OR_LEAVE_CONFLICT":null;
-      return reason?[{
+      // Check every reservation against the full canonical resource pool,
+      // not just this page or this workspace's visible booking list.
+      const review=await this.schedule.reviewReservation(this.db,{
+        id:row.id,serviceId:row.serviceId,confirmedStartAt:startAt,confirmedEndAt:row.confirmedEndAt
+      });
+      const capacityConflict=!review.available;
+      if(reason||capacityConflict)items.push({
         bookingId:row.id,serviceTitle:row.serviceTitleSnapshot,bookingStatus:row.status,
         confirmedStartAt:startAt,confirmedEndAt:row.confirmedEndAt,
-        reason,staffId:assign?.staffId??null,staffName:assign?.staff.displayName??null,
+        reason:reason??"CAPACITY_CONFLICT",capacityConflict,capacity:review.capacity,
+        capacityReason:capacityConflict?review.reason:null,
+        staffId:assign?.staffId??null,staffName:assign?.staff.displayName??null,
         expectedRevision:assign?.revision??null
-      }]:[];
-    });
-    return {items,rosterEnabled:true,limited};
+      });
+    }
+    return {items,rosterEnabled:true,limited,nextCursor:limited?page[page.length-1].id:null};
   }
 
   async assign(identity: AuthIdentity, workspaceId: string, bookingId: string, raw: unknown) {

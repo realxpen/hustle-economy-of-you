@@ -8,8 +8,8 @@ const statusActions:Partial<Record<AdaptiveItemStage,{next:AdaptiveItemStage;lab
  AWAITING_INTAKE:{next:"RECEIVED",label:"Confirm item received"},
  RECEIVED:{next:"IN_PROGRESS",label:"Start work"},
  IN_PROGRESS:{next:"READY",label:"Mark ready and notify client"},
- READY:{next:"COLLECTED",label:"Confirm client collected"},
- OUT_FOR_DELIVERY:{next:"DELIVERED",label:"Confirm delivery"}
+ READY:{next:"COLLECTED",label:"Record item collected"},
+ OUT_FOR_DELIVERY:{next:"DELIVERED",label:"Record delivery"}
 };
 const stages:AdaptiveItemStage[]=["AWAITING_INTAKE","RECEIVED","IN_PROGRESS","READY","OUT_FOR_DELIVERY","DELIVERED","COLLECTED"];
 const readable=(text:string)=>text.toLowerCase().replaceAll("_"," ");
@@ -50,21 +50,35 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
   catch(e){setError(e instanceof Error?e.message:"Action could not be completed. Refresh the booking.")}
   finally{setBusy(false)}
  }
+ async function moreAlerts(){
+  if(busy||!alerts?.nextCursor)return;
+  setBusy(true);setError("");
+  try{
+   const page=await adaptiveClient.staffingAlerts(workspaceId,alerts.nextCursor);
+   setAlerts(previous=>({...page,items:[...(previous?.items??[]),...page.items]
+    .filter((x,i,all)=>all.findIndex(y=>y.bookingId===x.bookingId)===i)}));
+  }catch(e){setError(e instanceof Error?e.message:"Could not load the next appointments")}
+  finally{setBusy(false)}
+ }
  return <section className={styles.root} aria-label="Live business booking operations">
   <div className={styles.heading}><h2>Business bookings & fulfillment</h2><p>
    Assign eligible staff to accepted appointments. For laundry and tailoring, track work from intake to pickup or delivery without changing payment or escrow.</p></div>
   {error&&<p className={styles.error} role="alert">{error}</p>}
   {notice&&<p className={styles.notice} role="status">{notice}</p>}
-  {!!alerts?.items.length&&<section className={styles.alerts} aria-label="Staffing conflicts requiring review">
+  {alerts&&<section className={styles.alerts} aria-label="Staffing conflicts requiring review">
     <strong>{alerts.items.length} appointment{alerts.items.length===1?"":"s"} need staffing attention</strong>
-    <p className={styles.hint}>A worker left, changed shifts, is on leave, or has not yet been assigned. Review each confirmed booking. Nothing is cancelled or refunded automatically.</p>
+    <p className={styles.hint}>Review staff, chairs and business hours against overlapping reservations. These alerts do not cancel or reschedule bookings. Refresh after changing Team & hours.</p>
     {alerts.items.map(x=><div className={styles.alertItem} key={x.bookingId}>
-      <span><b>{x.serviceTitle}</b> · {date(x.confirmedStartAt)} · {x.reason==="UNASSIGNED"?"Worker not assigned":
+      <span><b>{x.serviceTitle}</b> · {date(x.confirmedStartAt)} · {x.reason==="CAPACITY_CONFLICT"?"Reserved appointment no longer fits current capacity or hours":x.reason==="UNASSIGNED"?"Worker not assigned":
        x.reason==="WORKER_INACTIVE"?"Assigned worker is inactive":"Assigned worker is unavailable during this appointment"}
-      {x.staffName?" · "+x.staffName:""}</span>
-      <a href={"#operation-"+x.bookingId}>Review assignment</a>
+      {x.staffName?" · "+x.staffName:""}
+      {x.capacityConflict&&<small> · {x.capacityReason} · Current capacity: {x.capacity}</small>}</span>
+      {rows.some(b=>b.id===x.bookingId)&&<a href={"#operation-"+x.bookingId}>Review assignment</a>}
+      <Link href={"/bookings/"+x.bookingId}>Review booking</Link>
     </div>)}
-    {alerts.limited&&<p className={styles.hint}>Showing the first 200 upcoming bookings. Review the full booking list for others.</p>}
+    {!alerts.items.length&&<p>No conflicts found in the appointments reviewed so far.</p>}
+    {alerts.nextCursor&&<button type="button" disabled={busy} onClick={()=>void moreAlerts()}>Check next 50 appointments</button>}
+    <button type="button" disabled={busy} onClick={()=>void act(()=>Promise.resolve(),"Booking review refreshed.")}>Refresh review</button>
   </section>}
   {loading?<p>Loading business work…</p>:!rows.length?<p className={styles.hint}>
    Bookings for services prepared by this business will appear here. No real bookings have been created by this screen.</p>:rows.map(b=>{
@@ -76,7 +90,7 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
    const possible=job?.status==="READY"&&job.returnMethod!=="shop_pickup"
     ? {next:"OUT_FOR_DELIVERY" as AdaptiveItemStage,label:"Mark out for delivery"} : next;
    const valid=["ACCEPTED","PAYMENT_PENDING","FUNDED","IN_PROGRESS"].includes(b.status);
-   const canAdvance=canManageWork&&job&&(b.status==="FUNDED"||b.status==="IN_PROGRESS");
+   const canAdvance=canManageWork&&job&&valid&&(b.agreedPriceMinor===0||b.status==="FUNDED"||b.status==="IN_PROGRESS");
    return <article className={styles.card} key={b.id} id={"operation-"+b.id}>
     <div className={styles.top}><div><small>{appointment?"APPOINTMENT":"ITEM SERVICE"}</small>
      <h3>{b.serviceTitleSnapshot}</h3></div><span>{readable(b.status)}</span></div>
@@ -102,6 +116,8 @@ export function BookingOperations({workspaceId,canManageWork,canSchedule}:{works
       <p><strong>Item stage:</strong> {readable(job.status)}</p>
       <p className={styles.hint}>Received via {readable(job.intakeMethod)} · Return via {readable(job.returnMethod)}</p>
       {job.estimatedReadyAt&&<p className={styles.hint}>Estimated ready: {date(job.estimatedReadyAt)}</p>}
+      {["COLLECTED","DELIVERED"].includes(job.status)&&!job.clientConfirmedAt&&
+       <p className={styles.hint}>Awaiting the customer's own receipt confirmation. Your delivery record does not confirm receipt on their behalf.</p>}
       {job.clientConfirmedAt&&<p className={styles.hint}><strong>Client acknowledged receipt:</strong> {date(job.clientConfirmedAt)}</p>}
       {canAdvance&&["RECEIVED","IN_PROGRESS"].includes(job.status)&&
        <form className={styles.etaEditor} onSubmit={e=>{

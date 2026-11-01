@@ -46,12 +46,13 @@ export type AdaptiveBookingOperation = {
 export type AdaptiveStaffingAlert = {
   bookingId:string;serviceTitle:string;bookingStatus:string;
   confirmedStartAt:string;confirmedEndAt:string|null;
-  reason:"UNASSIGNED"|"WORKER_INACTIVE"|"SHIFT_OR_LEAVE_CONFLICT";
+  reason:"UNASSIGNED"|"WORKER_INACTIVE"|"SHIFT_OR_LEAVE_CONFLICT"|"CAPACITY_CONFLICT";
+  capacityConflict:boolean;capacity:number;capacityReason:string|null;
   staffId:string|null;staffName:string|null;expectedRevision:number|null;
 };
-export type AdaptiveStaffingAlerts = {items:AdaptiveStaffingAlert[];rosterEnabled:boolean;limited:boolean};
+export type AdaptiveStaffingAlerts = {items:AdaptiveStaffingAlert[];rosterEnabled:boolean;limited:boolean;nextCursor:string|null};
 export type AdaptiveWorkspaceBooking = {
- id:string;serviceTitleSnapshot:string;status:string;requestedStartAt:string;confirmedStartAt:string|null;
+ id:string;serviceTitleSnapshot:string;status:string;agreedPriceMinor:number;requestedStartAt:string;confirmedStartAt:string|null;
  client:{displayName:string|null;username:string|null};service:{bookingMode:string};
  adaptiveAssignment:{revision:number;staffId:string;staff:{displayName:string}}|null;
  adaptiveItemFulfillment:{revision:number;status:AdaptiveItemStage;intakeMethod:string;returnMethod:string;estimatedReadyAt:string|null;clientConfirmedAt:string|null}|null;
@@ -97,8 +98,8 @@ export const adaptiveClient = {
     post("/workspaces/" + encodeURIComponent(id) + "/invitations", { username, role, permissions }),
   respond: (id: string, answer: "accept" | "decline") =>
     post("/invitations/" + encodeURIComponent(id) + "/" + answer),
-  staffingAlerts: (workspaceId:string) =>
-    json<AdaptiveStaffingAlerts>("/workspaces/"+encodeURIComponent(workspaceId)+"/staffing-alerts"),
+  staffingAlerts: (workspaceId:string,cursor?:string) =>
+    json<AdaptiveStaffingAlerts>("/workspaces/"+encodeURIComponent(workspaceId)+"/staffing-alerts"+(cursor?"?cursor="+encodeURIComponent(cursor):"")),
   workspaceBookings: (id:string) => json<AdaptiveWorkspaceBooking[]>(
     "/workspaces/"+encodeURIComponent(id)+"/booking-operations"),
   bookingOps: (bookingId:string) => json<AdaptiveBookingOperation>(
