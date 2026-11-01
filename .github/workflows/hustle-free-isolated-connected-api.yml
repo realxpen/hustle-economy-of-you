@@ -71,6 +71,17 @@ jobs:
         run: npx prisma migrate resolve --applied 20260917130500_phase16b_story_rls_hardening --schema=apps/api/prisma/schema.prisma
       - name: Apply actual API migrations to disposable database
         run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+      - name: Rehearse proposed account preferences columns in throwaway Postgres only
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e 'const u=new URL(process.env.DATABASE_URL);if(u.hostname!=="127.0.0.1"||u.port!=="55439"||u.pathname!=="/hustle_payment_sandbox"||process.env.NODE_ENV!=="test")process.exit(1)'
+          PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -f backend-readiness/account-preferences/20261101180000_account_discovery_preferences.sql
+          PGPASSWORD=sandbox_only psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 55439 -U postgres -d hustle_payment_sandbox \
+            -c "SELECT \"primarySkill\", cardinality(\"interests\") FROM \"User\" LIMIT 0;"
       - name: Compile the real NestJS application
         run: npm run build --workspace=@hustle/api
       - name: Validate actual local HTTP search and booking slot reads
