@@ -1,0 +1,122 @@
+name: Hustle Production API on AWS (manual and protected)
+on:
+  workflow_dispatch:
+    inputs:
+      authorize_production:
+        description: 'Deploy BILLABLE production API only; no Cloudflare cutover, DB migration or payments'
+        type: choice
+        required: true
+        options: [DO_NOT_DEPLOY, I_AUTHORIZE_HUSTLE_PRODUCTION_API]
+        default: DO_NOT_DEPLOY
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: hustle-production-api-protected
+  cancel-in-progress: false
+jobs:
+  production-api:
+    if: >-
+      github.repository == 'realxpen/hustle-economy-of-you' &&
+      github.ref == 'refs/heads/preview/hustle-v1-posts-stories' &&
+      inputs.authorize_production == 'I_AUTHORIZE_HUSTLE_PRODUCTION_API'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    environment: hustle-aws-production
+    env:
+      AWS_REGION: eu-west-2
+      AWS_ACCOUNT_ID: '707859598737'
+      ECR_REPO: hustle-production-api
+      PROD_SECRET: hustle-production-api-credentials
+      PROD_STACK: hustle-production-api
+      HUSTLE_FINANCIAL_PROVIDERS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Fail closed on AWS account, reviewed branch and production intent
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = 'realxpen/hustle-economy-of-you'
+          test "$GITHUB_REF" = 'refs/heads/preview/hustle-v1-posts-stories'
+          test "$AWS_REGION" = eu-west-2
+          test "$AWS_ACCOUNT_ID" = 707859598737
+          test "$HUSTLE_FINANCIAL_PROVIDERS_ENABLED" = false
+      - name: Verify production identity gateway before AWS credentials
+        run: |
+          node --check ui-preview/production-gateway.mjs
+          node --test ui-preview/tests/production-gateway.test.mjs
+          npm ci --include=dev
+          npm run typecheck --workspace=@hustle/api
+      - name: Assume least-privilege production deployment role with GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::707859598737:role/hustle-github-production-deployer
+          aws-region: eu-west-2
+          role-session-name: hustle-production-deploy
+      - name: Verify production repository and secret exist, never print credentials
+        run: |
+          set -euo pipefail
+          test "$(aws sts get-caller-identity --query Account --output text)" = "$AWS_ACCOUNT_ID"
+          aws ecr describe-repositories --repository-names "$ECR_REPO" >/dev/null
+          SECRET_ARN="$(aws secretsmanager describe-secret --secret-id "$PROD_SECRET" --query ARN --output text)"
+          case "$SECRET_ARN" in
+            arn:aws:secretsmanager:eu-west-2:707859598737:secret:hustle-production-api-credentials-*) ;;
+            *) echo 'Incorrect production secret identity'; exit 1 ;;
+          esac
+          echo "PROD_SECRET_ARN=$SECRET_ARN" >> "$GITHUB_ENV"
+          aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" --query SecretString --output text |
+          node -e '
+            let raw="";process.stdin.on("data",c=>raw+=c);
+            process.stdin.on("end",()=>{
+              const s=JSON.parse(raw);
+              if(s.SUPABASE_URL!=="https://pfgarmyygybmhiiuopym.supabase.co")process.exit(1);
+              const k=String(s.SUPABASE_PUBLISHABLE_KEY||"");
+              if(!k.startsWith("sb_publishable_")&&k.split(".").length!==3)process.exit(1);
+              const u=new URL(s.DATABASE_URL);
+              if(!["postgres:","postgresql:"].includes(u.protocol)||!u.password||!u.username||
+                 u.searchParams.get("sslmode")==="disable"||
+                 /hustle_staging|hustle_child_api|ep-cold-smoke|sandbox/i.test(s.DATABASE_URL))process.exit(1);
+              console.log("PASS: verified real production credentials without logging values.");
+            });
+          '
+      - name: Confirm production authentication is healthy
+        run: |
+          curl --fail --silent --show-error --max-time 20 \
+            https://pfgarmyygybmhiiuopym.supabase.co/auth/v1/health >/dev/null
+      - name: Build immutable production API image
+        run: |
+          set -euo pipefail
+          aws ecr get-login-password |
+            docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+          IMAGE_TAG="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$GITHUB_SHA"
+          docker build -f infra/aws/lambda/Dockerfile -t "$IMAGE_TAG" .
+          docker push "$IMAGE_TAG"
+          DIGEST="$(aws ecr describe-images --repository-name "$ECR_REPO" \
+            --image-ids imageTag="$GITHUB_SHA" --query 'imageDetails[0].imageDigest' --output text)"
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO@$DIGEST" >> "$GITHUB_ENV"
+      - name: Deploy production backend only (no Cloudflare cutover)
+        run: |
+          set -euo pipefail
+          aws cloudformation deploy --stack-name "$PROD_STACK" \
+            --template-file infra/aws/production/api-template.yaml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides "ImageUri=$IMAGE_URI" "ProductionSecretArn=$PROD_SECRET_ARN" \
+            --no-fail-on-empty-changeset
+          ORIGIN="$(aws cloudformation describe-stacks --stack-name "$PROD_STACK" \
+            --query "Stacks[0].Outputs[?OutputKey=='ProductionApiOrigin'].OutputValue|[0]" --output text)"
+          test -n "$ORIGIN"
+          echo "PROD_API_URL=$ORIGIN" >> "$GITHUB_ENV"
+      - name: Verify real AWS health and private route denial
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 25 "$PROD_API_URL"api/v1/health >/dev/null
+          STATUS="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 "$PROD_API_URL"api/v1/auth/me)"
+          test "$STATUS" = 401
+          echo 'PASS: AWS production API healthy; account route rejects anonymous callers.'
+          echo 'Cloudflare, payments and production schema unchanged.'
