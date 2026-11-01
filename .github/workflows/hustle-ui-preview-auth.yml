@@ -24,10 +24,12 @@ jobs:
         run: |
           node --check ui-preview/worker.mjs
           node --check ui-preview/dist/hustle-auth.js
+          node --check ui-preview/dist/hustle-onboarding-pickers.js
+          node --check ui-preview/dist/hustle-onboarding-ui.js
           node --check ui-preview/dist/hustle-journeys.js
           node --check ui-preview/dist/hustle-flows.js
       - name: Assert same-origin auth, account ownership and no financial routes
-        run: node --test ui-preview/tests/connected-auth.test.mjs
+        run: node --test ui-preview/tests/connected-auth.test.mjs ui-preview/tests/onboarding-preferences.test.mjs
       - name: Preserve existing Adaptive preview domain behavior
         run: node ui-preview/tests/adaptive-core.test.cjs
       - name: Check exact Cloudflare Worker and static asset targets
