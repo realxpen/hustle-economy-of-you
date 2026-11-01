@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { stageSignIn } from "../../lib/auth/isolated-web-auth";
 import { invalidateAuthenticatedSessionCache } from "../../lib/api/authenticated-fetch";
 import { invalidateMyAccountCache, syncHustleAccount } from "../../lib/auth/hustle-account";
-import { onboardingUrlFor, safeAuthNext } from "../../lib/auth/safe-auth-next";
+import { previewAuthDestination } from "../../lib/auth/preview-auth-return";
 import styles from "./staging-sign-in.module.css";
 
 /**
@@ -32,12 +32,10 @@ export function StagingWebSignIn() {
       invalidateMyAccountCache();
       const account = await syncHustleAccount();
       setPassword("");
-      const next = safeAuthNext(new URLSearchParams(window.location.search).get("next"));
-      // One account starts as CLIENT. Complete the real profile before entering
-      // the original service/profile opportunity, never jump past onboarding.
-      router.replace(account.onboardingCompleted
-        ? next ?? "/home"
-        : onboardingUrlFor(next));
+      // An incomplete identity must finish onboarding before its requested
+      // service/profile opportunity. All destinations are validated locally.
+      router.replace(previewAuthDestination(account.onboardingCompleted,
+        new URLSearchParams(window.location.search).get("next")));
       router.refresh();
     } catch {
       // Do not disclose which test email addresses were invited.
