@@ -167,11 +167,10 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           test -n "$PREVIEW_LAMBDA_URL"
+          # workers_dev belongs in the dedicated Wrangler config; Wrangler 4.45
+          # rejects --workers-dev on the deploy CLI. Do not use root/staging config.
           npm exec --yes --package=wrangler@4.45.0 -- wrangler deploy \
-            infra/cloudflare/payment-preview-api-worker.mjs \
-            --name hustle-payment-preview-api \
-            --compatibility-date 2026-10-31 \
-            --workers-dev true \
+            --config infra/cloudflare/payment-preview-api.wrangler.jsonc \
             --var "PREVIEW_UPSTREAM_ORIGIN:${PREVIEW_LAMBDA_URL%/}"
       - name: Verify separate public payment-preview API without checkout or provider calls
         shell: bash
