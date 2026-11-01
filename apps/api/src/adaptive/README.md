@@ -123,3 +123,6 @@ explicit business terms and consent. No migration, deployment or payment operati
 authorized by this feature branch.
 
 **Activation safety:** Do not disable `HUSTLE_ADAPTIVE_CORE_ENABLED` or remove group tables while any group bookings remain active. Disabling a business roster while the feature remains enabled closes group availability and flags affected reservations, but disabling the global feature would intentionally remove optional-table reads, so activation/reversal requires an explicit outstanding-booking drain and reviewed migration procedure.
+## Contested physical delivery — existing MarketplaceCase integration (proposed)
+
+Client-only non-receipt objections after DELIVERED/COLLECTED use the existing unique BOOKING MarketplaceCase; compare-and-set Booking DISPUTED and item revisions in one transaction, append immutable item delivery statements, and send in-app notifications. Only direct booking parties may read or add participant statements; administrative internal notes are never exposed. Admin case details show typed participant evidence only with the Adaptive flag enabled. No additional dispute ledger, financial transaction, escrow release, payment/refund state, external image upload, or deployment is activated. See `Knowledge/QA/ADAPTIVE_ITEM_DELIVERY_CASEWORK.md`.
