@@ -229,7 +229,7 @@ export class AuthService {
       if (typeof item !== "string") throw new BadRequestException("Each interest must be text");
       const normalized = item.trim();
       if (normalized.length < 2 || normalized.length > 50 ||
-          !/^[\\p{L}\\p{N} &+().,'/-]+$/u.test(normalized)) {
+          !/^[\p{L}\p{N} &+().,'/-]+$/u.test(normalized)) {
         throw new BadRequestException("Invalid interest");
       }
       return normalized;
