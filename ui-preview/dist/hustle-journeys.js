@@ -454,7 +454,7 @@ function onAction(action,value="",id=""){
  case "interest-show-all":state.interestsExpanded=!state.interestsExpanded;{const y=root.scrollTop;render();root.scrollTop=y;}break;
  case "area-select":{
   const candidate=String(value||"").trim();
-  if(candidate.length<3||candidate.length>100||!(/^[\\p{L}\\p{N} ,.'()/-]+$/u.test(candidate)))break;
+  if(candidate.length<3||candidate.length>100||!(/^[\p{L}\p{N} ,.'()/-]+$/u.test(candidate)))break;
   data.onboarding.area=candidate;state.areaQuery=candidate;state.areaMapVisible=false;render();break
  }
  case "area-clear":data.onboarding.area="";state.areaQuery="";state.areaMapVisible=false;render();break;
