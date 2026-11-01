@@ -29,7 +29,8 @@ async function current(){
  catch(e){if(/Sign in/.test(e.message)){account=null;announce();return null}throw e;}
 }
 async function enter(email,password,create){
- await request("auth/"+(create?"sign-up":"sign-in"),{method:"POST",body:{email,password}});
+ const answer=await request("auth/"+(create?"sign-up":"sign-in"),{method:"POST",body:{email,password}});
+ if(answer?.requiresEmailVerification)return {requiresEmailVerification:true};
  try{
   await request("account/sync",{method:"POST"});
   return await current();
