@@ -1,0 +1,40 @@
+name: Hustle AWS Production + Cloudflare V1 Contract (no deployment)
+on:
+  pull_request:
+    paths:
+      - 'ui-preview/**'
+      - 'infra/aws/production/**'
+      - 'scripts/qa/production-aws-ui-contract.cjs'
+      - '.github/workflows/hustle-aws-production-*.yml'
+      - '.github/workflows/hustle-cloudflare-v1-production-cutover.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  production-source-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check production and original V1 JavaScript syntax
+        run: |
+          node --check ui-preview/production-gateway.mjs
+          node --check ui-preview/worker.mjs
+          node --check ui-preview/dist/hustle-auth.js
+          node --check ui-preview/dist/hustle-journeys.js
+      - name: Run production auth/Cloudflare isolation tests
+        run: node --test ui-preview/tests/production-gateway.test.mjs
+      - name: Preserve V1 UI and production AWS role/payment gates
+        run: node scripts/qa/production-aws-ui-contract.cjs
+      - name: Existing identity, preferences and permissions regressions
+        run: node --test ui-preview/tests/connected-auth.test.mjs ui-preview/tests/onboarding-preferences.test.mjs ui-preview/tests/identity-setup.test.mjs
+      - name: Explicitly confirm no release, migration or financial provider
+        run: |
+          test -f infra/aws/production/api-template.yaml
+          test -f ui-preview/wrangler.production.jsonc
+          test -f infra/aws/production/README.md
+          grep -Fq "HUSTLE_FINANCIAL_PROVIDERS_ENABLED: 'false'" infra/aws/production/api-template.yaml
+          echo "PASS: source validation only; AWS production and Cloudflare unchanged"
