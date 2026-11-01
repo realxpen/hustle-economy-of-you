@@ -518,26 +518,56 @@ function onAction(action,value="",id=""){
  }
  }
 }
-function finishOnboarding(openBusiness=false,form=null){
- if(form)data.onboarding.notifications=!!form.querySelector('input[name="updates"]')?.checked;
- state.signedIn=true;state.guest=false;state.user={...data.onboarding};
- window.HustleFlowsPreview?.updateDemoUser?.(state.user);
- addNotice("System","Your demo profile is ready",data.onboarding.name,"Explore");
- rememberIntro();close();
- if(openBusiness)window.HustleOperations?.open("BusinessSetup",{owner:state.user.name||"My business",skill:window.HustleBookingRules?.detect(state.user.skill||"barber")});
+function applyAccount(account){
+ if(!account)return;
+ state.guest=false;state.signedIn=true;
+ state.user={name:account.displayName||account.email||"Hustle user",
+  handle:account.username||"",area:account.location||"",bio:account.bio||""};
+ data.onboarding.name=account.displayName||"";
+ data.onboarding.handle=account.username||"";
+ data.onboarding.area=account.location||"";
+ window.HustleFlowsPreview?.updateDemoUser?.({...state.user});
 }
-function onSubmit(name,form){
- const f=new FormData(form),get=k=>String(f.get(k)||"").trim();
- if(name==="auth"){const v=get("contact");if(data.auth.method==="phone"?!/^[+0-9 ()-]{7,18}$/.test(v):!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){renderToast("Enter a valid "+data.auth.method);return}data.auth.contact=v;go("Verify");return}
- if(name==="verify"){
-  if(get("otp")!=="123456"){renderToast("For this demo, use 123456");return}
-  if(state.user){state.signedIn=true;state.guest=false;addNotice("System","Welcome back to your demo profile",state.user.name||"Creator","Explore");close();return}
-  state.onboardStep=0;go("Onboarding");return
+async function finishOnboarding(openBusiness=false,form=null){
+ if(state.authBusy)return;
+ if(!data.onboarding.name.trim()||!/^[a-zA-Z0-9._]{3,25}$/.test(data.onboarding.handle.trim())){
+  state.onboardStep=1;renderToast("Choose your name and a valid username");render();return;
  }
- if(name==="onboard"){const i=state.onboardStep;
+ state.authBusy=true;
+ try{
+  const account=await window.HustleAuth.update({
+   displayName:data.onboarding.name.trim(),username:data.onboarding.handle.trim(),
+   location:data.onboarding.area.trim(),bio:""
+  });
+  applyAccount(account);rememberIntro();close();
+  if(openBusiness)renderToast("Professional verification will be integrated separately.");
+ }catch(e){renderToast(e.message||"Could not save your profile");}
+ finally{state.authBusy=false;}
+}
+async function onSubmit(name,form){
+ const f=new FormData(form),get=k=>String(f.get(k)||"").trim();
+ if(name==="auth"){
+ if(state.authBusy)return;
+ const email=get("contact"),password=get("password");
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<12){
+  state.authError="Use an invited email and a test password of at least 12 characters.";render();return;
+ }
+ state.authBusy=true;state.authError="";data.auth.contact=email;
+ try{
+  const account=await window.HustleAuth.enter(email,password,data.auth.mode==="signup");
+  if(!account)throw new Error("Test account could not be synchronized");
+  applyAccount(account);
+  if(!account.onboardingCompleted){state.onboardStep=0;go("Onboarding");}
+  else{rememberIntro();close();}
+ }catch(e){state.authError=e.message||"Could not sign in";render();}
+ finally{state.authBusy=false;}
+ return;
+}
+if(name==="verify"){state.screen="Auth";render();return;}
+if(name==="onboard"){const i=state.onboardStep;
  if(i===1){data.onboarding.name=get("name");data.onboarding.handle=get("handle");if(!data.onboarding.name){renderToast("A display name is needed");return}}
  if(i===2){data.onboarding.skill=get("skill");data.onboarding.area=get("area")}
- if(i===3){finishOnboarding(false,form);return}
+ if(i===3){await finishOnboarding(false,form);return}
  state.onboardStep++;render();return}
  if(name==="report"){state.reportReason=get("reason");state.reportText=get("reportDetails");state.modal="report-confirm";render();return}
  if(name==="booking-request"){const b=data.booking,p=policyFor();b.fields={};for(const [key] of p.fields)b.fields[key]=get(key);
@@ -572,4 +602,7 @@ function updateReportStatus(id,status){
 }
 window.HustleJourneys={open,close,notify:addNotice,updateProfessionalJob,showExistingBooking,getFulfillmentJob:()=>{const b=data.booking,p=policyFor();return p.jobFulfillment?{stage:b.stage,professional:b.professional,service:b.service,status:b.jobStatus||"awaiting_handoff",returnMethod:b.returnMethod,readyDate:b.readyDate,readyTime:b.readyTime,day:b.day,paid:!!b.paymentConfirmed,intake:b.intake,measurementMethod:b.measurementMethod}:null},updateReportStatus,getState:()=>({screen:state.screen,guest:state.guest,signedIn:state.signedIn,user:state.user,booking:{stage:data.booking.stage,milestones:data.booking.milestones.map(x=>x.state),dispute:data.booking.dispute},payment:{stage:data.purchase.stage,status:data.purchase.status},reports:data.reports.map(x=>({id:x.id,status:x.status})),agentInvites:data.agentInvites.map(x=>({name:x.name,status:x.status})),notifications:data.notifications.map(x=>({id:x.id,read:x.read}))}),_test:{data,state,onAction,onSubmit,render}};
 if(!introSeen())open("Splash");
+void window.HustleAuth?.current?.().then(account=>{if(!account)return;applyAccount(account);
+ if(!account.onboardingCompleted){state.onboardStep=0;open("Onboarding");}
+}).catch(()=>{/* Network failures never imply a signed-in identity. */});
 })();
