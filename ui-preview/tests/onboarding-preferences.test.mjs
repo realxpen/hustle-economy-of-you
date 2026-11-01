@@ -65,7 +65,7 @@ test("Unknown locality text is escaped and cannot inject markup into UI",()=>{
 test("Backend schema stores interests separately without changing capabilities or payments",()=>{
  const schema=source("../../apps/api/prisma/schema.prisma");
  const service=source("../../apps/api/src/auth/auth.service.ts");
- const migration=source("../../apps/api/prisma/migrations/20261101180000_account_discovery_preferences/migration.sql");
+ const migration=source("../../backend-readiness/account-preferences/20261101180000_account_discovery_preferences.sql");
  const user=schema.split("model User {")[1]?.split("\n}")[0];
  assert.match(user,/primarySkill\s+String\?/);
  assert.match(user,/interests\s+String\[\]\s+@default\(\[\]\)/);
