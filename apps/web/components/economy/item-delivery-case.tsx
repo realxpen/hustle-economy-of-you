@@ -4,7 +4,7 @@ import { adaptiveClient, type AdaptiveDeliveryCase } from "../../lib/adaptive";
 import styles from "./item-delivery-case.module.css";
 
 /** Only the booking's actual participants receive a case view from the API. */
-export function ItemDeliveryCase({ bookingId }: { bookingId: string }) {
+export function ItemDeliveryCase({ bookingId, onCaseChanged }: { bookingId: string; onCaseChanged?: () => void }) {
   const [record, setRecord] = useState<AdaptiveDeliveryCase | null>(null);
   const [statement, setStatement] = useState("");
   const [evidenceType, setEvidenceType] = useState("NONE");
@@ -39,6 +39,7 @@ export function ItemDeliveryCase({ bookingId }: { bookingId: string }) {
         ? await adaptiveClient.openDeliveryCase(bookingId, input)
         : await adaptiveClient.deliveryStatement(bookingId, input);
       setRecord(updated);
+      onCaseChanged?.();
       setStatement(""); setReference(""); setEvidenceType("NONE");
       setNotice(record.canOpen
         ? "Delivery objection recorded for Hustle casework review. Booking is disputed; no funds were released."
