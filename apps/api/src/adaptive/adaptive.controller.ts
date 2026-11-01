@@ -7,13 +7,15 @@ import { AdaptiveService } from "./adaptive.service";
 import { AdaptiveRosterService } from "./adaptive-roster.service";
 import { AdaptiveBookingOpsService } from "./adaptive-booking-ops.service";
 import { AdaptiveGroupService } from "./adaptive-group.service";
+import { AdaptiveItemCaseworkService } from "./adaptive-item-casework.service";
 
 @Controller("adaptive")
 @UseGuards(AuthGuard, AdaptiveFeatureGuard)
 export class AdaptiveController {
   constructor(private readonly adaptive: AdaptiveService, private readonly roster: AdaptiveRosterService,
     private readonly bookingOps: AdaptiveBookingOpsService,
-    private readonly groups: AdaptiveGroupService) {}
+    private readonly groups: AdaptiveGroupService,
+    private readonly itemCases: AdaptiveItemCaseworkService) {}
 
   @Get("blueprints")
   blueprints() { return this.adaptive.blueprints(); }
@@ -113,6 +115,21 @@ export class AdaptiveController {
     @Body() body: unknown) {
     return this.bookingOps.reviseReadyEstimate(identity,spaceId,bookingId,body);
   }
+  @Get("bookings/:bookingId/delivery-case")
+  deliveryCase(@CurrentIdentity() identity: AuthIdentity, @Param("bookingId") bookingId: string) {
+    return this.itemCases.read(identity, bookingId);
+  }
+  @Post("bookings/:bookingId/delivery-case/open")
+  openDeliveryCase(@CurrentIdentity() identity: AuthIdentity, @Param("bookingId") bookingId: string,
+    @Body() body: unknown) {
+    return this.itemCases.open(identity, bookingId, body);
+  }
+  @Post("bookings/:bookingId/delivery-case/statements")
+  deliveryStatement(@CurrentIdentity() identity: AuthIdentity, @Param("bookingId") bookingId: string,
+    @Body() body: unknown) {
+    return this.itemCases.statement(identity, bookingId, body);
+  }
+
   @Post("bookings/:bookingId/confirm-item-receipt")
   confirmPhysicalItemReceipt(@CurrentIdentity() identity: AuthIdentity,
     @Param("bookingId") bookingId: string,@Body() body: unknown) {

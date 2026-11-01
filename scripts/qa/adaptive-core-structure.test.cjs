@@ -240,3 +240,38 @@ test("Group assignments do not alter Booking price, escrow or payment",()=>{
  assert.match(sql,/AdaptiveGroupBooking_count_bounds/);
  assert.match(sql,/REVOKE ALL ON TABLE "AdaptiveGroupBooking"/);
 });
+
+test("Delivery objections use one authoritative marketplace case and freeze canonical booking",()=>{
+ const cases=read("apps/api/src/adaptive/adaptive-item-casework.service.ts");
+ const ctrl=read("apps/api/src/adaptive/adaptive.controller.ts");
+ const admin=read("apps/api/src/admin-operations/marketplace-case.service.ts");
+ for(const value of ["tx.marketplaceCase.create", "MarketplaceCaseSubjectType.BOOKING",
+  "status: BookingStatus.DISPUTED", "clientConfirmedAt: null", "revision: { increment: 1 }",
+  "item.delivery_claim_opened", "item.delivery_statement", "NotificationKind.BOOKING"])
+  assert.ok(cases.includes(value),value);
+ for(const route of ['@Get("bookings/:bookingId/delivery-case")',
+  '@Post("bookings/:bookingId/delivery-case/open")',
+  '@Post("bookings/:bookingId/delivery-case/statements")'])
+  assert.ok(ctrl.includes(route),route);
+ assert.ok(admin.includes("deliveryEvidence"));
+ for(const forbidden of ["tx.escrowRecord.create","tx.escrowRecord.update",
+  "tx.paymentAttempt.create","tx.paymentAttempt.update","tx.wallet"])
+  assert.equal(cases.includes(forbidden),false,forbidden);
+ assert.equal(schema.includes("model AdaptiveDeliveryDispute"),false);
+});
+test("Delivery-case UI uses participant reads without leaking admin notes",()=>{
+ const source=read("apps/web/components/economy/item-delivery-case.tsx");
+ const handover=read("apps/web/components/economy/client-item-handover.tsx");
+ const client=read("apps/web/lib/adaptive.ts");
+ const backend=read("apps/api/src/adaptive/adaptive-item-casework.service.ts");
+ for(const method of ["authenticatedFetch","deliveryCase:","openDeliveryCase:","deliveryStatement:"])
+  assert.ok(client.includes(method),method);
+ assert.ok(source.includes("record.canOpen"));
+ assert.ok(source.includes("record.canRespond"));
+ assert.ok(source.includes("Not independently verified"));
+ assert.ok(handover.includes('state.bookingStatus!=="DISPUTED"'));
+ assert.ok(handover.includes("ItemDeliveryCase"));
+ assert.equal(backend.includes("marketplaceCaseNote.findMany"),false);
+ assert.equal(backend.includes("marketplaceCaseNote.create"),false);
+ assert.ok(backend.includes("actorId === booking.clientUserId"));
+});

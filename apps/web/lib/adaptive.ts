@@ -43,6 +43,17 @@ export type AdaptiveBookingOperation = {
  events:{details:{reason?:string;previousEstimate?:string;revisedEstimate?:string};createdAt:string}[]}|null;
  offeredMethods: {handoverMethods:string[];returnMethods:string[]}|null;
 };
+export type AdaptiveDeliveryCase = {
+  bookingId:string;bookingStatus:string;itemStatus:AdaptiveItemStage;
+  expectedRevision:number;role:"CLIENT"|"HUSTLER";
+  canOpen:boolean;canRespond:boolean;hasOtherCase:boolean;
+  case:null|{id:string;status:string;createdAt:string;resolvedAt:string|null};
+  statements:{id:string;eventType:string;author:"YOU"|"OTHER";createdAt:string;
+    details:{statement:string;evidenceType:string;reference:string}}[];
+};
+export type DeliveryStatementInput = {
+  statement:string;evidenceType:string;reference:string;expectedRevision:number
+};
 export type AdaptiveStaffingAlert = {
   bookingId:string;serviceTitle:string;bookingStatus:string;
   confirmedStartAt:string;confirmedEndAt:string|null;
@@ -123,6 +134,12 @@ export const adaptiveClient = {
   reviseItemEta: (spaceId:string,bookingId:string,estimatedReadyAt:string,reason:string,expectedRevision:number) =>
     post("/workspaces/"+encodeURIComponent(spaceId)+"/bookings/"+encodeURIComponent(bookingId)+"/estimate",
       {estimatedReadyAt,reason,expectedRevision}),
+  deliveryCase: (bookingId:string) =>
+    json<AdaptiveDeliveryCase>("/bookings/"+encodeURIComponent(bookingId)+"/delivery-case"),
+  openDeliveryCase: (bookingId:string,input:DeliveryStatementInput) =>
+    post<AdaptiveDeliveryCase>("/bookings/"+encodeURIComponent(bookingId)+"/delivery-case/open",{...input}),
+  deliveryStatement: (bookingId:string,input:DeliveryStatementInput) =>
+    post<AdaptiveDeliveryCase>("/bookings/"+encodeURIComponent(bookingId)+"/delivery-case/statements",{...input}),
   confirmItemReceipt: (bookingId:string,expectedRevision:number) =>
     post("/bookings/"+encodeURIComponent(bookingId)+"/confirm-item-receipt",{expectedRevision}),
   roster: (id: string) => json<AdaptiveRoster>("/workspaces/" + encodeURIComponent(id) + "/roster"),

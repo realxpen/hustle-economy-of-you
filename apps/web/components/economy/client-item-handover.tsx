@@ -2,6 +2,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { adaptiveClient, type AdaptiveBookingOperation } from "../../lib/adaptive";
 import styles from "./client-item-handover.module.css";
+import { ItemDeliveryCase } from "./item-delivery-case";
 
 const labels:Record<string,string>={
  drop_off:"Bring items to the business",home_pickup:"Have the business collect from my address",
@@ -72,7 +73,7 @@ export function ClientItemHandover({bookingId,viewerRole}:{bookingId:string;view
    <strong>Receipt acknowledged by customer</strong>
    <span>{new Date(job.clientConfirmedAt).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short",timeZone:"Africa/Lagos"})}</span>
   </p>}
-  {viewerRole==="CLIENT"&&job&&!job.clientConfirmedAt&&
+  {viewerRole==="CLIENT"&&job&&!job.clientConfirmedAt&&state.bookingStatus!=="DISPUTED"&&
    ["DELIVERED","COLLECTED"].includes(job.status)&&
    <div className={styles.form}>
     <p className={styles.hint}>The business has marked the item as {job.status==="DELIVERED"?"delivered":"collected"}.
@@ -97,6 +98,9 @@ export function ClientItemHandover({bookingId,viewerRole}:{bookingId:string;view
   {job?.status!=="AWAITING_INTAKE"&&job&&<p className={styles.hint}>
    Selected: {labels[job.intakeMethod]??job.intakeMethod} · {labels[job.returnMethod]??job.returnMethod}. Contact the business to request changes after intake.
   </p>}
+  {job&&<ItemDeliveryCase bookingId={bookingId} onCaseChanged={()=>{
+    void adaptiveClient.bookingOps(bookingId).then(setState).catch(()=>{});
+  }}/>}
   {error&&<p role="alert" className={styles.error}>{error}</p>}
   {notice&&<p role="status" className={styles.notice}>{notice}</p>}
   <p className={styles.hint}>When the business marks work ready, a Hustle in-app notification is sent if enabled. Delivery or collection status is not proof of escrow release.</p>

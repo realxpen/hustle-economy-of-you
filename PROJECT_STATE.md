@@ -1,5 +1,10 @@
 # Hustle Project State
 
+## Proposed Adaptive physical-delivery casework (2026-11-01)
+
+PR #307 is merged into preview/hustle-v1-posts-stories; its simultaneous group Booking and multi-worker assignment milestone remains feature-gated and not production-activated. A subsequent proposed branch `feat/adaptive-item-delivery-casework-v1` adds non-receipt claims to the **existing** MarketplaceCase ledger, immutable participant statements, canonical DISPUTED state and client/provider case view. See `Knowledge/QA/ADAPTIVE_ITEM_DELIVERY_CASEWORK.md`. This work is proposed and not merged, deployed, migrated or production-enabled. Required exact-head CI and authenticated real-device testing remain gates; financial releases and administrative resolution remain separate.
+
+
 ## Isolated child API and real hosted authentication — PASSED (2026-10-22)
 
 Founder-approved restricted child login and Vercel secret provisioning completed. Dedicated staging deployment `dpl_Ht4q2CpyQ68owggTeRZXukS1y5Sx` serves exact source `3e00361ea4f6e19087fce98bed2596c32a1a05d5`. Actual HTTPS health/database connectivity, invited/uninvited signup, account sync, protected account read, password sign-in/session restoration, invalid/revoked/expired-session denial and server-side commerce/upload/unknown-write refusal all passed. Disposable account/session/application fixtures and local session file were removed; both histories retain 41 application / 1 auth entries. No production or parent-branch mutation, payments, uploads or EAS credit consumption. PR #197 contains the runtime reconciliation and hosted test runner; it is proposed, not merged. Native device login/messaging acceptance and a connected app build remain next. Do not repeat the completed backup or hosted credential milestones. Full evidence and the Vercel ESM compatibility setting are recorded in `Knowledge/QA/HUSTLE_CHILD_SCHEMAS_SERVERLESS_READINESS.md`.
