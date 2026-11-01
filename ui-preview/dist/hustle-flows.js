@@ -530,9 +530,9 @@ function renderProfileEdit(){
  const fields=[["Name","name",signedIn.name],["Username","handle",signedIn.handle.replace(/^@/,"")],["Location","location",signedIn.location]];
  return `${head("Edit profile","Connected test account",true)}
  <form class="hf-form" id="hfEditProfileForm">
- <div class="hf-profile-edit-avatar"><img src="${signedIn.avatar}" alt="Sample avatar"><span>Demo avatar · change in the real app</span></div>
- ${fields.map(([label,name,value])=>`<div class="hf-field"><label for="hf-edit-${name}">${label}</label><input id="hf-edit-${name}" name="${name}" value="${esc(value)}" maxlength="70" required></div>`).join("")}
- <div class="hf-field"><label for="hf-edit-bio">Bio</label><textarea id="hf-edit-bio" name="bio" maxlength="250" required>${esc(signedIn.bio)}</textarea></div>
+ <div class="hf-profile-edit-avatar"><img src="${signedIn.avatar}" alt="Your profile photo"><button type="button" data-hf="edit-photo" class="hf-soft-button">Change profile photo</button></div>
+ ${fields.map(([label,name,value])=>`<div class="hf-field"><label for="hf-edit-${name}">${label}</label><input id="hf-edit-${name}" name="${name}" value="${esc(value)}" maxlength="70" ${name==="location"?"":"required"}></div>`).join("")}
+ <div class="hf-field"><label for="hf-edit-bio">Bio</label><textarea id="hf-edit-bio" name="bio" maxlength="250">${esc(signedIn.bio)}</textarea></div>
  <button class="hf-lime-button" type="submit" style="width:100%">Save connected profile →</button>
  <p class="hf-demo-footnote">This form updates your isolated backend identity. Professional skill fields will be connected during a later milestone.</p></form>`;
 }
@@ -1004,6 +1004,7 @@ layer.addEventListener("click",e=>{
  case "profile":openProfile(id);break;
  case "own":go("OwnProfile");break;
  case "own-edit":if(!window.HustleAuth?.isSignedIn?.()){window.HustleJourneys?.open("Auth");break}push("EditProfile");break;
+ case "edit-photo":if(!window.HustleAuth?.isSignedIn?.()){window.HustleJourneys?.open("Auth");break}window.HustleJourneys?.open("Onboarding",{step:3});break;
  case "edit-discovery":if(!window.HustleAuth?.isSignedIn?.()){window.HustleJourneys?.open("Auth");break}window.HustleJourneys?.open("Onboarding",{step:4});break;
  case "own-settings":push("Settings");break;
  case "payments":if(window.HustleOperations)window.HustleOperations.open("Wallet");else push("Payments");break;
