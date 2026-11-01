@@ -137,6 +137,37 @@ async function go(){
   assert.match(signIn,/await syncHustleAccount\(\)/);
   const account=get("apps/web/app/account/page.tsx");
   assert.match(account,/stageSignOut\(\)/);
+  // Milestone 1: test the actual post-login decision helper (not a screenshot).
+  const authNext=load("apps/web/lib/auth/safe-auth-next.ts");
+  const previewAuth=load("apps/web/lib/auth/preview-auth-return.ts",{
+    "./safe-auth-next":authNext
+  });
+  const request="/bookings/new/test-service?sourcePostId=post-test";
+  assert.equal(previewAuth.previewAuthDestination(false,request),
+    "/onboarding?next="+encodeURIComponent(request));
+  assert.equal(previewAuth.previewAuthDestination(true,request),request);
+  assert.equal(previewAuth.previewAuthDestination(true,"https://malicious.example"),"/home");
+  assert.equal(previewAuth.previewAuthDestination(false,"//malicious.example"),"/onboarding");
+  assert.equal(previewAuth.previewAuthDestination(true,null),"/home");
+  const stagingSignIn=get("apps/web/app/auth/staging-sign-in.tsx");
+  assert.match(stagingSignIn,/className="authShell"/,
+    "Existing approved V1 auth visual shell must be reused");
+  assert.match(stagingSignIn,/previewAuthDestination\(account\.onboardingCompleted/,
+    "New identities must not bypass onboarding");
+  assert.match(stagingSignIn,/invalidateAuthenticatedSessionCache\(\)/);
+  assert.match(stagingSignIn,/invalidateMyAccountCache\(\)/);
+  assert.match(stagingSignIn,/minLength=\{12\}/);
+  assert.doesNotMatch(stagingSignIn,/localStorage|sessionStorage|NEXT_PUBLIC_SUPABASE_URL/);
+  assert.match(account,/invalidateAuthenticatedSessionCache\(\)/);
+  assert.match(account,/invalidateMyAccountCache\(\)/);
+  assert.equal(proxy.stagingProxyAllowed("PATCH",
+    "api/v1/auth/profile".split("/")),true,
+    "Onboarding profile edit is explicitly allowed in isolated preview");
+  assert.equal(proxy.stagingProxyAllowed("POST",
+    "api/v1/auth/profile".split("/")),false);
+  assert.equal(proxy.stagingProxyAllowed("PATCH",
+    "api/v1/auth/sync".split("/")),false);
+
   const css=get("apps/web/app/home/page.module.css");
   assert.match(css,/Observ(ed|ed) iPhone Safari/);
   assert.match(css,/\.playerColumn > :global\(\[role="alert"\]\)/);
