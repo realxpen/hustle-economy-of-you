@@ -137,9 +137,9 @@ export const adaptiveClient = {
   deliveryCase: (bookingId:string) =>
     json<AdaptiveDeliveryCase>("/bookings/"+encodeURIComponent(bookingId)+"/delivery-case"),
   openDeliveryCase: (bookingId:string,input:DeliveryStatementInput) =>
-    post<AdaptiveDeliveryCase>("/bookings/"+encodeURIComponent(bookingId)+"/delivery-case/open",input),
+    post<AdaptiveDeliveryCase>("/bookings/"+encodeURIComponent(bookingId)+"/delivery-case/open",{...input}),
   deliveryStatement: (bookingId:string,input:DeliveryStatementInput) =>
-    post<AdaptiveDeliveryCase>("/bookings/"+encodeURIComponent(bookingId)+"/delivery-case/statements",input),
+    post<AdaptiveDeliveryCase>("/bookings/"+encodeURIComponent(bookingId)+"/delivery-case/statements",{...input}),
   confirmItemReceipt: (bookingId:string,expectedRevision:number) =>
     post("/bookings/"+encodeURIComponent(bookingId)+"/confirm-item-receipt",{expectedRevision}),
   roster: (id: string) => json<AdaptiveRoster>("/workspaces/" + encodeURIComponent(id) + "/roster"),
