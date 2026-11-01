@@ -100,7 +100,7 @@ function renderSettings(){
  <button class="hf-person" data-hf="own-edit"><span class="hf-person-icon">♙</span><span class="hf-person-data"><b>Edit profile</b><small>Name, bio, skill and location</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="appearance"><span class="hf-person-icon">☾</span><span class="hf-person-data"><b>Appearance</b><small>Toggle light or dark theme</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="notifications"><span class="hf-person-icon">♧</span><span class="hf-person-data"><b>Notifications</b><small>Bookings, escrow, orders & messages</small></span><span class="hf-chevron">›</span></button>
- <button class="hf-person" data-hf="auth-start"><span class="hf-person-icon">✳</span><span class="hf-person-data"><b>Sign in or create account</b><small>Frictionless demo onboarding · no real OTP sent</small></span><span class="hf-chevron">›</span></button>
+ <button class="hf-person" data-hf="auth-start"><span class="hf-person-icon">✳</span><span class="hf-person-data"><b>${window.HustleAuth?.isSignedIn?.()?"Account session / sign out":"Sign in or create account"}</b><small>Connected isolated Hustle identity · no demo OTP</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="splash-preview"><span class="hf-person-icon">✦</span><span class="hf-person-data"><b>Preview welcome & splash</b><small>Replay the first-launch experience</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="reports"><span class="hf-person-icon">⚑</span><span class="hf-person-data"><b>My reports</b><small>Report status & safety follow-up</small></span><span class="hf-chevron">›</span></button>
  <button class="hf-person" data-hf="payments"><span class="hf-person-icon">₦</span><span class="hf-person-data"><b>Payments & earnings</b><small>Protected payments, earnings and payout overview</small></span><span class="hf-chevron">›</span></button>
@@ -527,14 +527,14 @@ function renderPostDetail(){
  <p class="hf-demo-footnote">Sample content only. Likes, comments and saves stay in this demo session.</p></div>`;
 }
 function renderProfileEdit(){
- const fields=[["Name","name",signedIn.name],["Username","handle",signedIn.handle],["Primary skill","primary",signedIn.primary],["Secondary skill","secondary",signedIn.secondary],["Location","location",signedIn.location]];
- return `${head("Edit profile","Signed-in account preview",true)}
+ const fields=[["Name","name",signedIn.name],["Username","handle",signedIn.handle.replace(/^@/,"")],["Location","location",signedIn.location]];
+ return `${head("Edit profile","Connected test account",true)}
  <form class="hf-form" id="hfEditProfileForm">
  <div class="hf-profile-edit-avatar"><img src="${signedIn.avatar}" alt="Sample avatar"><span>Demo avatar · change in the real app</span></div>
  ${fields.map(([label,name,value])=>`<div class="hf-field"><label for="hf-edit-${name}">${label}</label><input id="hf-edit-${name}" name="${name}" value="${esc(value)}" maxlength="70" required></div>`).join("")}
  <div class="hf-field"><label for="hf-edit-bio">Bio</label><textarea id="hf-edit-bio" name="bio" maxlength="250" required>${esc(signedIn.bio)}</textarea></div>
- <button class="hf-lime-button" type="submit" style="width:100%">Save demo profile →</button>
- <p class="hf-demo-footnote">This is not your real signed-in account. Changes last only while this preview is open.</p></form>`;
+ <button class="hf-lime-button" type="submit" style="width:100%">Save connected profile →</button>
+ <p class="hf-demo-footnote">This form updates your isolated backend identity. Professional skill fields will be connected during a later milestone.</p></form>`;
 }
 let mapInstance=null,mapLoadPromise=null,mapGpsMarker=null;
 const mapMarkers=new Map();
@@ -670,10 +670,10 @@ function renderOwn(){
  else {const type=state.ownTab==="Services"?"service":state.ownTab==="Products"?"product":"training";const ownItems=allItems.filter(x=>x.seller==="self"&&x.type===type);content=ownItems.length?`<div class="hf-two">${ownItems.map(listingCard).join("")}</div>`:'<div class="hf-empty">No demo '+type+' listings under your profile yet.</div><button class="hf-lime-button hf-listing-draft" data-hf="create">+ Create listing draft</button>';}
  return `<div class="hf-profile-cover hf-own-cover"><img src="${signedIn.cover}" alt="Sample profile cover"><div class="hf-profile-head"><span>HUSTLE · YOUR PROFILE</span><button data-hf="own-settings" aria-label="Profile settings">⚙</button></div></div>
  <div class="hf-profile-info"><div class="hf-profile-identity"><img src="${signedIn.avatar}" alt="Sample avatar"><div><h2>${esc(signedIn.name)}</h2><small>${esc(signedIn.handle)} · ${esc(signedIn.location)}</small></div></div>
- <p class="hf-profile-bio">${esc(signedIn.bio)}</p><div class="hf-trust"><span>Primary: ${esc(signedIn.primary)}</span><span>Secondary: ${esc(signedIn.secondary)}</span><span>Client + creator</span></div>
+ <p class="hf-profile-bio">${esc(signedIn.bio)}</p><div class="hf-trust"><span>Primary: ${esc(signedIn.primary)}</span><span>Secondary: ${esc(signedIn.secondary)}</span><span>${window.HustleAuth?.getAccount?.()?.capabilities?.some(c=>c.capability==="HUSTLER"&&c.status==="ACTIVE")?"Client + Hustler":window.HustleAuth?.isSignedIn?.()?"Client":"Capability preview"}</span></div>
  <div class="hf-profile-metrics"><span><b>${signedIn.followers}</b> sample followers</span><span><b>${signedIn.following}</b> following</span><span><b>${samplePosts.filter(p=>p.seller==="self").length}</b> sample posts</span></div>
  <div class="hf-actions"><button class="hf-lime-button" data-hf="own-edit">Edit profile</button><button class="hf-soft-button" data-hf="create">+ Post</button><button class="hf-soft-button" data-hf="notifications" aria-label="View notifications">♧ Alerts</button></div>
- <div class="hf-auth-entry"><div><b>Account journey preview</b><small>See the new sign-in & onboarding journey</small></div><button data-hf="auth-start">Get started →</button></div>
+ <div class="hf-auth-entry"><div><b>${window.HustleAuth?.isSignedIn?.()?"Connected Hustle test identity":"Sign in to create your identity"}</b><small>${window.HustleAuth?.isSignedIn?.()?"Your name and username are stored on the isolated backend":"Sample profile only until you sign in"}</small></div><button data-hf="auth-start">${window.HustleAuth?.isSignedIn?.()?"Account →":"Get started →"}</button></div>
  <div class="hf-profile-commerce"><div class="hf-section-row"><h2>Shopping & earnings</h2><small>Everything in one place</small></div>
  <div class="hf-profile-commerce-grid">
  <button data-hf="market"><span>🛍️</span><b>Marketplace</b><small>Explore offers</small></button>
@@ -682,7 +682,7 @@ function renderOwn(){
  <button data-hf="payments"><span>₦</span><b>Wallet & escrow</b><small>Fund · Milestones · Payouts</small></button>
  </div></div>
  <div class="hf-profile-commerce hf-profile-studios"><div class="hf-section-row"><h2>Workspaces</h2><small>Creator & agent tools</small></div><div class="hf-profile-commerce-grid"><button data-hf="adaptive-hub"><span>▦</span><b>My Economy</b><small>Work · Businesses · Skills</small></button><button data-hf="hustler-studio"><span>✳</span><b>Hustler Studio</b><small>Bookings · Insights</small></button><button data-hf="agent-studio"><span>♙</span><b>Agent Studio</b><small>Apply · Manage talent</small></button></div></div>
- <div class="hf-notice hf-own-notice">Preview account only. No real identity, followers, posts, or account data is connected.</div>
+ <div class="hf-notice hf-own-notice">${window.HustleAuth?.isSignedIn?.()?"Identity is connected to isolated staging. Followers, posts, services, bookings and financial values shown here remain demonstrations.":"Preview only. Sign in to connect your test account; demonstration posts and followers are not verified."}</div>
  <div class="hf-tabs" role="tablist" aria-label="Your profile sections">${tabs.map(x=>`<button data-hf="own-tab" data-value="${x}" class="${state.ownTab===x?"on":""}" role="tab" aria-selected="${state.ownTab===x}">${x}</button>`).join("")}</div>
  <div class="hf-own-tab-content">${content}</div></div>`;
 }
@@ -1003,7 +1003,7 @@ layer.addEventListener("click",e=>{
  case "map-reset":state.mapGPS=null;state.mapSelected=null;if(mapInstance)disposeMap();initializeMapAfterRender();break;
  case "profile":openProfile(id);break;
  case "own":go("OwnProfile");break;
- case "own-edit":push("EditProfile");break;
+ case "own-edit":if(!window.HustleAuth?.isSignedIn?.()){window.HustleJourneys?.open("Auth");break}push("EditProfile");break;
  case "own-settings":push("Settings");break;
  case "payments":if(window.HustleOperations)window.HustleOperations.open("Wallet");else push("Payments");break;
  case "escrow-demo":window.HustleOperations?.open("NewEscrow");break;
@@ -1120,7 +1120,7 @@ layer.addEventListener("input",e=>{
  }
  if(e.target.id==="hfInboxSearch"){state.inboxQuery=e.target.value;const active=document.activeElement;const cursor=e.target.selectionStart;render();const search=layer.querySelector("#hfInboxSearch");if(search){search.focus();search.setSelectionRange(cursor,cursor)}}
 });
-layer.addEventListener("submit",e=>{
+layer.addEventListener("submit",async e=>{
  if(e.target.id==="hfCreateForm"){e.preventDefault();submitCreate(e.target);return}
  if(e.target.id==="hfGoLiveForm"){e.preventDefault();submitGoLive(e.target);return}
  if(e.target.id==="hfLiveChatForm"){
@@ -1137,9 +1137,20 @@ layer.addEventListener("submit",e=>{
   }return;
  }
  if(e.target.id==="hfEditProfileForm"){
-  e.preventDefault();const f=e.target;
-  for(const k of ["name","handle","primary","secondary","location","bio"]){const v=f.elements.namedItem(k)?.value?.trim();if(v)signedIn[k]=v}
-  back();notify("Profile updated for this preview session");return;
+  e.preventDefault();const form=e.target;
+  if(!window.HustleAuth?.isSignedIn?.()){notify("Sign in first");window.HustleJourneys?.open("Auth");return;}
+  const btn=form.querySelector('button[type="submit"]');if(btn?.disabled)return;if(btn)btn.disabled=true;
+  try{
+   const result=await window.HustleAuth.update({displayName:form.elements.namedItem("name")?.value.trim(),
+    username:form.elements.namedItem("handle")?.value.trim().replace(/^@/,""),
+    location:form.elements.namedItem("location")?.value.trim(),
+    bio:form.elements.namedItem("bio")?.value.trim()});
+   signedIn.name=result.displayName||signedIn.name;
+   signedIn.handle=result.username?"@"+result.username:signedIn.handle;
+   signedIn.location=result.location||"";signedIn.bio=result.bio||"";
+   back();notify("Profile saved to isolated Hustle staging");
+  }catch(error){notify(error.message||"Could not save your profile");if(btn)btn.disabled=false;}
+  return;
  }
  if(e.target.id==="hfPostCommentForm"){
   e.preventDefault();const postText=e.target.elements.namedItem("comment")?.value?.trim();
@@ -1156,5 +1167,22 @@ layer.addEventListener("submit",e=>{
  t.last=message;t.when="Now";render();
  layer.querySelector(".hf-chat-input input")?.focus();
 });
-window.HustleFlowsPreview={open:(screen,params)=>push(screen,params),home,people,services,products,postIds:()=>samplePosts.map(p=>p.id),updateDemoUser:p=>{if(p){signedIn.name=p.name||signedIn.name;signedIn.handle=p.handle?"@"+p.handle.replace(/^@/,""):signedIn.handle;signedIn.primary=p.skill||signedIn.primary;signedIn.location=p.area||signedIn.location;if(state.screen==="OwnProfile")render()}}};
+window.HustleFlowsPreview={
+ open:(screen,params)=>push(screen,params),home,people,services,products,
+ postIds:()=>samplePosts.map(p=>p.id),
+ updateDemoUser:p=>{
+  if(!p)return;
+  signedIn.name=p.name||signedIn.name;
+  signedIn.handle=p.handle?"@"+p.handle.replace(/^@/,""):signedIn.handle;
+  signedIn.primary=p.skill||signedIn.primary;
+  signedIn.location=p.area||signedIn.location;
+  signedIn.bio=p.bio||signedIn.bio;
+  if(state.screen==="OwnProfile"||state.screen==="Settings")render();
+ },
+ clearIdentity:()=>{
+  signedIn.name="Your name";signedIn.handle="@yourhustle";
+  signedIn.bio="Sign in to complete your profile";signedIn.location="Lagos, Nigeria";
+  if(state.screen==="OwnProfile"||state.screen==="Settings")render();
+ }
+};
 })();

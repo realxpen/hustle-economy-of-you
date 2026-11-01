@@ -1,6 +1,6 @@
 # Hustle — UI Preview (V1 Posts + Stories)
 
-**Standalone, front-end-only interactive prototype.** This branch is intentionally isolated from the real Hustle mobile app, services, database, payments, and deployments. Do not merge it into production as an implementation.
+**Approved V1 design prototype with isolated-staging authentication connected for Milestone 1.** Feed, Stories, discovery, bookings, wallets, moderation, and commerce still use clearly marked demonstration state. The preview must never reach production accounts, financial systems, or the parent database. Do not merge this prototype into production as the full application.
 
 ## Design decisions
 - Preserve the approved V1 visual style, layout, and bottom navigation.
@@ -14,7 +14,7 @@
 
 This is a **Cloudflare Workers Builds** deployment (the build log invokes `npx wrangler deploy`), not a Pages project.
 
-The preview branch includes a root `wrangler.jsonc` with `assets.directory: "./ui-preview/dist"`. The preview is a static asset deployment and requires no application framework, backend, or database.
+The preview branch includes a root `wrangler.jsonc` with `assets.directory: "./ui-preview/dist"`. The V1 UI remains static HTML/CSS/JS. An optional same-origin Cloudflare Worker entrypoint now handles **only isolated identity/session/account calls**; no database credentials or payment adapters run in the Worker.
 
 ### Worker build settings
 1. **Verify Git branch** is `preview/hustle-v1-posts-stories`, NOT `main`.
@@ -22,7 +22,7 @@ The preview branch includes a root `wrangler.jsonc` with `assets.directory: "./u
 3. **Build command:** `exit 0`.
 4. **Deploy command:** `npx wrangler deploy --config wrangler.jsonc`. This forces Wrangler to load `ui-preview/wrangler.jsonc` instead of auto-detecting the monorepo.
 5. **Config assets directory:** `./dist` (relative to `ui-preview/wrangler.jsonc`).
-6. The Wrangler `name` is presently `hustle-ui-preview`. Cloudflare Workers Builds may require that it match the existing Worker name. If Cloudflare reports a name mismatch, use the exact Worker name in the configuration.
+6. The Wrangler `name` is now `hustle-economy-of-you` to match the founder-approved URL. Cloudflare Workers Builds may require that it match the existing Worker name. If Cloudflare reports a name mismatch, use the exact Worker name in the configuration.
 7. **Retry with latest preview branch commit.** A previous build may have checked out an old commit. Confirm current build's commit includes `ui-preview/wrangler.jsonc`. Cloudflare will provide the real `workers.dev` URL after success.
 
 **Alternate deploy command when Cloudflare root must remain empty:** `npx wrangler deploy --cwd ui-preview --config wrangler.jsonc`; keep build command `exit 0`.
@@ -45,7 +45,12 @@ If creating a genuine **Pages** project instead of **Workers**, use this branch,
 ## Security
 - Public design preview: use **fictional demonstration profiles and content only**.
 - Never add secrets, service credentials, production endpoints or personal user data.
-- The static app is UI-only; no payment, authentication, messaging, or live-video integration.
+- Only the authentication and personal profile transport uses isolated backend APIs. No real payment, booking, messaging, or live-video integration is enabled.
+- Never redeploy the live Worker without the founder-approved release gate and verification that Cloudflare Builds targets this exact branch and Worker.
 
 ## Reference
 The source preview was verified locally with an automated browser smoke check on the five ordinary posts, story navigation, Explore Stories, like, comments, carousel, and consultation interactions. The site still requires an actual Cloudflare Pages deployment before its public URL exists.
+
+## Milestone 1: connected identity (proposed)
+
+See `ui-preview/CONNECTED_AUTH_V1.md`. The **old 123456 demonstration verification is no longer a valid sign-in mechanism** in the new source. Instead, invited email/password identity flows through the Worker first-party proxy to the existing isolated test API, then saves the canonical CLIENT account and onboarding profile. Other modules remain explicitly demo content. CI is not a live deployment or human device acceptance.

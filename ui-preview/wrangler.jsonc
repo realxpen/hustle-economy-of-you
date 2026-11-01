@@ -1,8 +1,16 @@
 {
-  "name": "hustle-ui-preview",
+  "name": "hustle-economy-of-you",
+  "main": "./worker.mjs",
   "compatibility_date": "2026-10-30",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/preview/*"
+    ],
     "not_found_handling": "404-page"
+  },
+  "vars": {
+    "HUSTLE_PREVIEW_AUTH_GATE": "isolated-staging"
   }
 }

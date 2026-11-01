@@ -1,0 +1,52 @@
+name: Hustle V1 UI Preview Auth Bridge (no deployment)
+
+on:
+  pull_request:
+    paths:
+      - 'ui-preview/**'
+      - 'wrangler.jsonc'
+      - '.github/workflows/hustle-ui-preview-auth.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-auth-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check all new and affected JavaScript assets
+        run: |
+          node --check ui-preview/worker.mjs
+          node --check ui-preview/dist/hustle-auth.js
+          node --check ui-preview/dist/hustle-journeys.js
+          node --check ui-preview/dist/hustle-flows.js
+      - name: Assert same-origin auth, account ownership and no financial routes
+        run: node --test ui-preview/tests/connected-auth.test.mjs
+      - name: Preserve existing Adaptive preview domain behavior
+        run: node ui-preview/tests/adaptive-core.test.cjs
+      - name: Check exact Cloudflare Worker and static asset targets
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            import assert from "node:assert/strict";
+            for (const [file,asset,worker] of [
+              ["wrangler.jsonc","./ui-preview/dist","./ui-preview/worker.mjs"],
+              ["ui-preview/wrangler.jsonc","./dist","./worker.mjs"]
+            ]) {
+              const c=JSON.parse(fs.readFileSync(file,"utf8"));
+              assert.equal(c.name,"hustle-economy-of-you");
+              assert.equal(c.main,worker);
+              assert.equal(c.assets.directory,asset);
+              assert.equal(c.assets.binding,"ASSETS");
+              assert.deepEqual(c.assets.run_worker_first,["/api/preview/*"]);
+              assert.equal(c.vars.HUSTLE_PREVIEW_AUTH_GATE,"isolated-staging");
+              assert.equal(c.assets.not_found_handling,"404-page");
+            }
+            console.log("PASS: exact public Worker host, first-party auth-only routes and original V1 assets");
+          '

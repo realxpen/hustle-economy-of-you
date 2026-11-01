@@ -11,8 +11,8 @@ const defaults=[
 {id:"n3",type:"Activity",title:"New work from Flora Studio",detail:"See a sample creator post.",time:"1 hr",read:false,route:"Explore"},
 {id:"n4",type:"Orders",title:"Sample order status updated",detail:"Your demo order is ready to review.",time:"Yesterday",read:true,route:"PaymentJourney"},
 {id:"n5",type:"System",title:"Welcome to Hustle",detail:"Discover and connect with skilled people.",time:"Yesterday",read:true,route:"Explore"}];
-const data={notifications:defaults,reports:[],agentInvites:[],waitlists:[],onboarding:{name:"",handle:"",skill:"",secondary:"",area:"",intent:"both",notifications:false},auth:{method:"phone",contact:"",step:0},booking:{category:"barber",basePrice:8000,consultChoice:false,consultPaid:0,consultCredit:0,venue:"At the shop",people:1,fields:{},mediaName:"",slotReserved:false,customQuote:false,stage:"request",service:"Signature haircut",professional:"Tobi Adeyemi",price:8000,requirements:"",location:"",day:"Tomorrow",time:"11:30 AM",mode:"Video call",quoteAccepted:false,paymentConfirmed:false,escrowRef:null,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}],dispute:false,review:0,notes:""},purchase:{item:"Weekend meal box",price:12500,delivery:"Yaba, Lagos",method:"Card",stage:"details",status:"Not placed",reference:""},prefs:{Booking:true,Orders:true,Money:true,Activity:true,System:true}};
-const state={screen:"Splash",stack:[],guest:true,signedIn:false,user:null,authStep:"contact",otp:"",onboardStep:0,notificationFilter:"All",reportSubject:"Post",reportId:"Sample post",reportReason:"Misleading or fraudulent",reportText:"",reportFile:null,reportIdActive:null,agentStep:0,agentMode:"Existing",agentSearch:"",agentSelected:"",agentName:"",agentSkill:"",agentArea:"",agentLanguage:"English",agentHandoff:"In-person handover",agentConsent:false,agentTerms:false,agentInviteId:null,modal:"",info:""};
+const data={notifications:defaults,reports:[],agentInvites:[],waitlists:[],onboarding:{name:"",handle:"",skill:"",secondary:"",area:"",intent:"both",notifications:false},auth:{method:"email",contact:"",mode:"signin",step:0},booking:{category:"barber",basePrice:8000,consultChoice:false,consultPaid:0,consultCredit:0,venue:"At the shop",people:1,fields:{},mediaName:"",slotReserved:false,customQuote:false,stage:"request",service:"Signature haircut",professional:"Tobi Adeyemi",price:8000,requirements:"",location:"",day:"Tomorrow",time:"11:30 AM",mode:"Video call",quoteAccepted:false,paymentConfirmed:false,escrowRef:null,milestones:[{title:"Consultation & planning",fraction:.4,state:"Held"},{title:"Service delivery",fraction:.6,state:"Held"}],dispute:false,review:0,notes:""},purchase:{item:"Weekend meal box",price:12500,delivery:"Yaba, Lagos",method:"Card",stage:"details",status:"Not placed",reference:""},prefs:{Booking:true,Orders:true,Money:true,Activity:true,System:true}};
+const state={screen:"Splash",stack:[],guest:true,signedIn:false,user:null,authBusy:false,authError:"",authStep:"contact",otp:"",onboardStep:0,notificationFilter:"All",reportSubject:"Post",reportId:"Sample post",reportReason:"Misleading or fraudulent",reportText:"",reportFile:null,reportIdActive:null,agentStep:0,agentMode:"Existing",agentSearch:"",agentSelected:"",agentName:"",agentSkill:"",agentArea:"",agentLanguage:"English",agentHandoff:"In-person handover",agentConsent:false,agentTerms:false,agentInviteId:null,modal:"",info:""};
 const steps={BookingJourney:["Request","Consultation","Quote","Payment","Work","Completion","Review"],PaymentJourney:["Details","Review","Payment","Result"],AgentAdd:["Choose","Details","Consent","Invite"]};
 const visual={Booking:"◷",Money:"₦",Activity:"♥",Orders:"▣",System:"✦"};
 function renderToast(msg){const old=root.querySelector(".hj-toast");if(old)old.remove();const t=document.createElement("div");t.className="hj-toast";t.setAttribute("role","status");t.textContent=msg;root.appendChild(t);setTimeout(()=>t.remove(),2200)}
@@ -36,16 +36,16 @@ function screenContent(){
  <div class="hj-welcome-copy"><span class="hj-eyebrow">WELCOME TO THE ECONOMY OF YOU</span><h1>Your skill.<br>Your people.<br><em>Your opportunity.</em></h1><p>Discover local talent, show your work, hire trusted skills and create your own path.</p>
  ${button("Get started →","auth-start")}${button("Explore as guest","guest","secondary")}
  <small>Browsing doesn't require an account. Sign in when you want to publish, book or manage payments.</small></div></main>`;
- case "Auth":return heading("Welcome back","SIGN IN OR CREATE ACCOUNT")+`<div class="hj-page"><div class="hj-auth-brand">hustle<span>.</span></div><h2>Continue with less hassle.</h2><p class="hj-lead">One account to discover, hire and offer skills. No need to choose between client and creator.</p>
- <div class="hj-segment"><button data-hj="auth-method" data-value="phone" class="${data.auth.method==="phone"?"on":""}">Phone</button><button data-hj="auth-method" data-value="email" class="${data.auth.method==="email"?"on":""}">Email</button></div>
- ${formBody("auth",field("contact",data.auth.method==="phone"?"Phone number":"Email address",data.auth.method==="phone"?"080…":"+you@example.com",data.auth.method==="phone"?"tel":"email",data.auth.contact,'required autocomplete="'+(data.auth.method==="phone"?"tel":"email")+'"'),"Continue →")}
- <div class="hj-auth-alternatives">${button("Continue as guest","guest","outline")}</div>
- ${info("Authentication is simulated: no SMS, email, Apple or Google account is contacted. Never enter a real password here.")}
- </div>`;
- case "Verify":return heading("Verify it's you","DEMO ONE-TIME CODE")+`<div class="hj-page"><div class="hj-otp-icon">✉</div><h2>Enter the 6-digit code</h2><p class="hj-lead">Sent to <strong>${esc(data.auth.contact)}</strong> in a real app. Nothing has been sent in this demo.</p>
- ${formBody("verify",field("otp","Verification code","123456","text","",'required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"'),"Verify & continue →")}
- <p class="hj-inline-hint">Demo code: <strong>123456</strong></p>${button("Change contact","auth-start","outline")}</div>`;
- case "Onboarding":return renderOnboarding();
+ case "Auth":return state.signedIn&&state.user
+ ? heading("Your Hustle identity","CONNECTED TEST ACCOUNT")+`<div class="hj-page"><h2>You're signed in.</h2><p class="hj-lead">${esc(state.user.name)} · @${esc(state.user.handle)}</p>${button("Continue exploring","close")}${button("Sign out","sign-out","outline")}${info("Your identity is connected to the isolated Hustle backend. Posts, bookings and payments remain demonstrations.")}</div>`
+ : heading("Welcome back","SIGN IN OR CREATE ACCOUNT")+`<div class="hj-page"><div class="hj-auth-brand">hustle<span>.</span></div><h2>Continue with less hassle.</h2><p class="hj-lead">One identity to discover, hire and offer skills. Use an invited test email.</p>
+ <div class="hj-segment"><button type="button" data-hj="auth-mode" data-value="signin" class="${data.auth.mode==="signin"?"on":""}">Sign in</button><button type="button" data-hj="auth-mode" data-value="signup" class="${data.auth.mode==="signup"?"on":""}">Create account</button></div>
+ ${formBody("auth",field("contact","Email address","Invited test email","email",data.auth.contact,'required autocomplete="email"')+field("password","Test password","At least 12 characters","password","",'required minlength="12" maxlength="128" autocomplete="'+(data.auth.mode==="signup"?"new-password":"current-password")+'"'),state.authBusy?"Checking…":data.auth.mode==="signup"?"Create test account →":"Sign in →")}
+ ${state.authError?'<div role="alert" class="hj-info">'+esc(state.authError)+'</div>':""}
+ <div class="hj-auth-alternatives">${button("Explore as guest","guest","outline")}</div>
+ ${info("Connected test login · No demonstration OTP. Do not reuse a real password. Phone verification follows in a future milestone.")}</div>`;
+case "Verify":return heading("Test authentication","EMAIL SIGN-IN")+`<div class="hj-page"><p class="hj-lead">Demonstration one-time codes are not valid authentication.</p>${button("Use invited email","auth-start")}</div>`;
+  case "Onboarding":return renderOnboarding();
  case "Notifications":return renderNotifications();
  case "NotificationSettings":return renderNotificationSettings();
  case "Report":return renderReport();
@@ -63,12 +63,12 @@ function renderOnboarding(){
  const i=state.onboardStep,o=data.onboarding;
  let body="";
  if(i===0){body=`<div class="hj-select-cards">${[["both","Discover and share skills","Hire people and offer your own skills","✳"],["hire","I'm here to hire","Find creators and skilled professionals","⌕"],["offer","I'm here to offer a skill","Build a profile and get discovered","✂"]].map(([v,title,subtitle,icon])=>`<button type="button" data-hj="intent" data-value="${v}" class="${o.intent===v?"selected":""}"><span>${icon}</span><div><b>${title}</b><small>${subtitle}</small></div><i>${o.intent===v?"✓":"○"}</i></button>`).join("")}</div>`}
- else if(i===1){body=field("name","What should people call you?","Your display name","text",o.name,'required maxlength="60" autocomplete="name"')+field("handle","Choose a username (optional)","yourhandle","text",o.handle,'maxlength="25"')}
+ else if(i===1){body=field("name","What should people call you?","Your display name","text",o.name,'required maxlength="60" autocomplete="name"')+field("handle","Choose a username","yourhandle","text",o.handle,'required minlength="3" maxlength="25" pattern="[a-zA-Z0-9._]+"')}
  else if(i===2){body=field("skill","Primary skill or interest","e.g. Barbering, Fashion, Cooking","text",o.skill,'maxlength="60"')+field("area","Area (optional)","e.g. Yaba, Lagos","text",o.area,'maxlength="90"')+info("Skills and location can be changed later. Your precise location is never requested during onboarding.")}
  else{body=`<div class="hj-finish"><span>✦</span><h2>You're ready to explore.</h2><p>Follow inspiring creators, search nearby skills and begin your Hustle journey.</p></div>
- <label class="hj-check"><input name="updates" type="checkbox" ${o.notifications?"checked":""}> <span>Show me notifications about bookings and messages later (optional)</span></label>${o.intent!=="hire"?`<div class="hj-business-invite"><span>✳</span><div><b>Want customers to book your skills?</b><small>Set up a solo or team business, service prices, appointment capacity, dates, hours and consultation options.</small></div></div>${button("Set up my services →","onboard-business","secondary")}`:""}`}
- return heading("Make it yours","A FEW EASY STEPS")+`<div class="hj-page hj-onboard">${progress(["Goal","About you","Your interests","Ready"],i)}<h2>${["What brings you here?","Let's introduce you.","Find your community.","You're all set."][i]}</h2><p class="hj-lead">${["You can always do both. This just tunes the suggestions.","A name is enough to begin.","Optional now—personalize over time.","Everything can be changed in your profile."][i]}</p>
- ${formBody("onboard",body,i===3?"Enter Hustle →":"Continue →",i>0?"onboard-back":"")}${i<3?button("Skip for now","onboard-skip","link"):""}</div>`;
+ <label class="hj-check"><input name="updates" type="checkbox" ${o.notifications?"checked":""}> <span>Show me notifications about bookings and messages later (optional)</span></label>${o.intent!=="hire"?`<div class="hj-business-invite"><span>✳</span><div><b>Want customers to book your skills?</b><small>Complete your identity first. Professional verification and service setup will be connected separately.</small></div></div>`:""}`}
+ return heading("Make it yours","A FEW EASY STEPS")+`<div class="hj-page hj-onboard">${progress(["Goal","About you","Your interests","Ready"],i)}<h2>${["What brings you here?","Let's introduce you.","Find your community.","You're all set."][i]}</h2><p class="hj-lead">${["You can always do both. This just tunes the suggestions.","A name and username create your Hustle identity.","Optional now—personalize over time.","Everything can be changed in your profile."][i]}</p>
+ ${formBody("onboard",body,i===3?"Enter Hustle →":"Continue →",i>0?"onboard-back":"")}${(i===0||i===2)?button("Skip for now","onboard-skip","link"):""}</div>`;
 }
 function renderNotifications(){
  const types=["All","Booking","Money","Orders","Activity","System"],all=data.notifications.filter(n=>state.notificationFilter==="All"||n.type===state.notificationFilter);
@@ -428,11 +428,13 @@ function addNotice(type,title,detail,route){data.notifications.unshift({id:uid("
 function onAction(action,value="",id=""){
  switch(action){
  case "close":close();break;case "back":back();break;
- case "guest":state.guest=true;state.signedIn=false;data.auth.contact="";rememberIntro();close();break;
- case "auth-start":data.auth.contact="";data.auth.method="phone";go("Auth");break;
- case "auth-method":data.auth.method=value;render();break;
+ case "guest":state.guest=!window.HustleAuth?.isSignedIn?.();state.signedIn=!!window.HustleAuth?.isSignedIn?.();data.auth.contact="";rememberIntro();close();break;
+ case "auth-start":data.auth.contact="";data.auth.method="email";state.authError="";go("Auth");break;
+ case "auth-mode":data.auth.mode=value==="signup"?"signup":"signin";state.authError="";render();break;
+  case "auth-method":data.auth.method="email";render();break;
+  case "sign-out":void (async()=>{try{await window.HustleAuth.exit();state.signedIn=false;state.guest=true;state.user=null;window.HustleFlowsPreview?.clearIdentity?.();state.screen="Auth";render();}catch(e){state.authError=e.message||"Could not sign out";render();}})();break;
  case "onboard-back":state.onboardStep=Math.max(0,state.onboardStep-1);render();break;
- case "onboard-skip":state.onboardStep=Math.min(3,state.onboardStep+1);render();break;
+ case "onboard-skip":if(state.onboardStep!==1)state.onboardStep=Math.min(3,state.onboardStep+1);render();break;
  case "onboard-business":if(state.onboardStep===3)finishOnboarding(true);break;
  case "intent":data.onboarding.intent=value;render();break;
  case "notification-tab":state.notificationFilter=value;render();break;
@@ -516,26 +518,56 @@ function onAction(action,value="",id=""){
  }
  }
 }
-function finishOnboarding(openBusiness=false,form=null){
- if(form)data.onboarding.notifications=!!form.querySelector('input[name="updates"]')?.checked;
- state.signedIn=true;state.guest=false;state.user={...data.onboarding};
- window.HustleFlowsPreview?.updateDemoUser?.(state.user);
- addNotice("System","Your demo profile is ready",data.onboarding.name,"Explore");
- rememberIntro();close();
- if(openBusiness)window.HustleOperations?.open("BusinessSetup",{owner:state.user.name||"My business",skill:window.HustleBookingRules?.detect(state.user.skill||"barber")});
+function applyAccount(account){
+ if(!account)return;
+ state.guest=false;state.signedIn=true;
+ state.user={name:account.displayName||account.email||"Hustle user",
+  handle:account.username||"",area:account.location||"",bio:account.bio||""};
+ data.onboarding.name=account.displayName||"";
+ data.onboarding.handle=account.username||"";
+ data.onboarding.area=account.location||"";
+ window.HustleFlowsPreview?.updateDemoUser?.({...state.user});
 }
-function onSubmit(name,form){
- const f=new FormData(form),get=k=>String(f.get(k)||"").trim();
- if(name==="auth"){const v=get("contact");if(data.auth.method==="phone"?!/^[+0-9 ()-]{7,18}$/.test(v):!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){renderToast("Enter a valid "+data.auth.method);return}data.auth.contact=v;go("Verify");return}
- if(name==="verify"){
-  if(get("otp")!=="123456"){renderToast("For this demo, use 123456");return}
-  if(state.user){state.signedIn=true;state.guest=false;addNotice("System","Welcome back to your demo profile",state.user.name||"Creator","Explore");close();return}
-  state.onboardStep=0;go("Onboarding");return
+async function finishOnboarding(openBusiness=false,form=null){
+ if(state.authBusy)return;
+ if(!data.onboarding.name.trim()||!/^[a-zA-Z0-9._]{3,25}$/.test(data.onboarding.handle.trim())){
+  state.onboardStep=1;renderToast("Choose your name and a valid username");render();return;
  }
- if(name==="onboard"){const i=state.onboardStep;
+ state.authBusy=true;
+ try{
+  const account=await window.HustleAuth.update({
+   displayName:data.onboarding.name.trim(),username:data.onboarding.handle.trim(),
+   location:data.onboarding.area.trim(),bio:""
+  });
+  applyAccount(account);rememberIntro();close();
+  if(openBusiness)renderToast("Professional verification will be integrated separately.");
+ }catch(e){renderToast(e.message||"Could not save your profile");}
+ finally{state.authBusy=false;}
+}
+async function onSubmit(name,form){
+ const f=new FormData(form),get=k=>String(f.get(k)||"").trim();
+ if(name==="auth"){
+ if(state.authBusy)return;
+ const email=get("contact"),password=get("password");
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<12){
+  state.authError="Use an invited email and a test password of at least 12 characters.";render();return;
+ }
+ state.authBusy=true;state.authError="";data.auth.contact=email;
+ try{
+  const account=await window.HustleAuth.enter(email,password,data.auth.mode==="signup");
+  if(!account)throw new Error("Test account could not be synchronized");
+  applyAccount(account);
+  if(!account.onboardingCompleted){state.onboardStep=0;go("Onboarding");}
+  else{rememberIntro();close();}
+ }catch(e){state.authError=e.message||"Could not sign in";render();}
+ finally{state.authBusy=false;}
+ return;
+}
+if(name==="verify"){state.screen="Auth";render();return;}
+if(name==="onboard"){const i=state.onboardStep;
  if(i===1){data.onboarding.name=get("name");data.onboarding.handle=get("handle");if(!data.onboarding.name){renderToast("A display name is needed");return}}
  if(i===2){data.onboarding.skill=get("skill");data.onboarding.area=get("area")}
- if(i===3){finishOnboarding(false,form);return}
+ if(i===3){await finishOnboarding(false,form);return}
  state.onboardStep++;render();return}
  if(name==="report"){state.reportReason=get("reason");state.reportText=get("reportDetails");state.modal="report-confirm";render();return}
  if(name==="booking-request"){const b=data.booking,p=policyFor();b.fields={};for(const [key] of p.fields)b.fields[key]=get(key);
@@ -570,4 +602,7 @@ function updateReportStatus(id,status){
 }
 window.HustleJourneys={open,close,notify:addNotice,updateProfessionalJob,showExistingBooking,getFulfillmentJob:()=>{const b=data.booking,p=policyFor();return p.jobFulfillment?{stage:b.stage,professional:b.professional,service:b.service,status:b.jobStatus||"awaiting_handoff",returnMethod:b.returnMethod,readyDate:b.readyDate,readyTime:b.readyTime,day:b.day,paid:!!b.paymentConfirmed,intake:b.intake,measurementMethod:b.measurementMethod}:null},updateReportStatus,getState:()=>({screen:state.screen,guest:state.guest,signedIn:state.signedIn,user:state.user,booking:{stage:data.booking.stage,milestones:data.booking.milestones.map(x=>x.state),dispute:data.booking.dispute},payment:{stage:data.purchase.stage,status:data.purchase.status},reports:data.reports.map(x=>({id:x.id,status:x.status})),agentInvites:data.agentInvites.map(x=>({name:x.name,status:x.status})),notifications:data.notifications.map(x=>({id:x.id,read:x.read}))}),_test:{data,state,onAction,onSubmit,render}};
 if(!introSeen())open("Splash");
+void window.HustleAuth?.current?.().then(account=>{if(!account)return;applyAccount(account);
+ if(!account.onboardingCompleted){state.onboardStep=0;open("Onboarding");}
+}).catch(()=>{/* Network failures never imply a signed-in identity. */});
 })();
