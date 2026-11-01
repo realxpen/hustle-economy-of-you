@@ -83,10 +83,17 @@ export default {async fetch(req,env){
     !/^[a-z0-9._]{3,30}$/.test(input.username.toLowerCase())||
     (input.bio!==undefined&&typeof input.bio!=="string")||
     (input.location!==undefined&&typeof input.location!=="string")||
-    (input.bio?.length||0)>300||(input.location?.length||0)>120)
+    (input.bio?.length||0)>300||(input.location?.length||0)>120||
+    (input.primarySkill!==undefined && (typeof input.primarySkill!=="string"||input.primarySkill.length>80))||
+    (input.interests!==undefined && (!Array.isArray(input.interests)||input.interests.length>10||
+      input.interests.some(v=>typeof v!=="string"||v.trim().length<2||v.trim().length>50)||
+      new Set(input.interests.map(v=>v.trim().toLowerCase())).size!==input.interests.length)))
    return send({message:"Name and a valid username are required"},400);
   body={displayName:input.displayName.trim(),username:input.username.trim().toLowerCase(),
-    location:(input.location||"").trim(),bio:(input.bio||"").trim()};
+    ...(input.location!==undefined?{location:input.location.trim()}:{}),
+    ...(input.bio!==undefined?{bio:input.bio.trim()}:{}),
+    ...(input.primarySkill!==undefined?{primarySkill:input.primarySkill.trim()}:{}),
+    ...(input.interests!==undefined?{interests:input.interests.map(v=>v.trim())}:{})};
  }
  const result=await upstream(paths.get(route),{method:req.method,cookie:cookies(req),token:identity.token,body});
  if(result.error)return send({message:result.error},result.status);
