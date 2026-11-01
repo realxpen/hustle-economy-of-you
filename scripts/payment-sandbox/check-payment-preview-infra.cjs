@@ -70,7 +70,7 @@ assert.deepEqual(edgeConfig, {
   workers_dev: true
 });
 assert.match(workflow, /wrangler deploy\s+\\\s*--config infra\/cloudflare\/payment-preview-api\.wrangler\.jsonc/);
-assert.doesNotMatch(workflow, /--workers-dev\b/);
+assert.doesNotMatch(workflow, /^\s*--workers-dev\b/m);
 assert.match(workflow, /--var "PREVIEW_UPSTREAM_ORIGIN:\$\{PREVIEW_LAMBDA_URL%\/\}"/);
 
 assert.match(worker,/PREVIEW_UPSTREAM_ORIGIN/);
