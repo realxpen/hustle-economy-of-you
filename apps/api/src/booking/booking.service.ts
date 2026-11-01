@@ -202,8 +202,6 @@ export class BookingService {
         currency: true,
         pricingType: true,
         bookingMode: true,
-        adaptiveDraft: process.env.HUSTLE_ADAPTIVE_CORE_ENABLED==="true"?
-          {select:{workspaceId:true,workspace:{select:{rosterEnabled:true}}}}:false,
         professionalProfile: {
           select: { userId: true }
         }
@@ -216,8 +214,12 @@ export class BookingService {
       throw new BadRequestException("Service must have a concrete price before it can be booked");
     }
 
+    const groupSpace=peopleCount>1?await this.prisma.adaptiveServiceDraft.findUnique({
+      where:{canonicalServiceId:service.id},
+      select:{workspaceId:true,workspace:{select:{rosterEnabled:true}}}
+    }):null;
     if(peopleCount>1 && (service.bookingMode!==BookingOperationMode.APPOINTMENT||
-       !service.adaptiveDraft?.workspace.rosterEnabled))
+       !groupSpace?.workspace.rosterEnabled))
       throw new BadRequestException("Group bookings require a roster-managed appointment service");
     const hustlerUserId = service.professionalProfile.userId;
     if (client.id === hustlerUserId) {
@@ -264,7 +266,7 @@ export class BookingService {
       });
       if(peopleCount>1){
         await tx.adaptiveGroupBooking.create({data:{
-          bookingId:created.id,workspaceId:service.adaptiveDraft!.workspaceId,peopleCount
+          bookingId:created.id,workspaceId:groupSpace!.workspaceId,peopleCount
         }});
       }
       await this.notifications.recordBookingStatus(tx, created, BookingStatus.REQUESTED, client.id);
