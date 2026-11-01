@@ -46,7 +46,7 @@ export type AdaptiveBookingOperation = {
 export type AdaptiveStaffingAlert = {
   bookingId:string;serviceTitle:string;bookingStatus:string;
   confirmedStartAt:string;confirmedEndAt:string|null;
-  reason:"UNASSIGNED"|"WORKER_INACTIVE"|"SHIFT_OR_LEAVE_CONFLICT"|"CAPACITY_CONFLICT";
+  reason:"UNASSIGNED"|"WORKER_INACTIVE"|"SHIFT_OR_LEAVE_CONFLICT"|"GROUP_UNDERSTAFFED"|"CAPACITY_CONFLICT";
   capacityConflict:boolean;capacity:number;capacityReason:string|null;
   staffId:string|null;staffName:string|null;expectedRevision:number|null;
 };
@@ -55,6 +55,7 @@ export type AdaptiveWorkspaceBooking = {
  id:string;serviceTitleSnapshot:string;status:string;agreedPriceMinor:number;requestedStartAt:string;confirmedStartAt:string|null;
  client:{displayName:string|null;username:string|null};service:{bookingMode:string};
  adaptiveAssignment:{revision:number;staffId:string;staff:{displayName:string}}|null;
+ adaptiveGroup:{peopleCount:number;revision:number;assignments:{staffId:string;staff:{displayName:string}}[]}|null;
  adaptiveItemFulfillment:{revision:number;status:AdaptiveItemStage;intakeMethod:string;returnMethod:string;estimatedReadyAt:string|null;clientConfirmedAt:string|null}|null;
 };
 export type AdaptiveInvitation = {
@@ -107,6 +108,12 @@ export const adaptiveClient = {
   chooseHandover: (bookingId:string,intakeMethod:string,returnMethod:string,expectedRevision?:number) =>
     post("/bookings/"+encodeURIComponent(bookingId)+"/handover",
       {intakeMethod,returnMethod,...(expectedRevision===undefined?{}:{expectedRevision})}),
+  groupInfo: (bookingId:string)=>json<{group:null|{peopleCount:number;revision:number;workspaceId:string;
+    assignments:{staffId:string;displayName:string;active:boolean}[]}}>("/bookings/"+encodeURIComponent(bookingId)+"/group"),
+  assignGroup: (spaceId:string,bookingId:string,staffIds:string[],expectedRevision:number)=>
+    post<{peopleCount:number;revision:number;staffIds:string[]}>(
+      "/workspaces/"+encodeURIComponent(spaceId)+"/bookings/"+encodeURIComponent(bookingId)+"/group-staff",
+      {staffIds,expectedRevision}),
   assignWorker: (spaceId:string,bookingId:string,staffId:string,expectedRevision?:number) =>
     post("/workspaces/"+encodeURIComponent(spaceId)+"/bookings/"+encodeURIComponent(bookingId)+"/assign",
       {staffId,...(expectedRevision===undefined?{}:{expectedRevision})}),
