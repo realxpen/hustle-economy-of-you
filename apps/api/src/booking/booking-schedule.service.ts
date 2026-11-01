@@ -208,6 +208,11 @@ export class BookingScheduleService {
         })
       : null;
     const roster = linked?.workspace;
+    if(requestedUnits>1 && !roster?.rosterEnabled){
+      return {available:false,mode:service.bookingMode,startAt,endAt,capacity:0,
+        remainingCapacity:0,overbooking:false,turnaroundHours:service.turnaroundHours,
+        reason:"Group booking is unavailable while business staff rosters are disabled"};
+    }
     const staffed = roster?.rosterEnabled
       ? rosterCapacity(roster.staff, roster.stationCapacity, candidateStart, candidateEnd, service.bookingTimezone)
       : null;
