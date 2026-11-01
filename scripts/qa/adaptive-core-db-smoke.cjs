@@ -17,7 +17,7 @@ process.env.HUSTLE_ADAPTIVE_CORE_ENABLED="true";
 const db=new PrismaClient();
 const api=new AdaptiveService(db);
 const roster=new AdaptiveRosterService(db),schedule=new BookingScheduleService(db);
-const ops=new AdaptiveBookingOpsService(db);
+const ops=new AdaptiveBookingOpsService(db,schedule);
 const id=(subject)=>({subject,emailVerified:true,phoneVerified:true});
 const expectForbidden=async(promise,code=403)=>{
  await assert.rejects(promise,error=>typeof error?.getStatus==="function"&&error.getStatus()===code);
@@ -222,6 +222,28 @@ async function run(){
  }});
  await expectForbidden(ops.assign(own,business.id,second.id,{staffId:worker1.id}),409);
  assert.equal((await ops.assign(own,business.id,second.id,{staffId:worker2.id})).staffId,worker2.id);
+ // Both assigned workers remain eligible, but one broken chair now leaves
+ // two overlapping reservations competing for one physical station.
+ assert.equal((await ops.staffingAlerts(own,business.id)).items.some(x=>x.capacityConflict),false);
+ await roster.settings(own,business.id,{stationCapacity:1,rosterEnabled:true});
+ const chairAlerts=await ops.staffingAlerts(own,business.id);
+ for(const bookingId of [accepted.id,second.id]){
+  const alert=chairAlerts.items.find(x=>x.bookingId===bookingId);
+  assert.equal(alert.reason,"CAPACITY_CONFLICT");
+  assert.equal(alert.capacity,1);
+  assert.equal((await db.booking.findUniqueOrThrow({where:{id:bookingId}})).status,"ACCEPTED");
+ }
+ await roster.settings(own,business.id,{stationCapacity:2,rosterEnabled:true});
+ assert.equal((await ops.staffingAlerts(own,business.id)).items.some(x=>x.capacityConflict),false);
+ // A scheduler can review operational bookings but cannot progress item work.
+ const schedulingInvite=await api.invite(own,business.id,{
+  username:"adaptiveagent",role:"ASSISTANT",permissions:["schedule.manage"]});
+ await api.respond(member,schedulingInvite.id,true);
+ assert.ok((await ops.workspaceBookings(member,business.id)).some(x=>x.id===accepted.id));
+ await ops.staffingAlerts(member,business.id);
+ await expectForbidden(ops.itemProgress(member,business.id,accepted.id,{to:"RECEIVED",expectedRevision:1}));
+ await api.revoke(own,business.id,schedulingInvite.id);
+ await expectForbidden(ops.workspaceBookings(member,business.id));
  // A future-day break invalidates the previously usable shift without
  // silently cancelling or refunding an accepted booking.
  const later=new Date(Date.now()+12*86400000).toISOString().slice(0,10);
@@ -391,6 +413,22 @@ async function run(){
  assert.equal((await db.order.findUnique({where:{id:order.id}})).status,"PENDING");
  const agentHub=await api.workHub(member);
  assert.equal(agentHub.items.some(x=>x.id==="booking:"+booking.id),false,"agent is not a direct booking party");
+ // Review pagination never silently drops bookings beyond the first page.
+ const pageFixtures=Array.from({length:52},(_,i)=>({
+  id:"adaptive-page-"+String(i).padStart(3,"0"),serviceId:salonPrepared.serviceId,
+  clientUserId:outsider.id,hustlerUserId:owner.id,
+  requestedStartAt:thirdStart,confirmedStartAt:thirdStart,confirmedEndAt:thirdEnd,
+  status:"ACCEPTED",requirements:"Pagination fixture",serviceTitleSnapshot:"Pagination appointment",
+  agreedPriceMinor:0,pricingTypeSnapshot:"FIXED"
+ }));
+ await db.booking.createMany({data:pageFixtures});
+ const seen=new Set();let cursor;
+ do{
+  const page=await ops.staffingAlerts(own,business.id,cursor);
+  for(const alert of page.items){assert.equal(seen.has(alert.bookingId),false);seen.add(alert.bookingId);}
+  cursor=page.nextCursor;
+ }while(cursor);
+ assert.ok(pageFixtures.every(x=>seen.has(x.id)),"every paged reservation is reviewable");
  process.stdout.write("Adaptive disposable Postgres: workspace, consent, revocation, CAS, legacy work isolation PASS\n");
 }
 run().catch(e=>{process.stderr.write(String(e.stack||e)+"\n");process.exitCode=1}).finally(()=>db.$disconnect());

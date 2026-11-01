@@ -226,8 +226,8 @@ export default function EconomyPage() {
           </section>
         </>}
         {tab === "Work" && <>
-          {selected && active?.workspace.kind !== "PERSONAL" && (owner || active?.permissions.includes("work.manage")) && <BookingOperations
-            workspaceId={selected} canManageWork={!!(owner || active?.permissions.includes("work.manage"))}
+          {selected && active?.workspace.kind !== "PERSONAL" && (owner || active?.permissions.includes("work.manage") || active?.permissions.includes("schedule.manage")) && <BookingOperations
+            key={selected} workspaceId={selected} canManageWork={!!(owner || active?.permissions.includes("work.manage"))}
             canSchedule={!!(owner || active?.permissions.includes("schedule.manage"))}/>}
           <section className={styles.card}>
             <h2>One hub for existing work</h2>

@@ -29,7 +29,7 @@ test("New work links existing booking/order without duplicating financial ledger
 test("Actor identity derives from existing AuthGuard and User.authSubject",()=>{
   assert.match(ctrl,/@UseGuards\(AuthGuard, AdaptiveFeatureGuard\)/);
   assert.match(service,/where:\s*\{\s*authSubject:\s*identity\.subject/);
-  assert.match(moduleSource,/imports:\s*\[AuthModule\]/);
+  assert.match(moduleSource,/imports:\s*\[AuthModule(?:,\s*BookingModule)?\]/);
 });
 test("Adaptive routes fail closed without independent feature flag",()=>{
   assert.match(guard,/process\.env\.HUSTLE_ADAPTIVE_CORE_ENABLED !== "true"/);

@@ -229,6 +229,18 @@ export class BookingScheduleService {
     };
   }
 
+  /** Internal read-only review of an already reserved appointment.
+   * Caller must authorize access; this is deliberately not a public route.
+   * Exclude the appointment itself, then ask whether its reservation still fits.
+   */
+  async reviewReservation(db: Db, booking: {
+    id: string; serviceId: string; confirmedStartAt: Date; confirmedEndAt: Date | null;
+  }) {
+    const service = await this.loadService(db, booking.serviceId);
+    return this.availabilityForService(db, service, booking.confirmedStartAt,
+      booking.confirmedEndAt, booking.id, true);
+  }
+
   async checkAvailability(
     identity: AuthIdentity | null,
     input: { serviceId?: unknown; startAt?: unknown; endAt?: unknown }
