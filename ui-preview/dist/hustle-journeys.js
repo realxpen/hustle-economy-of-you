@@ -63,12 +63,12 @@ function renderOnboarding(){
  const i=state.onboardStep,o=data.onboarding;
  let body="";
  if(i===0){body=`<div class="hj-select-cards">${[["both","Discover and share skills","Hire people and offer your own skills","✳"],["hire","I'm here to hire","Find creators and skilled professionals","⌕"],["offer","I'm here to offer a skill","Build a profile and get discovered","✂"]].map(([v,title,subtitle,icon])=>`<button type="button" data-hj="intent" data-value="${v}" class="${o.intent===v?"selected":""}"><span>${icon}</span><div><b>${title}</b><small>${subtitle}</small></div><i>${o.intent===v?"✓":"○"}</i></button>`).join("")}</div>`}
- else if(i===1){body=field("name","What should people call you?","Your display name","text",o.name,'required maxlength="60" autocomplete="name"')+field("handle","Choose a username (optional)","yourhandle","text",o.handle,'maxlength="25"')}
+ else if(i===1){body=field("name","What should people call you?","Your display name","text",o.name,'required maxlength="60" autocomplete="name"')+field("handle","Choose a username","yourhandle","text",o.handle,'required minlength="3" maxlength="25" pattern="[a-zA-Z0-9._]+"')}
  else if(i===2){body=field("skill","Primary skill or interest","e.g. Barbering, Fashion, Cooking","text",o.skill,'maxlength="60"')+field("area","Area (optional)","e.g. Yaba, Lagos","text",o.area,'maxlength="90"')+info("Skills and location can be changed later. Your precise location is never requested during onboarding.")}
  else{body=`<div class="hj-finish"><span>✦</span><h2>You're ready to explore.</h2><p>Follow inspiring creators, search nearby skills and begin your Hustle journey.</p></div>
- <label class="hj-check"><input name="updates" type="checkbox" ${o.notifications?"checked":""}> <span>Show me notifications about bookings and messages later (optional)</span></label>${o.intent!=="hire"?`<div class="hj-business-invite"><span>✳</span><div><b>Want customers to book your skills?</b><small>Set up a solo or team business, service prices, appointment capacity, dates, hours and consultation options.</small></div></div>${button("Set up my services →","onboard-business","secondary")}`:""}`}
- return heading("Make it yours","A FEW EASY STEPS")+`<div class="hj-page hj-onboard">${progress(["Goal","About you","Your interests","Ready"],i)}<h2>${["What brings you here?","Let's introduce you.","Find your community.","You're all set."][i]}</h2><p class="hj-lead">${["You can always do both. This just tunes the suggestions.","A name is enough to begin.","Optional now—personalize over time.","Everything can be changed in your profile."][i]}</p>
- ${formBody("onboard",body,i===3?"Enter Hustle →":"Continue →",i>0?"onboard-back":"")}${i<3?button("Skip for now","onboard-skip","link"):""}</div>`;
+ <label class="hj-check"><input name="updates" type="checkbox" ${o.notifications?"checked":""}> <span>Show me notifications about bookings and messages later (optional)</span></label>${o.intent!=="hire"?`<div class="hj-business-invite"><span>✳</span><div><b>Want customers to book your skills?</b><small>Complete your identity first. Professional verification and service setup will be connected separately.</small></div></div>`:""}`}
+ return heading("Make it yours","A FEW EASY STEPS")+`<div class="hj-page hj-onboard">${progress(["Goal","About you","Your interests","Ready"],i)}<h2>${["What brings you here?","Let's introduce you.","Find your community.","You're all set."][i]}</h2><p class="hj-lead">${["You can always do both. This just tunes the suggestions.","A name and username create your Hustle identity.","Optional now—personalize over time.","Everything can be changed in your profile."][i]}</p>
+ ${formBody("onboard",body,i===3?"Enter Hustle →":"Continue →",i>0?"onboard-back":"")}${(i===0||i===2)?button("Skip for now","onboard-skip","link"):""}</div>`;
 }
 function renderNotifications(){
  const types=["All","Booking","Money","Orders","Activity","System"],all=data.notifications.filter(n=>state.notificationFilter==="All"||n.type===state.notificationFilter);
@@ -428,11 +428,13 @@ function addNotice(type,title,detail,route){data.notifications.unshift({id:uid("
 function onAction(action,value="",id=""){
  switch(action){
  case "close":close();break;case "back":back();break;
- case "guest":state.guest=true;state.signedIn=false;data.auth.contact="";rememberIntro();close();break;
- case "auth-start":data.auth.contact="";data.auth.method="phone";go("Auth");break;
- case "auth-method":data.auth.method=value;render();break;
+ case "guest":state.guest=!window.HustleAuth?.isSignedIn?.();state.signedIn=!!window.HustleAuth?.isSignedIn?.();data.auth.contact="";rememberIntro();close();break;
+ case "auth-start":data.auth.contact="";data.auth.method="email";state.authError="";go("Auth");break;
+ case "auth-mode":data.auth.mode=value==="signup"?"signup":"signin";state.authError="";render();break;
+  case "auth-method":data.auth.method="email";render();break;
+  case "sign-out":void (async()=>{try{await window.HustleAuth.exit();state.signedIn=false;state.guest=true;state.user=null;window.HustleFlowsPreview?.clearIdentity?.();state.screen="Auth";render();}catch(e){state.authError=e.message||"Could not sign out";render();}})();break;
  case "onboard-back":state.onboardStep=Math.max(0,state.onboardStep-1);render();break;
- case "onboard-skip":state.onboardStep=Math.min(3,state.onboardStep+1);render();break;
+ case "onboard-skip":if(state.onboardStep!==1)state.onboardStep=Math.min(3,state.onboardStep+1);render();break;
  case "onboard-business":if(state.onboardStep===3)finishOnboarding(true);break;
  case "intent":data.onboarding.intent=value;render();break;
  case "notification-tab":state.notificationFilter=value;render();break;
