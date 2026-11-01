@@ -58,6 +58,21 @@ assert.doesNotMatch(workflow,/^  push:|^  pull_request:|^  schedule:/m);
 assert.doesNotMatch(workflow,/hustle-isolated-lambda-staging|hustle-isolated-staging-api@sha256/);
 assert.doesNotMatch(workflow,/ecr-public get-login-password/);
 
+
+// UX050: Wrangler 4 does not accept --workers-dev on the CLI. The isolated
+// config explicitly enables only this Worker on its own workers.dev route.
+const edgeConfig = JSON.parse(fs.readFileSync(
+  "infra/cloudflare/payment-preview-api.wrangler.jsonc", "utf8"));
+assert.deepEqual(edgeConfig, {
+  name: "hustle-payment-preview-api",
+  main: "./payment-preview-api-worker.mjs",
+  compatibility_date: "2026-10-31",
+  workers_dev: true
+});
+assert.match(workflow, /wrangler deploy\s+\\\s*--config infra\/cloudflare\/payment-preview-api\.wrangler\.jsonc/);
+assert.doesNotMatch(workflow, /--workers-dev\b/);
+assert.match(workflow, /--var "PREVIEW_UPSTREAM_ORIGIN:\$\{PREVIEW_LAMBDA_URL%\/\}"/);
+
 assert.match(worker,/PREVIEW_UPSTREAM_ORIGIN/);
 assert.match(worker,/headers = new Headers\(request.headers\)/);
 console.log("PASS: isolated AWS preview stack, immutable image, dedicated identity, manual-only guarded release and separate Cloudflare edge; no deployment.");
