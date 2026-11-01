@@ -81,6 +81,7 @@ test("Backend schema stores interests separately without changing capabilities o
 });
 test("V1 onboarding has six distinct steps, server persistence and no silent GPS",()=>{
  const journey=source("../dist/hustle-journeys.js");
+ const auth=source("../dist/hustle-auth.js");
  const html=source("../dist/index.html");
  const flows=source("../dist/hustle-flows.js");
  assert.ok(html.indexOf("hustle-onboarding-pickers.js")<html.indexOf("hustle-onboarding-ui.js"));
@@ -92,6 +93,8 @@ test("V1 onboarding has six distinct steps, server persistence and no silent GPS
  assert.match(journey,/primarySkill:data\.onboarding\.skill/);
  assert.match(journey,/interests:data\.onboarding\.interests/);
  assert.match(journey,/window\.HustleAuth\.update/);
+ assert.match(auth,/JSON.stringify\(updated.interests\)!==JSON.stringify\(input.interests\)/);
+ assert.match(auth,/older hosted APIs/i);
  assert.match(journey,/case "area-geolocate"/);
  assert.match(journey,/navigator\.geolocation\.getCurrentPosition/);
  assert.doesNotMatch(journey,/navigator\.geolocation\.watchPosition/);
