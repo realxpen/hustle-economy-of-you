@@ -1175,7 +1175,7 @@ window.HustleFlowsPreview={
   if(!p)return;
   signedIn.name=p.name||signedIn.name;
   signedIn.handle=p.handle?"@"+p.handle.replace(/^@/,""):signedIn.handle;
-  signedIn.primary=p.skill||signedIn.primary;
+  signedIn.primary=p.skill===undefined?signedIn.primary:(p.skill||"Add a primary skill");
   signedIn.location=p.area||signedIn.location;
   signedIn.bio=p.bio||signedIn.bio;
   signedIn.interests=Array.isArray(p.interests)?p.interests.slice(0,10):signedIn.interests;
