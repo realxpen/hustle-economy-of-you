@@ -1167,5 +1167,22 @@ layer.addEventListener("submit",async e=>{
  t.last=message;t.when="Now";render();
  layer.querySelector(".hf-chat-input input")?.focus();
 });
-window.HustleFlowsPreview={open:(screen,params)=>push(screen,params),home,people,services,products,postIds:()=>samplePosts.map(p=>p.id),updateDemoUser:p=>{if(p){signedIn.name=p.name||signedIn.name;signedIn.handle=p.handle?"@"+p.handle.replace(/^@/,""):signedIn.handle;signedIn.primary=p.skill||signedIn.primary;signedIn.location=p.area||signedIn.location;if(state.screen==="OwnProfile")render()}}};
+window.HustleFlowsPreview={
+ open:(screen,params)=>push(screen,params),home,people,services,products,
+ postIds:()=>samplePosts.map(p=>p.id),
+ updateDemoUser:p=>{
+  if(!p)return;
+  signedIn.name=p.name||signedIn.name;
+  signedIn.handle=p.handle?"@"+p.handle.replace(/^@/,""):signedIn.handle;
+  signedIn.primary=p.skill||signedIn.primary;
+  signedIn.location=p.area||signedIn.location;
+  signedIn.bio=p.bio||signedIn.bio;
+  if(state.screen==="OwnProfile"||state.screen==="Settings")render();
+ },
+ clearIdentity:()=>{
+  signedIn.name="Your name";signedIn.handle="@yourhustle";
+  signedIn.bio="Sign in to complete your profile";signedIn.location="Lagos, Nigeria";
+  if(state.screen==="OwnProfile"||state.screen==="Settings")render();
+ }
+};
 })();
